@@ -60,9 +60,11 @@ export function transitionSubmission(input: SubmissionState, id: string, operati
   for (const s of before) for (const e of appliedEntries(s)) if (!bases.has(e.activityId) && s.weekStart >= addDays(weekStart(now.toLocaleDateString('en-CA', { timeZone: REPORTING_TIMEZONE })), -7)) bases.set(e.activityId, { progress: e.previous, remark: e.previousRemark ?? '' })
   if (operation === 'confirm') {
     if (submission.status !== 'draft') throw new Error('This update is already confirmed.')
-    validateEntries(submission.entries, project, submission.handler)
+    // Work assigned after this draft was saved joins as unchanged, so a late assignment never dead-ends a confirmation.
     const assigned = project.filter((a) => canUpdate(a, submission.handler) && a.wbs !== 'GR&P')
-    if (assigned.some((a) => !submission.entries.some((e) => e.activityId === a.id))) throw new Error('Assignments changed. Reload your activities before confirming.')
+    const recorded = new Set(submission.entries.map((e) => e.activityId))
+    for (const a of assigned) if (!recorded.has(a.id)) submission.entries.push({ activityId: a.id, previous: a.progress, progress: a.progress, remark: a.remark, baseRevision: a.updatedAt })
+    validateEntries(submission.entries, project, submission.handler)
     for (const e of submission.entries) {
       const a = project.find((a) => a.id === e.activityId)!
       if (a.wbs === 'GR&P' && (a.updatedAt ?? '') !== (e.baseRevision ?? '')) throw new Error('GR&P changed in another update. Reload it before confirming.')

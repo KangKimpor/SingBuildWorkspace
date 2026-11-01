@@ -89,6 +89,21 @@ test('all handlers may edit shared GR&P; stale shared changes and foreign activi
   expect(() => transitionSubmission(s, id, 'confirm', 'actor', now)).toThrow('only your activities')
 })
 
+test('an activity assigned after the draft was saved joins as unchanged instead of blocking confirmation', () => {
+  const start = initial(), id = start.submissions[0]!.id
+  const late = { ...start.activities[3]!, id: 'nbc:1.6.1.9', wbs: '1.6.1.9', name: 'Late assignment', progress: .4, baseline: .4 }
+  start.activities.push(late)
+  const s = transitionSubmission(start, id, 'confirm', 'actor', now)
+  expect(s.submissions[0]!.status).toBe('confirmed')
+  expect(s.submissions[0]!.entries.find((e) => e.activityId === late.id)).toMatchObject({ previous: .4, progress: .4 })
+  expect(s.activities.find((a) => a.id === late.id)!.progress).toBe(.4)
+  expect(s.activities[3]!.progress).toBe(.5)
+  // A later reopen keeps the backfilled row, so reconfirming cannot regress either.
+  const again = transitionSubmission(s, id, 'reopen', 'actor', now)
+  expect(again.submissions[0]!.entries.some((e) => e.activityId === late.id)).toBe(true)
+  expect(() => transitionSubmission(again, id, 'confirm', 'actor', now)).not.toThrow()
+})
+
 test('unconfirmed current drafts are re-chained and the late flag flips at Saturday noon', () => {
   let s = initial(), last = draft('Tola', addDays(week, -7), .4)
   s.submissions.push(last)

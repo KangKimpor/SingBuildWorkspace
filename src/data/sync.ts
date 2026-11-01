@@ -303,9 +303,9 @@ function applyRow(collection: CloudCollection, row: Row | null, id: string) {
     applyRemotePatch({ [collection]: list })
   }
 }
-async function pullCloud(scope: string, current: number) {
+async function pullCloud(scope: string, current: number, only: CloudCollection[] = [...collections, 'profiles']) {
   // ponytail: reconcile snapshots; use row deltas if workspace size makes this slow.
-  for (const collection of [...collections, 'profiles'] as CloudCollection[]) {
+  for (const collection of only) {
     // Older deployments and ordinary projects do not need the NBC tables.
     if (collection.startsWith('nbc_') && !useWorkspace.getState().projects.some((p) => p.nbcBp03)) continue
     const rows: Row[] = []
@@ -332,6 +332,28 @@ async function pullCloud(scope: string, current: number) {
     }
   }
   hydrated = true
+}
+
+/**
+ * Re-read only the named collections after a server-side operation.
+ *
+ * A confirmation writes one submission, its activities and two summaries. Pulling
+ * the whole workspace for that costs a request per collection (plus a second page
+ * for a large BOQ), which is what made Confirm/Edit/Delete feel slow.
+ */
+export async function refreshCollections(names: Collection[]): Promise<void> {
+  if (!supabase || !useAccount.getState().session || useWorkspace.getState().scope === 'guest') return
+  await syncWorkspace(false)
+  if (activeRun) await activeRun
+  if (!hydrated) { await syncWorkspace(); return }
+  if (!navigator.onLine) return
+  const current = generation, scope = useWorkspace.getState().scope
+  activeRun = (async () => {
+    try { await pullCloud(scope, current, [...names, 'profiles'] as CloudCollection[]) }
+    catch { /* The next scheduled sync retries with the full workspace. */ }
+    finally { activeRun = undefined }
+  })()
+  return activeRun
 }
 function recoverConflict(write: Write) {
   const state = useWorkspace.getState()

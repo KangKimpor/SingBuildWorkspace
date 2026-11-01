@@ -1,5 +1,5 @@
 import { useWorkspace } from '@/data'
-import { pendingCollectionIds, syncWorkspace } from '@/data/sync'
+import { pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
 import { appliedEntries, assertEditableWeek, canUpdate, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
@@ -52,6 +52,11 @@ export function saveDraftBatch(week: string, updates: { handler: Handler; entrie
   }
 }
 
+// A confirmation writes one submission, its activities and two summaries. Re-reading the whole
+// workspace for that was the slowest part of Confirm, Edit and Delete.
+const NBC_COLLECTIONS = ['nbc_activities', 'nbc_submissions', 'nbc_summaries'] as const
+const write = (submission: NbcSubmission, week: string, handler: Handler, operation: SubmissionOperation) => supabase!.rpc('kw_nbc_submission_write', { operation, payload: { projectId: submission.projectId, weekStart: week, handler }, expected: submission.updatedAt })
+
 async function operate(week: string, handler: Handler, operation: SubmissionOperation, projectId: string) {
   let { state, id, submission } = context(week, handler, projectId)
   if (!submission) throw new Error('Update not found.')
@@ -60,14 +65,29 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
     state.commitNbc({ nbc_activities: result.activities, nbc_submissions: result.submissions, nbc_summaries: result.summaries })
   } else {
     const scope = state.scope
-    await syncWorkspace()
+    // Push the pending draft only. The server write below is the operation itself, so a full
+    // workspace pull here was pure latency.
+    await syncWorkspace(false)
     if (pendingCollectionIds('nbc_submissions').has(id) || pendingCollectionIds('nbc_activities').size || !navigator.onLine || !supabase) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
     if (useWorkspace.getState().scope !== scope) throw new Error('Account changed. Reopen this update.')
     ;({ state, submission } = context(week, handler, projectId))
     if (!submission) throw new Error('This update changed. Reload before continuing.')
-    const { data, error } = await supabase.rpc('kw_nbc_submission_write', { operation, payload: { projectId: submission.projectId, weekStart: week, handler }, expected: submission.updatedAt })
+    let result = await write(submission, week, handler, operation)
+    if (result.error && operation === 'confirm' && result.error.message.includes('Assignments changed')) {
+      // The assignment set moved after this draft was saved. Pull the new rows, re-save the
+      // draft (late assignments join as unchanged) and confirm once more instead of dead-ending.
+      await syncWorkspace()
+      ;({ submission } = context(week, handler, projectId))
+      if (!submission) throw new Error('This update changed. Reload before continuing.')
+      saveDraft(week, handler, draftEntries(week, handler, projectId), submission.note, projectId)
+      await syncWorkspace(false)
+      ;({ submission } = context(week, handler, projectId))
+      if (!submission) throw new Error('This update changed. Reload before continuing.')
+      result = await write(submission, week, handler, operation)
+    }
+    const { data, error } = result
     if (error) { await syncWorkspace(); throw new Error(error.message) }
-    await syncWorkspace()
+    await refreshCollections([...NBC_COLLECTIONS])
     if (useWorkspace.getState().scope !== scope) throw new Error('Account changed.')
     if (data.conflict) throw new Error('This update changed in another session. Review it and try again.')
   }
