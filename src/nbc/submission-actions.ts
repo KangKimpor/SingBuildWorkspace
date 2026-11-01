@@ -73,7 +73,13 @@ export function saveDraftBatch(week: string, updates: { handler: Handler; entrie
 // A confirmation writes one submission, its activities and two summaries. Re-reading the whole
 // workspace for that was the slowest part of Confirm, Edit and Delete.
 const NBC_COLLECTIONS = ['nbc_activities', 'nbc_submissions', 'nbc_summaries'] as const
-const write = (submission: NbcSubmission, week: string, handler: Handler, operation: SubmissionOperation) => supabase!.rpc('kw_nbc_submission_write', { operation, payload: { projectId: submission.projectId, weekStart: week, handler }, expected: submission.updatedAt })
+const write = async (submission: NbcSubmission, week: string, handler: Handler, operation: SubmissionOperation) => {
+  const call = () => supabase!.rpc('kw_nbc_submission_write', { operation, payload: { projectId: submission.projectId, weekStart: week, handler }, expected: submission.updatedAt })
+  const first = await call()
+  // A statement timeout (57014) rolls the whole write back, so one automatic retry is safe and
+  // hides a transient database stall from the person confirming.
+  return first.error?.code === '57014' ? call() : first
+}
 
 function compactDraft(draft: NbcSubmission, activities: NbcActivity[]): NbcSubmission {
   const byId = new Map(activities.map((a) => [a.id, a]))
