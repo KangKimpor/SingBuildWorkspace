@@ -355,6 +355,26 @@ export async function refreshCollections(names: Collection[]): Promise<void> {
   })()
   return activeRun
 }
+/**
+ * Wait until `blocked()` is false, pushing the queue as many times as it takes.
+ *
+ * One `syncWorkspace(false)` is not enough before a server operation: when an autosave run is
+ * already in flight it returns that run, which finishes before the draft just queued is sent, or
+ * it fails once on a flaky connection and leaves the write for the backoff timer. Retrying here
+ * (bounded) makes Confirm seamless instead of surfacing a transient "draft is kept" error.
+ */
+export async function flushPending(blocked: () => boolean, timeoutMs = 20000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs
+  for (let attempt = 0; ; attempt++) {
+    await syncWorkspace(false)
+    // A follow-up run is started in a microtask when writes remain; join it too.
+    await Promise.resolve()
+    if (activeRun) await activeRun
+    if (!blocked()) return true
+    if (!navigator.onLine || Date.now() >= deadline) return false
+    await new Promise((resolve) => setTimeout(resolve, Math.min(150 * (attempt + 1), 1000)))
+  }
+}
 function recoverConflict(write: Write) {
   const state = useWorkspace.getState()
   const title = `Recovered edit · ${write.data.title || write.data.name || write.collection}`

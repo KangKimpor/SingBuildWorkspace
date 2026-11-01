@@ -1,5 +1,5 @@
 import { useWorkspace } from '@/data'
-import { pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
+import { flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
 import { appliedEntries, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
@@ -67,10 +67,15 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
     const scope = state.scope
     // Push the pending draft only. The server write below is the operation itself, so a full
     // workspace pull here was pure latency.
-    await syncWorkspace(false)
-    if (pendingCollectionIds('nbc_submissions').has(id) || pendingCollectionIds('nbc_activities').size || !navigator.onLine || !supabase) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+    const unsaved = () => pendingCollectionIds('nbc_submissions').has(id) || pendingCollectionIds('nbc_activities').size > 0
+    if (!supabase || !(await flushPending(unsaved))) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
     if (useWorkspace.getState().scope !== scope) throw new Error('Account changed. Reopen this update.')
     ;({ state, submission } = context(week, handler, projectId))
+    if (!submission) {
+      // The store can briefly lag the server right after an autosave round trip. Re-read once.
+      await refreshCollections([...NBC_COLLECTIONS])
+      ;({ state, submission } = context(week, handler, projectId))
+    }
     if (!submission) throw new Error('This update changed. Reload before continuing.')
     let result = await write(submission, week, handler, operation)
     if (result.error && operation === 'confirm' && result.error.message.includes('Assignments changed')) {
@@ -80,7 +85,7 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
       ;({ submission } = context(week, handler, projectId))
       if (!submission) throw new Error('This update changed. Reload before continuing.')
       saveDraft(week, handler, draftEntries(week, handler, projectId), submission.note, projectId)
-      await syncWorkspace(false)
+      if (!(await flushPending(unsaved))) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
       ;({ submission } = context(week, handler, projectId))
       if (!submission) throw new Error('This update changed. Reload before continuing.')
       result = await write(submission, week, handler, operation)
