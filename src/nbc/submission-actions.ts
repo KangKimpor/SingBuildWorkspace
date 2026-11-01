@@ -86,10 +86,10 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
       result = await write(submission, week, handler, operation)
     }
     if (!result.error && result.data?.conflict) {
-      // Another handler confirming re-chains every draft in the two-week window, which bumps this
-      // row's version without changing a value this handler wrote, and NBC rows are not live-
-      // subscribed. When the stored draft still holds the same progress and remarks, confirm the
-      // row the server reported instead of dead-ending on a version the user cannot see.
+      // Fallback for servers that still compare versions on operations (the writer now only does
+      // so for draft saves). Another handler's re-chain bumps this row without changing a value
+      // this handler wrote, and NBC rows are not live-subscribed. When the stored draft still
+      // holds the same progress and remarks, act on the row the server reported.
       const row = result.data.row as { data: NbcSubmission; updated_at: string } | null
       if (row && Array.isArray(row.data?.entries) && sameDraftIntent(submission, row.data)) result = await write({ ...submission, updatedAt: row.updated_at }, week, handler, operation)
     }
