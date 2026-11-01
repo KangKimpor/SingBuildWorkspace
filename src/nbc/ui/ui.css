@@ -35,6 +35,15 @@
 .nbc-wbs tr[data-level='1'] .nbc-count {
   color: #94a3b8;
 }
+.nbc-wbs tr[data-level='1'] .nbc-remark-btn {
+  color: #93c5fd;
+}
+.nbc-wbs tr[data-level='1'] .nbc-remark-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.nbc-wbs tr[data-level='1'] .nbc-unit {
+  color: #cbd5e1;
+}
 .nbc-wbs tr[data-level='1']:hover td {
   background-color: #243247;
 }

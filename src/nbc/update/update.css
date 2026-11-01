@@ -420,6 +420,8 @@
   .nbc-remark { min-width: 0; }
   .nbc-remark-cell { min-width: 0; flex: 1; align-items: stretch; }
   .nbc-remark-btn { min-height: 44px; text-align: end; white-space: normal; overflow-wrap: anywhere; }
+  .nbc-update .nbc-wbs tr[data-level='1'] .nbc-remark-btn { color: var(--accent-text); }
+  .nbc-update .nbc-wbs tr[data-level='1'] .nbc-unit { color: var(--text-secondary); }
   .nbc-update .nbc-wbs td[data-label]::before { font-family: var(--font-sans); }
   .nbc-update .nbc-filters { min-width: 0; }
   .nbc-update .nbc-seg { max-width: 100%; overflow-x: auto; }

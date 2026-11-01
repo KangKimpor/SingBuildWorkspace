@@ -422,7 +422,7 @@
   .workspace-surface.calendar-page .page-heading .btn-accent svg { width: 24px; height: 24px; }
 
   .workspace-surface.calendar-page .calendar-toolbar { gap: 8px; padding-bottom: 8px; border-bottom: 0; }
-  .workspace-surface.calendar-page .calendar-toolbar .inline { flex: 1 1 100%; flex-wrap: nowrap; gap: 4px; }
+  .workspace-surface.calendar-page .calendar-toolbar .inline { flex: 1 1 100%; flex-wrap: nowrap; gap: 4px; min-width: 0; }
   .workspace-surface.calendar-page .calendar-toolbar h2 {
     order: -1; flex: 1; min-width: 0; font-size: 1.25rem; font-weight: 700;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

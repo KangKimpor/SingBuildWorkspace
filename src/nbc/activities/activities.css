@@ -52,6 +52,12 @@
   .nbc-issues > .project-table-toolbar > .btn-accent { margin-left: auto; }
 }
 .nbc-group-handlers { display:block; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-secondary); }
+.nbc-wbs tr[data-level='1'] .nbc-group-handlers { color: #cbd5e1; }
+.nbc-wbs tr[data-level='2'] .nbc-group-handlers { color: #334155; }
+.nbc-wbs tr[data-level='3'] .nbc-group-handlers { color: #334155; }
+html[data-theme=dark] .nbc-wbs tr[data-level='1'] .nbc-group-handlers { color: #94a3b8; }
+html[data-theme=dark] .nbc-wbs tr[data-level='2'] .nbc-group-handlers { color: #cbd5e1; }
+html[data-theme=dark] .nbc-wbs tr[data-level='3'] .nbc-group-handlers { color: #cbd5e1; }
 
 @media (max-width: 767px) {
   .nbc-activities .nbc-filters { gap: 8px; }
@@ -61,7 +67,12 @@
   .nbc-activities .nbc-wbs, .nbc-activities .nbc-wbs tbody { display: block; }
   .nbc-activities .nbc-wbs thead { display: none; }
   .nbc-activities .nbc-wbs tr[data-wbs] { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 16px; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--bg-raised); }
-  .nbc-activities .nbc-wbs tr[data-wbs] td { height: auto; min-width: 0; padding: 0; border: 0; background: transparent; text-align: start; white-space: normal; }
+  .nbc-activities .nbc-wbs tr[data-wbs] td { height: auto; min-width: 0; padding: 0; border: 0; background: transparent; text-align: start; white-space: normal; color: var(--text-primary); }
+  .nbc-activities .nbc-wbs tr[data-wbs] .nbc-wbs-no,
+  .nbc-activities .nbc-wbs tr[data-wbs] .nbc-name,
+  .nbc-activities .nbc-wbs tr[data-wbs] .nbc-name-button { color: var(--text-primary); }
+  .nbc-activities .nbc-wbs tr[data-wbs] .nbc-count { color: var(--text-secondary); }
+  .nbc-activities .nbc-wbs tr[data-wbs] .nbc-toggle { color: var(--text-secondary); }
   .nbc-activities .nbc-wbs td[data-label=WBS], .nbc-activities .nbc-wbs td[data-label=Description], .nbc-activities .nbc-wbs td:nth-child(n+5) { grid-column: 1 / -1; }
   .nbc-activities .nbc-wbs td[data-label=Description] { padding-inline-start: 0 !important; }
   .nbc-activities .nbc-desc { min-width: 0; gap: 8px; flex-wrap: wrap; }
