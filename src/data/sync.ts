@@ -460,7 +460,7 @@ export function syncWorkspace(refresh = true): Promise<void> {
         const rawPayload = google ? await google.pushGoogleEvent(write.data as unknown as CalendarEvent) : await syncWorkspaceFiles(write.data, scope)
         if (!valid()) return
         const fullEntries = write.collection === 'nbc_submissions' ? (rawPayload as { entries?: unknown[] })?.entries : undefined
-        const payload = write.collection === 'nbc_submissions' ? compactSubmissionPayload(rawPayload) : rawPayload
+        const payload = write.collection === 'nbc_submissions' ? compactSubmissionPayload(rawPayload as unknown as Data) : (rawPayload as unknown as Data)
         let { data, error } = await supabase!.rpc('kw_workspace_write', { collection: write.collection, record_id: write.id, payload, expected: write.base })
         if (!valid()) return
         if (error && write.collection === 'nbc_submissions' && ['P0001', '23505', '23514', '57014'].includes(error.code)) {
