@@ -118,8 +118,11 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
             if (confirmed) return <span>{shownById.get(a.id)?.remark || '—'}</span>
             const value = draft.remark(a.id), required = draft.needsRemark.has(a.id), open = remarkOpen.has(a.id) || required
             return <div className="nbc-remark-cell">
-              <button className="nbc-remark-btn" data-filled={!!value.trim()} aria-expanded={open} aria-label={`${value.trim() ? 'Edit' : 'Add'} remark for ${a.wbs}`} onClick={() => toggleRemark(a.id)}>{value.trim() ? brief(value) : '+ Remark'}</button>
-              {open && <input ref={(el) => { if (el) remarks.current.set(a.id, el); else remarks.current.delete(a.id) }} className="nbc-remark" disabled={busy} aria-label={`Remark for ${a.wbs}`} placeholder="Add remark…" maxLength={4000} value={value} onChange={(event) => draft.setRemark(a.id, event.target.value)}/>}
+              {!open ? (
+                <button className="nbc-remark-btn" data-filled={!!value.trim()} aria-expanded={open} aria-label={`${value.trim() ? 'Edit' : 'Add'} remark for ${a.wbs}`} onClick={() => toggleRemark(a.id)}>{value.trim() ? brief(value) : '+ Remark'}</button>
+              ) : (
+                <input ref={(el) => { if (el) remarks.current.set(a.id, el); else remarks.current.delete(a.id) }} className="nbc-remark" disabled={busy} aria-label={`Remark for ${a.wbs}`} placeholder="Add remark…" maxLength={4000} value={value} onChange={(event) => draft.setRemark(a.id, event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape' || event.key === 'Enter') toggleRemark(a.id) }}/>
+              )}
               {required && <span className="nbc-hint" data-tone="warn">Progress went down. A remark is required.</span>}
             </div>
           }}/>}

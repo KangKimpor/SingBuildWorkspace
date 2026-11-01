@@ -161,27 +161,172 @@
 .nbc-gate-list small { color: var(--text-secondary); font-size: 13px; }
 .nbc-gate-go { padding: 12px 32px; font-size: 16px; border-radius: var(--radius-pill); }
 
-/* Table inside the update screen — use the same base style as Activities (ui.css).
-   Only override the changed/problem row colours which are Update-specific. */
+/* Table inside the update screen — uniform row height (36px), fixed table layout to prevent shifting on input, and no blue outline on updated rows */
+.nbc-update .nbc-wbs {
+  table-layout: fixed;
+  width: 100%;
+}
+.nbc-update .nbc-wbs thead th:nth-child(1) { width: 130px; }
+.nbc-update .nbc-wbs thead th:nth-child(2) { width: auto; }
+.nbc-update .nbc-wbs thead th:nth-child(3) { width: 140px; }
+.nbc-update .nbc-wbs thead th:nth-child(4) { width: 190px; }
+.nbc-update .nbc-wbs thead th:nth-child(5) { width: 140px; }
+
+.nbc-update .nbc-wbs tr {
+  height: 36px;
+  max-height: 36px;
+}
+.nbc-update .nbc-wbs td {
+  height: 36px;
+  max-height: 36px;
+  padding: 0 12px;
+  vertical-align: middle;
+  box-sizing: border-box;
+}
+
+/* Remove blue outline on the row being updated */
+.nbc-update .nbc-wbs tr[data-changed=true] td,
+.nbc-update .nbc-wbs tr[data-changed=true] {
+  box-shadow: none !important;
+  outline: none !important;
+}
 .nbc-update .nbc-wbs tr[data-changed=true] td { background: color-mix(in srgb, var(--accent) 7%, var(--bg-canvas)); }
 .nbc-update .nbc-wbs tr[data-problem=true] td { background: color-mix(in srgb, var(--danger-text) 10%, var(--bg-canvas)); }
-.nbc-cell { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-8); }
-.nbc-cell input { width: calc(8ch + 16px); text-align: end; border: 0; background: var(--status-neutral-bg); color: var(--text-primary); border-radius: 9px; padding: 6px 8px; min-height: 32px; font: inherit; font-weight: 500; font-variant-numeric: tabular-nums; transition: box-shadow .15s, background .15s; }
-.nbc-cell input:focus { outline: 0; background: var(--bg-canvas); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 28%, transparent), 0 0 0 1.5px var(--accent); }
-.nbc-cell input[aria-invalid=true] { background: var(--bg-canvas); box-shadow: 0 0 0 1.5px var(--danger-text); }
-.nbc-unit { color: var(--text-secondary); font-size: var(--fs-small); }
-.nbc-delta { border-radius: var(--radius-pill); padding: 2px 8px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+.nbc-update .nbc-desc {
+  min-width: 0;
+  overflow: hidden;
+  height: 24px;
+}
+.nbc-update .nbc-wbs .nbc-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nbc-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  height: 100%;
+  position: relative;
+  white-space: nowrap;
+}
+.nbc-cell input {
+  width: calc(8ch + 16px);
+  text-align: end;
+  border: 0;
+  background: var(--status-neutral-bg);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 0 6px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  line-height: 24px;
+  box-sizing: border-box;
+  transition: box-shadow .15s, background .15s;
+}
+.nbc-cell input:focus {
+  outline: 0;
+  background: var(--bg-canvas);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.nbc-cell input[aria-invalid=true] {
+  background: var(--bg-canvas);
+  box-shadow: 0 0 0 1.5px var(--danger-text);
+}
+.nbc-unit {
+  color: var(--text-secondary);
+  font-size: var(--fs-small);
+  line-height: 24px;
+}
+.nbc-delta {
+  border-radius: 4px;
+  padding: 0 6px;
+  height: 20px;
+  line-height: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
 .nbc-delta[data-dir=up] { background: var(--status-success-bg); color: var(--success-text); }
 .nbc-delta[data-dir=down] { background: var(--status-warning-bg); color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
-.nbc-hint { flex-basis: 100%; text-align: end; font-size: 12px; color: var(--danger-text); }
-.nbc-remark-cell { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); padding-block: var(--space-4); }
-.nbc-remark-cell .nbc-hint { text-align: start; }
-.nbc-remark-cell .nbc-hint[data-tone=warn] { color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); font-weight: 500; }
-.nbc-remark-btn { border: 0; background: transparent; color: var(--accent-text); border-radius: var(--radius-pill); padding: 3px 10px; font-size: 13px; }
+
+.nbc-cell .nbc-hint {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 20;
+  white-space: nowrap;
+  background: var(--bg-canvas);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-text);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.nbc-remark-cell {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  position: relative;
+  padding-block: 0;
+}
+.nbc-remark-cell .nbc-hint {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 20;
+  white-space: nowrap;
+  background: var(--status-warning-bg);
+  color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+.nbc-remark-btn {
+  border: 0;
+  background: transparent;
+  color: var(--accent-text);
+  border-radius: 5px;
+  padding: 0 8px;
+  height: 24px;
+  line-height: 24px;
+  font-size: 12px;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
 .nbc-remark-btn:hover { background: var(--bg-hover); }
 .nbc-remark-btn[data-filled=true] { background: var(--status-neutral-bg); color: var(--text-primary); }
-.nbc-remark { width: 100%; min-width: 12rem; border: 0; background: var(--status-neutral-bg); border-radius: 10px; padding: 7px 12px; font: inherit; color: var(--text-primary); }
-.nbc-remark:focus { outline: 0; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); background: var(--bg-canvas); }
+.nbc-remark {
+  width: 100%;
+  max-width: 160px;
+  height: 24px;
+  min-height: 24px;
+  max-height: 24px;
+  border: 0;
+  background: var(--status-neutral-bg);
+  border-radius: 5px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 24px;
+  color: var(--text-primary);
+  box-sizing: border-box;
+}
+.nbc-remark:focus { outline: 0; box-shadow: 0 0 0 2px var(--accent); background: var(--bg-canvas); }
 .nbc-update-empty { padding: 56px var(--space-16); text-align: center; color: var(--text-secondary); background: var(--bg-raised); border-radius: 18px; box-shadow: 0 0 0 .5px var(--border-subtle); }
 .nbc-note { margin: 0; padding: 0 var(--space-4); color: var(--text-secondary); }
 .nbc-delete { display: grid; gap: var(--space-8); padding: var(--space-8); max-width: 18rem; }
