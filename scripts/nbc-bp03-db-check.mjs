@@ -92,7 +92,10 @@ await assert.rejects(call('confirm',current),/Authentication/)
 await db.exec('reset role; set role anon')
 await assert.rejects(db.exec('select * from public.kw_nbc_submissions'),/permission denied/)
 await db.exec('reset role')
-for (const name of (await readdir('supabase/migrations')).filter(s => /_nbc_(export_template|baseline_reset_guard)\.sql$/.test(s)).sort()) await db.exec(await readFile(`supabase/migrations/${name}`, 'utf8'))
+for (const name of (await readdir('supabase/migrations')).filter(s => /_nbc_(export_template|baseline_reset_guard|confirm_late_assignment|operation_conflict|baseline_reset_restore)\.sql$/.test(s)).sort()) await db.exec(await readFile(`supabase/migrations/${name}`, 'utf8'))
+// A migration that rebuilds the writer from an older body silently drops the reset guard. The
+// files above replay that exact ordering, so assert the live definition still carries it.
+assert.match((await db.query("select pg_get_functiondef('kw_private.nbc_submission_write(text,jsonb,timestamptz)'::regprocedure) as d")).rows[0].d, /BP03 baseline was reset/)
 await db.exec("insert into public.kw_nbc_templates values('nbc-bp03','Synthetic.xlsx','UEs=')")
 await db.exec(`alter table public.kw_nbc_activities disable trigger nbc_activity_guard;
   update public.kw_nbc_activities set data=data||jsonb_build_object('baselineResetAt',clock_timestamp(),'updatedAt',clock_timestamp());
@@ -109,7 +112,7 @@ await assert.rejects(db.exec('select * from public.kw_nbc_templates'),/permissio
 await db.exec('reset role')
 const beforeBp03 = JSON.stringify((await db.query("select * from public.kw_nbc_activities where project_id='nbc-bp03' order by id")).rows)
 await db.exec(await readFile('supabase/migrations/20261030090000_nbc_multiple_projects.sql','utf8'))
-const bp04Project = {id:'nbc-bp04',name:'NBC BP04 – Pan Pacific Hotel',workspace:'team',nbcBp03:true}
+const bp04Project = {id:'nbc-bp04',name:'NBC BP04 ï¿½ Pan Pacific Hotel',workspace:'team',nbcBp03:true}
 await assert.rejects(db.query('insert into public.kw_projects(id,user_id,data) values($1,$2,$3)', ['wrong-owner',other,JSON.stringify({...bp04Project,id:'wrong-owner'})]), /existing company storage owner/)
 await db.query('insert into public.kw_projects(id,user_id,data) values($1,$2,$3)', ['nbc-bp04',owner,JSON.stringify(bp04Project)])
 const bp04Activity = {...activity('nbc-bp04:tola','Tola',1,0),projectId:'nbc-bp04'}
@@ -121,7 +124,13 @@ const bp04Call = async(operation, entries, expected) => (await db.query('select 
 await assert.rejects(bp04Call('save',[entry(.5)]),/activities|handler|project/i)
 await bp04Call('save',[{activityId:bp04Activity.id,previous:0,progress:.5,remark:'BP04 only'}])
 const bp04Saved = await select('kw_nbc_submissions',`nbc-bp04:${current}:Tola`)
-await bp04Call('confirm',undefined,bp04Saved.updated_at)
+// A stale expected must not reject confirm: the version check guards draft saves, while confirm
+// acts on the stored draft and sends no content. This is the state a caller is left in when
+// another handler's confirmation re-chains a row it cannot live-subscribe to (the save check
+// above still rejects the same stale token).
+const bp04Confirmed = await bp04Call('confirm',undefined,'2000-01-01')
+assert.equal(bp04Confirmed.conflict,false)
+assert.notEqual(bp04Confirmed.row.updated_at,bp04Saved.updated_at)
 assert.equal((await select('kw_nbc_activities',bp04Activity.id)).data.progress,.5)
 assert.equal((await select('kw_nbc_summaries',`nbc-bp04:${current}`)).data.overall,.5)
 assert.equal(JSON.stringify((await db.query("select * from public.kw_nbc_activities where project_id='nbc-bp03' order by id")).rows),beforeBp03)
