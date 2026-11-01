@@ -59,11 +59,14 @@ test('shared GR&P is listed once under Unassigned', () => {
   expect(wbsOrder()).toEqual(['GR&P'])
 })
 
-test('the view switcher links only to Table and Issues', () => {
+test('the expand editor sits in the search row and the issues switcher is gone', () => {
   setup()
-  const href = (name: string) => screen.getByRole('link', { name }).getAttribute('href')
-  expect([href('Table'), href('Issues')]).toEqual([`/projects-progress/${fixtureProject.id}/activities`, `/projects-progress/${fixtureProject.id}/issues`])
-  expect(screen.queryByRole('link', { name: 'Board' })).toBeNull()
+  const filters = document.querySelector('.nbc-filters')!
+  const expand = within(filters as HTMLElement).getByRole('button', { name: 'Expand editor' })
+  expect(expand.className).toContain('nbc-expand-editor')
+  expect(document.querySelector('.nbc-activity-band')).toBeNull()
+  expect(screen.queryByRole('link', { name: 'Issues' })).toBeNull()
+  expect(screen.queryByRole('link', { name: 'Table' })).toBeNull()
 })
 
 test('issues search supports its shortcut, WBS search and a clearable empty state', () => {

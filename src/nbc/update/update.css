@@ -1,13 +1,12 @@
 /* Update Progress: Apple-style polish on the workspace tokens (light and dark follow the theme). */
-.nbc-project:has(.nbc-update:not(.nbc-update-gate)) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); padding: 20px 24px; gap: 16px; }
+.nbc-project:has(.nbc-update:not(.nbc-update-gate)) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); }
 .canvas:has(.nbc-update:not(.nbc-update-gate)) { padding-bottom: 0; }
-.nbc-update { display: flex; flex: 1; flex-direction: column; gap: var(--space-12); min-height: 0; }
+.nbc-update { display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; }
 .nbc-update > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 .nbc-update[data-expanded=true] { gap: 6px; }
-.nbc-project:has(.nbc-update[data-expanded=true]) { padding: 8px 24px; gap: 4px; }
 .nbc-update > .nbc-wbs-scroll { flex: 1 1 auto; min-height: 8rem; }
 /* Expanded: compact top & bottom so table fills workspace like Project Progress */
-.nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 4px; }
+.nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 8px; }
 .nbc-update[data-expanded=true] > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 
 .nbc-update[data-expanded=true] .nbc-update-controls {
@@ -102,28 +101,21 @@
   bottom: calc(50px + var(--safe-bottom));
 }
 .nbc-update-gate { height: auto; min-height: 0; }
-.nbc-update-controls { display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap; }
-/* Deadline and editor controls live in the table's search row: match the row's compact input height. */
-.nbc-update .nbc-filters { gap: var(--space-8); }
-.nbc-update .nbc-filters .search-field { max-width: 240px; }
-.nbc-update .nbc-update-controls { gap: 6px; }
-.nbc-update .nbc-update-controls .nbc-chip { padding: 6px 12px; font-size: 12px; min-height: 32px; border-radius: 7px; }
-.nbc-update .nbc-update-controls .nbc-deadline { padding: 5px 10px; font-size: 12px; }
+/* Deadline and handler chips sit in the table's search row, so they inherit its height. */
+.nbc-update-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.nbc-update .nbc-update-controls .nbc-deadline { padding: 0 10px; min-height: var(--h-button); font-size: 12px; }
 
 /* Segmented controls and chips */
-.nbc-seg { display: inline-flex; padding: 2px; border: 0; border-radius: 10px; background: var(--status-neutral-bg); }
-.nbc-seg button { border: 0; background: transparent; padding: 5px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); transition: background .2s, box-shadow .2s; }
+.nbc-seg { display: inline-flex; padding: 2px; border: 0; border-radius: 8px; background: var(--status-neutral-bg); }
+.nbc-seg button { border: 0; background: transparent; padding: 0 12px; min-height: calc(var(--h-button) - 4px); border-radius: 6px; font-size: 12px; font-weight: 500; color: var(--text-primary); transition: background .2s, box-shadow .2s; }
 .nbc-seg button[aria-pressed=true] { background: var(--bg-raised); box-shadow: 0 1px 3px rgb(0 0 0 / .14), 0 0 0 .5px rgb(0 0 0 / .05); font-weight: 600; }
 .nbc-seg button:disabled { opacity: .45; cursor: not-allowed; }
 .nbc-seg .nbc-count { color: var(--text-secondary); font-variant-numeric: tabular-nums; margin: 0; }
-.nbc-chip { border: 0; background: var(--status-neutral-bg); color: var(--text-primary); border-radius: var(--radius-pill); padding: 6px 14px; font-size: 13px; font-weight: 500; transition: background .2s; }
-.nbc-chip:hover { background: var(--bg-pressed); }
-.nbc-deadline { border-radius: var(--radius-pill); padding: 4px 12px; font-size: 13px; font-weight: 600; background: var(--status-neutral-bg); color: var(--text-secondary); }
+.nbc-deadline { display: inline-flex; align-items: center; border-radius: 7px; padding: 0 10px; min-height: var(--h-button); font-size: 12px; font-weight: 600; background: var(--status-neutral-bg); color: var(--text-secondary); }
 .nbc-deadline[data-tone=soon] { background: var(--status-warning-bg); color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
 .nbc-deadline[data-tone=late] { background: var(--status-danger-bg); color: var(--danger-text); }
 .nbc-deadline[data-tone=ok] { background: var(--status-success-bg); color: var(--success-text); }
 .nbc-banner { margin: 0; padding: 10px 16px; border-radius: 14px; font-size: 13px; background: var(--status-warning-bg); }
-.nbc-filters { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; }
 
 /* Handler gate */
 .nbc-gate { max-width: 640px; margin: var(--space-32) auto; text-align: center; }
@@ -310,19 +302,20 @@
 .nbc-delete p { margin: 0; }
 
 /* Action bar */
-.nbc-update-bar { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; position: sticky; bottom: 12px; margin-top: auto; padding: 12px 14px 12px 18px; font-size: 13px; background: color-mix(in srgb, var(--bg-raised) 92%, transparent); backdrop-filter: blur(24px) saturate(180%); border: 1px solid var(--border-subtle); border-radius: 18px; box-shadow: 0 6px 24px rgb(0 0 0 / .06); z-index: 5; }
+.nbc-update-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: sticky; bottom: 8px; margin-top: auto; padding: 5px 6px 5px 12px; font-size: 12px; background: color-mix(in srgb, var(--bg-raised) 92%, transparent); backdrop-filter: blur(24px) saturate(180%); border: 1px solid var(--border-subtle); border-radius: 10px; box-shadow: 0 4px 16px rgb(0 0 0 / .05); z-index: 5; }
 .nbc-spacer { flex: 1; }
-.nbc-status { display: inline-flex; align-items: center; gap: var(--space-6); font-size: 13px; color: var(--text-secondary); }
+.nbc-status { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-secondary); }
 .nbc-status > svg { flex: none; color: var(--success-text); }
 .nbc-status[data-status=saving] > svg, .nbc-status[data-status=local] > svg { color: var(--text-secondary); }
 .nbc-status[data-status=error] > svg { color: var(--danger-text); }
-.nbc-update-metrics { display: flex; align-items: center; gap: 10px; padding-left: 14px; border-left: 1px solid var(--border-subtle); font-size: 13px; font-variant-numeric: tabular-nums; }
+.nbc-update-metrics { display: flex; align-items: center; gap: 8px; padding-left: 10px; border-left: 1px solid var(--border-subtle); font-size: 12px; font-variant-numeric: tabular-nums; }
 .nbc-update-metrics > span:first-child { font-weight: 500; }
-.nbc-contribution { padding: 5px 9px; border-radius: 8px; background: var(--status-success-bg); color: var(--success-text); font-weight: 600; }
+.nbc-contribution { padding: 2px 7px; border-radius: 6px; background: var(--status-success-bg); color: var(--success-text); font-weight: 600; }
 .nbc-contribution[data-dir=down] { background: var(--status-danger-bg); color: var(--danger-text); }
 .nbc-contribution > span { font-weight: 400; }
-.nbc-problems { color: var(--danger-text); font-size: 13px; }
-.nbc-update-bar .btn-accent, .nbc-update-bar .btn-secondary, .nbc-sheet .btn-accent, .nbc-sheet .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: var(--radius-pill); padding: 9px 20px; font-weight: 600; transition: transform .12s, filter .2s; }
+.nbc-problems { color: var(--danger-text); font-size: 12px; }
+.nbc-update-bar .btn-accent, .nbc-update-bar .btn-secondary, .nbc-sheet .btn-accent, .nbc-sheet .btn-secondary { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; padding: 0 16px; min-height: var(--h-button); font-weight: 600; transition: transform .12s, filter .2s; }
+.nbc-update-bar .btn-accent, .nbc-update-bar .btn-secondary { font-size: 12px; }
 .nbc-update-bar .btn-accent:active:not(:disabled), .nbc-sheet .btn-accent:active:not(:disabled) { transform: scale(.97); }
 .nbc-sheet .btn-secondary { background: var(--status-neutral-bg); border: 0; font-weight: 500; }
 
@@ -356,7 +349,6 @@
 @media (prefers-reduced-motion: reduce) { .nbc-sheet, .nbc-gate-list button, .nbc-seg button, .nbc-cell input { animation: none; transition: none; } }
 
 @media (max-width: 767px) {
-  .nbc-project:has(.nbc-update:not(.nbc-update-gate)) { padding: 12px 16px; gap: 12px; }
   .shell[data-bp=compact] .nbc-project:has(.nbc-update:not(.nbc-update-gate)) { height: calc(100dvh - 48px - var(--safe-top) - var(--h-tabbar) - var(--safe-bottom)); }
   .shell[data-bp=compact] .nbc-project:has(.nbc-update[data-expanded=true]) { height: calc(100dvh - 48px - var(--safe-top)); padding-bottom: max(12px, var(--safe-bottom)); }
   .nbc-expand-editor { min-height: 44px; }
@@ -365,7 +357,7 @@
   .nbc-update-controls { justify-content: flex-end; }
   .nbc-gate h2 { font-size: 32px; line-height: 38px; }
   .nbc-gate-list { grid-template-columns: 1fr; }
-  .nbc-update-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 8px 8px 14px; bottom: calc(var(--h-tabbar) + var(--safe-bottom) + 8px); }
+  .nbc-update-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 6px 6px 6px 10px; bottom: calc(var(--h-tabbar) + var(--safe-bottom) + 8px); }
   .nbc-update-bar .nbc-spacer { display: none; }
   .nbc-update-bar > .btn-accent { margin-left: auto; }
   .nbc-update-bar .nbc-status, .nbc-update-bar .nbc-problems { grid-column: 1 / -1; }
@@ -376,7 +368,7 @@
   .nbc-update .nbc-wbs-scroll { background: transparent; box-shadow: none; }
   .nbc-update .nbc-wbs thead { display: none; }
   .nbc-update .nbc-wbs, .nbc-update .nbc-wbs tbody, .nbc-update .nbc-wbs tr, .nbc-update .nbc-wbs td { display: block; }
-  .nbc-update .nbc-wbs tbody tr { margin-bottom: 8px; padding: 8px 12px; background: var(--bg-raised); border-radius: 14px; box-shadow: 0 0 0 .5px var(--border-subtle); }
+  .nbc-update .nbc-wbs tbody tr { height: auto; max-height: none; margin-bottom: 8px; padding: 8px 12px; background: var(--bg-raised); border-radius: 14px; box-shadow: 0 0 0 .5px var(--border-subtle); }
   .nbc-update .nbc-wbs tr[data-group=true] { background: transparent; box-shadow: none; padding: 12px 4px 2px; }
   .nbc-update .nbc-wbs td { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); height: auto; min-height: 32px; border: 0; padding: 2px 0; background: transparent !important; }
   .nbc-update .nbc-wbs td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--text-secondary); font-family: inherit; flex: none; }

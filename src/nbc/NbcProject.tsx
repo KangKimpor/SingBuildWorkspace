@@ -8,6 +8,7 @@ import { Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
 import { syncWorkspace } from '@/data/sync'
 import { calculate } from './progress'
+import { issuesEnabled } from './features'
 import Overview from './overview/Overview'
 import Activities from './activities/Activities'
 import UpdateProgress from './update/UpdateProgress'
@@ -44,6 +45,7 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   }, [scope, project.id])
 
   if (aliases[view]) return <Navigate to={`/projects-progress/${project.id}/${aliases[view]}${location.search}`} replace/>
+  if (!issuesEnabled && view === 'issues') return <Navigate to={`/projects-progress/${project.id}/activities${location.search}`} replace/>
   if (!views.some(([key]) => key === view) && view !== 'issues') return <Navigate to={`/projects-progress/${project.id}/overview`} replace/>
   const activityView = view === 'issues' ? view : 'activities'
   return <div className="workspace-surface project-page nbc-project" data-view={view}>

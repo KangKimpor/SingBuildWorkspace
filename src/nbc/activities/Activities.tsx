@@ -1,7 +1,7 @@
 import './activities.css'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { Link, NavLink, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronsDown, ChevronsUp, Columns3, Maximize2, Minimize2, Search, X } from 'lucide-react'
 import { GlassPopover } from '@/components/glass/GlassPopover'
 import { GlassSelect } from '@/components/glass/GlassSelect'
@@ -11,6 +11,7 @@ import { MoreMenu } from '../ui/MoreMenu'
 import { SidePeek } from '../ui/SidePeek'
 import { WbsTable } from '../ui/WbsTable'
 import { buildWbsRows } from '../wbs-table'
+import { issuesEnabled } from '../features'
 import { calculate } from '../progress'
 import { updateActivity } from '../actions'
 import { money, percent } from '../format'
@@ -32,7 +33,7 @@ function HandlerPicker({ a, activities }: { a: NbcActivity; activities: NbcActiv
   </GlassPopover>
 }
 
-function ActivityTable({ projectId, activities, baseline }: { projectId: string; activities: NbcActivity[]; baseline: Map<string, number> }) {
+function ActivityTable({ projectId, activities, baseline, controls }: { projectId: string; activities: NbcActivity[]; baseline: Map<string, number>; controls?: ReactNode }) {
   const [params, setParams] = useSearchParams(), [query, setQuery] = useState(''), [range, setRange] = useState('all'), [changed, setChanged] = useState(false)
   const [optional, setOptional] = useState<string[]>([]), [detail, setDetail] = useState<string | null>(null), [reassign, setReassign] = useState(false)
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => params.toString() ? new Set() : new Set(activities.filter((a) => !a.editable && a.parentId).map((a) => a.id)))
@@ -73,6 +74,7 @@ function ActivityTable({ projectId, activities, baseline }: { projectId: string;
       {chips.map((c) => <button key={c.key} className="nbc-chip" aria-label={`Remove ${c.label} filter`} onClick={() => filter(c.key, '')}>{c.label}<X size={12}/></button>)}
       {active && <button className="text-link small" onClick={clear}>Clear all</button>}
       <span className="nbc-spacer"/>
+      {controls}
       <GlassPopover label="Columns" trigger={<button className="ibtn" aria-label="Columns"><Columns3 size={16}/></button>}><div className="nbc-columns">{optionalColumns.map((c) => <label className="inline" key={c}><input type="checkbox" checked={optional.includes(c)} onChange={(e) => setOptional(e.target.checked ? [...optional, c] : optional.filter((v) => v !== c))}/>{c}</label>)}</div></GlassPopover>
       <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={() => setCollapsed(new Set())}><ChevronsDown size={16}/></button>
       <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={() => setCollapsed(new Set(activities.filter((a) => !a.editable).map((a) => a.id)))}><ChevronsUp size={16}/></button>
@@ -87,7 +89,7 @@ function ActivityTable({ projectId, activities, baseline }: { projectId: string;
           remark={({ activity: a }) => <span className="muted">{a.remark || '—'}</span>}
           onRowClick={({ activity: a }) => setDetail(a.id)}
           rowAttrs={({ activity: a }) => ({ 'data-changed': a.editable && Math.abs((live.progress.get(a.id) ?? 0) - (before.progress.get(a.id) ?? 0)) > 1e-12 ? 'true' : undefined })}
-          nameSuffix={({ activity: a }) => { const open = tasks.filter((t) => t.nbcActivityId === a.id && !t.deletedAt && t.status !== 'Done'); return open.length ? <Link className="nbc-pill" data-status="Issue" to={`/projects-progress/${projectId}/issues?wbs=${encodeURIComponent(a.wbs)}`} aria-label={`${open.length} open issues for ${a.wbs}`}>{open.length} issue{open.length > 1 ? 's' : ''}</Link> : null }}
+          nameSuffix={({ activity: a }) => { const open = tasks.filter((t) => t.nbcActivityId === a.id && !t.deletedAt && t.status !== 'Done'); if (!open.length) return null; const label = `${open.length} issue${open.length > 1 ? 's' : ''}`; return issuesEnabled ? <Link className="nbc-pill" data-status="Issue" to={`/projects-progress/${projectId}/issues?wbs=${encodeURIComponent(a.wbs)}`} aria-label={`${open.length} open issues for ${a.wbs}`}>{label}</Link> : <span className="nbc-pill" data-status="Issue">{label}</span> }}
           extra={[{ header: 'Handler', cell: ({ activity: a }) => <><HandlerPicker a={a} activities={activities}/>{pending.has(a.id) && <span className="small muted"> · pending</span>}</> }, ...optional.map((c) => ({ header: c, cell: ({ activity: a }: { activity: NbcActivity }) => <span className="muted">{optionalValue(a, c)}</span> }))]}/>}
     <SidePeek open={!!selected} onOpenChange={(open) => { if (!open) setDetail(null) }} title="Activity details">{selected && <ActivityDetail activity={selected} handler={activityHandlers(selected, activities)}/>}</SidePeek>
     <ReassignSheet activities={activities} open={reassign} onOpenChange={setReassign}/>
@@ -96,9 +98,12 @@ function ActivityTable({ projectId, activities, baseline }: { projectId: string;
 
 export default function Activities({ projectId, activities, baseline, view }: { projectId: string; activities: NbcActivity[]; baseline: Map<string, number>; view: 'activities' | 'issues' }) {
   const [expanded, setExpanded] = useState(false)
-  const base = `/projects-progress/${projectId}`
-  const switcher: ReactNode = <nav className="nbc-views" aria-label="Activity views"><NavLink className="nbc-view" end to={`${base}/activities`}>Table</NavLink><NavLink className="nbc-view" to={`${base}/issues`}>Issues</NavLink></nav>
-  return <div className="nbc-activities-page" data-expanded={expanded && view === 'activities'}>
-    {view === 'activities' ? <><div className="nbc-activity-band">{switcher}<button className="nbc-chip nbc-expand-editor" aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>{expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}{expanded ? 'Collapse editor' : 'Expand editor'}</button></div><ActivityTable projectId={projectId} activities={activities} baseline={baseline}/></> : <Issues projectId={projectId} activities={activities} switcher={switcher}/>}
+  if (view === 'issues') return <div className="nbc-activities-page"><Issues projectId={projectId} activities={activities} switcher={null}/></div>
+  return <div className="nbc-activities-page" data-expanded={expanded}>
+    <ActivityTable projectId={projectId} activities={activities} baseline={baseline} controls={
+      <button className="nbc-chip nbc-expand-editor" aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>
+        {expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
+        {expanded ? 'Collapse editor' : 'Expand editor'}
+      </button>}/>
   </div>
 }

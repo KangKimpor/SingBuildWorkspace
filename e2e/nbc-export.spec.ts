@@ -40,7 +40,7 @@ function value(xml: string, address: string) {
   return Number(cell?.match(/<v>([^<]*)<\/v>/)?.[1])
 }
 
-test('right-click reports a linked issue, cancel is harmless and Delete remains above Report issue', async ({ page }) => {
+test('right-click reports a linked issue, cancel is harmless and the issue badge stays read-only', async ({ page }) => {
   await setup(page); await page.goto('/projects-progress/nbc-bp03/activities')
   const row = page.locator('tr[data-wbs="1.6.1.2"]')
   await row.click({ button: 'right' })
@@ -59,11 +59,10 @@ test('right-click reports a linked issue, cancel is harmless and Delete remains 
   const state = await page.evaluate(() => JSON.parse(localStorage.getItem('kw-workspace-v1')!))
   expect(state.tasks[0]).toMatchObject({ title: 'Damaged board delivery', projectId: 'nbc-bp03', nbcActivityId: 'nbc:1.6.1.2', labels: ['Issue'] })
   expect(state.nbc_activities).toEqual(fixtureActivities())
-  await page.locator('.nbc-views').getByRole('link', { name: 'Issues', exact: true }).click()
-  await page.getByRole('textbox', { name: 'Title for Damaged board delivery', exact: true }).locator('..').click({ button: 'right' })
-  await expect(page.getByRole('menuitem')).toHaveText(['Delete', 'Report issue'])
-  await page.getByRole('menuitem', { name: 'Delete task Damaged board delivery', exact: true }).click()
-  await expect(page.getByRole('textbox', { name: 'Title for Damaged board delivery', exact: true })).toHaveCount(0)
+  await expect(page.locator('tr[data-wbs="1.6.1.2"] .nbc-pill')).toHaveText('1 issue')
+  await expect(page.locator('tr[data-wbs="1.6.1.2"] a.nbc-pill')).toHaveCount(0)
+  await page.goto('/projects-progress/nbc-bp03/issues')
+  await expect(page).toHaveURL(/\/activities$/)
 })
 
 test('saving an export template upgrades existing local storage without losing records', async ({ page }) => {
