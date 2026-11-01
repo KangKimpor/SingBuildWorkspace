@@ -48,15 +48,47 @@ function saveRecovery() {
   const scope = useWorkspace.getState().scope
   if (scope === 'guest') return
   try {
-    localStorage.setItem(recoveryKey(scope), JSON.stringify([...pending.values()]))
+    try {
+      localStorage.setItem(recoveryKey(scope), JSON.stringify([...pending.values()]))
+    } catch {
+      // Pending write queue might be large; try storing without large redundant entry lists
+      try {
+        const compact = [...pending.values()].map((p) => {
+          const raw = p.data as { entries?: unknown[] }
+          return p.collection === 'nbc_submissions' && Array.isArray(raw?.entries) && raw.entries.length > 500
+            ? { ...p, data: { ...p.data, entries: (raw.entries as { progress: number; previous: number; remark?: string }[]).filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0)) } }
+            : p
+        })
+        localStorage.setItem(recoveryKey(scope), JSON.stringify(compact))
+      } catch {
+        // Quota full; pending writes stay safe in memory and IndexedDB outbox
+      }
+    }
     const content = contentOf(useWorkspace.getState())
-    try { localStorage.setItem(`kw-cloud-cache:${scope}`, JSON.stringify(content)) } catch {
-      // Large BOQ activity lists can exceed the quota; they reload from the server, and pending edits stay in the recovery list above.
-      localStorage.setItem(`kw-cloud-cache:${scope}`, JSON.stringify({ ...content, nbc_activities: [] }))
+    try {
+      localStorage.setItem(`kw-cloud-cache:${scope}`, JSON.stringify(content))
+    } catch {
+      try {
+        // Large BOQ activity lists can exceed the quota; they reload from the server, and pending edits stay in the recovery list above.
+        localStorage.setItem(`kw-cloud-cache:${scope}`, JSON.stringify({ ...content, nbc_activities: [] }))
+      } catch {
+        try {
+          // Large BOQ submissions can also exceed quota; remove them from localStorage cache as they exist on server & IndexedDB
+          localStorage.setItem(`kw-cloud-cache:${scope}`, JSON.stringify({ ...content, nbc_activities: [], nbc_submissions: [], nbc_summaries: [] }))
+        } catch {
+          try { localStorage.removeItem(`kw-cloud-cache:${scope}`) } catch { /* ignore */ }
+        }
+      }
     }
     if (useWorkspace.getState().storageError) useWorkspace.setState({ storageError: false })
     return true
-  } catch { useWorkspace.setState({ storageError: true }); return false }
+  } catch {
+    if (typeof indexedDB === 'undefined') {
+      useWorkspace.setState({ storageError: true })
+      return false
+    }
+    return true
+  }
 }
 function cacheSnapshot(scope: string) {
   if (scope !== useWorkspace.getState().scope) return
@@ -364,6 +396,33 @@ export function syncWorkspace(refresh = true): Promise<void> {
         const { data, error } = await supabase!.rpc('kw_workspace_write', { collection: write.collection, record_id: write.id, payload, expected: write.base })
         if (!valid()) return
         if (error && write.collection === 'nbc_submissions' && ['P0001', '23505', '23514'].includes(error.code)) {
+          // If the draft was rejected because of the legacy 1000-entry limit on BP02 (1126 entries),
+          // retry by saving only the modified entries to stay within the limit.
+          const rawEntries = (payload as { entries?: unknown[] })?.entries
+          if (Array.isArray(rawEntries) && rawEntries.length > 500 && error.message.includes('Invalid draft')) {
+            const changedEntriesOnly = (rawEntries as { progress: number; previous: number; remark?: string }[]).filter(
+              (e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0)
+            )
+            if (changedEntriesOnly.length <= 1000) {
+              const compactPayload = { ...payload, entries: changedEntriesOnly }
+              const retryResult = await supabase!.rpc('kw_workspace_write', {
+                collection: write.collection,
+                record_id: write.id,
+                payload: compactPayload,
+                expected: write.base,
+              })
+              if (!retryResult.error && retryResult.data && !retryResult.data.conflict) {
+                const retryRow = retryResult.data.row as Row | null
+                if (retryRow) {
+                  versions.set(write.key, retryRow.updated_at)
+                  pending.delete(write.key)
+                  void db.outbox.delete(write.key).catch(() => {})
+                  cacheSnapshot(scope)
+                  continue
+                }
+              }
+            }
+          }
           // Preserve rejected autosaves for recovery without retrying an invalid draft forever.
           const saved = await supabase!.from('kw_nbc_submissions').select('id,data,updated_at').eq('id', write.id).maybeSingle()
           if (!valid()) return

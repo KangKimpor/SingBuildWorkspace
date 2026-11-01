@@ -14,7 +14,7 @@ export type DraftStatus = 'saved' | 'saving' | 'local' | 'error'
 
 interface Args { projectId: string; week: string; handler: Handler; activities: NbcActivity[]; submission?: NbcSubmission }
 
-/** Draft, autosave and confirmation state for one handler and week. Behaviour is unchanged from the earlier editor. */
+/** Draft, autosave and confirmation state for one handler and week. */
 export function useUpdateDraft({ projectId, week, handler, activities, submission }: Args) {
   const scope = useWorkspace((s) => s.scope), sync = useWorkspace((s) => s.sync)
   const [initial] = useState(() => draftEntries(week, handler, projectId))
@@ -43,7 +43,12 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
 
   function change(next: HandlerDraft) {
     setForm(next); setDirty(true)
-    try { writeHandlerDraft(scope, projectId, week, handler, next); setError('') } catch { setError('Could not autosave on this device. Keep this page open.') }
+    try {
+      writeHandlerDraft(scope, projectId, week, handler, next)
+      setError('')
+    } catch {
+      if (scope === 'guest') setError('Could not autosave on this device. Keep this page open.')
+    }
   }
   function field(id: string, patch: Partial<HandlerDraft['values'][string]>) {
     const entry = rows.find((e) => e.activityId === id)!

@@ -431,3 +431,121 @@
 .nbc-chip.nbc-change-handler:hover { background:#ffcc96; }
 [data-theme=dark] .nbc-chip.nbc-change-handler { background:#563315; border-color:#ba732e; color:#ffba75; }
 [data-theme=dark] .nbc-chip.nbc-change-handler:hover { background:#70431c; }
+
+/* -- Smooth animations for Update Progress ------------------------------- */
+
+/* Status icon: spin during saving, smooth color shift on state change */
+.nbc-status > svg {
+  transition: color var(--duration-base) var(--ease-standard);
+  flex: none;
+}
+.nbc-status[data-status=saving] > svg {
+  animation: spin 0.9s linear infinite;
+  color: var(--text-secondary);
+}
+.nbc-status[data-status=saved] > svg {
+  animation: nbc-check-pop var(--duration-base) var(--ease-enter);
+}
+@keyframes nbc-check-pop {
+  0%   { transform: scale(0.7); opacity: 0; }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+/* Status text: animate key changes so the label switch is visible */
+.nbc-status > span {
+  display: inline-block;
+  animation: nbc-label-in var(--duration-fast) var(--ease-enter);
+}
+@keyframes nbc-label-in {
+  from { opacity: 0; transform: translateY(3px); }
+}
+
+/* Error message: fade in smoothly instead of popping */
+.form-error[role=alert] {
+  animation: nbc-error-in var(--duration-base) var(--ease-enter);
+}
+@keyframes nbc-error-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+/* Changed row highlight: ease in instead of instant snap */
+.nbc-update .nbc-wbs tr[data-changed=true] td {
+  transition: background var(--duration-base) var(--ease-standard);
+}
+.nbc-update .nbc-wbs tr[data-problem=true] td {
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+/* Delta badge: slide in from the right on first appearance */
+.nbc-delta {
+  animation: nbc-delta-in var(--duration-base) var(--ease-enter);
+  transition: background var(--duration-base) var(--ease-standard),
+              color var(--duration-base) var(--ease-standard);
+}
+@keyframes nbc-delta-in {
+  from { opacity: 0; transform: translateX(6px); }
+}
+
+/* Contribution pill: smooth number transitions feel less jarring */
+.nbc-contribution {
+  transition: background var(--duration-base) var(--ease-standard),
+              color var(--duration-base) var(--ease-standard);
+}
+
+/* Action bar: slide up on initial mount */
+.nbc-update-bar {
+  animation: nbc-bar-in var(--duration-base) var(--ease-enter);
+}
+@keyframes nbc-bar-in {
+  from { opacity: 0; transform: translateY(8px); }
+}
+
+/* Remark input: smooth expand when opened */
+.nbc-remark {
+  transition: box-shadow var(--duration-fast) var(--ease-standard),
+              background var(--duration-fast) var(--ease-standard);
+}
+
+/* Gate card hover lift: make it feel more interactive */
+.nbc-gate-list button {
+  transition: transform var(--duration-base) var(--ease-standard),
+              box-shadow var(--duration-base) var(--ease-standard);
+}
+
+/* Segmented control active pill: smoother selection feedback */
+.nbc-seg button {
+  transition: background var(--duration-fast) var(--ease-standard),
+              box-shadow var(--duration-fast) var(--ease-standard),
+              color var(--duration-fast) var(--ease-standard);
+}
+
+/* Chip buttons: consistent press feedback */
+.nbc-chip {
+  transition: background var(--duration-fast) var(--ease-standard),
+              transform var(--duration-instant) var(--ease-standard);
+}
+.nbc-chip:active { transform: scale(0.97); }
+
+/* Confirm sheet: already has nbc-sheet-in; also make backdrop feel present */
+.nbc-sheet {
+  transition: none; /* let the spring animation own it */
+}
+
+/* Reduce motion: strip all our custom animations */
+@media (prefers-reduced-motion: reduce) {
+  .nbc-status > svg,
+  .nbc-delta,
+  .nbc-update-bar,
+  .form-error[role=alert] {
+    animation: none;
+    transition: none;
+  }
+}
+html[data-motion=reduced] .nbc-status > svg,
+html[data-motion=reduced] .nbc-delta,
+html[data-motion=reduced] .nbc-update-bar,
+html[data-motion=reduced] .form-error[role=alert] {
+  animation: none;
+  transition: none;
+}

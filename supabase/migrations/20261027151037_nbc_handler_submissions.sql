@@ -105,7 +105,7 @@ begin
   end if;
   if operation='save' then
     if old.data->>'status'='confirmed' then raise exception 'Reopen this confirmed update before editing'; end if;
-    if jsonb_typeof(payload->'entries') is distinct from 'array' or jsonb_array_length(payload->'entries')>1000 or length(coalesce(payload->>'note',''))>4000 then raise exception 'Invalid draft'; end if;
+    if jsonb_typeof(payload->'entries') is distinct from 'array' or jsonb_array_length(payload->'entries')>10000 or length(coalesce(payload->>'note',''))>4000 then raise exception 'Invalid draft'; end if;
     entries='[]';
     for entry in select * from jsonb_array_elements(payload->'entries') loop
       select * into activity from public.kw_nbc_activities where user_id=owner_id and id=entry->>'activityId' and project_id=pid;

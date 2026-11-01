@@ -47,7 +47,9 @@ export function saveDraftBatch(week: string, updates: { handler: Handler; entrie
   const drafts = updates.map(u => buildDraft(week, u.handler, u.entries, u.note, projectId))
   const ids = new Set(drafts.map(d => d.id)), state = useWorkspace.getState()
   state.commitNbc({ nbc_submissions: [...(state.nbc_submissions ?? []).filter(s => !ids.has(s.id)), ...drafts] })
-  if (useWorkspace.getState().storageError) throw new Error('Could not autosave on this device. Keep this page open.')
+  if (useWorkspace.getState().storageError && useWorkspace.getState().scope === 'guest') {
+    throw new Error('Could not autosave on this device. Keep this page open.')
+  }
 }
 
 async function operate(week: string, handler: Handler, operation: SubmissionOperation, projectId: string) {

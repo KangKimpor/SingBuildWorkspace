@@ -965,13 +965,25 @@ function EventEditor() {
 }
 export function WorkspaceOverlays() {
   const storageError = useWorkspace((s) => s.storageError)
+  const scope = useWorkspace((s) => s.scope)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+  // Cloud users still have network saves even without localStorage;
+  // only show the persistent banner when the guest has no fallback at all.
+  const showBanner = storageError && !bannerDismissed
   return (
     <>
       <CommandPalette />
       <EventEditor />
-      {storageError && (
+      {showBanner && (
         <div className="storage-banner" role="alert">
-          Local recovery storage is unavailable. Online cloud saves can continue; download a backup of pending edits before closing this tab.
+          <span>
+            {scope !== 'guest'
+              ? 'Local recovery storage is unavailable. Online cloud saves can continue; download a backup of pending edits before closing this tab.'
+              : 'Could not save to this device. Keep this tab open or your unsaved changes will be lost.'}
+          </span>
+          <button className="storage-banner-dismiss" aria-label="Dismiss" onClick={() => setBannerDismissed(true)}>
+            <X size={14} />
+          </button>
         </div>
       )}
       <WorkspaceToast />

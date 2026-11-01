@@ -8,5 +8,23 @@ export function readHandlerDraft(scope: string, project: string, week: string, h
     return value && value.values && typeof value.note === 'string' && Object.values(value.values).every((v) => v && typeof (v as { text?: unknown }).text === 'string' && typeof (v as { remark?: unknown }).remark === 'string') ? value : null
   } catch { return null }
 }
-export function writeHandlerDraft(scope: string, project: string, week: string, handler: Handler, value: HandlerDraft) { localStorage.setItem(draftKey(scope, project, week, handler), JSON.stringify(value)) }
-export function clearHandlerDraft(scope: string, project: string, week: string, handler: Handler) { localStorage.removeItem(draftKey(scope, project, week, handler)) }
+export function writeHandlerDraft(scope: string, project: string, week: string, handler: Handler, value: HandlerDraft) {
+  try {
+    localStorage.setItem(draftKey(scope, project, week, handler), JSON.stringify(value))
+  } catch (error) {
+    try {
+      // If quota exceeded, prune stale cache and old drafts to make room for active editing
+      for (const key of Object.keys(localStorage)) {
+        if (key.startsWith('kw-cloud-cache:') || (key.startsWith('kw-nbc-handler-draft:') && key !== draftKey(scope, project, week, handler))) {
+          try { localStorage.removeItem(key) } catch { /* ignore */ }
+        }
+      }
+      localStorage.setItem(draftKey(scope, project, week, handler), JSON.stringify(value))
+    } catch {
+      throw error
+    }
+  }
+}
+export function clearHandlerDraft(scope: string, project: string, week: string, handler: Handler) {
+  try { localStorage.removeItem(draftKey(scope, project, week, handler)) } catch { /* ignore */ }
+}
