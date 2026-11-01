@@ -1,9 +1,9 @@
 import { useWorkspace } from '@/data'
-import { flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
+import { acknowledgeSavedRow, flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
 import { appliedEntries, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
-import type { Handler, NbcSubmission, SubmissionEntry } from './types'
+import type { Handler, NbcActivity, NbcSubmission, SubmissionEntry } from './types'
 
 function context(week: string, handler: Handler, projectId: string) {
   assertEditableWeek(week)
@@ -15,11 +15,21 @@ function context(week: string, handler: Handler, projectId: string) {
 export function draftEntries(week: string, handler: Handler, projectId = 'nbc-bp03'): SubmissionEntry[] {
   const { state, project, submission } = context(week, handler, projectId)
   const existing = new Map(submission?.entries.map((e) => [e.activityId, e]))
+  const newer = [...(state.nbc_submissions ?? [])]
+    .filter((s) => s.projectId === project.id && s.weekStart > week)
+    .sort((a, b) => b.weekStart.localeCompare(a.weekStart) || (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''))
+  const newerApplied = newer.map((s) => new Map(appliedEntries(s).map((e) => [e.activityId, e])))
   return (state.nbc_activities ?? []).filter((a) => a.projectId === project.id && canUpdate(a, handler)).map((a) => {
-    if (existing.has(a.id)) return existing.get(a.id)!
+    if (existing.has(a.id)) {
+      const saved = existing.get(a.id)!
+      if (a.wbs !== 'GR&P' && a.updatedAt && (!saved.baseRevision || (a.baselineResetAt && Date.parse(saved.baseRevision) < Date.parse(a.baselineResetAt)))) {
+        return { ...saved, baseRevision: a.updatedAt }
+      }
+      return saved
+    }
     let previous = a.progress, remark = a.remark
-    for (const s of [...(state.nbc_submissions ?? [])].filter((s) => s.projectId === project.id && s.weekStart > week).sort((a, b) => b.weekStart.localeCompare(a.weekStart) || (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''))) {
-      const e = appliedEntries(s).find((e) => e.activityId === a.id)
+    for (const entriesById of newerApplied) {
+      const e = entriesById.get(a.id)
       if (e) { previous = e.previous; remark = e.previousRemark ?? '' }
     }
     return { activityId: a.id, previous, progress: previous, remark, baseRevision: a.updatedAt }
@@ -32,10 +42,18 @@ function buildDraft(week: string, handler: Handler, entries: SubmissionEntry[], 
   if (note.length > 4000) throw new Error('Keep the note under 4,000 characters.')
   const activities = (state.nbc_activities ?? []).filter((a) => a.projectId === project.id)
   validateEntries(entries, activities, handler)
+  const byId = new Map(activities.map((a) => [a.id, a]))
+  const appliedIds = new Set(submission?.appliedEntries?.map((p) => p.activityId))
   // Untouched shared GR&P never competes with another handler's update.
-  const savedEntries = entries.filter((e) => activities.find((a) => a.id === e.activityId)?.wbs !== 'GR&P' || e.progress !== e.previous || e.remark !== activities.find((a) => a.id === e.activityId)?.remark || submission?.appliedEntries?.some((p) => p.activityId === e.activityId))
+  const savedEntries = entries.filter((e) => {
+    const a = byId.get(e.activityId)
+    return a?.wbs !== 'GR&P' || e.progress !== e.previous || e.remark !== a?.remark || appliedIds.has(e.activityId)
+  })
   const draft: NbcSubmission = { id, projectId: project.id, weekStart: week, handler, status: 'draft', confirmedAt: null, confirmedBy: null, late: false, note, entries: savedEntries, ...submission, updatedAt: new Date().toISOString() }
   draft.entries = savedEntries; draft.note = note
+  if (submission && submission.status === 'draft' && submission.entries.length === savedEntries.length && sameDraftIntent(submission, draft)) {
+    draft.updatedAt = submission.updatedAt
+  }
   return draft
 }
 export function saveDraft(week: string, handler: Handler, entries: SubmissionEntry[], note = '', projectId = 'nbc-bp03') {
@@ -57,6 +75,50 @@ export function saveDraftBatch(week: string, updates: { handler: Handler; entrie
 const NBC_COLLECTIONS = ['nbc_activities', 'nbc_submissions', 'nbc_summaries'] as const
 const write = (submission: NbcSubmission, week: string, handler: Handler, operation: SubmissionOperation) => supabase!.rpc('kw_nbc_submission_write', { operation, payload: { projectId: submission.projectId, weekStart: week, handler }, expected: submission.updatedAt })
 
+function compactDraft(draft: NbcSubmission, activities: NbcActivity[]): NbcSubmission {
+  const byId = new Map(activities.map((a) => [a.id, a]))
+  const appliedIds = new Set(draft.appliedEntries?.map((e) => e.activityId))
+  const normalized = draft.entries.map((e) => {
+    const a = byId.get(e.activityId)
+    if (a && a.wbs !== 'GR&P' && a.updatedAt && (!e.baseRevision || (a.baselineResetAt && Date.parse(e.baseRevision) < Date.parse(a.baselineResetAt)))) {
+      return { ...e, baseRevision: a.updatedAt }
+    }
+    return e
+  })
+  if (normalized.length <= 500) return { ...draft, entries: normalized }
+  const changedOnly = normalized.filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || appliedIds.has(e.activityId))
+  return changedOnly.length <= 1000 ? { ...draft, entries: changedOnly } : { ...draft, entries: normalized }
+}
+
+async function ensureDraftOnServer(draft: NbcSubmission, scope: string): Promise<NbcSubmission> {
+  if (!supabase) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+  const activities = (useWorkspace.getState().nbc_activities ?? []).filter((a) => a.projectId === draft.projectId)
+  const payload = compactDraft(draft, activities)
+  const send = (body: NbcSubmission, expected: string | null) =>
+    supabase!.rpc('kw_workspace_write', { collection: 'nbc_submissions', record_id: draft.id, payload: body as unknown as Record<string, unknown>, expected })
+
+  let res = await send(payload, draft.updatedAt || null)
+  if (res.error && payload.entries.length === draft.entries.length && draft.entries.length > 0 && (res.error.message?.includes('Invalid draft') || res.error.code === '57014')) {
+    const appliedIds = new Set(draft.appliedEntries?.map((e) => e.activityId))
+    const fallback: NbcSubmission = { ...payload, entries: payload.entries.filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || appliedIds.has(e.activityId)) }
+    res = await send(fallback, draft.updatedAt || null)
+  }
+  if (!res.error && res.data?.conflict) {
+    const remoteRow = res.data.row as { id: string; data: NbcSubmission; updated_at: string } | null
+    if (remoteRow?.data?.status === 'confirmed') {
+      acknowledgeSavedRow(scope, 'nbc_submissions', draft.id, remoteRow as unknown as { id: string; data: Record<string, unknown>; updated_at: string })
+      return { ...remoteRow.data, updatedAt: remoteRow.updated_at }
+    }
+    res = await send(payload, remoteRow?.updated_at ?? null)
+  }
+  if (res.error) throw new Error(res.error.message || 'Your draft is kept. Connect and wait for autosave before confirming.')
+  const savedRow = res.data?.row as { id: string; data: NbcSubmission; updated_at: string } | null
+  if (!savedRow) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+  const merged: NbcSubmission = { ...draft, ...savedRow.data, entries: draft.entries, note: draft.note, updatedAt: savedRow.updated_at }
+  acknowledgeSavedRow(scope, 'nbc_submissions', draft.id, { id: draft.id, data: merged as unknown as Record<string, unknown>, updatedAt: savedRow.updated_at } as unknown as { id: string; data: Record<string, unknown>; updated_at: string })
+  return merged
+}
+
 async function operate(week: string, handler: Handler, operation: SubmissionOperation, projectId: string) {
   let { state, id, submission } = context(week, handler, projectId)
   if (!submission) throw new Error('Update not found.')
@@ -65,29 +127,46 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
     state.commitNbc({ nbc_activities: result.activities, nbc_submissions: result.submissions, nbc_summaries: result.summaries })
   } else {
     const scope = state.scope
+    const initialDraft = structuredClone(submission)
     // Push the pending draft only. The server write below is the operation itself, so a full
     // workspace pull here was pure latency.
     const unsaved = () => pendingCollectionIds('nbc_submissions').has(id) || pendingCollectionIds('nbc_activities').size > 0
-    if (!supabase || !(await flushPending(unsaved))) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+    if (!supabase) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+    const flushed = await flushPending(unsaved)
     if (useWorkspace.getState().scope !== scope) throw new Error('Account changed. Reopen this update.')
     ;({ state, submission } = context(week, handler, projectId))
-    if (!submission) {
-      // The store can briefly lag the server right after an autosave round trip. Re-read once.
-      await refreshCollections([...NBC_COLLECTIONS])
-      ;({ state, submission } = context(week, handler, projectId))
+    if (!flushed || !submission) {
+      if (operation === 'confirm') {
+        submission = await ensureDraftOnServer(submission ?? initialDraft, scope)
+      } else {
+        if (!flushed) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+        await refreshCollections([...NBC_COLLECTIONS])
+        ;({ state, submission } = context(week, handler, projectId))
+        if (!submission) throw new Error('This update changed. Reload before continuing.')
+      }
     }
-    if (!submission) throw new Error('This update changed. Reload before continuing.')
     let result = await write(submission, week, handler, operation)
+    if (result.error && operation === 'confirm' && result.error.message.includes('Update not found')) {
+      submission = await ensureDraftOnServer(submission ?? initialDraft, scope)
+      result = await write(submission, week, handler, operation)
+    }
     if (result.error && operation === 'confirm' && result.error.message.includes('Assignments changed')) {
       // The assignment set moved after this draft was saved. Pull the new rows, re-save the
       // draft (late assignments join as unchanged) and confirm once more instead of dead-ending.
       await syncWorkspace()
       ;({ submission } = context(week, handler, projectId))
-      if (!submission) throw new Error('This update changed. Reload before continuing.')
-      saveDraft(week, handler, draftEntries(week, handler, projectId), submission.note, projectId)
-      if (!(await flushPending(unsaved))) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+      const baseSubmission = submission ?? initialDraft
+      const authored = new Map(initialDraft.entries.map((e) => [e.activityId, e]))
+      const mergedEntries = draftEntries(week, handler, projectId).map((e) => {
+        const prev = authored.get(e.activityId)
+        return prev ? { ...e, progress: prev.progress, remark: prev.remark } : e
+      })
+      saveDraft(week, handler, mergedEntries, baseSubmission.note, projectId)
+      const retryFlushed = await flushPending(unsaved)
       ;({ submission } = context(week, handler, projectId))
-      if (!submission) throw new Error('This update changed. Reload before continuing.')
+      if (!retryFlushed || !submission) {
+        submission = await ensureDraftOnServer(submission ?? { ...baseSubmission, entries: mergedEntries }, scope)
+      }
       result = await write(submission, week, handler, operation)
     }
     if (!result.error && result.data?.conflict) {
@@ -96,7 +175,12 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
       // this handler wrote, and NBC rows are not live-subscribed. When the stored draft still
       // holds the same progress and remarks, act on the row the server reported.
       const row = result.data.row as { data: NbcSubmission; updated_at: string } | null
-      if (row && Array.isArray(row.data?.entries) && sameDraftIntent(submission, row.data)) result = await write({ ...submission, updatedAt: row.updated_at }, week, handler, operation)
+      if (row && Array.isArray(row.data?.entries) && sameDraftIntent(submission, row.data)) {
+        result = await write({ ...submission, updatedAt: row.updated_at }, week, handler, operation)
+      } else if (!row && operation === 'confirm') {
+        submission = await ensureDraftOnServer(submission ?? initialDraft, scope)
+        result = await write(submission, week, handler, operation)
+      }
     }
     const { data, error } = result
     if (error) { await syncWorkspace(); throw new Error(error.message) }

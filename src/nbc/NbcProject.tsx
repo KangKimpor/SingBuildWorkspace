@@ -6,7 +6,7 @@ import type { ProjectSummary } from '@/data'
 import { useWorkspace } from '@/data'
 import { Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
-import { syncWorkspace } from '@/data/sync'
+import { refreshCollections } from '@/data/sync'
 import { calculate } from './progress'
 import { issuesEnabled } from './features'
 import Overview from './overview/Overview'
@@ -39,8 +39,8 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   useEffect(() => {
     if (!supabase || scope === 'guest') return
     const client = supabase, channel = client.channel(`nbc:${scope}:${project.id}`)
-    for (const table of ['kw_nbc_activities', 'kw_nbc_submissions', 'kw_nbc_summaries']) channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { void syncWorkspace() })
-    channel.subscribe((status) => { if (status === 'SUBSCRIBED') void syncWorkspace() })
+    for (const table of ['kw_nbc_activities', 'kw_nbc_submissions', 'kw_nbc_summaries'] as const) channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { void refreshCollections([table.slice(3) as 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries']) })
+    channel.subscribe((status) => { if (status === 'SUBSCRIBED') void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries']) })
     return () => { void client.removeChannel(channel) }
   }, [scope, project.id])
 

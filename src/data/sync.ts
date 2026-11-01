@@ -44,6 +44,15 @@ function profile(content: Content): Data {
 function normalize(content: Content): Content {
   return { ...content, taskViews: content.taskViews ?? [], projects: content.projects.map((p) => ({ ...p, workspace: p.workspace === 'team' ? 'team' : 'personal' })) }
 }
+function compactSubmissionPayload(payload: Data): Data {
+  const rawEntries = (payload as { entries?: unknown[] })?.entries
+  if (!Array.isArray(rawEntries) || rawEntries.length <= 500) return payload
+  const appliedIds = new Set(((payload as { appliedEntries?: { activityId?: string }[] })?.appliedEntries ?? []).map((e) => e.activityId))
+  const changedEntriesOnly = (rawEntries as { activityId?: string; progress: number; previous: number; remark?: string }[]).filter(
+    (e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || (e.activityId && appliedIds.has(e.activityId)),
+  )
+  return changedEntriesOnly.length <= 1000 ? { ...payload, entries: changedEntriesOnly } : payload
+}
 function saveRecovery() {
   const scope = useWorkspace.getState().scope
   if (scope === 'guest') return
@@ -53,12 +62,7 @@ function saveRecovery() {
     } catch {
       // Pending write queue might be large; try storing without large redundant entry lists
       try {
-        const compact = [...pending.values()].map((p) => {
-          const raw = p.data as { entries?: unknown[] }
-          return p.collection === 'nbc_submissions' && Array.isArray(raw?.entries) && raw.entries.length > 500
-            ? { ...p, data: { ...p.data, entries: (raw.entries as { progress: number; previous: number; remark?: string }[]).filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0)) } }
-            : p
-        })
+        const compact = [...pending.values()].map((p) => p.collection === 'nbc_submissions' ? { ...p, data: compactSubmissionPayload(p.data) } : p)
         localStorage.setItem(recoveryKey(scope), JSON.stringify(compact))
       } catch {
         // Quota full; pending writes stay safe in memory and IndexedDB outbox
@@ -124,6 +128,15 @@ function queueChanges(next: Content, previous: Content) {
 export function pendingCollectionIds(collection: Collection) {
   const scope = useWorkspace.getState().scope
   return new Set([...pending.values()].filter((p) => p.scope === scope && p.collection === collection).map((p) => p.id))
+}
+export function acknowledgeSavedRow(scope: string, collection: CloudCollection, id: string, row: Row) {
+  if (scope !== useWorkspace.getState().scope) return
+  const key = keyFor(scope, collection, id)
+  versions.set(key, row.updated_at)
+  pending.delete(key)
+  void db.outbox.delete(key).catch(() => {})
+  applyRow(collection, row, id)
+  cacheSnapshot(scope)
 }
 export function pendingEventIds(scope: string) {
   return new Set([...pending.values()].filter((p) => p.scope === scope && p.collection === 'events').map((p) => p.id))
@@ -319,7 +332,15 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
       rows.push(...result.data)
       if (result.data.length < 1000) break
     }
-    for (const row of rows) if (!pending.has(keyFor(scope, collection, row.id))) versions.set(keyFor(scope, collection, row.id), row.updated_at)
+    for (const row of rows) {
+      const key = keyFor(scope, collection, row.id)
+      const queued = pending.get(key)
+      if (!queued) versions.set(key, row.updated_at)
+      else if (collection === 'nbc_submissions' && !queued.base) {
+        versions.set(key, row.updated_at)
+        pending.set(key, { ...queued, base: row.updated_at, original: row.data })
+      }
+    }
     if (collection === 'profiles') {
       if (!pending.has(keyFor(scope, collection, scope))) applyRow(collection, rows[0] ?? null, scope)
     } else {
@@ -364,9 +385,11 @@ export async function refreshCollections(names: Collection[]): Promise<void> {
  * (bounded) makes Confirm seamless instead of surfacing a transient "draft is kept" error.
  */
 export async function flushPending(blocked: () => boolean, timeoutMs = 20000): Promise<boolean> {
+  if (!blocked()) return true
   const deadline = Date.now() + timeoutMs
   for (let attempt = 0; ; attempt++) {
     await syncWorkspace(false)
+    if (!blocked()) return true
     // A follow-up run is started in a microtask when writes remain; join it too.
     await Promise.resolve()
     if (activeRun) await activeRun
@@ -396,7 +419,8 @@ export function syncWorkspace(refresh = true): Promise<void> {
   activeRun = (async () => {
     useWorkspace.setState({ sync: { kind: 'saving' } })
     try {
-      if (!hydrated || refreshRequested) { refreshRequested = false; await pullCloud(scope, current) }
+      // Flush pending writes before any background refresh once hydrated so Confirm never waits on a full BOQ pull.
+      if (!hydrated || (refreshRequested && !pending.size)) { refreshRequested = false; await pullCloud(scope, current) }
       if (!valid()) return
       let conflicts = 0
       for (;;) {
@@ -433,49 +457,41 @@ export function syncWorkspace(refresh = true): Promise<void> {
         const google = write.collection === 'events' ? await import('@/calendar/google') : null
         if (google && !google.useCalendars.getState().calendars.length && write.data.calendarId) await google.syncGoogle()
         if (!valid()) return
-        const payload = google ? await google.pushGoogleEvent(write.data as unknown as CalendarEvent) : await syncWorkspaceFiles(write.data, scope)
+        const rawPayload = google ? await google.pushGoogleEvent(write.data as unknown as CalendarEvent) : await syncWorkspaceFiles(write.data, scope)
         if (!valid()) return
-        const { data, error } = await supabase!.rpc('kw_workspace_write', { collection: write.collection, record_id: write.id, payload, expected: write.base })
+        const fullEntries = write.collection === 'nbc_submissions' ? (rawPayload as { entries?: unknown[] })?.entries : undefined
+        const payload = write.collection === 'nbc_submissions' ? compactSubmissionPayload(rawPayload) : rawPayload
+        let { data, error } = await supabase!.rpc('kw_workspace_write', { collection: write.collection, record_id: write.id, payload, expected: write.base })
         if (!valid()) return
-        if (error && write.collection === 'nbc_submissions' && ['P0001', '23505', '23514'].includes(error.code)) {
-          // If the draft was rejected because of the legacy 1000-entry limit on BP02 (1126 entries),
-          // retry by saving only the modified entries to stay within the limit.
-          const rawEntries = (payload as { entries?: unknown[] })?.entries
-          if (Array.isArray(rawEntries) && rawEntries.length > 500 && error.message.includes('Invalid draft')) {
-            const changedEntriesOnly = (rawEntries as { progress: number; previous: number; remark?: string }[]).filter(
-              (e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0)
-            )
-            if (changedEntriesOnly.length <= 1000) {
-              const compactPayload = { ...payload, entries: changedEntriesOnly }
-              const retryResult = await supabase!.rpc('kw_workspace_write', {
-                collection: write.collection,
-                record_id: write.id,
-                payload: compactPayload,
-                expected: write.base,
-              })
-              if (!retryResult.error && retryResult.data && !retryResult.data.conflict) {
-                const retryRow = retryResult.data.row as Row | null
-                if (retryRow) {
-                  versions.set(write.key, retryRow.updated_at)
-                  pending.delete(write.key)
-                  void db.outbox.delete(write.key).catch(() => {})
-                  cacheSnapshot(scope)
-                  continue
-                }
-              }
+        if (error && write.collection === 'nbc_submissions' && ['P0001', '23505', '23514', '57014'].includes(error.code)) {
+          if (Array.isArray(fullEntries) && (error.message.includes('Invalid draft') || error.code === '57014')) {
+            const compactPayload = compactSubmissionPayload({ ...rawPayload, entries: fullEntries.length <= 500 ? (fullEntries as { progress: number; previous: number; remark?: string }[]).filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0)) : fullEntries })
+            const retryResult = await supabase!.rpc('kw_workspace_write', {
+              collection: write.collection,
+              record_id: write.id,
+              payload: compactPayload,
+              expected: write.base,
+            })
+            if (!valid()) return
+            if (!retryResult.error && retryResult.data) {
+              data = retryResult.data
+              error = null
             }
           }
-          // Preserve rejected autosaves for recovery without retrying an invalid draft forever.
-          const saved = await supabase!.from('kw_nbc_submissions').select('id,data,updated_at').eq('id', write.id).maybeSingle()
-          if (!valid()) return
-          if (saved.error) throw saved.error
-          recoverConflict(pending.get(write.key)!)
-          pending.delete(write.key)
-          applyRow(write.collection, saved.data as Row | null, write.id)
-          refreshRequested = true
-          useWorkspaceUI.getState().notify(`Draft could not be saved: ${error.message}. Your edits were preserved in Search.`)
-          cacheSnapshot(scope)
-          continue
+          if (error) {
+            // Preserve rejected autosaves for recovery without retrying an invalid draft forever.
+            const saved = await supabase!.from('kw_nbc_submissions').select('id,data,updated_at').eq('id', write.id).maybeSingle()
+            if (!valid()) return
+            if (saved.error) throw saved.error
+            const remoteSaved = saved.data as Row | null
+            if (remoteSaved?.data?.status !== 'confirmed') recoverConflict(pending.get(write.key)!)
+            pending.delete(write.key)
+            applyRow(write.collection, remoteSaved, write.id)
+            refreshRequested = true
+            if (remoteSaved?.data?.status !== 'confirmed') useWorkspaceUI.getState().notify(`Draft could not be saved: ${error.message}. Your edits were preserved in Search.`)
+            cacheSnapshot(scope)
+            continue
+          }
         }
         if (error) throw error
         const latest = pending.get(write.key)!
@@ -490,6 +506,24 @@ export function syncWorkspace(refresh = true): Promise<void> {
             cacheSnapshot(scope)
             continue
           }
+          if (write.collection === 'nbc_submissions') {
+            if (!row) {
+              // No server draft exists yet (e.g. local draft had a client timestamp); insert with expected = null.
+              versions.delete(write.key)
+              pending.set(write.key, { ...latest, original: {}, base: null })
+              continue
+            }
+            if (row.data?.status === 'confirmed') {
+              versions.set(write.key, row.updated_at)
+              pending.delete(write.key)
+              applyRow(write.collection, row, write.id)
+              cacheSnapshot(scope)
+              continue
+            }
+            versions.set(write.key, row.updated_at)
+            pending.set(write.key, { ...latest, data: { ...row.data, ...latest.data, updatedAt: row.updated_at }, original: row.data, base: row.updated_at })
+            continue
+          }
           const rebased = rebaseWrite(write.original, latest.data, row?.data ?? null)
           if (rebased.conflicts) {
             recoverConflict(latest)
@@ -500,13 +534,16 @@ export function syncWorkspace(refresh = true): Promise<void> {
           }
         } else {
           if (!row) throw new Error('The server did not confirm this write.')
+          const appliedRow: Row = write.collection === 'nbc_submissions' && Array.isArray(fullEntries)
+            ? { ...row, data: { ...write.data, ...row.data, entries: fullEntries, updatedAt: row.updated_at } }
+            : row
           versions.set(write.key, row.updated_at)
           if (latest.version === write.version) {
             pending.delete(write.key)
-            applyRow(write.collection, row, write.id)
+            applyRow(write.collection, appliedRow, write.id)
           } else {
             // Preserve keystrokes entered while the server request was in flight.
-            pending.set(write.key, { ...latest, data: { ...row.data, ...changedFields(write.data, latest.data) }, original: row.data, base: row.updated_at })
+            pending.set(write.key, { ...latest, data: { ...appliedRow.data, ...changedFields(write.data, latest.data) }, original: appliedRow.data, base: row.updated_at })
           }
           if (google) await google.acknowledgeGoogleEvent(write.data as unknown as CalendarEvent)
         }

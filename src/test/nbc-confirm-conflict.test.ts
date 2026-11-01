@@ -1,11 +1,16 @@
 import { beforeEach, expect, test, vi } from 'vitest'
 
+const state = vi.hoisted(() => ({ pending: new Set<string>() }))
 const cloud = vi.hoisted(() => ({ rpc: vi.fn() }))
 vi.mock('@/lib/supabase', () => ({ supabase: { rpc: cloud.rpc }, hasStoredSession: () => true, initializeSupabase: async () => ({ rpc: cloud.rpc }) }))
 // The operation itself is under test; the surrounding sync traffic is covered by cloud-sync.test.ts.
 vi.mock('@/data/sync', async () => ({
   ...await vi.importActual<typeof import('@/data/sync')>('@/data/sync'),
-  syncWorkspace: vi.fn(async () => {}), refreshCollections: vi.fn(async () => {}), pendingCollectionIds: () => new Set<string>(),
+  syncWorkspace: vi.fn(async () => {}),
+  refreshCollections: vi.fn(async () => {}),
+  pendingCollectionIds: () => state.pending,
+  flushPending: vi.fn(async () => state.pending.size === 0),
+  acknowledgeSavedRow: vi.fn(),
 }))
 
 const { fixtureActivities, fixtureProject } = await import('@/nbc/test-fixture')
@@ -19,6 +24,7 @@ const serverDraft = (updatedAt: string) => ({ id, projectId: fixtureProject.id, 
 
 beforeEach(() => {
   cloud.rpc.mockReset()
+  state.pending = new Set()
   useWorkspace.setState({ scope: 'account-a', projects: [fixtureProject], nbc_activities: fixtureActivities(), nbc_summaries: [] })
   useWorkspace.setState({ nbc_submissions: [serverDraft('2026-11-01T00:00:00+00:00')] })
 })
@@ -39,4 +45,15 @@ test('a conflict that really holds another edit still asks for a review', async 
   cloud.rpc.mockResolvedValueOnce({ error: null, data: { conflict: true, row: { id, data: other, updated_at: '2026-11-01T05:00:00+00:00' } } })
   await expect(confirmUpdate(week, 'Tola')).rejects.toThrow('changed in another session')
   expect(cloud.rpc).toHaveBeenCalledTimes(1)
+})
+
+test('confirm pushes draft directly when background autosave queue is still pending or server row is missing', async () => {
+  state.pending = new Set([id])
+  const saved = serverDraft('2026-11-01T06:00:00+00:00')
+  cloud.rpc.mockResolvedValueOnce({ error: null, data: { conflict: false, row: { id, data: saved, updated_at: saved.updatedAt } } })
+  cloud.rpc.mockResolvedValueOnce({ error: null, data: { conflict: false, row: { id, data: { ...saved, status: 'confirmed' }, updated_at: '2026-11-01T06:00:01+00:00' } } })
+  await expect(confirmUpdate(week, 'Tola')).resolves.toBeTruthy()
+  expect(cloud.rpc).toHaveBeenCalledTimes(2)
+  expect(cloud.rpc.mock.calls[0]![0]).toBe('kw_workspace_write')
+  expect(cloud.rpc.mock.calls[1]![0]).toBe('kw_nbc_submission_write')
 })

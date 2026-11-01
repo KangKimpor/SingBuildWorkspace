@@ -13,7 +13,7 @@ declare
   owner_id uuid; actor uuid:=auth.uid(); pid text:=payload->>'projectId'; h text:=payload->>'handler';
   week date:=(payload->>'weekStart')::date; current_week date:=date_trunc('week',clock_timestamp() at time zone 'Asia/Phnom_Penh')::date;
   stamp timestamptz:=clock_timestamp(); rid text; old public.kw_nbc_submissions; proposal jsonb; entry jsonb; activity public.kw_nbc_activities;
-  bases jsonb:='{}'; running jsonb; value jsonb; entries jsonb; s record; idx integer; w date; values_at_week jsonb; before_values jsonb;
+  bases jsonb:='{}'; running jsonb; value jsonb; entries jsonb; seen jsonb:='{}'; previous_map jsonb:='{}'; s record; idx integer; w date; values_at_week jsonb; before_values jsonb;
   overall numeric; previous numeric; contributions jsonb; row_result jsonb;
 begin
   if actor is null then raise exception 'Authentication required'; end if;
@@ -32,14 +32,17 @@ begin
   if operation='save' then
     if old.data->>'status'='confirmed' then raise exception 'Reopen this confirmed update before editing'; end if;
     if jsonb_typeof(payload->'entries') is distinct from 'array' or jsonb_array_length(payload->'entries')>10000 or length(coalesce(payload->>'note',''))>4000 then raise exception 'Invalid draft'; end if;
+    select coalesce(jsonb_object_agg(e->>'activityId',e->'previous'),'{}'::jsonb) into previous_map from jsonb_array_elements(kw_private.nbc_applied(old.data)) e;
     entries='[]';
     for entry in select * from jsonb_array_elements(payload->'entries') loop
       select * into activity from public.kw_nbc_activities where user_id=owner_id and id=entry->>'activityId' and project_id=pid;
+      if activity.data->>'baselineResetAt' is not null and (nullif(entry->>'baseRevision','') is null or (entry->>'baseRevision')::timestamptz < (activity.data->>'baselineResetAt')::timestamptz) then raise exception 'BP03 baseline was reset. Reload before updating progress'; end if;
       if activity.id is null or activity.data->>'editable'<>'true' or (activity.data->>'handler'<>h and activity.data->>'wbs'<>'GR&P') then raise exception 'Update only your activities or shared GR&P'; end if;
       if jsonb_typeof(entry->'progress') is distinct from 'number' or (entry->>'progress')::numeric not between 0 and 1 or jsonb_typeof(entry->'remark') is distinct from 'string' or length(entry->>'remark')>4000 then raise exception 'Invalid progress or remark'; end if;
-      if exists(select 1 from jsonb_array_elements(entries) e where e->>'activityId'=entry->>'activityId') then raise exception 'Duplicate activity'; end if;
+      if seen ? activity.id then raise exception 'Duplicate activity'; end if;
+      seen=jsonb_set(seen,array[activity.id],'true'::jsonb);
       entries=entries||jsonb_build_array(jsonb_build_object('activityId',activity.id,'progress',entry->'progress','remark',entry->>'remark',
-        'previous',coalesce((select e->'previous' from jsonb_array_elements(kw_private.nbc_applied(old.data)) e where e->>'activityId'=activity.id),activity.data->'progress'),
+        'previous',coalesce(previous_map->activity.id,activity.data->'progress'),
         'baseRevision',coalesce(entry->>'baseRevision','')));
     end loop;
     proposal=coalesce(old.data,'{}')||jsonb_build_object('id',rid,'projectId',pid,'weekStart',week,'handler',h,'status','draft',
@@ -59,17 +62,19 @@ begin
   proposal=old.data;
   if operation='confirm' then
     if proposal->>'status'<>'draft' then raise exception 'Already confirmed'; end if;
-    -- Work assigned after this draft was saved joins as unchanged instead of dead-ending the confirmation.
+    -- Work assigned after this draft was saved (or omitted as unchanged in a compact draft) joins as unchanged instead of dead-ending the confirmation.
     entries=coalesce(proposal->'entries','[]'::jsonb);
-    for activity in select * from public.kw_nbc_activities a where a.user_id=owner_id and a.project_id=pid
-        and a.data->>'editable'='true' and a.data->>'handler'=h and coalesce(a.data->>'wbs','')<>'GR&P'
-        and not exists(select 1 from jsonb_array_elements(entries) e where e->>'activityId'=a.id) loop
-      entries=entries||jsonb_build_array(jsonb_build_object('activityId',activity.id,'progress',activity.data->'progress',
-        'remark',coalesce(activity.data->>'remark',''),'previous',activity.data->'progress','baseRevision',coalesce(activity.data->>'updatedAt','')));
-    end loop;
+    select coalesce(jsonb_object_agg(e->>'activityId',true),'{}'::jsonb) into seen from jsonb_array_elements(entries) e;
+    select entries||coalesce(jsonb_agg(jsonb_build_object('activityId',a.id,'progress',a.data->'progress',
+      'remark',coalesce(a.data->>'remark',''),'previous',a.data->'progress','baseRevision',coalesce(a.data->>'updatedAt',''))),'[]'::jsonb)
+      into entries
+      from public.kw_nbc_activities a where a.user_id=owner_id and a.project_id=pid
+      and a.data->>'editable'='true' and a.data->>'handler'=h and coalesce(a.data->>'wbs','')<>'GR&P'
+      and not (seen ? a.id);
     proposal=jsonb_set(proposal,'{entries}',entries);
+    select coalesce(jsonb_object_agg(e->>'activityId',true),'{}'::jsonb) into seen from jsonb_array_elements(proposal->'entries') e;
     if exists(select 1 from public.kw_nbc_activities a where a.user_id=owner_id and a.project_id=pid and a.data->>'editable'='true' and a.data->>'handler'=h and a.data->>'wbs'<>'GR&P'
-      and not exists(select 1 from jsonb_array_elements(proposal->'entries') e where e->>'activityId'=a.id)) then raise exception 'Assignments changed. Reload before confirming'; end if;
+      and not (seen ? a.id)) then raise exception 'Assignments changed. Reload before confirming'; end if;
     for entry in select * from jsonb_array_elements(proposal->'entries') loop
       select * into activity from public.kw_nbc_activities where user_id=owner_id and id=entry->>'activityId' and project_id=pid;
       if activity.id is null or activity.data->>'editable'<>'true' or (activity.data->>'handler'<>h and activity.data->>'wbs'<>'GR&P') then raise exception 'Assignments changed. Reload before confirming'; end if;
