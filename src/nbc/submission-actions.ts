@@ -1,7 +1,7 @@
 import { useWorkspace } from '@/data'
 import { pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
-import { appliedEntries, assertEditableWeek, canUpdate, submissionId, transitionSubmission, validateEntries } from './submissions'
+import { appliedEntries, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
 import type { Handler, NbcSubmission, SubmissionEntry } from './types'
 
@@ -84,6 +84,14 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
       ;({ submission } = context(week, handler, projectId))
       if (!submission) throw new Error('This update changed. Reload before continuing.')
       result = await write(submission, week, handler, operation)
+    }
+    if (!result.error && result.data?.conflict) {
+      // Another handler confirming re-chains every draft in the two-week window, which bumps this
+      // row's version without changing a value this handler wrote, and NBC rows are not live-
+      // subscribed. When the stored draft still holds the same progress and remarks, confirm the
+      // row the server reported instead of dead-ending on a version the user cannot see.
+      const row = result.data.row as { data: NbcSubmission; updated_at: string } | null
+      if (row && Array.isArray(row.data?.entries) && sameDraftIntent(submission, row.data)) result = await write({ ...submission, updatedAt: row.updated_at }, week, handler, operation)
     }
     const { data, error } = result
     if (error) { await syncWorkspace(); throw new Error(error.message) }

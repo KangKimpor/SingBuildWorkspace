@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { fixtureActivities } from './test-fixture'
-import { addDays, assertEditableWeek, canUpdate, submissionId, transitionSubmission, weekDeadline, weekStart } from './submissions'
+import { addDays, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, weekDeadline, weekStart } from './submissions'
 import type { SubmissionState } from './submissions'
 import type { Handler, NbcSubmission } from './types'
 
@@ -102,6 +102,16 @@ test('an activity assigned after the draft was saved joins as unchanged instead 
   const again = transitionSubmission(s, id, 'reopen', 'actor', now)
   expect(again.submissions[0]!.entries.some((e) => e.activityId === late.id)).toBe(true)
   expect(() => transitionSubmission(again, id, 'confirm', 'actor', now)).not.toThrow()
+})
+
+test('a re-chained draft is the same intent, but changed values are not', () => {
+  const s = initial(), local = s.submissions[0]!
+  // The server rewrites previous/baseRevision/updatedAt for every draft whenever anyone confirms.
+  const rechained = { ...local, updatedAt: '2026-10-27T09:00:00Z', entries: local.entries.map((e) => ({ ...e, previous: .2, baseRevision: '2026-10-27T09:00:00Z' })) }
+  expect(sameDraftIntent(local, rechained)).toBe(true)
+  expect(sameDraftIntent(local, { ...rechained, entries: rechained.entries.map((e) => ({ ...e, progress: .9 })) })).toBe(false)
+  expect(sameDraftIntent(local, { ...rechained, note: 'Other device' })).toBe(false)
+  expect(sameDraftIntent(local, { ...rechained, status: 'confirmed' })).toBe(false)
 })
 
 test('unconfirmed current drafts are re-chained and the late flag flips at Saturday noon', () => {

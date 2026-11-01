@@ -24,6 +24,19 @@ export const submissionId = (project: string, week: string, handler: Handler) =>
 export const canUpdate = (activity: NbcActivity, handler: Handler) => activity.editable && (activity.handler === handler || activity.wbs === 'GR&P')
 export const appliedEntries = (s: NbcSubmission) => s.status === 'confirmed' ? s.entries : s.appliedEntries ?? []
 export const changedEntries = (entries: SubmissionEntry[]) => entries.filter((e) => Math.abs(e.progress - e.previous) > 1e-12)
+/**
+ * Whether two copies of a submission hold the same values its handler authored.
+ *
+ * The server re-chains every draft in the two-week window whenever anyone confirms, which
+ * rewrites `previous`/`baseRevision` and bumps `updatedAt` without touching progress or
+ * remarks. Comparing those server-managed fields would report a false concurrent edit.
+ */
+export function sameDraftIntent(a: NbcSubmission, b: NbcSubmission) {
+  if (a.status !== b.status || a.note !== b.note || a.entries.length !== b.entries.length) return false
+  const authored = (s: NbcSubmission) => s.entries.map((e) => JSON.stringify([e.activityId, e.progress, e.remark])).sort()
+  const left = authored(a), right = authored(b)
+  return left.every((entry, index) => entry === right[index])
+}
 export function weekLabel(week: string) {
   const format = (date: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
   return `${format(week)} – ${format(addDays(week, 6))}`
