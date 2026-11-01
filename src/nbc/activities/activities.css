@@ -14,7 +14,9 @@
 .nbc-activities > .nbc-wbs-scroll { max-height: calc(100dvh - 18rem); }
 .nbc-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-block: var(--space-8); }
 .nbc-pill[data-status=Issue] { background: var(--status-warning-bg); text-decoration: none; }
-.nbc-activity-band { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 10px 12px; border-radius: 8px; background: var(--bg-sidebar); }
+.nbc-activity-band { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 3px 5px; border-radius: 8px; background: var(--bg-sidebar); }
+.nbc-activity-band .nbc-view { padding: 2px 9px; font-size: 12px; }
+.nbc-activity-band .nbc-expand-editor { min-height: 26px; padding: 2px 10px; font-size: 12px; border-radius: 7px; }
 .nbc-activity-band .nbc-hint { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; font-size: 11px; margin: 0; }
 .nbc-view.active { background: var(--bg-canvas); font-weight: 500; box-shadow: 0 1px 3px rgb(0 0 0 / .06); }
 .nbc-view { padding: 3px 10px; font-size: 13px; }
@@ -87,4 +89,5 @@ html[data-theme=dark] .nbc-wbs tr[data-level='3'] .nbc-group-handlers { color: #
   .nbc-activities .nbc-handler-button { min-height: 44px; }
   .nbc-activities .nbc-toggle { width: 44px; height: 44px; }
   .nbc-activity-band .nbc-view { display: inline-flex; align-items: center; min-height: 44px; }
+  .nbc-activity-band .nbc-expand-editor { min-height: 44px; }
 }

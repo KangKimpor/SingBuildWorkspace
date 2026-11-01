@@ -10,31 +10,6 @@
 .nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 4px; }
 .nbc-update[data-expanded=true] > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 
-.nbc-update[data-expanded=true] .nbc-update-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 0;
-}
-.nbc-update[data-expanded=true] .nbc-update-head > div:first-child {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.nbc-update[data-expanded=true] .nbc-update-head h2 {
-  font-size: 18px;
-  line-height: 22px;
-  margin: 0;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-.nbc-update[data-expanded=true] .nbc-update-head p {
-  font-size: 12px;
-  margin: 0;
-  color: var(--text-secondary);
-}
 .nbc-update[data-expanded=true] .nbc-update-controls {
   gap: 6px;
 }
@@ -127,11 +102,13 @@
   bottom: calc(50px + var(--safe-bottom));
 }
 .nbc-update-gate { height: auto; min-height: 0; }
-.nbc-update-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-16); flex-wrap: wrap; margin-bottom: var(--space-4); }
-.nbc-update-head h2 { margin: 2px 0 4px; font-size: 40px; line-height: 46px; font-weight: 700; letter-spacing: -.03em; }
-.nbc-update-head p { margin: 0; }
-.nbc-update-head .nbc-eyebrow { color: var(--accent-text); font-weight: 600; }
 .nbc-update-controls { display: flex; align-items: center; gap: var(--space-8); flex-wrap: wrap; }
+/* Deadline and editor controls live in the table's search row: match the row's compact input height. */
+.nbc-update .nbc-filters { gap: var(--space-8); }
+.nbc-update .nbc-filters .search-field { max-width: 240px; }
+.nbc-update .nbc-update-controls { gap: 6px; }
+.nbc-update .nbc-update-controls .nbc-chip { padding: 6px 12px; font-size: 12px; min-height: 32px; border-radius: 7px; }
+.nbc-update .nbc-update-controls .nbc-deadline { padding: 5px 10px; font-size: 12px; }
 
 /* Segmented controls and chips */
 .nbc-seg { display: inline-flex; padding: 2px; border: 0; border-radius: 10px; background: var(--status-neutral-bg); }
@@ -383,13 +360,9 @@
   .shell[data-bp=compact] .nbc-project:has(.nbc-update:not(.nbc-update-gate)) { height: calc(100dvh - 48px - var(--safe-top) - var(--h-tabbar) - var(--safe-bottom)); }
   .shell[data-bp=compact] .nbc-project:has(.nbc-update[data-expanded=true]) { height: calc(100dvh - 48px - var(--safe-top)); padding-bottom: max(12px, var(--safe-bottom)); }
   .nbc-expand-editor { min-height: 44px; }
-  .nbc-update-controls .nbc-deadline { width: 100%; padding-inline: 0; background: transparent; }
   .nbc-update-gate { height: auto; }
   .nbc-project:has(.nbc-update:not(.nbc-update-gate)) > .nbc-project-header { display: none; }
-  .nbc-update-head { gap: 8px; margin-bottom: 0; }
-  .nbc-update-head h2 { font-size: 24px; line-height: 30px; }
-  .nbc-update-head p { margin: 4px 0 0; }
-  .nbc-update-controls { width: 100%; justify-content: space-between; }
+  .nbc-update-controls { justify-content: flex-end; }
   .nbc-gate h2 { font-size: 32px; line-height: 38px; }
   .nbc-gate-list { grid-template-columns: 1fr; }
   .nbc-update-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 8px 8px 8px 14px; bottom: calc(var(--h-tabbar) + var(--safe-bottom) + 8px); }

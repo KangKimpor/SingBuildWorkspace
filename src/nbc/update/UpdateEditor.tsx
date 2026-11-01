@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { ReactNode } from 'react'
 import { CheckCircle2, ChevronsDown, ChevronsUp, CircleAlert, CloudUpload, LoaderCircle, Search } from 'lucide-react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { MoreMenu } from '../ui/MoreMenu'
@@ -23,9 +24,9 @@ function DeleteUpdate({ onDelete, busy }: { onDelete: () => void; busy: boolean 
   return <div className="nbc-delete"><strong>Delete this update?</strong><p className="small muted">Your activities go back to last week’s values. Newer confirmed updates stay applied.</p><div className="inline"><button className="btn-secondary" disabled={busy} onClick={() => setArmed(false)}>Cancel</button><button className="btn-accent" disabled={busy} onClick={onDelete}>Delete</button></div></div>
 }
 
-interface Props { projectId: string; week: string; handler: Handler; activities: NbcActivity[]; submission?: NbcSubmission; pastDeadline: boolean }
+interface Props { projectId: string; week: string; handler: Handler; activities: NbcActivity[]; submission?: NbcSubmission; pastDeadline: boolean; controls?: ReactNode }
 
-export function UpdateEditor({ projectId, week, handler, activities, submission, pastDeadline }: Props) {
+export function UpdateEditor({ projectId, week, handler, activities, submission, pastDeadline, controls }: Props) {
   const draft = useUpdateDraft({ projectId, week, handler, activities, submission })
   const { confirmed, busy } = draft
   const StatusIcon = draft.status === 'saving' ? LoaderCircle : draft.status === 'error' ? CircleAlert : draft.status === 'local' ? CloudUpload : CheckCircle2
@@ -88,11 +89,12 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const emptyText = filter === 'chg' ? confirmed ? 'No changes in this update.' : 'No changes yet. Type a new percentage on a row in Needs update or All.' : filter === 'need' ? 'Nothing needs an update — everything assigned to you is complete.' : 'No activities to update.'
 
   return <>
-    <div className="nbc-filters" role="group" aria-label="Show activities">
+    <div className="nbc-filters">
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       {areas.length > 1 && <GlassSelect aria-label="Work area" value={area} onChange={(e) => setArea(e.target.value)}><option value="">All areas</option>{areas.map((a) => <option key={a}>{a}</option>)}</GlassSelect>}
-      <div className="nbc-seg">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
+      <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
       <span className="nbc-spacer"/>
+      {controls && <div className="nbc-update-controls">{controls}</div>}
       <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={expandAll}><ChevronsDown size={16}/></button>
       <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={collapseAll}><ChevronsUp size={16}/></button>
     </div>
