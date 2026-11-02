@@ -5,9 +5,10 @@ export function rememberWorkspace(scope: string, selection: Selection) {
 }
 export function workspaceStart(scope: string, projects: ProjectSummary[]) {
   let selected: Selection | undefined
-  try { selected = JSON.parse(localStorage.getItem(`kw-start:${scope}`) || 'null') } catch { /* Default to Personal. */ }
-  const workspace = selected?.workspace === 'team' ? 'team' : 'personal'
-  const available = projects.filter((p) => p.status !== 'Archived')
-  const project = selected?.projectId ? available.find((p) => p.id === selected.projectId) : selected ? undefined : available.find((p) => (p.workspace ?? 'personal') === workspace)
-  return project ? project.nbcBp03 ? `/projects-progress/${encodeURIComponent(project.id)}/overview` : `/projects/${encodeURIComponent(project.id)}/table` : `/projects?workspace=${workspace}`
+  try { selected = JSON.parse(localStorage.getItem(`kw-start:${scope}`) || 'null') } catch { /* Progress is the default. */ }
+  // Projects Progress is the main screen; resume a remembered progress project when there is one.
+  const project = selected?.projectId
+    ? projects.find((p) => p.status !== 'Archived' && p.nbcBp03 && p.id === selected.projectId)
+    : undefined
+  return project ? `/projects-progress/${encodeURIComponent(project.id)}/overview` : '/projects-progress'
 }

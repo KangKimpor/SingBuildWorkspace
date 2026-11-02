@@ -19,7 +19,8 @@ test('projects default to Personal, retain assignment and appear in only their g
   expect(screen.queryByText('Team Workspace')).not.toBeInTheDocument()
   expect(screen.queryByRole('link', { name: /Private planning/ })).not.toBeInTheDocument()
   expect(screen.queryByRole('link', { name: /Team planning/ })).not.toBeInTheDocument()
-  expect(screen.getByText('Personal Workspace (Testing Phase)')).toBeInTheDocument()
+  expect(screen.queryByText('Personal Workspace (Testing Phase)')).not.toBeInTheDocument()
+  expect(screen.getByText('Projects Progress')).toBeInTheDocument()
   expect(useWorkspace.getState().projects.find((p) => p.id === team)?.workspace).toBe('team')
   for (const name of ['Favorites', 'Pages', 'New page', 'My tasks', 'Home', 'Calendar']) expect(screen.queryByText(name, { exact: true })).not.toBeInTheDocument()
   expect(useWorkspace.getState().pages).toEqual(initial.pages)
@@ -53,12 +54,13 @@ test('concurrent independent fields merge, while overlapping edits and deletions
 })
 
 
-test('opening screen remembers a selected project per account with a safe fallback', async () => {
+test('opening screen defaults to Projects Progress and remembers a progress project', async () => {
   const { rememberWorkspace, workspaceStart } = await import('@/shell/landing')
-  expect(workspaceStart('guest', initial.projects)).toBe('/projects/website/table')
+  const progressProject = { ...initial.projects[0]!, id: 'nbc-bp03', workspace: 'team' as const, nbcBp03: true }
+  expect(workspaceStart('guest', initial.projects)).toBe('/projects-progress')
   rememberWorkspace('account-a', { workspace: 'personal', projectId: 'mobile' })
-  expect(workspaceStart('account-a', initial.projects)).toBe('/projects/mobile/table')
-  expect(workspaceStart('account-b', [])).toBe('/projects?workspace=personal')
-  rememberWorkspace('account-a', { workspace: 'team', projectId: 'removed' })
-  expect(workspaceStart('account-a', initial.projects)).toBe('/projects?workspace=team')
+  expect(workspaceStart('account-a', initial.projects)).toBe('/projects-progress')
+  rememberWorkspace('account-a', { workspace: 'team', projectId: 'nbc-bp03' })
+  expect(workspaceStart('account-a', [...initial.projects, progressProject])).toBe('/projects-progress/nbc-bp03/overview')
+  expect(workspaceStart('account-b', [])).toBe('/projects-progress')
 })

@@ -24,7 +24,7 @@ export function TabBar() {
       <button type="button" className="btn-accent tab-add" data-round="true" aria-label="Quick add" onClick={() => setSheet('quick-add')}>
         <Plus size={24} strokeWidth={1.75} aria-hidden="true" />
       </button>
-      <Tab to="/projects" label="Projects">
+      <Tab to="/projects-progress" label="Progress">
         <FolderKanban {...ic} />
       </Tab>
       <Tab to="/search" label="Search">

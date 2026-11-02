@@ -39,7 +39,7 @@ export default function Projects({ progressSection = false }: { progressSection?
     if (!id || projectId) rememberWorkspace(scope, { workspace: projectWorkspace ?? workspace, projectId })
   }, [id, projectId, projectWorkspace, scope, workspace])
   if (project?.nbcBp03 && !progressSection) return <Navigate to={`/projects-progress/${id}/${view}${params.size ? `?${params}` : ''}`} replace />
-  if (progressSection && !id) return <div className="page workspace-page" data-wide="true"><header className="page-heading"><div><h1 className="t-title">Projects Progress</h1><p className="muted small">Project quantities, progress updates and reporting.</p></div><Link className="btn-secondary" to="/projects">Workspace projects</Link></header><ProjectCards progressOnly /></div>
+  if (progressSection && !id) return <div className="page workspace-page" data-wide="true"><header className="page-heading"><div><h1 className="t-title">Projects Progress</h1><p className="muted small">Project quantities, progress updates and reporting.</p></div></header><ProjectCards progressOnly /></div>
   if (!id)
     return (
       <div className="page workspace-page" data-wide="true">

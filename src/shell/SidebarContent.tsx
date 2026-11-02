@@ -1,16 +1,13 @@
 /* oxlint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Delegated link clicks include keyboard activation. */
 import {
   FileText,
-  FolderKanban,
   Search,
   Settings,
   Trash2,
-  ChevronDown,
 } from 'lucide-react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useProjects } from '@/data'
 import { modKey } from './store'
-import { Tile } from '@/components/WorkspaceUI'
 import { useWorkspaceUI } from './workspace'
 /** Lucide at 1.75 px stroke, currentColor (§9). */
 const ic = { size: 18, strokeWidth: 1.75 } as const
@@ -78,21 +75,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
         </ul>
 
-        <div className="nav-section">
-          <div className="t-caption">Personal Workspace (Testing Phase)</div>
-          <ul className="nav-list">
-            <Item to="/projects?workspace=personal" end icon={<FolderKanban {...ic} />} label="Personal projects" meta={<ChevronDown size={13} />}>
-              <ul className="nav-list nav-projects" aria-label="Personal projects">
-                {projects.filter((p) => !p.nbcBp03 && (p.workspace ?? 'personal') === 'personal').map((p) => (
-                  <li key={p.id}><NavLink to={`/projects/${p.id}/table`} className="nav-item">
-                    <span className="nav-icon"><Tile name={p.icon || p.id} color={p.color} /></span>
-                    <span className="nav-label">{p.name}</span>
-                  </NavLink></li>
-                ))}
-              </ul>
-            </Item>
-          </ul>
-        </div>
+        {/* Personal Workspace is hidden for now; its routes remain available by URL. */}
         <div className="nav-section">
           <div className="t-caption"><NavLink to="/projects-progress" end>Projects Progress</NavLink></div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">

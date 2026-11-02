@@ -32,7 +32,7 @@ workspaceTest('the signed-in workspace heading paints before task controls load'
     }))
     await route.continue()
   })
-  await page.goto('/')
+  await page.goto('/projects/website/table')
   await expect(page.getByRole('table')).toBeVisible()
   expect(state?.heading).toBe('Website Redesign')
   if (state?.paintTiming) expect(state.paints).toContain('first-contentful-paint')
