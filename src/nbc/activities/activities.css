@@ -48,9 +48,6 @@
 .nbc-wbs tr[data-level='1'] .nbc-group-handlers { color: #cbd5e1; }
 .nbc-wbs tr[data-level='2'] .nbc-group-handlers { color: #334155; }
 .nbc-wbs tr[data-level='3'] .nbc-group-handlers { color: #334155; }
-html[data-theme=dark] .nbc-wbs tr[data-level='1'] .nbc-group-handlers { color: #94a3b8; }
-html[data-theme=dark] .nbc-wbs tr[data-level='2'] .nbc-group-handlers { color: #cbd5e1; }
-html[data-theme=dark] .nbc-wbs tr[data-level='3'] .nbc-group-handlers { color: #cbd5e1; }
 
 @media (max-width: 767px) {
   .nbc-activities .nbc-filters { gap: 8px; }

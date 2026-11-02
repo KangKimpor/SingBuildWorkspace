@@ -1,23 +1,15 @@
-import { CalendarDays, Check, ChevronRight, Cloud, Monitor, Moon, Smartphone, Sun, UserRound } from 'lucide-react'
+import { CalendarDays, ChevronRight, Cloud, Monitor, Smartphone, UserRound } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { AccountSettings } from '@/components/AccountSettings'
-import { useTheme } from '@/lib/theme'
 import { useGlass } from '@/lib/glass'
 import { useWorkspace } from '@/data'
 import { useShallow } from 'zustand/react/shallow'
 import { useInstall } from '@/lib/install'
 import './settings.css'
 
-const themes = [
-  { value: 'light', label: 'Light', Icon: Sun },
-  { value: 'dark', label: 'Dark', Icon: Moon },
-  { value: 'system', label: 'System', Icon: Monitor },
-] as const
-
 export default function Settings() {
   const { section = 'appearance' } = useParams()
-  const theme = useTheme()
   const glass = useGlass()
   const install = useInstall()
   const { calendarPreferences, setCalendarPreferences } = useWorkspace(
@@ -58,19 +50,6 @@ export default function Settings() {
             <section className="settings-group" aria-labelledby="appearance-heading">
               <h3 id="appearance-heading">Display</h3>
               <div className="settings-card">
-                <div className="settings-theme">
-                  <div className="settings-label"><span>Appearance</span><p>Choose a look, or match your device.</p></div>
-                  <div className="settings-theme-options" role="group" aria-label="Theme">
-                    {themes.map(({ value, label, Icon }) => (
-                      <button key={value} className="settings-theme-choice" aria-pressed={theme.pref === value} onClick={() => theme.setPref(value)}>
-                        <span className="settings-theme-preview" data-preview={value} aria-hidden="true">
-                          <span className="settings-preview-window"><span /><span><i /><i /><i /></span></span>
-                        </span>
-                        <span className="settings-theme-name"><Icon size={14} aria-hidden="true" />{label}<span className="settings-theme-check" aria-hidden="true">{theme.pref === value && <Check size={12} />}</span></span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
                 <label className="settings-preference" htmlFor="reduce-motion">
                   <span className="settings-label"><span>Reduce motion</span><span className="settings-description">Gentler animations and simpler transitions.</span></span>
                   <input id="reduce-motion" className="settings-switch" type="checkbox" role="switch" aria-label="Reduce motion" aria-checked={glass.motion === 'reduced'} checked={glass.motion === 'reduced'} onChange={(e) => glass.setMotion(e.target.checked ? 'reduced' : 'system')} />

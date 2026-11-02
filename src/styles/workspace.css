@@ -7,9 +7,6 @@
   --calendar-label: 96px;
   --calendar-tasks: 72px;
 }
-[data-theme='dark'] {
-  --bg-workspace: #191919;
-}
 body {
   background: var(--bg-workspace);
 }

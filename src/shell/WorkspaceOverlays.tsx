@@ -18,7 +18,6 @@ import {
   useWorkspace,
 } from '@/data'
 import type { CalendarEvent } from '@/data'
-import { useTheme } from '@/lib/theme'
 import { modKey } from './store'
 import { useWorkspaceUI } from './workspace'
 import { useCalendars, defaultCalendar } from '@/calendar/store'
@@ -178,7 +177,6 @@ function CommandPalette() {
   const [selected, setSelected] = useState(0)
   const navigate = useNavigate()
   const { addTask } = useWorkspace()
-  const theme = useTheme()
   useEffect(() => {
     if (commandOpen) {
       setQuery('')
@@ -253,14 +251,6 @@ function CommandPalette() {
                     label: 'Create a new task',
                     icon: CheckSquare,
                     run: () => { const id = addTask({ title: 'New task', projectId: 'website' }); const task = useWorkspace.getState().tasks.find((t) => t.id === id)!; navigate(`/projects/${task.projectId}/table?task=${id}`) },
-                  },
-                  {
-                    label: 'Toggle theme',
-                    icon: Check,
-                    run: () =>
-                      theme.setPref(
-                        theme.resolved === 'dark' ? 'light' : 'dark',
-                      ),
                   },
                 ].map((action) => (
                   <button

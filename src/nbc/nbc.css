@@ -17,14 +17,6 @@ html:has(.nbc-project) {
   --w-sidebar: 260px; --h-topbar: 44px; --w-nbc-wbs: 160px; --h-button: 32px; --h-input: 32px;
   --scrim: rgb(0 0 0 / 40%);
 }
-html[data-theme=dark]:has(.nbc-project) {
-  --surface-canvas: #191919; --surface-sidebar: #202020; --surface-raised: #252525;
-  --surface-hover: #252525; --surface-selected: #333333;
-  --border-subtle: #333333; --border-strong: #454545;
-  --text-primary: #e6e6e6; --text-secondary: #a3a3a3; --text-tertiary: #737373;
-  --status-neutral-bg: var(--surface-selected); --status-success-bg: var(--chip-green);
-  --status-warning-bg: var(--chip-yellow); --status-danger-bg: var(--chip-red);
-}
 html:has(.nbc-project) :is(.glass,.btn-accent,.btn-secondary,.glass-select,.search-field,.nbc-panel,.nbc-grid-scroll,.icon-tile) { box-shadow: none; background-image: none; backdrop-filter: none; }
 html:has(.nbc-project) :is(button,.pill,.status-badge,.view-tab,.glass-select,kbd) { white-space: nowrap; flex-shrink: 0; }
 html:has(.nbc-project) :is(.btn-accent,.btn-secondary,.glass-select) { border-radius: 6px; min-height: 32px; font-size: 12px; }

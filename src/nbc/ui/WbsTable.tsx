@@ -1,5 +1,5 @@
 import './ui.css'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { RowActions } from '@/components/RowActions'
 import type { RowActionTarget } from '@/components/RowActions'
 import type { ReactNode } from 'react'
@@ -20,17 +20,23 @@ export interface WbsTableProps {
   extra?: { header: string; cell: (row: WbsRow) => ReactNode }[]
   rowAttrs?: (row: WbsRow) => Record<string, string | boolean | undefined>
   virtual?: boolean
+  scrollToId?: string
   onRowClick?: (row: WbsRow) => void
   nameSuffix?: (row: WbsRow) => ReactNode
 }
 
 const ROW = 36
 
-export function WbsTable({ rows, caption, collapsed, onToggle, previous, current, remark, extra = [], rowAttrs, virtual = false, onRowClick, nameSuffix }: WbsTableProps) {
+export function WbsTable({ rows, caption, collapsed, onToggle, previous, current, remark, extra = [], rowAttrs, virtual = false, scrollToId, onRowClick, nameSuffix }: WbsTableProps) {
   const scroll = useRef<HTMLDivElement>(null)
   const [menu, setMenu] = useState<RowActionTarget | null>(null)
   // oxlint-disable-next-line react/incompatible-library -- React Compiler is not enabled; this virtualizer is not memoized.
   const virtualizer = useVirtualizer({ count: virtual ? rows.length : 0, getScrollElement: () => scroll.current, estimateSize: () => ROW, measureElement: (element) => element.getBoundingClientRect().height + (parseFloat(getComputedStyle(element).marginBottom) || 0), overscan: 12, initialRect: { width: 1200, height: 800 } })
+  useEffect(() => {
+    if (!virtual || !scrollToId) return
+    const index = rows.findIndex((row) => row.activity.id === scrollToId)
+    if (index >= 0) virtualizer.scrollToIndex(index, { align: 'center' })
+  }, [virtual, scrollToId, rows, virtualizer])
   const items = virtual ? virtualizer.getVirtualItems() : rows.map((_, index) => ({ index, start: 0, end: 0 }))
   const before = virtual && items.length ? items[0]!.start : 0
   const after = virtual && items.length ? virtualizer.getTotalSize() - items.at(-1)!.end : 0

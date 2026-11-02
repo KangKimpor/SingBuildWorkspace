@@ -48,7 +48,7 @@ export interface Pending {
   base: string | null
 }
 class WorkspaceDB extends Dexie {
-  snapshots!: Table<{ scope: string; content: Content }, string>
+  snapshots!: Table<{ scope: string; content: Content; watermarks?: Record<string, string>; lastFullPull?: string }, string>
   outbox!: Table<Pending, string>
   versions!: Table<{ key: string; value: string }, string>
   files!: Table<{ id: string; blob: Blob; name: string }, string>

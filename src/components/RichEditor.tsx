@@ -19,7 +19,6 @@ import { Link } from 'react-router-dom'
 import { useWorkspace } from '@/data'
 import { useShallow } from 'zustand/react/shallow'
 import type { WorkspacePage } from '@/data'
-import { useTheme } from '@/lib/theme'
 import { uploadWorkspaceFile, resolveFile } from '@/data/files'
 import { TaskRow } from './TaskRow'
 import { useWorkspaceUI } from '@/shell/workspace'
@@ -194,7 +193,6 @@ export function RichEditor({
   onExportReady: (exporter: () => Promise<string>) => void
 }) {
   const updatePage = useWorkspace((s) => s.updatePage)
-  const theme = useTheme((s) => s.resolved)
   const initialContent = useMemo(
     () =>
       page.content !== undefined
@@ -278,7 +276,7 @@ export function RichEditor({
   return (
     <BlockNoteView
       editor={editor}
-      theme={theme}
+      theme="light"
       slashMenu={false}
       onChange={() => {
         if (applyingRemote.current) return

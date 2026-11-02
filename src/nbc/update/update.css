@@ -394,8 +394,6 @@
 }
 .nbc-chip.nbc-change-handler { background:#ffdbb5; border-color:#c76a0c; color:#803900; }
 .nbc-chip.nbc-change-handler:hover { background:#ffcc96; }
-[data-theme=dark] .nbc-chip.nbc-change-handler { background:#563315; border-color:#ba732e; color:#ffba75; }
-[data-theme=dark] .nbc-chip.nbc-change-handler:hover { background:#70431c; }
 
 /* -- Smooth animations for Update Progress ------------------------------- */
 
@@ -440,14 +438,6 @@
 }
 .nbc-update .nbc-wbs tr[data-problem=true] td {
   transition: background var(--duration-fast) var(--ease-standard);
-}
-
-/* Delta badge: high contrast in dark mode to guarantee WCAG AA 4.5:1 */
-html[data-theme=dark] .nbc-delta[data-dir=up] {
-  color: #a7f3d0;
-}
-html[data-theme=dark] .nbc-delta[data-dir=down] {
-  color: #fed7aa;
 }
 
 /* Remark input: smooth expand when opened */

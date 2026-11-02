@@ -131,14 +131,11 @@ test('after the deadline the header does not show the late banner and the sheet 
   expect(within(screen.getByRole('dialog', { name: 'Confirm update' })).getByText('Late')).toBeTruthy()
 })
 
-test('lowering a value needs a remark before the confirm sheet opens', () => {
+test('lowering a value opens the confirm sheet without asking for a remark', () => {
   render(<Screen/>)
   fireEvent.change(value('1.6.1.2'), { target: { value: '10' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Confirm update' }))
-  expect(screen.getByText(/A remark is required/)).toBeTruthy()
-  expect(screen.getByText(/1 to fix/)).toBeTruthy()
-  expect(screen.queryByRole('dialog')).toBeNull()
-  fireEvent.change(screen.getByLabelText('Remark for 1.6.1.2'), { target: { value: 'Rework after inspection' } })
+  expect(screen.queryByText(/A remark is required/)).toBeNull()
+  expect(screen.queryByLabelText('Remark for 1.6.1.2')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Confirm update' }))
   expect(screen.getByRole('dialog', { name: 'Confirm update' })).toBeTruthy()
 })

@@ -1,6 +1,5 @@
 .nbc-overview { display: grid; gap: 24px; min-width: 0; }
 .nbc-overview { --nbc-progress-fill: #0067d6; --nbc-progress-track: color-mix(in srgb, var(--text-primary) 10%, var(--bg-raised)); }
-[data-theme=dark] .nbc-overview { --nbc-progress-fill: #70b5ff; }
 .nbc-overview progress { display: block; appearance: none; width: 100%; height: 6px; border: 0; border-radius: 99px; overflow: hidden; background: var(--nbc-progress-track); color: var(--nbc-progress-fill); }
 .nbc-overview progress::-webkit-progress-bar { background: var(--nbc-progress-track); border-radius: 99px; }
 .nbc-overview progress::-webkit-progress-value { background: var(--nbc-progress-fill); border-radius: 99px; }

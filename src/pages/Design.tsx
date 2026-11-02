@@ -92,15 +92,11 @@ function Chip({ color, children }: { color: string; children: ReactNode }) {
   )
 }
 
-/** One theme pane: forces data-theme on a subtree so both themes show side by side. */
-function Pane({ theme, children }: { theme: 'light' | 'dark'; children: ReactNode }) {
+function Pane({ children }: { children: ReactNode }) {
   return (
-    <div className="pane" data-theme={theme} data-testid={`pane-${theme}`}>
+    <div className="pane">
       <Ambient />
-      <div className="pane-body">
-        <div className="t-caption pane-label">{theme === 'light' ? 'Light' : 'Dark'}</div>
-        {children}
-      </div>
+      <div className="pane-body">{children}</div>
     </div>
   )
 }
@@ -283,7 +279,7 @@ export default function Design() {
     <div className="page" data-wide="true">
       <h1 className="t-title large-title">Design system</h1>
       <p className="t-body text-secondary" style={{ margin: 0 }}>
-        Every token, material and component state, in light and dark. Source: SPEC sections 9 to 11.
+        Every token, material and component state. Source: SPEC sections 9 to 11.
       </p>
 
       <Section id="surfaces" title="Surfaces and text" lede="Core tokens. Components reference these names, never literals.">
@@ -356,17 +352,15 @@ export default function Design() {
         <Levels />
       </Section>
 
-      <Section id="components" title="Components and states" lede="Default, hover, pressed, focus, disabled, loading, success and error, in both themes.">
+      <Section id="components" title="Components and states" lede="Default, hover, pressed, focus, disabled, loading, success and error.">
         <div className="panes">
-          {(['light', 'dark'] as const).map((t) => (
-            <Pane key={t} theme={t}>
-              <ButtonStates />
-              <Chips />
-              <EmptyState icon={<Inbox size={28} strokeWidth={1.75} />} title="Nothing here yet" action={<span className="btn-accent btn-glow" role="presentation"><Plus size={16} strokeWidth={1.75} aria-hidden="true" />Create</span>}>
-                Empty states float their glyph and glow the primary action.
-              </EmptyState>
-            </Pane>
-          ))}
+          <Pane>
+            <ButtonStates />
+            <Chips />
+            <EmptyState icon={<Inbox size={28} strokeWidth={1.75} />} title="Nothing here yet" action={<span className="btn-accent btn-glow" role="presentation"><Plus size={16} strokeWidth={1.75} aria-hidden="true" />Create</span>}>
+              Empty states float their glyph and glow the primary action.
+            </EmptyState>
+          </Pane>
         </div>
       </Section>
 

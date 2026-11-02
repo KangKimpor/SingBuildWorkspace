@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CheckCircle2, ChevronsDown, ChevronsUp, CircleAlert, CloudUpload, LoaderCircle, Search } from 'lucide-react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
+import { useMediaQuery } from '@/lib/media'
 import { MoreMenu } from '../ui/MoreMenu'
 import { WbsTable } from '../ui/WbsTable'
 import { buildWbsRows } from '../wbs-table'
@@ -34,11 +35,12 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const [focusId, setFocusId] = useState(''), [sheet, setSheet] = useState(false), [tried, setTried] = useState(false)
   const [remarkOpen, setRemarkOpen] = useState<ReadonlySet<string>>(new Set()), [jump, setJump] = useState<{ id: string; kind: 'value' | 'remark' } | null>(null)
   const [query, setQuery] = useState(''), [area, setArea] = useState('')
+  const mobile = useMediaQuery('(max-width: 639px)')
   const search = useRef<HTMLInputElement>(null)
   const values = useRef(new Map<string, HTMLInputElement>()), remarks = useRef(new Map<string, HTMLInputElement>()), beforeFocus = useRef('')
   const byId = new Map(activities.map((a) => [a.id, a])), shownById = new Map(draft.shown.map((e) => [e.activityId, e]))
   const changedIds = new Set(draft.changed.map((e) => e.activityId))
-  const problems = new Set([...draft.invalid, ...draft.needsRemark])
+  const problems = new Set(draft.invalid)
   const q = query.trim().toLowerCase()
   const textMatch = (a: NbcActivity) => { for (let n: NbcActivity | undefined = a; n; n = n.parentId ? byId.get(n.parentId) : undefined) if (`${n.wbs} ${n.name} ${n.description}`.toLowerCase().includes(q)) return true; return false }
   const areas = [...new Set(activities.filter((a) => canUpdate(a, handler)).map((a) => a.area).filter(Boolean))]
@@ -64,9 +66,17 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
 
   useEffect(() => {
     if (!jump) return
-    const el = (jump.kind === 'remark' ? remarks : values).current.get(jump.id)
-    if (el) { el.focus(); el.scrollIntoView?.({ block: 'center' }) }
-    setJump(null)
+    let frame = 0, cancelled = false
+    /** A virtual row mounts after the table scrolls to it, so retry for a few frames. */
+    const focus = () => {
+      if (cancelled) return
+      const el = (jump.kind === 'remark' ? remarks : values).current.get(jump.id)
+      if (el) { el.focus(); el.scrollIntoView?.({ block: 'center' }); setJump(null); return }
+      if (++frame < 20) requestAnimationFrame(focus)
+      else setJump(null)
+    }
+    focus()
+    return () => { cancelled = true }
   }, [jump])
 
   useEffect(() => {
@@ -78,10 +88,14 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   function expandAll() { setCollapsed(new Set()) }
   function collapseAll() { setCollapsed(new Set(activities.filter((a) => !canUpdate(a, handler)).map((a) => a.id))) }
   function toggleRemark(id: string) { setRemarkOpen((old) => { const next = new Set(old); if (next.has(id)) next.delete(id); else next.add(id); return next }) }
-  function advance(id: string) { const i = leaves.findIndex((r) => r.activity.id === id); const target = values.current.get(leaves[i + 1]?.activity.id ?? ''); if (target) target.focus(); else values.current.get(id)?.blur() }
+  function advance(id: string) {
+    const i = leaves.findIndex((r) => r.activity.id === id), next = leaves[i + 1]?.activity.id
+    if (next) setJump({ id: next, kind: 'value' })
+    else values.current.get(id)?.blur()
+  }
   function focusFirstProblem() {
     const id = draft.rows.find((e) => problems.has(e.activityId))?.activityId
-    if (id) setJump({ id, kind: draft.invalid.has(id) ? 'value' : 'remark' })
+    if (id) setJump({ id, kind: 'value' })
   }
   function start() { setTried(true); if (problems.size) focusFirstProblem(); else setSheet(true) }
 
@@ -101,7 +115,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}{draft.error.includes('GR&P changed') && <button className="text-link" onClick={draft.reloadShared}>Reload shared GR&amp;P</button>}</p>}
     {rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
-      : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}. GR&P is shared by all handlers.`} collapsed={openGroups} onToggle={toggle}
+      : <WbsTable virtual={!mobile && leaves.length > 80} scrollToId={jump?.id} rows={rows} caption={`${handler} activities · ${weekLabel(week)}. GR&P is shared by all handlers.`} collapsed={openGroups} onToggle={toggle}
           previous={(a) => previous.get(a.id) ?? a.progress}
           rowAttrs={(row) => ({ 'data-activity-id': row.activity.id, 'data-changed': changedIds.has(row.activity.id) ? 'true' : undefined, 'data-problem': problems.has(row.activity.id) ? 'true' : undefined })}
           current={({ activity: a }) => {
@@ -118,14 +132,13 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
           }}
           remark={({ activity: a }) => {
             if (confirmed) return <span>{shownById.get(a.id)?.remark || '—'}</span>
-            const value = draft.remark(a.id), required = draft.needsRemark.has(a.id), open = remarkOpen.has(a.id) || required
+            const value = draft.remark(a.id), open = remarkOpen.has(a.id)
             return <div className="nbc-remark-cell">
               {!open ? (
                 <button className="nbc-remark-btn" data-filled={!!value.trim()} aria-expanded={open} aria-label={`${value.trim() ? 'Edit' : 'Add'} remark for ${a.wbs}`} onClick={() => toggleRemark(a.id)}>{value.trim() ? brief(value) : '+ Remark'}</button>
               ) : (
                 <input ref={(el) => { if (el) remarks.current.set(a.id, el); else remarks.current.delete(a.id) }} className="nbc-remark" disabled={busy} aria-label={`Remark for ${a.wbs}`} placeholder="Add remark…" maxLength={4000} value={value} onChange={(event) => draft.setRemark(a.id, event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape' || event.key === 'Enter') toggleRemark(a.id) }}/>
               )}
-              {required && <span className="nbc-hint" data-tone="warn">Progress went down. A remark is required.</span>}
             </div>
           }}/>}
     {confirmed && submission?.note && <p className="nbc-note small">{submission.note}</p>}

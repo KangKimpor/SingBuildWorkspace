@@ -153,23 +153,6 @@ a {
   border: 0;
 }
 
-/* Theme switch: circular View Transition, with a 200 ms colour fade fallback (§9) */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-html.theme-fade,
-html.theme-fade body,
-html.theme-fade .shell,
-html.theme-fade .sidebar,
-html.theme-fade .glass {
-  transition:
-    background-color 200ms linear,
-    color 200ms linear,
-    border-color 200ms linear;
-}
-
 /* Skeleton shimmer, 1.2 s (§11) */
 .skeleton {
   border-radius: var(--radius-control);

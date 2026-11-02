@@ -6,8 +6,6 @@ const GlassPopover=lazy(()=>import('@/components/glass/GlassPopover').then(modul
 import { useSyncStatus, useWorkspace } from '@/data'
 import { useGlass } from '@/lib/glass'
 import type { MotionPref } from '@/lib/glass'
-import { useTheme } from '@/lib/theme'
-import type { ThemePref } from '@/lib/theme'
 import { modKey, useShell } from './store'
 import type { Breakpoint } from './store'
 import { useWorkspaceUI } from './workspace'
@@ -75,21 +73,9 @@ function Group<T extends string>({
 }
 
 export function Appearance() {
-  const theme = useTheme()
   const glass = useGlass()
   return (
     <>
-      <Group<ThemePref>
-        label="Theme"
-        value={theme.pref}
-        options={[
-          { value: 'system', label: 'System' },
-          { value: 'light', label: 'Light' },
-          { value: 'dark', label: 'Dark' },
-        ]}
-        onChange={(v, e) => theme.setPref(v, { x: e.clientX, y: e.clientY })}
-      />
-      <div className="menu-sep" />
       <Group<MotionPref>
         label="Motion"
         value={glass.motion}

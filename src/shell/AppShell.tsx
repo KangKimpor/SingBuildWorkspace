@@ -9,7 +9,6 @@ import {
 } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { UpdateNotice } from './UpdateNotice'
-import { watchSystemTheme } from '@/lib/theme'
 import { registerUpdates } from '@/lib/pwa'
 import { afterFirstPaint } from '@/lib/paint'
 const BottomSheet = lazy(() =>
@@ -79,13 +78,6 @@ export function AppShell() {
     )
     ro.observe(el)
     return () => ro.disconnect()
-  }, [])
-
-  useEffect(() => {
-    const stopTheme = watchSystemTheme()
-    return () => {
-      stopTheme()
-    }
   }, [])
 
   // Overlays that do not exist at this breakpoint close when the breakpoint changes.

@@ -4,23 +4,24 @@ const cloud = vi.hoisted(() => {
   type Row = { id: string; data: Record<string, unknown>; updated_at: string }
   const records = new Map<string, Row>()
   let authChange: (event: string, session: unknown) => void = () => {}
-  let sequence = 0
+  let sequence = Date.parse('2026-01-01T00:00:00Z')
   const session = (id: string) => ({ user: { id }, access_token: `token-${id}` })
-  const state = { scope: 'account-a', gate: null as Promise<void> | null, handlers: [] as (() => void)[], records, session,
+  const state = { scope: 'account-a', gate: null as Promise<void> | null, handlers: [] as { type: string; filter: Record<string, string>; fn: (payload?: unknown) => void }[], records, session,
     switch(id: string | null) { state.scope = id || ''; authChange('SIGNED_IN', id ? session(id) : null) },
-    row(collection: string, id: string, data: Record<string, unknown>, owner?: string): Row { const row = { id, data: { ...data, id }, updated_at: String(++sequence) }; records.set(`${owner ?? state.scope}:${collection}:${id}`, row); return row },
+    row(collection: string, id: string, data: Record<string, unknown>, owner?: string): Row { const row = { id, data: { ...data, id }, updated_at: new Date(sequence += 1000).toISOString() }; records.set(`${owner ?? state.scope}:${collection}:${id}`, row); return row },
+    emit(table: string, eventType: string, row: Row) { for (const handler of state.handlers) if (handler.type === 'postgres_changes' && handler.filter.table === table) handler.fn({ eventType, new: row, old: {} }) },
   }
   const client = {
     auth: { onAuthStateChange: vi.fn((fn) => { authChange = fn }), getSession: vi.fn(async () => ({ data: { session: session(state.scope) }, error: null })) },
     realtime: { setAuth: vi.fn(async () => {}) },
     channel: vi.fn(() => {
-      const channel = { on: vi.fn((_type, _filter, fn) => { state.handlers.push(fn); return channel }), subscribe: vi.fn((fn) => { queueMicrotask(() => fn('SUBSCRIBED')); return channel }) }
+      const channel = { on: vi.fn((type, filter, fn) => { state.handlers.push({ type, filter, fn }); return channel }), subscribe: vi.fn((fn) => { queueMicrotask(() => fn('SUBSCRIBED')); return channel }) }
       return channel
     }),
     removeChannel: vi.fn(async () => {}),
     from: vi.fn((table: string) => {
       const caller = state.scope
-      let scope = '', id = '', expected = '', removing = false
+      let scope = '', id = '', expected = '', removing = false, minimum = ''
       const visible = () => [...records.entries()].filter(([key,row]) => {
         if (scope) return key.startsWith(`${scope}:${table.slice(3)}:`)
         if (!key.includes(`:${table.slice(3)}:`)) return false
@@ -28,7 +29,7 @@ const cloud = vi.hoisted(() => {
         const company = [...records.entries()].find(([key,row]) => key.includes(':projects:') && row.data.nbcBp03 === true)?.[0].split(':')[0]
         return table.startsWith('kw_nbc_') && key.startsWith(`${company}:`)
       }).map(([,row]) => row)
-      const query = { select: () => query, delete: () => { removing = true; return query }, eq: (key: string, value: string) => { if (key === 'id') id = value; else if (key === 'updated_at') expected = value; else scope = value; return query }, order: () => query,
+      const query = { select: () => query, delete: () => { removing = true; return query }, eq: (key: string, value: string) => { if (key === 'id') id = value; else if (key === 'updated_at') expected = value; else scope = value; return query }, gte: (key: string, value: string) => { if (key === 'updated_at') minimum = value; return query }, order: () => query,
         // oxlint-disable-next-line unicorn/no-thenable -- Supabase query builders are awaitable.
         then: async (resolve: (value: { error: null; data: { id: string }[] }) => unknown) => {
           const key = `${scope}:${table.slice(3)}:${id}`, row = records.get(key)
@@ -37,7 +38,7 @@ const cloud = vi.hoisted(() => {
           return resolve({ error: null, data: removed ? [{ id }] : [] })
         },
         maybeSingle: async () => ({ error: null, data: visible().find((row)=>row.id===id) ?? null }),
-        range: async (start: number, end: number) => ({ error: null, data: visible().map((row)=>structuredClone(row)).slice(start, end + 1) }),
+        range: async (start: number, end: number) => ({ error: null, data: visible().filter((row) => !minimum || row.updated_at >= minimum).map((row)=>structuredClone(row)).slice(start, end + 1) }),
       }
       return query
     }),
@@ -97,8 +98,8 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
   expect(cloud.state.records.get('account-a:projects:project')?.data.name).toBe('Retry retained')
   // The change arrives through the channel without focus or a timer.
-  cloud.state.row('projects', 'project', { ...original, name: 'Another session' })
-  cloud.state.handlers[0]!()
+  const remoteProject = cloud.state.row('projects', 'project', { ...original, name: 'Another session' })
+  cloud.state.emit('kw_projects', 'UPDATE', remoteProject)
   await waitFor(() => expect(useWorkspace.getState().projects[0]?.name).toBe('Another session'))
   // A remote change to a different field is rebased rather than overwritten.
   cloud.state.row('projects', 'project', { ...original, name: 'Another session', description: 'Remote description' })
@@ -111,8 +112,8 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
   expect(cloud.state.records.has('account-a:projects:project')).toBe(false)
   expect(useWorkspace.getState().pages.some((p) => JSON.stringify(p.blocks).includes('Retain this draft'))).toBe(true)
-  cloud.state.row('projects', 'project', original)
-  cloud.state.handlers[0]!()
+  const restoredProject = cloud.state.row('projects', 'project', original)
+  cloud.state.emit('kw_projects', 'UPDATE', restoredProject)
   await waitFor(() => expect(useWorkspace.getState().projects).toHaveLength(1))
   const { fixtureActivities, fixtureProject } = await import('@/nbc/test-fixture')
   const { saveDraft } = await import('@/nbc/actions')
@@ -121,7 +122,7 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   const week = weekStart()
   cloud.state.row('projects', fixtureProject.id, fixtureProject)
   for (const activity of fixtureActivities()) cloud.state.row('nbc_activities', activity.id, activity as unknown as Record<string, unknown>)
-  cloud.state.handlers[0]!()
+  await syncWorkspace()
   await waitFor(() => expect(useWorkspace.getState().nbc_activities).toHaveLength(4))
   saveDraft(week,'Tola',draftEntries(week,'Tola').map((e)=>({...e,progress:e.activityId==='nbc:1.6.1.2'?.5:e.progress})),'Saved through existing cloud queue')
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
@@ -169,7 +170,7 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   await waitFor(() => expect(useWorkspace.getState().scope).toBe('account-b'))
   expect(useWorkspace.getState().projects.some((p)=>p.id==='project')).toBe(false)
   expect(useWorkspace.getState().tasks).toEqual([])
-  cloud.state.gate = null; release(); oldHandler()
+  cloud.state.gate = null; release(); oldHandler.fn()
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
   expect(useWorkspace.getState().projects.map((p)=>p.id)).toEqual([fixtureProject.id])
   expect(useWorkspace.getState().nbc_activities).toHaveLength(4)

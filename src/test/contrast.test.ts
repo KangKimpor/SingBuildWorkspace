@@ -15,8 +15,7 @@ function block(selector: RegExp): Record<string, string> {
   return out
 }
 
-const light = block(/:root,\s*\[data-theme='light'\]\s*\{([\s\S]*?)\n\}/)
-const dark = { ...light, ...block(/\[data-theme='dark'\]\s*\{([\s\S]*?)\n\}/) }
+const light = block(/:root\s*\{([\s\S]*?)\n\}/)
 
 function parse(v: string, theme: Record<string, string>): RGBA {
   const ref = v.match(/^var\((--[a-z0-9-]+)\)$/)
@@ -56,10 +55,8 @@ function pair(theme: Record<string, string>, fg: string, bg: string): number {
 
 const palette = ['gray', 'brown', 'orange', 'yellow', 'green', 'blue', 'purple', 'pink', 'red']
 
-describe.each([
-  ['light', light],
-  ['dark', dark],
-])('%s theme contrast', (_name, t) => {
+describe('light theme contrast', () => {
+  const t = light
   it.each(['--bg-canvas', '--bg-sidebar', '--bg-raised'])('primary and secondary text on %s is at least 4.5:1', (bg) => {
     expect(pair(t, '--text-primary', bg)).toBeGreaterThanOrEqual(4.5)
     expect(pair(t, '--text-secondary', bg)).toBeGreaterThanOrEqual(4.5)

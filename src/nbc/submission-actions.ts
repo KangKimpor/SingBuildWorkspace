@@ -1,5 +1,5 @@
 import { useWorkspace } from '@/data'
-import { acknowledgeSavedRow, flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
+import { acknowledgeSavedRow, applyDeletedRow, flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
 import { appliedEntries, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
@@ -190,6 +190,8 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
     }
     const { data, error } = result
     if (error) { await syncWorkspace(); throw new Error(error.message) }
+    // The delete operation removes the submission row; no filtered Realtime delete reaches us.
+    if (operation === 'delete') applyDeletedRow('nbc_submissions', id)
     await refreshCollections([...NBC_COLLECTIONS])
     if (useWorkspace.getState().scope !== scope) throw new Error('Account changed.')
     if (data.conflict) throw new Error('This update changed in another session. Review it and try again.')

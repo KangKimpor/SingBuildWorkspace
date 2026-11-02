@@ -3,16 +3,10 @@ import { expect, test } from './workspace-test'
 
 test('appearance choices persist and calendar integration stays hidden', async ({ page }) => {
   await page.goto('/settings/appearance')
-  await page.getByRole('button', { name: 'Dark', exact: true }).click()
   await page.getByRole('switch', { name: 'Reduce motion' }).check()
   await page.reload()
-  await expect(page.getByRole('button', { name: 'Dark', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('switch', { name: 'Reduce motion' })).toBeChecked()
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark')
-  await page.getByRole('button', { name: 'Light', exact: true }).click()
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
-  await page.getByRole('button', { name: 'System', exact: true }).click()
-  await expect(page.getByRole('button', { name: 'System', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('link', { name: 'Account & sync', exact: true }).click()
   await expect(page.getByRole('button', { name: 'Sign out', exact: true })).toBeVisible()
   await expect(page.getByText('Manage Google calendars')).toHaveCount(0)
@@ -26,7 +20,7 @@ test('appearance choices persist and calendar integration stays hidden', async (
 })
 
 for (const width of [320, 393, 1440]) {
-  for (const scheme of ['light', 'dark'] as const) {
+  for (const scheme of ['light'] as const) {
     test(`settings fit and remain accessible at ${width}px in ${scheme}`, async ({ page }, testInfo) => {
       await page.setViewportSize({ width, height: 1000 })
       await page.emulateMedia({ colorScheme: scheme })

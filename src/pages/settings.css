@@ -5,7 +5,6 @@
   --settings-card: #fff;
   --settings-blue: #0066cc;
 }
-[data-theme='dark'] .settings-page { --settings-surface: #232325; --settings-card: #2c2c2e; --settings-blue: #8ab4f8; }
 .settings-page > .page-heading { margin-bottom: 36px; }
 .settings-page > .page-heading h1 { font-size: 32px; line-height: 1.2; font-weight: 650; letter-spacing: -.035em; }
 .settings-page > .page-heading p { margin-top: 8px; }

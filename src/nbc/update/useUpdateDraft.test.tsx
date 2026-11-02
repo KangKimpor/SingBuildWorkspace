@@ -71,16 +71,14 @@ test('one invalid row does not hide the other edits', () => {
   expect(result.current.changed.map((e) => e.activityId)).toEqual([other.activityId])
 })
 
-test('lowering progress without a remark is flagged and blocks confirm until a remark is added', async () => {
+test('lowering progress confirms without a remark', async () => {
   const { result } = setup()
   act(() => result.current.setText('nbc:1.6.1.2', '10'))
   expect(result.current.lowered).toHaveLength(1)
-  expect([...result.current.needsRemark]).toEqual(['nbc:1.6.1.2'])
+  act(() => { vi.advanceTimersByTime(450) })
   await act(async () => { await result.current.confirm() })
-  expect(result.current.error).toMatch(/remark/)
-  expect(useWorkspace.getState().nbc_submissions ?? []).toHaveLength(0)
-  act(() => result.current.setRemark('nbc:1.6.1.2', 'Rework'))
-  expect(result.current.needsRemark.size).toBe(0)
+  expect(result.current.error).toBe('')
+  expect(useWorkspace.getState().nbc_submissions?.[0]?.status).toBe('confirmed')
 })
 
 test('edited rows are remembered as touched so they can stay visible', () => {

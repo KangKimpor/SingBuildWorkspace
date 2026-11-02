@@ -1,5 +1,4 @@
 .auth-page { min-height:100dvh; display:grid; grid-template-rows:auto 1fr auto; background:var(--bg-canvas); }
-[data-theme="dark"] .auth-page { --accent-text:#8ab4f8; }
 .auth-header { display:flex; align-items:center; justify-content:space-between; padding:24px 32px; }
 .auth-brand { display:flex; align-items:center; gap:10px; font-weight:650; }
 .auth-main { display:grid; place-items:center; padding:32px 24px; min-width:0; }

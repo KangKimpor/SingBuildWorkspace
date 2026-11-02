@@ -6,7 +6,7 @@ import type { ProjectSummary } from '@/data'
 import { useWorkspace } from '@/data'
 import { Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
-import { refreshCollections } from '@/data/sync'
+import { applyDeletedRow, applyRealtimeRow, refreshCollections } from '@/data/sync'
 import { calculate } from './progress'
 import { issuesEnabled } from './features'
 import Overview from './overview/Overview'
@@ -39,9 +39,23 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   useEffect(() => {
     if (!supabase || scope === 'guest') return
     const client = supabase, channel = client.channel(`nbc:${scope}:${project.id}`)
-    for (const table of ['kw_nbc_activities', 'kw_nbc_submissions', 'kw_nbc_summaries'] as const) channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => { void refreshCollections([table.slice(3) as 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries']) })
+    const fallbacks = new Map<string, ReturnType<typeof setTimeout>>()
+    const schedule = (collection: 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries') => {
+      clearTimeout(fallbacks.get(collection))
+      fallbacks.set(collection, setTimeout(() => { fallbacks.delete(collection); void refreshCollections([collection]) }, 800))
+    }
+    for (const table of ['kw_nbc_activities', 'kw_nbc_submissions', 'kw_nbc_summaries'] as const) {
+      const collection = table.slice(3) as 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries'
+      channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `project_id=eq.${project.id}` }, (payload) => {
+        const change = payload as { eventType?: string; new?: { id?: string; data?: Record<string, unknown>; updated_at?: string }; old?: { id?: string } }
+        if (change.eventType === 'DELETE') { if (change.old?.id) applyDeletedRow(collection, change.old.id); else schedule(collection); return }
+        // Rows applied in place avoid re-reading the BOQ for another handler's edit.
+        if (!change.new?.data || !change.new.updated_at) { schedule(collection); return }
+        applyRealtimeRow(collection, change.new)
+      })
+    }
     channel.subscribe((status) => { if (status === 'SUBSCRIBED') void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries']) })
-    return () => { void client.removeChannel(channel) }
+    return () => { for (const timer of fallbacks.values()) clearTimeout(timer); void client.removeChannel(channel) }
   }, [scope, project.id])
 
   if (aliases[view]) return <Navigate to={`/projects-progress/${project.id}/${aliases[view]}${location.search}`} replace/>

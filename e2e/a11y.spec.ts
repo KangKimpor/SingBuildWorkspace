@@ -10,14 +10,14 @@ const sizes = [
 
 for (const route of routes) {
   for (const size of sizes) {
-    for (const scheme of ['light', 'dark'] as const) {
+    for (const scheme of ['light'] as const) {
       test(`axe ${route} ${size.width}x${size.height} ${scheme}`, async ({ page }) => {
         await page.setViewportSize(size)
         await page.emulateMedia({ colorScheme: scheme })
         await page.goto(route)
         await page.waitForLoadState('networkidle')
         if (route === '/') {
-          await expect(page.getByRole('heading', { name: 'Website Redesign', exact: true })).toBeVisible()
+          await expect(page.getByRole('heading', { name: 'Projects Progress', exact: true })).toBeVisible()
         }
         const { violations } = await new AxeBuilder({ page }).analyze()
         const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')

@@ -11,7 +11,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { importLocalWorkspace, syncWorkspace, useAccount } from '@/data/sync'
+import { syncWorkspace, useAccount } from '@/data/sync'
 import { contentOf, useWorkspace } from '@/data'
 import './account-settings.css'
 
@@ -196,28 +196,6 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
             <RefreshCw size={16} />
             Retry / reconnect
           </button>
-        </section>
-        <section className="account-action-grid">
-          <div className="flat-card account-action-card">
-            <h3>Bring your local work along</h3>
-            <p className="muted">
-              Import pages and tasks saved in this browser into your account.
-              Existing account items are kept.
-            </p>
-            <button
-              className="btn-secondary"
-              disabled={!!busy}
-              onClick={() =>
-                void run('import', async () => {
-                  await importLocalWorkspace()
-                  setMessage('Your local workspace has been imported.')
-                })
-              }
-            >
-              Import local workspace
-              <ArrowRight size={16} />
-            </button>
-          </div>
         </section>
         <button className="btn-text account-backup" onClick={backupWorkspace}>
           <Download size={16} />
@@ -424,7 +402,7 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
         {!loading && !supabase && <p className="account-notice account-error" role="alert">Account services are unavailable. Please try again shortly.</p>}
         {!standalone && <footer className="account-form-footer">
           <LockKeyhole size={14} />
-          <span>Your local work stays here. Import it after signing in.</span>
+          <span>Your work is private to your account and syncs across your devices.</span>
         </footer>}
       </section>
     </div>

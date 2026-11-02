@@ -18,9 +18,18 @@ interface Args { projectId: string; week: string; handler: Handler; activities: 
 export function useUpdateDraft({ projectId, week, handler, activities, submission }: Args) {
   const scope = useWorkspace((s) => s.scope), sync = useWorkspace((s) => s.sync)
   const [initial] = useState(() => draftEntries(week, handler, projectId))
-  const resetAt = activities[0]?.baselineResetAt
-  const [form, setForm] = useState<HandlerDraft>(() => (submission?.status !== 'confirmed' && readHandlerDraft(scope, projectId, week, handler, resetAt)) || { values: Object.fromEntries(initial.map((e) => [e.activityId, { text: formatPercent(e.progress), remark: e.remark, baseRevision: e.baseRevision }])), note: submission?.note ?? '' })
-  const [dirty, setDirty] = useState(() => !!readHandlerDraft(scope, projectId, week, handler, resetAt)), [error, setError] = useState(''), [busy, setBusy] = useState(false)
+  const [saved] = useState(() => (submission?.status !== 'confirmed' ? readHandlerDraft(scope, projectId, week, handler, activities[0]?.baselineResetAt) : null))
+  // Only edited rows are journaled. The previous full copy wrote every activity to localStorage on each keystroke.
+  const [form, setForm] = useState<HandlerDraft>(() => {
+    if (!saved) return { values: {}, note: submission?.note ?? '' }
+    const byId = new Map(initial.map((e) => [e.activityId, e]))
+    const values = Object.fromEntries(Object.entries(saved.values).filter(([id, value]) => {
+      const entry = byId.get(id)
+      return entry && (value.text !== formatPercent(entry.progress) || value.remark !== entry.remark)
+    }))
+    return { values, note: saved.note }
+  })
+  const [dirty, setDirty] = useState(() => !!saved), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const [touched, setTouched] = useState<ReadonlySet<string>>(new Set())
   const confirmed = submission?.status === 'confirmed'
   const rows = draftEntries(week, handler, projectId)
@@ -35,7 +44,6 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
   const parsed = rows.map((entry) => { try { return parseEntry(entry, form) } catch { return entry } })
   const shown = confirmed ? submission.entries : parsed, changed = changedEntries(shown)
   const lowered = changed.filter((e) => e.progress < e.previous)
-  const needsRemark = new Set(lowered.filter((e) => !e.remark.trim()).map((e) => e.activityId))
   const byId = new Map(activities.map((a) => [a.id, a]))
   const contribution = shown.reduce((sum, e) => sum + (e.progress - e.previous) * (byId.get(e.activityId)?.globalWeight ?? 0), 0)
   const invalid = new Set<string>()
@@ -66,7 +74,6 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
 
   async function run(action: () => Promise<void>) { setBusy(true); try { await action(); setError('') } catch (e) { setError((e as Error).message) } finally { setBusy(false) } }
   const confirm = () => run(async () => {
-    if (needsRemark.size) throw new Error('Add a remark to every activity you lowered.')
     persist()
     const result = await confirmUpdate(week, handler, projectId)
     clearHandlerDraft(scope, projectId, week, handler)
@@ -84,7 +91,7 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
   }
   const status: DraftStatus = dirty ? 'saving' : sync.kind === 'error' ? 'error' : scope !== 'guest' && sync.kind !== 'saved' ? 'local' : 'saved'
   return {
-    confirmed, rows, shown, changed, lowered, needsRemark, contribution, invalid, touched, status, error, busy,
+    confirmed, rows, shown, changed, lowered, contribution, invalid, touched, status, error, busy,
     text: (id: string) => form.values[id]?.text ?? formatPercent(rows.find((e) => e.activityId === id)?.progress ?? 0),
     remark: (id: string) => form.values[id]?.remark ?? rows.find((e) => e.activityId === id)?.remark ?? '',
     setText: (id: string, text: string) => field(id, { text }),
