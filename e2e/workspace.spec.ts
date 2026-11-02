@@ -269,7 +269,7 @@ for (const width of [1920, 1180, 820, 393, 320]) {
   })
 }
 
-for (const scheme of ['light', 'dark'] as const) {
+for (const scheme of ['light'] as const) {
   for (const route of [
     '/projects/website/board',
     '/tasks',

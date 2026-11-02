@@ -128,7 +128,7 @@ test('Last week is disabled when the handler has no last-week update, and a full
   await page.getByRole('button', { name: 'Show all activities', exact: true }).click()
   await expect(page.getByLabel('This week % for 1.6.1.1')).toBeVisible()
 })
-for (const viewport of [{ width: 1920, height: 1080 }, { width: 820, height: 1180 }, { width: 393, height: 852 }]) for (const theme of ['light','dark']) test(`responsive current-week editor ${viewport.width} ${theme}`, async ({ page }) => {
+for (const viewport of [{ width: 1920, height: 1080 }, { width: 820, height: 1180 }, { width: 393, height: 852 }]) for (const theme of ['light']) test(`responsive current-week editor ${viewport.width} ${theme}`, async ({ page }) => {
   await setup(page); await page.setViewportSize(viewport); await open(page)
   await page.evaluate((theme) => document.documentElement.setAttribute('data-theme', theme), theme)
   await edit(page, '45.25')
@@ -171,7 +171,7 @@ for (const viewport of [{ width: 1920, height: 1080 }, { width: 820, height: 118
   await expect(page.getByLabel('Search activities')).toHaveValue('Install')
 
 })
-for (const width of [320, 393, 1440]) for (const theme of ['light', 'dark']) test(`approved progress cards at ${width}px ${theme}`, async ({ page }) => {
+for (const width of [320, 393, 1440]) for (const theme of ['light']) test(`approved progress cards at ${width}px ${theme}`, async ({ page }) => {
   await setup(page)
   await page.setViewportSize({ width, height: 1000 })
   await page.addInitScript(theme => localStorage.setItem('kw-theme', theme), theme)

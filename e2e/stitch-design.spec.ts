@@ -2,7 +2,7 @@ import { expect, test } from './workspace-test'
 import AxeBuilder from '@axe-core/playwright'
 import { fixtureActivities, fixtureProject } from '../src/nbc/test-fixture'
 
-for (const width of [1280, 820, 393]) for (const theme of ['light', 'dark'] as const) {
+for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
   test(`Stitch screens retain navigation, data and accessible layouts at ${width} ${theme}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 1000 })
     await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })

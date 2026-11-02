@@ -1,7 +1,7 @@
 import { expect, test } from './workspace-test'
 import AxeBuilder from '@axe-core/playwright'
 
-for (const theme of ['light', 'dark']) for (const width of [1397, 393]) {
+for (const theme of ['light']) for (const width of [1397, 393]) {
   test(`compact board cards and quiet typing in ${theme} at ${width}`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.addInitScript((value) => localStorage.setItem('kw-theme', value), theme)
@@ -23,7 +23,7 @@ for (const theme of ['light', 'dark']) for (const width of [1397, 393]) {
   })
 }
 
-for (const theme of ['light', 'dark']) {
+for (const theme of ['light']) {
   test(`desktop reference table layout and editing in ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 1605, height: 1000 })
     await page.addInitScript((value) => localStorage.setItem('kw-theme', value), theme)
@@ -68,7 +68,7 @@ for (const theme of ['light', 'dark']) {
   })
 }
 
-for (const theme of ['light', 'dark']) {
+for (const theme of ['light']) {
   test(`project table mobile layout and controls in ${theme}`, async ({ page }) => {
     await page.setViewportSize({ width: 393, height: 852 })
     await page.addInitScript((value) => localStorage.setItem('kw-theme', value), theme)

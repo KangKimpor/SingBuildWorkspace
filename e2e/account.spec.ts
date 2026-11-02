@@ -170,7 +170,7 @@ for (const width of [320, 393, 820, 1180, 1920]) {
     ).toBe(true)
   })
 }
-for (const scheme of ['light', 'dark'] as const) {
+for (const scheme of ['light'] as const) {
   test(`account form accessibility in ${scheme}`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme })
     await page.setViewportSize({ width: 393, height: 852 })

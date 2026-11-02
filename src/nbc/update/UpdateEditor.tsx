@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CheckCircle2, ChevronsDown, ChevronsUp, CircleAlert, CloudUpload, LoaderCircle, Search } from 'lucide-react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
-import { useMediaQuery } from '@/lib/media'
 import { MoreMenu } from '../ui/MoreMenu'
 import { WbsTable } from '../ui/WbsTable'
 import { buildWbsRows } from '../wbs-table'
@@ -35,7 +34,6 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const [focusId, setFocusId] = useState(''), [sheet, setSheet] = useState(false), [tried, setTried] = useState(false)
   const [remarkOpen, setRemarkOpen] = useState<ReadonlySet<string>>(new Set()), [jump, setJump] = useState<{ id: string; kind: 'value' | 'remark' } | null>(null)
   const [query, setQuery] = useState(''), [area, setArea] = useState('')
-  const mobile = useMediaQuery('(max-width: 639px)')
   const search = useRef<HTMLInputElement>(null)
   const values = useRef(new Map<string, HTMLInputElement>()), remarks = useRef(new Map<string, HTMLInputElement>()), beforeFocus = useRef('')
   const byId = new Map(activities.map((a) => [a.id, a])), shownById = new Map(draft.shown.map((e) => [e.activityId, e]))
@@ -115,7 +113,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}{draft.error.includes('GR&P changed') && <button className="text-link" onClick={draft.reloadShared}>Reload shared GR&amp;P</button>}</p>}
     {rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
-      : <WbsTable virtual={!mobile && leaves.length > 80} scrollToId={jump?.id} rows={rows} caption={`${handler} activities · ${weekLabel(week)}. GR&P is shared by all handlers.`} collapsed={openGroups} onToggle={toggle}
+      : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}. GR&P is shared by all handlers.`} collapsed={openGroups} onToggle={toggle}
           previous={(a) => previous.get(a.id) ?? a.progress}
           rowAttrs={(row) => ({ 'data-activity-id': row.activity.id, 'data-changed': changedIds.has(row.activity.id) ? 'true' : undefined, 'data-problem': problems.has(row.activity.id) ? 'true' : undefined })}
           current={({ activity: a }) => {
