@@ -220,6 +220,7 @@
   border-radius: var(--radius-card);
   background: var(--bg-raised);
   border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
 }
 .skeleton-row {
   height: var(--h-row);

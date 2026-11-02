@@ -13,7 +13,7 @@ for (const route of routes) {
     for (const scheme of ['light'] as const) {
       test(`axe ${route} ${size.width}x${size.height} ${scheme}`, async ({ page }) => {
         await page.setViewportSize(size)
-        await page.emulateMedia({ colorScheme: scheme })
+        await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' })
         await page.goto(route)
         await page.waitForLoadState('networkidle')
         if (route === '/') {
