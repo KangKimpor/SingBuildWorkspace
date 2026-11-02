@@ -18,6 +18,9 @@ for (const route of routes) {
         await page.waitForLoadState('networkidle')
         if (route === '/') {
           await expect(page.getByRole('heading', { name: 'Projects Progress', exact: true })).toBeVisible()
+        } else if (route === '/design') {
+          await expect(page.locator('.stagger-list > li').last()).toHaveCSS('opacity', '1')
+          await page.waitForTimeout(200)
         }
         const { violations } = await new AxeBuilder({ page }).analyze()
         const serious = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical')
