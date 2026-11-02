@@ -21,17 +21,18 @@ const cloud = vi.hoisted(() => {
     removeChannel: vi.fn(async () => {}),
     from: vi.fn((table: string) => {
       const caller = state.scope
-      let scope = '', id = '', expected = '', removing = false, minimum = ''
+      let scope = '', id = '', expected = '', removing = false, minimum = '', inIds: Set<string> | null = null
       const visible = () => [...records.entries()].filter(([key,row]) => {
         if (scope) return key.startsWith(`${scope}:${table.slice(3)}:`)
         if (!key.includes(`:${table.slice(3)}:`)) return false
         if (table === 'kw_projects') return key.startsWith(`${caller}:`) || row.data.nbcBp03 === true
         const company = [...records.entries()].find(([key,row]) => key.includes(':projects:') && row.data.nbcBp03 === true)?.[0].split(':')[0]
         return table.startsWith('kw_nbc_') && key.startsWith(`${company}:`)
-      }).map(([,row]) => row)
-      const query = { select: () => query, delete: () => { removing = true; return query }, eq: (key: string, value: string) => { if (key === 'id') id = value; else if (key === 'updated_at') expected = value; else scope = value; return query }, gte: (key: string, value: string) => { if (key === 'updated_at') minimum = value; return query }, order: () => query,
+      }).map(([,row]) => row).filter((r) => !inIds || inIds.has(r.id))
+      const query = { select: () => query, delete: () => { removing = true; return query }, eq: (key: string, value: string) => { if (key === 'id') id = value; else if (key === 'updated_at') expected = value; else scope = value; return query }, in: (key: string, values: string[]) => { if (key === 'id') inIds = new Set(values); return query }, gte: (key: string, value: string) => { if (key === 'updated_at') minimum = value; return query }, order: () => query,
         // oxlint-disable-next-line unicorn/no-thenable -- Supabase query builders are awaitable.
-        then: async (resolve: (value: { error: null; data: { id: string }[] }) => unknown) => {
+        then: async (resolve: (value: { error: null; data: unknown }) => unknown) => {
+          if (inIds) return resolve({ error: null, data: visible() })
           const key = `${scope}:${table.slice(3)}:${id}`, row = records.get(key)
           const removed = removing && row?.updated_at === expected
           if (removed) records.delete(key)

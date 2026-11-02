@@ -731,13 +731,20 @@ export async function syncGoogle(force = false) {
     !session ||
     !supabase ||
     useCalendars.getState().busy ||
-    !navigator.onLine
+    !navigator.onLine ||
+    (!force && typeof document !== 'undefined' && document.visibilityState === 'hidden')
   )
     return
   const scope = session.user.id
   useCalendars.setState({ busy: true, error: '' })
   try {
     const { accounts } = await googleService('accounts')
+    if (!accounts || (accounts as CalendarAccount[]).length === 0) {
+      if (useAccount.getState().session?.user.id === scope) {
+        useCalendars.setState({ accounts: [], calendars: [], error: '', busy: false })
+      }
+      return
+    }
     const { data: cached, error } = await supabase
       .from('kw_calendars')
       .select('id,data')
