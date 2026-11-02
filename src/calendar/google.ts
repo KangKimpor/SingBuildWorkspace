@@ -843,6 +843,15 @@ export async function syncGoogle(force = false) {
           if (!pending.has(id)) mapped.set(id, { ...event, id })
         }
         if (useAccount.getState().session?.user.id !== scope) return
+        const previousCalendar = cached?.find((r) => r.id === calendar.id)?.data
+        const calendarChanged =
+          !previousCalendar ||
+          previousCalendar.syncToken !== result.token ||
+          previousCalendar.eventFormatVersion !== 2 ||
+          previousCalendar.name !== calendar.name ||
+          previousCalendar.accessRole !== calendar.accessRole ||
+          result.reset ||
+          result.events.length > 0
         calendar.syncToken = result.token
         calendar.eventFormatVersion = 2
         const changed = result.events
@@ -867,19 +876,21 @@ export async function syncGoogle(force = false) {
           if (error) throw error
         }
         if (useAccount.getState().session?.user.id !== scope) return
-        const { error: calendarError } = await supabase
-          .from('kw_calendars')
-          .upsert(
-            {
-              id: calendar.id,
-              user_id: scope,
-              account_id: calendar.accountId,
-              provider_id: calendar.providerId,
-              data: calendar,
-            },
-            { onConflict: 'user_id,account_id,provider_id' },
-          )
-        if (calendarError) throw calendarError
+        if (calendarChanged) {
+          const { error: calendarError } = await supabase
+            .from('kw_calendars')
+            .upsert(
+              {
+                id: calendar.id,
+                user_id: scope,
+                account_id: calendar.accountId,
+                provider_id: calendar.providerId,
+                data: calendar,
+              },
+              { onConflict: 'user_id,account_id,provider_id' },
+            )
+          if (calendarError) throw calendarError
+        }
         if (useAccount.getState().session?.user.id !== scope) return
         // Apply provider data only after its workspace write is confirmed.
         const protectedIds = pendingEventIds(scope)

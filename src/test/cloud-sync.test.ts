@@ -21,7 +21,7 @@ const cloud = vi.hoisted(() => {
     removeChannel: vi.fn(async () => {}),
     from: vi.fn((table: string) => {
       const caller = state.scope
-      let scope = '', id = '', expected = '', removing = false, minimum = '', inIds: Set<string> | null = null
+      let scope = '', id = '', expected = '', removing = false, minimum = '', strictMinimum = false, inIds: Set<string> | null = null
       const visible = () => [...records.entries()].filter(([key,row]) => {
         if (scope) return key.startsWith(`${scope}:${table.slice(3)}:`)
         if (!key.includes(`:${table.slice(3)}:`)) return false
@@ -29,7 +29,7 @@ const cloud = vi.hoisted(() => {
         const company = [...records.entries()].find(([key,row]) => key.includes(':projects:') && row.data.nbcBp03 === true)?.[0].split(':')[0]
         return table.startsWith('kw_nbc_') && key.startsWith(`${company}:`)
       }).map(([,row]) => row).filter((r) => !inIds || inIds.has(r.id))
-      const query = { select: () => query, delete: () => { removing = true; return query }, eq: (key: string, value: string) => { if (key === 'id') id = value; else if (key === 'updated_at') expected = value; else scope = value; return query }, in: (key: string, values: string[]) => { if (key === 'id') inIds = new Set(values); return query }, gte: (key: string, value: string) => { if (key === 'updated_at') minimum = value; return query }, order: () => query,
+      const query = { select: () => query, delete: () => { removing = true; return query }, eq: (key: string, value: string) => { if (key === 'id') id = value; else if (key === 'updated_at') expected = value; else scope = value; return query }, in: (key: string, values: string[]) => { if (key === 'id') inIds = new Set(values); return query }, gte: (key: string, value: string) => { if (key === 'updated_at') { minimum = value; strictMinimum = false } return query }, gt: (key: string, value: string) => { if (key === 'updated_at') { minimum = value; strictMinimum = true } return query }, order: () => query,
         // oxlint-disable-next-line unicorn/no-thenable -- Supabase query builders are awaitable.
         then: async (resolve: (value: { error: null; data: unknown }) => unknown) => {
           if (inIds) return resolve({ error: null, data: visible() })
@@ -39,7 +39,7 @@ const cloud = vi.hoisted(() => {
           return resolve({ error: null, data: removed ? [{ id }] : [] })
         },
         maybeSingle: async () => ({ error: null, data: visible().find((row)=>row.id===id) ?? null }),
-        range: async (start: number, end: number) => ({ error: null, data: visible().filter((row) => !minimum || row.updated_at >= minimum).map((row)=>structuredClone(row)).slice(start, end + 1) }),
+        range: async (start: number, end: number) => ({ error: null, data: visible().filter((row) => !minimum || (strictMinimum ? row.updated_at > minimum : row.updated_at >= minimum)).map((row)=>structuredClone(row)).slice(start, end + 1) }),
       }
       return query
     }),
@@ -48,7 +48,7 @@ const cloud = vi.hoisted(() => {
       if (gate) await gate
       const key = `${scope}:${args.collection}:${args.record_id}`, existing = records.get(key)
       if ((existing && existing.updated_at !== args.expected) || (!existing && args.expected)) return { error: null, data: { conflict: true, row: existing ? structuredClone(existing) : null } }
-      const row = { id: args.record_id, data: structuredClone(args.payload), updated_at: String(++sequence) }
+      const row = { id: args.record_id, data: structuredClone(args.payload), updated_at: new Date(sequence += 1000).toISOString() }
       records.set(key, row)
       return { error: null, data: { conflict: false, row } }
     }),

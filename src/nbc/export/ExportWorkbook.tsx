@@ -21,7 +21,14 @@ export default function ExportWorkbook({ projectId, activities, submissions, onC
   useEffect(() => {
     let active = true
     setLoading(true); setTemplate(null); setError('')
-    const source = scope === 'guest' ? db.reportTemplates.get(key) : loadReportTemplate(projectId)
+    const source = (async () => {
+      const cached = await db.reportTemplates.get(key).catch(() => undefined)
+      if (cached?.data && cached.data.byteLength > 0) return { name: cached.name, data: cached.data }
+      if (scope === 'guest') return cached
+      const remote = await loadReportTemplate(projectId)
+      if (remote.data.byteLength > 0) await db.reportTemplates.put({ id: key, name: remote.name, data: remote.data }).catch(() => {})
+      return remote
+    })()
     void source.then(file => { if (active && file) setTemplate(file) }).catch(() => { if (active) setError('Could not load the project report format. Close and reopen export to try again.') }).finally(() => { if (active) setLoading(false) })
     return () => { active = false }
   }, [key, projectId, scope])

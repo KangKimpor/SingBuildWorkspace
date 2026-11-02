@@ -76,12 +76,12 @@ function normalize(content: Content): Content {
 }
 function compactSubmissionPayload(payload: Data): Data {
   const rawEntries = (payload as { entries?: unknown[] })?.entries
-  if (!Array.isArray(rawEntries) || rawEntries.length <= 500) return payload
+  if (!Array.isArray(rawEntries) || rawEntries.length <= 1) return payload
   const appliedIds = new Set(((payload as { appliedEntries?: { activityId?: string }[] })?.appliedEntries ?? []).map((e) => e.activityId))
   const changedEntriesOnly = (rawEntries as { activityId?: string; progress: number; previous: number; remark?: string }[]).filter(
     (e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || (e.activityId && appliedIds.has(e.activityId)),
   )
-  return changedEntriesOnly.length <= 1000 ? { ...payload, entries: changedEntriesOnly } : payload
+  return { ...payload, entries: changedEntriesOnly }
 }
 /**
  * Write only the pending-write journal. The full workspace lives in IndexedDB;
@@ -178,6 +178,32 @@ export function acknowledgeSavedRow(scope: string, collection: CloudCollection, 
   applyRow(collection, row, id)
   cacheSnapshot(scope)
 }
+export async function reassignNbcActivities(projectId: string, ids: string[], handler: string, expected: Record<string, string>) {
+  const scope = useWorkspace.getState().scope
+  if (scope === 'guest' || !supabase || !useAccount.getState().session) throw new Error('Sign in before reassigning activities.')
+  const { data, error } = await supabase.rpc('kw_nbc_reassign_activities', {
+    p_project_id: projectId,
+    p_activity_ids: ids,
+    p_handler: handler,
+    p_expected: expected,
+  })
+  if (error) throw error
+  const result = data as { conflict?: boolean; rows?: Row[] } | null
+  if (result?.conflict) throw new Error('Activities changed in another session. Reload and try again.')
+  if (!result?.rows || result.rows.length !== ids.length) throw new Error('The server did not confirm every assignment.')
+  const saved = new Map(result.rows.map((row) => [row.id, row]))
+  for (const row of result.rows) {
+    const key = keyFor(scope, 'nbc_activities', row.id)
+    versions.set(key, row.updated_at)
+    pending.delete(key)
+    void db.outbox.delete(key).catch(() => {})
+  }
+  applyRemotePatch({ nbc_activities: (useWorkspace.getState().nbc_activities ?? []).map((activity) => {
+    const row = saved.get(activity.id)
+    return row ? rowEntity('nbc_activities', row) : activity
+  }) as unknown as Content['nbc_activities'] })
+  cacheSnapshot(scope)
+}
 export function pendingEventIds(scope: string) {
   return new Set([...pending.values()].filter((p) => p.scope === scope && p.collection === 'events').map((p) => p.id))
 }
@@ -216,6 +242,11 @@ export function initializeCloud() {
     if (!client) { useAccount.setState({ ready: true }); return }
     client.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') useAccount.setState({ recovering: true })
+      if (event === 'TOKEN_REFRESHED' && session && session.user.id === useWorkspace.getState().scope) {
+        useAccount.setState({ session })
+        void supabase?.realtime.setAuth(session.access_token)
+        return
+      }
       setTimeout(() => void switchAccount(session), 0)
     })
     const { data, error } = await client.auth.getSession()
@@ -353,14 +384,9 @@ function startGoogle(current: number) {
   void import('@/calendar/google').then(async (google) => {
     if (current !== generation) return
     await google.syncGoogle()
-    if (current === generation && (typeof document === 'undefined' || document.visibilityState !== 'hidden')) {
-      const hasAccounts = (google.useCalendars.getState().accounts ?? []).length > 0
-      googleTimer = setTimeout(() => startGoogle(current), hasAccounts ? 60000 : 300000)
-    }
+    if (current === generation && (typeof document === 'undefined' || document.visibilityState !== 'hidden')) googleTimer = setTimeout(() => startGoogle(current), 300000)
   }).catch(() => {
-    if (current === generation && (typeof document === 'undefined' || document.visibilityState !== 'hidden')) {
-      googleTimer = setTimeout(() => startGoogle(current), 120000)
-    }
+    if (current === generation && (typeof document === 'undefined' || document.visibilityState !== 'hidden')) googleTimer = setTimeout(() => startGoogle(current), 300000)
   })
 }
 function laterStamp(a: string | undefined, b: string | undefined): string | undefined {
@@ -423,7 +449,7 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
       const rows: Row[] = []
       for (let offset = 0; ; offset += 1000) {
         let query = supabase!.from('kw_profiles').select('id,data,updated_at')
-        if (!reconcile) query = query.gte('updated_at', watermark!)
+        if (!reconcile) query = query.gt('updated_at', watermark!)
         const result = await query.order('updated_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + 999)
         if (result.error) throw result.error
         if (current !== generation) return
@@ -530,7 +556,7 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
         let query = supabase!.from(`kw_${collection}`).select('id,data,updated_at')
         // RLS returns the caller's private projects plus the one shared NBC project.
         if (collection !== 'projects' && !collection.startsWith('nbc_')) query = query.eq('user_id', scope)
-        if (!reconcile) query = query.gte('updated_at', watermark!)
+        if (!reconcile) query = query.gt('updated_at', watermark!)
         const result = await query.order('updated_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + 999)
         if (result.error) throw result.error
         if (current !== generation) return
@@ -683,7 +709,7 @@ export function syncWorkspace(refresh = true): Promise<void> {
         if (!valid()) return
         if (error && write.collection === 'nbc_submissions' && ['P0001', '23505', '23514', '57014'].includes(error.code)) {
           if (Array.isArray(fullEntries) && (error.message.includes('Invalid draft') || error.code === '57014')) {
-            const compactPayload = compactSubmissionPayload({ ...rawPayload, entries: fullEntries.length <= 500 ? (fullEntries as { progress: number; previous: number; remark?: string }[]).filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0)) : fullEntries })
+            const compactPayload = compactSubmissionPayload({ ...rawPayload, entries: fullEntries })
             const retryResult = await supabase!.rpc('kw_workspace_write', {
               collection: write.collection,
               record_id: write.id,

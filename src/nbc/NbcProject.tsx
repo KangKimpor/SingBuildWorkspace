@@ -54,7 +54,13 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
         applyRealtimeRow(collection, change.new)
       })
     }
-    channel.subscribe((status) => { if (status === 'SUBSCRIBED') void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries']) })
+    let wasSubscribed = false
+    channel.subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        if (wasSubscribed) void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries'])
+        wasSubscribed = true
+      }
+    })
     return () => { for (const timer of fallbacks.values()) clearTimeout(timer); void client.removeChannel(channel) }
   }, [scope, project.id])
 

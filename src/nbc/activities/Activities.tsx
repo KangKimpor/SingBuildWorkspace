@@ -7,6 +7,7 @@ import { GlassPopover } from '@/components/glass/GlassPopover'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { useWorkspace } from '@/data'
 import { pendingCollectionIds, syncWorkspace } from '@/data/sync'
+import { useWorkspaceUI } from '@/shell/workspace'
 import { MoreMenu } from '../ui/MoreMenu'
 import { SidePeek } from '../ui/SidePeek'
 import { WbsTable } from '../ui/WbsTable'
@@ -29,7 +30,7 @@ function HandlerPicker({ a, activities }: { a: NbcActivity; activities: NbcActiv
   const label = activityHandlers(a, activities)
   if (!a.editable) return <span className="nbc-group-handlers" title={label}>{label}</span>
   return <GlassPopover label={`Assign ${a.wbs}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${a.wbs}: ${label}`}>{label}</button>}>
-    <GlassSelect aria-label={`Handler for ${a.wbs}`} value={a.handler} onChange={(e) => updateActivity(a.id, { handler: e.target.value })}>{a.wbs === 'GR&P' ? <option value="">Shared</option> : !a.handler && <option value="" disabled>Unassigned</option>}{[...new Set([...handlers, a.handler].filter(Boolean))].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
+    <GlassSelect aria-label={`Handler for ${a.wbs}`} value={a.handler} onChange={(e) => { try { void Promise.resolve(updateActivity(a.id, { handler: e.target.value })).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}>{a.wbs === 'GR&P' ? <option value="">Shared</option> : !a.handler && <option value="" disabled>Unassigned</option>}{[...new Set([...handlers, a.handler].filter(Boolean))].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
   </GlassPopover>
 }
 

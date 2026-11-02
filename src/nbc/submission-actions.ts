@@ -91,9 +91,9 @@ function compactDraft(draft: NbcSubmission, activities: NbcActivity[]): NbcSubmi
     }
     return e
   })
-  if (normalized.length <= 500) return { ...draft, entries: normalized }
+  if (normalized.length <= 1) return { ...draft, entries: normalized }
   const changedOnly = normalized.filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || appliedIds.has(e.activityId))
-  return changedOnly.length <= 1000 ? { ...draft, entries: changedOnly } : { ...draft, entries: normalized }
+  return { ...draft, entries: changedOnly }
 }
 
 async function ensureDraftOnServer(draft: NbcSubmission, scope: string): Promise<NbcSubmission> {
