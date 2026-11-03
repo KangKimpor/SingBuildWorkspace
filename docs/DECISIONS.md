@@ -91,3 +91,8 @@ Reuse shared task deletion for notes/Undo. Empty Trash permanently removes trash
 ## D-19 Full-screen progress editing and discard · October 26, 2026
 
 The user clarified that bigger means the page fills the screen, with normal text. Hide shell/project chrome for the Update Progress route and give remaining viewport height to the table. Back offers keep editing, keep the draft, or delete. The user selected undoing the update’s percentages on delete. Restore the preceding finalized values (initial baseline if none), retain remarks/assignments/history, and remove only the open report. Use one owner-checked, revision-checked RPC under the existing project lock for atomic server rollback and deletion. Do not grant direct report deletion or permit deleting finalized snapshots. Reuse the durable save queue for discard intent and refresh canonical activities after acknowledgement. The additional migration is prepared and tested locally only.
+
+
+## D-20 Remove Google Calendar integration · November 3, 2026
+
+Google Calendar sync consumed most of the Supabase Free Plan egress: a poll across every connected calendar, with 2,393 provider events (about 2 MB) pulled into every client. The user chose to remove it entirely. Delete the client sync loop, push/acknowledge path, event-editor Google fields, `kw-google` Edge Function source, Vercel proxy and CSP entry. Local events stay and now write through the normal workspace queue. Workspace sign-in with Google is separate Supabase Auth and is kept. Database cleanup (provider events and the Google tables) is a separate, explicitly approved step.

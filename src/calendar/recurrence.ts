@@ -17,7 +17,7 @@ export function occurrenceDraft(
   event: CalendarEvent,
   occurrence?: string | null,
 ) {
-  if (!event.recurrence || !occurrence || event.providerEventId)
+  if (!event.recurrence || !occurrence)
     return { ...event }
   const date = occurrence.slice(0, 10)
   return {
@@ -176,20 +176,3 @@ export function localSeriesChange(
   return changed
 }
 
-export function seriesEditPending(
-  events: CalendarEvent[],
-  event: CalendarEvent,
-) {
-  const series =
-    event.recurringEventId ||
-    (event.isSeriesMaster ? event.providerEventId : undefined)
-  return (
-    !!series &&
-    events.some(
-      (e) =>
-        e.recurringEventId === series &&
-        e.recurrenceEdit &&
-        e.recurrenceEdit.scope !== 'this',
-    )
-  )
-}

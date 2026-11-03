@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { htmlText, contentText, searchRank } from '@/data/text'
+import { contentText, searchRank } from '@/data/text'
 import { useWorkspace } from '@/data'
 test('search matches body text, accents and abbreviated page names with exact titles first', () => {
   expect(searchRank('weekly plan', 'Weekly plan')).toBe(0)
@@ -31,10 +31,3 @@ test('rich task notes produce a consistent searchable preview', () => {
   ).toBe('Review budget Finance')
 })
 
-test('Google description markup displays as text without executable content', () => {
-  expect(
-    htmlText(
-      '<p>First &amp; second</p><p>Next<br>line</p><script>alert(1)</script>',
-    ),
-  ).toBe('First & second\nNext\nline')
-})

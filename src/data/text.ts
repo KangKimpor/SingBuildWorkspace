@@ -1,9 +1,3 @@
-export function htmlText(value: string): string {
-  const template = document.createElement('template')
-  template.innerHTML = value.replace(/<br\s*\/?\s*>|<\/(?:p|div|li)>/gi, '\n')
-  template.content.querySelectorAll('script,style').forEach((node) => node.remove())
-  return template.content.textContent?.trim() || ''
-}
 export function contentText(value: unknown): string {
   if (Array.isArray(value))
     return value.map(contentText).filter(Boolean).join(' ')

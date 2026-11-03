@@ -70,16 +70,6 @@ describe('calendar and quick add', () => {
   })
 })
 
-it('uses Google instances once and retains their original occurrence identity', () => {
-  const instance = {...event('instance','10:00','11:00'), providerEventId:'instance', recurringEventId:'series',originalStartTime:'2026-10-19T10:00:00+07:00'}
-  const result = expandEvents([
-    {...event('master','10:00','11:00'), isSeriesMaster:true, recurrence:'FREQ=DAILY'},
-    instance,
-  ],new Date('2026-10-19T00:00:00'),new Date('2026-10-19T23:59:59'))
-  expect(result).toHaveLength(1)
-  expect(result[0]?.originalStartTime).toBe(instance.originalStartTime)
-})
-
 it('converts a foreign-zone local recurrence to the viewer clock without losing its source date',()=>{
   const result=expandEvents([{...event('foreign','23:00','23:30'),timeZone:'America/New_York',recurrence:'FREQ=DAILY;COUNT=2'}],new Date('2026-10-18T00:00:00'),new Date('2026-10-23T23:59:59'))
   expect(result).toHaveLength(2)

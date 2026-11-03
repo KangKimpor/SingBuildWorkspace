@@ -134,63 +134,17 @@ export interface CalendarEvent {
   recurrence?: string
   description?: string
   guests?: string[]
-  meetLink?: string
-  googleColorId?: string | null
-  googleAttendees?: {
-    email: string
-    responseStatus?: string
-    optional?: boolean
-    comment?: string
-    displayName?: string
-  }[]
-  googleReminders?: {
-    useDefault: boolean
-    overrides?: { method: 'email' | 'popup'; minutes: number }[]
-  }
   sourceTimeZone?: string
   startInstant?: string
   endInstant?: string
   isSeriesMaster?: boolean
-  restoreDeleted?: boolean
   deleteAfter?: string
   localSeriesId?: string
   excludedDates?: string[]
-  recurrenceEdit?: {
-    scope: 'this' | 'following' | 'all'
-    occurrence: string
-    baseDate: string
-    baseEndDate: string
-    changedFields: (keyof CalendarEvent)[]
-  }
   reminders?: number[]
   busy?: boolean
   visibility?: 'default' | 'private' | 'public'
-  calendarId?: string
-  providerEventId?: string
-  etag?: string
-  recurringEventId?: string
   originalStartTime?: string
   updatedAt?: string
   deletedAt?: string | null
-}
-
-export interface CalendarAccount {
-  id: string
-  email: string
-  name: string
-  picture?: string
-  status: string
-}
-export interface UserCalendar {
-  id: string
-  accountId: string
-  providerId: string
-  name: string
-  color: PaletteColor
-  visible: boolean
-  isDefault?: boolean
-  accessRole: string
-  syncToken?: string
-  eventFormatVersion?: number
-  timeZone?: string
 }

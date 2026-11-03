@@ -95,12 +95,6 @@ vi.mock('@/data/persistence', async () => ({
   },
 }))
 
-vi.mock('@/calendar/google', () => ({
-  clearGoogleSession: vi.fn(),
-  syncGoogle: vi.fn(async () => {}),
-  useCalendars: { getState: () => ({ accounts: [], calendars: [] }) },
-}))
-
 beforeEach(() => {
   cloud.state.queries.length = 0
   cloud.state.records.clear()

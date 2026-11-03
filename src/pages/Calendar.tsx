@@ -4,7 +4,6 @@ import { GlassSelect } from '@/components/glass/GlassSelect'
 import { displayTime } from '@/calendar/time'
 import { TZDate } from '@date-fns/tz'
 import { zonedDate } from '@/calendar/time'
-import { useCalendars, defaultCalendar } from '@/calendar/store'
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -17,7 +16,6 @@ import type { CalendarEvent, Task } from '@/data'
 import { useWorkspaceUI } from '@/shell/workspace'
 import { clock, expandEvents, layoutEvents, minutes } from '@/calendar/layout'
 import {
-  seriesEditPending,
   shiftDay,
   dayDifference,
 } from '@/calendar/recurrence'
@@ -120,14 +118,9 @@ function TimelineDay({
     else activate()
   }
   function saveMoved(event: CalendarEvent, patch: Partial<CalendarEvent>) {
-    if (seriesEditPending(useWorkspace.getState().events, event)) {
-      ui.notify('This series has a change waiting to sync.')
-      return
-    }
     const base =
       useWorkspace.getState().events.find((e) => e.id === event.id) || event
     if (
-      !event.providerEventId &&
       event.sourceTimeZone &&
       event.timeZone !== event.sourceTimeZone
     ) {
@@ -155,7 +148,7 @@ function TimelineDay({
         end: `${String(last.getHours()).padStart(2, '0')}:${String(last.getMinutes()).padStart(2, '0')}`,
       }
     }
-    if (base.recurrence || base.recurringEventId)
+    if (base.recurrence)
       ui.openEvent(event.id, event.originalStartTime || event.date, patch)
     else saveEvent({ ...base, ...patch })
   }
@@ -210,17 +203,15 @@ function TimelineDay({
       return
     }
     const end = point(y),
-      id = crypto.randomUUID(),
-      preferred = defaultCalendar()
+      id = crypto.randomUUID()
     saveEvent({
       id,
       title: 'New event',
       date: key,
       start: clock(Math.min(gesture.start, end)),
       end: clock(Math.min(1439, Math.max(gesture.start, end) + 15)),
-      calendar: preferred?.name || 'Personal',
-      calendarId: preferred?.id,
-      color: preferred?.color || 'blue',
+      calendar: 'Personal',
+      color: 'blue',
       location: '',
     })
     ui.openEvent(id)
@@ -511,17 +502,9 @@ export default function Calendar() {
     monthDays = Array.from({ length: 42 }, (_, i) =>
       addDays(weekStart(monthFirst, preferences?.weekStart), i),
     )
-  const calendarPrefs = useCalendars((s) => s.calendars)
-  const accounts = useCalendars((s) => s.accounts)
   const [calendarQuery, setCalendarQuery] = useState('')
-  const calendarError = useCalendars((s) => s.error)
   const events = expandEvents(
-    stored.filter(
-      (e) =>
-        (e.calendarId || !hidden.includes(e.calendar)) &&
-        (!e.calendarId ||
-          calendarPrefs.find((c) => c.id === e.calendarId)?.visible !== false),
-    ),
+    stored.filter((e) => !hidden.includes(e.calendar)),
     view === 'month' ? monthDays[0]! : addDays(anchor, -7),
     view === 'month' ? monthDays[41]! : addDays(anchor, 20),
   )
@@ -531,7 +514,7 @@ export default function Calendar() {
         'Singbuild',
         'Work',
         'Personal',
-        ...stored.filter((e) => !e.deletedAt && !e.calendarId).map((e) => e.calendar),
+        ...stored.filter((e) => !e.deletedAt).map((e) => e.calendar),
       ]),
     ]
   const days = Array.from({ length: view === 'day' ? 1 : 7 }, (_, i) =>
@@ -631,21 +614,6 @@ export default function Calendar() {
           New event
         </button>
       </header>
-      {calendarError && (
-        <div className="form-error" role="alert">
-          <p>{calendarError}</p>
-          <button
-            className="btn-secondary"
-            onClick={() =>
-              void import('@/calendar/google').then((module) =>
-                module.syncGoogle(true),
-              )
-            }
-          >
-            Retry calendar sync
-          </button>
-        </div>
-      )}
       <div className="calendar-toolbar">
         <div className="inline">
           <Link className="btn-secondary" to={`/calendar/${view}/today`}>
@@ -673,12 +641,11 @@ export default function Calendar() {
           </h2>
         </div>
         <div className="calendar-view-controls">
-        <GlassPopover label="Select calendars" trigger={<button className="btn-secondary calendar-picker-trigger"><CalendarDays size={15} />Calendars<span className="pill">{calendars.filter((name) => !hidden.includes(name)).length + calendarPrefs.filter((c) => c.visible !== false).length}</span><ChevronDown size={13} /></button>}>
+        <GlassPopover label="Select calendars" trigger={<button className="btn-secondary calendar-picker-trigger"><CalendarDays size={15} />Calendars<span className="pill">{calendars.filter((name) => !hidden.includes(name)).length}</span><ChevronDown size={13} /></button>}>
           <div className="calendar-picker">
             <div className="row-between"><strong className="small">Visible calendars</strong><button className="btn-text" onClick={() => {
               setHidden([])
               setShowTasks(true)
-              useCalendars.setState({ calendars: calendarPrefs.map((c) => ({ ...c, visible: true })) })
             }}>Show all</button></div>
             <input className="calendar-picker-search" aria-label="Search calendars" placeholder="Find a calendar…" value={calendarQuery} onChange={(e) => setCalendarQuery(e.target.value)} />
             <div className="calendar-picker-list">
@@ -711,12 +678,7 @@ export default function Calendar() {
             />
             Tasks
           </label>
-
-              {accounts.map((account) => <div key={account.id}>
-                <p className="calendar-picker-label">{account.email}</p>
-                {calendarPrefs.filter((c) => c.accountId === account.id && c.name.toLowerCase().includes(calendarQuery.toLowerCase())).map((calendar) => <label className="calendar-layer" key={calendar.id} style={tint(calendar.color)}><input type="checkbox" checked={calendar.visible !== false} onChange={() => useCalendars.setState({ calendars: calendarPrefs.map((c) => c.id === calendar.id ? { ...c, visible: c.visible === false } : c) })} /><span>{calendar.name}</span></label>)}
-              </div>)}
-              {calendarQuery && ![...calendars, ...calendarPrefs.map((c) => c.name)].some((name) => name.toLowerCase().includes(calendarQuery.toLowerCase())) && <p className="quiet-empty small">No calendars found.</p>}
+              {calendarQuery && !calendars.some((name) => name.toLowerCase().includes(calendarQuery.toLowerCase())) && <p className="quiet-empty small">No calendars found.</p>}
             </div>
             <div className="calendar-picker-footer">
           <label className="small muted">

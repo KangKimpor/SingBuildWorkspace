@@ -4,7 +4,6 @@ import * as chrono from 'chrono-node'
 import { dateKey, useWorkspace } from '@/data'
 import { useWorkspaceUI } from '@/shell/workspace'
 import type { Priority } from '@/data'
-import { defaultCalendar } from '@/calendar/store'
 import { useShallow } from 'zustand/react/shallow'
 
 export function parseQuickAdd(raw: string, now = new Date()) {
@@ -80,9 +79,8 @@ export function QuickAdd({ onDone }: { onDone?: () => void }) {
             date: parsed.due || dateKey(),
             start,
             end: `${String(endHour).padStart(2, '0')}:${start.slice(3)}`,
-            calendar: defaultCalendar()?.name || 'Personal',
-            calendarId: defaultCalendar()?.id,
-            color: defaultCalendar()?.color || 'blue',
+            calendar: 'Personal',
+            color: 'blue',
             location: '',
           })
           onDone?.()

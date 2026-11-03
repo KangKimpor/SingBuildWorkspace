@@ -5,26 +5,6 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  server: {
-    proxy: {
-      '/api/google': {
-        target: 'https://nlcpjdokfvawlpzyfytx.supabase.co',
-        changeOrigin: true,
-        rewrite: (path) =>
-          path.replace('/api/google', '/functions/v1/kw-google'),
-      },
-    },
-  },
-  preview: {
-    proxy: {
-      '/api/google': {
-        target: 'https://nlcpjdokfvawlpzyfytx.supabase.co',
-        changeOrigin: true,
-        rewrite: (path) =>
-          path.replace('/api/google', '/functions/v1/kw-google'),
-      },
-    },
-  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },

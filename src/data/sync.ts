@@ -30,7 +30,6 @@ let applying = false, generation = 0, initialized = false, hydrated = false
 let activeRun: Promise<void> | undefined
 let realtime: RealtimeChannel | undefined
 let retryTimer: ReturnType<typeof setTimeout> | undefined
-let googleTimer: ReturnType<typeof setTimeout> | undefined
 let snapshotTimer: ReturnType<typeof setTimeout> | undefined
 let retry = 0, refreshRequested = false, refreshFull = false, live = false, wasLive = false
 // Incremental pulls resume from the newest row already seen in each collection. A
@@ -63,8 +62,6 @@ addEventListener('visibilitychange', () => {
     saveRecovery()
     const scope = useWorkspace.getState().scope
     if (scope !== 'guest') flushSnapshot(scope)
-  } else if (document.visibilityState === 'visible') {
-    startGoogle(generation)
   }
 })
 
@@ -207,10 +204,6 @@ export async function reassignNbcActivities(projectId: string, ids: string[], ha
 export function pendingEventIds(scope: string) {
   return new Set([...pending.values()].filter((p) => p.scope === scope && p.collection === 'events').map((p) => p.id))
 }
-export function discardCalendarWrites(scope: string, ids: Set<string>) {
-  for (const [key, write] of pending) if (write.scope === scope && write.collection === 'events' && ids.has(String(write.data.calendarId))) pending.delete(key)
-  saveRecovery()
-}
 export async function initializeData() {
   if (initialized) return
   initialized = true
@@ -220,7 +213,7 @@ export async function initializeData() {
       collections.some((c) => state[c] !== previous[c]) || state.scratchpad !== previous.scratchpad || state.taskViews !== previous.taskViews || state.calendarPreferences !== previous.calendarPreferences
     )) queueChanges(contentOf(state), contentOf(previous))
   })
-  addEventListener('online', () => { void syncWorkspace(); startGoogle(generation) })
+  addEventListener('online', () => { void syncWorkspace() })
   addEventListener('offline', () => { if (useWorkspace.getState().scope !== 'guest') useWorkspace.setState({ sync: { kind: 'offline', pending: pending.size } }) })
   if (hasStoredSession() || /^\/settings\/(account|accounts)/.test(location.pathname)) {
     // A local workspace too large for localStorage (BP02) lives only in IndexedDB; a real account switch clears it again.
@@ -270,7 +263,7 @@ async function switchAccount(session: Session | null) {
   saveRecovery()
   if (previousScope !== 'guest') flushSnapshot(previousScope)
   const current = ++generation
-  clearTimeout(retryTimer); clearTimeout(googleTimer)
+  clearTimeout(retryTimer)
   if (realtime) { void supabase?.removeChannel(realtime); realtime = undefined }
   pending.clear(); versions.clear(); hydrated = false; live = false; wasLive = false; retry = 0
   watermarks = new Map(); lastFullPull = 0
@@ -301,9 +294,7 @@ async function switchAccount(session: Session | null) {
       for (const write of writes) if (write.scope === scope) { pending.set(write.key, write); applyRow(write.collection, write.remove ? null : { id: write.id, data: write.data, updated_at: String(write.data.updatedAt || '') }, write.id) }
     }
   } catch { /* An invalid cache cannot replace cloud content. */ }
-  const google = await import('@/calendar/google')
   if (current !== generation) return
-  google.clearGoogleSession()
   if (!session || !supabase) return
   await supabase.realtime.setAuth(session.access_token)
   if (current !== generation) return
@@ -338,7 +329,6 @@ async function switchAccount(session: Session | null) {
   void recoverAbandoned(scope, current)
   void recoverLegacy(scope, current)
   await syncWorkspace()
-  startGoogle(current)
 }
 async function recoverAbandoned(scope: string, current: number) {
   if (!navigator.locks) return
@@ -376,18 +366,6 @@ async function recoverLegacy(scope: string, current: number) {
     }
     if (old.length) { saveRecovery(); void syncWorkspace() }
   } catch { /* IndexedDB is optional for the cloud path. */ }
-}
-function startGoogle(current: number) {
-  clearTimeout(googleTimer)
-  if (current !== generation || !useAccount.getState().session) return
-  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
-  void import('@/calendar/google').then(async (google) => {
-    if (current !== generation) return
-    await google.syncGoogle()
-    if (current === generation && (typeof document === 'undefined' || document.visibilityState !== 'hidden')) googleTimer = setTimeout(() => startGoogle(current), 300000)
-  }).catch(() => {
-    if (current === generation && (typeof document === 'undefined' || document.visibilityState !== 'hidden')) googleTimer = setTimeout(() => startGoogle(current), 300000)
-  })
 }
 function laterStamp(a: string | undefined, b: string | undefined): string | undefined {
   if (!a) return b
@@ -698,10 +676,8 @@ export function syncWorkspace(refresh = true): Promise<void> {
           cacheSnapshot(scope)
           continue
         }
-        const google = write.collection === 'events' ? await import('@/calendar/google') : null
-        if (google && !google.useCalendars.getState().calendars.length && write.data.calendarId) await google.syncGoogle()
         if (!valid()) return
-        const rawPayload = google ? await google.pushGoogleEvent(write.data as unknown as CalendarEvent) : await syncWorkspaceFiles(write.data, scope)
+        const rawPayload = await syncWorkspaceFiles(write.data, scope)
         if (!valid()) return
         const fullEntries = write.collection === 'nbc_submissions' ? (rawPayload as { entries?: unknown[] })?.entries : undefined
         const payload = write.collection === 'nbc_submissions' ? compactSubmissionPayload(rawPayload as unknown as Data) : (rawPayload as unknown as Data)
@@ -789,7 +765,6 @@ export function syncWorkspace(refresh = true): Promise<void> {
             // Preserve keystrokes entered while the server request was in flight.
             pending.set(write.key, { ...latest, data: { ...appliedRow.data, ...changedFields(write.data, latest.data) }, original: appliedRow.data, base: row.updated_at })
           }
-          if (google) await google.acknowledgeGoogleEvent(write.data as unknown as CalendarEvent)
         }
         // Remove only legacy entries that have now received a server decision.
         void db.outbox.delete(write.key).catch(() => {})

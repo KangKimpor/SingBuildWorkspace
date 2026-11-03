@@ -25,7 +25,7 @@ corepack pnpm preview
 - Create and edit projects in Team or Personal Workspace; existing projects default to Personal.
 - Dense task tables and draggable status boards. Inline title, status, priority, due date and description controls; expandable fields retain subtasks, labels, repeat schedules, reminders, hierarchy, activity and rich notes.
 - Sorting, column visibility, keyboard resizing, mobile horizontal scrolling and virtualized large lists.
-- Search preserves access to existing pages, tasks, projects and events. Existing page editing, trash/restore, backups and Google Calendar integration remain available.
+- Search preserves access to existing pages, tasks, projects and events. Existing page editing, trash/restore and backups remain available.
 - Cloud confirmation states, event-triggered reconciliation, scoped recovery, concurrent-edit recovery and account isolation.
 - Shared glass selectors, both themes, reduced-motion and opaque fallbacks. Supplied SingBuild branding and generated icons.
 

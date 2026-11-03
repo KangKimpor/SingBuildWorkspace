@@ -61,7 +61,6 @@ vi.mock('@/data/persistence', async () => ({
   collections: ['pages', 'projects', 'tasks', 'events', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'], eventWriteReady: () => true,
   db: { snapshots: { get: async () => { throw Error('IndexedDB disabled') }, put: async () => { throw Error('IndexedDB disabled') } }, outbox: { where: () => ({ equals: () => ({ toArray: async () => { throw Error('IndexedDB disabled') } }) }), delete: async () => {} } },
 }))
-vi.mock('@/calendar/google', () => ({ clearGoogleSession: vi.fn(), syncGoogle: vi.fn(async () => {}), useCalendars: { getState: () => ({ calendars: [] }) } }))
 vi.mock('@/data/files', () => ({ syncWorkspaceFiles: async (data: unknown) => data }))
 
 test('cloud writes need no local database, retain in-flight edits, refresh live, merge conflicts and isolate switched accounts', async () => {

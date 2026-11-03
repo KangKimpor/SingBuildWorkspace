@@ -20,16 +20,13 @@ import {
 import type { CalendarEvent } from '@/data'
 import { modKey } from './store'
 import { useWorkspaceUI } from './workspace'
-import { useCalendars, defaultCalendar } from '@/calendar/store'
-import { contentText, searchRank, htmlText } from '@/data/text'
+import { contentText, searchRank } from '@/data/text'
 import {
   localSeriesChange,
   occurrenceDraft,
   validateRecurrence,
-  seriesEditPending,
 } from '@/calendar/recurrence'
 import type { RecurrenceScope } from '@/calendar/recurrence'
-import { googleEventColors } from '@/calendar/colors'
 import type { PaletteColor } from '@/data'
 
 export function SearchResults({
@@ -284,16 +281,10 @@ function CommandPalette() {
   )
 }
 function EventEditor() {
-  const calendars = useCalendars((s) => s.calendars)
-  const accounts = useCalendars((s) => s.accounts)
   const { eventId, eventOccurrence, eventPatch, openEvent, notify } =
     useWorkspaceUI()
   const { saveEvent, deleteEvent } = useWorkspace()
   const [draft, setDraft] = useState<CalendarEvent | null>(null)
-  const pendingSeries = useWorkspace((s) => {
-    const event = s.events.find((e) => e.id === eventId)
-    return event ? seriesEditPending(s.events, event) : false
-  })
   const [original, setOriginal] = useState<CalendarEvent | null>(null)
   const [scope, setScope] = useState<RecurrenceScope>('this')
   const [guestText, setGuestText] = useState('')
@@ -310,9 +301,7 @@ function EventEditor() {
       : null
     setOriginal(occurrence)
     setDescriptionText(
-      existing?.providerEventId
-        ? htmlText(existing.description || '')
-        : existing?.description || '',
+      existing?.description || '',
     )
     setGuestText(
       useWorkspace
@@ -325,7 +314,6 @@ function EventEditor() {
       return
     }
     const [, date, hour, minute] = eventId.split(':')
-    const preferred = defaultCalendar()
     const start = hour ? `${hour}:${minute ?? '00'}` : '09:00'
     const end = hour
       ? `${String(Math.min(23, Number(hour) + 1)).padStart(2, '0')}:${minute ?? '00'}`
@@ -338,9 +326,8 @@ function EventEditor() {
             date: date || dateKey(),
             start,
             end,
-            calendar: preferred?.name || 'Personal',
-            calendarId: preferred?.id,
-            color: preferred?.color || 'blue',
+            calendar: 'Personal',
+            color: 'blue',
             timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
             location: '',
           }
@@ -351,84 +338,26 @@ function EventEditor() {
   }, [eventId, eventOccurrence, eventPatch])
   const recurring = !!(
     original?.recurrence ||
-    original?.recurringEventId ||
-    original?.localSeriesId
+        original?.localSeriesId
   )
   function applyChange(event: CalendarEvent, remove = false) {
     const before = useWorkspace.getState().events
-    if (event.recurringEventId && recurring) {
-      const fields = [
-        'title',
-        'date',
-        'endDate',
-        'start',
-        'end',
-        'timeZone',
-        'sourceTimeZone',
-        'allDay',
-        'recurrence',
-        'description',
-        'guests',
-        'reminders',
-        'googleReminders',
-        'busy',
-        'visibility',
-        'googleColorId',
-        'location',
-      ] as const
-      saveEvent({
-        ...event,
-        ...(remove
-          ? {
-              deletedAt: new Date().toISOString(),
-              deleteAfter: new Date(Date.now() + 8000).toISOString(),
-            }
-          : {}),
-        recurrenceEdit: {
-          scope,
-          occurrence: event.originalStartTime || event.date,
-          baseDate: original!.date,
-          baseEndDate: original!.endDate || original!.date,
-          changedFields: fields.filter(
-            (field) =>
-              JSON.stringify(event[field]) !==
-              JSON.stringify(original?.[field]),
-          ),
-        },
-      })
-      notify(
-        remove ? 'Deletion queued for Google' : 'Changes queued for Google',
-        remove
-          ? () => {
-              const previous = before.find((item) => item.id === event.id)
-              if (previous) saveEvent(previous)
-            }
-          : undefined,
-      )
-    } else {
-      const changed = recurring
-        ? localSeriesChange(before, event, scope, remove, original || undefined)
-        : [
-            {
-              ...event,
-              ...(remove ? { deletedAt: new Date().toISOString() } : {}),
-            },
-          ]
-      for (const item of changed) saveEvent(item)
-      notify(remove ? 'Event deleted' : 'Event saved', () => {
-        for (const item of changed) {
-          const previous = before.find((e) => e.id === item.id)
-          if (previous)
-            saveEvent({
-              ...previous,
-              ...(remove && previous.providerEventId
-                ? { restoreDeleted: true }
-                : {}),
-            })
+    const changed = recurring
+      ? localSeriesChange(before, event, scope, remove, original || undefined)
+      : [
+          {
+            ...event,
+            ...(remove ? { deletedAt: new Date().toISOString() } : {}),
+          },
+        ]
+    for (const item of changed) saveEvent(item)
+    notify(remove ? 'Event deleted' : 'Event saved', () => {
+      for (const item of changed) {
+        const previous = before.find((e) => e.id === item.id)
+        if (previous) saveEvent(previous)
           else deleteEvent(item.id)
-        }
-      })
-    }
+      }
+    })
     openEvent(null)
   }
   return (
@@ -452,12 +381,6 @@ function EventEditor() {
             </Dialog.Close>
           </div>
           {draft ? (
-            pendingSeries ? (
-              <p role="status">
-                A series change is waiting to sync. You can edit this series
-                again after it finishes.
-              </p>
-            ) : (
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
@@ -593,51 +516,14 @@ function EventEditor() {
                 <label htmlFor="event-calendar-control">
                   Calendar
                   <GlassSelect id="event-calendar"
-                    value={draft.calendarId || draft.calendar}
-                    disabled={!!draft.providerEventId}
-                    onChange={(e) => {
-                      const calendar = calendars.find(
-                        (c) => c.id === e.target.value,
-                      )
-                      setDraft({
-                        ...draft,
-                        calendarId: calendar?.id,
-                        calendar: calendar?.name || e.target.value,
-                        color: calendar?.color || 'blue',
-                      })
-                    }}
+                    value={draft.calendar}
+                    onChange={(e) =>
+                      setDraft({ ...draft, calendar: e.target.value, color: 'blue' })
+                    }
                   >
                     {['Personal', 'Work', 'Singbuild'].map((c) => (
                       <option key={c}>{c}</option>
                     ))}
-                    {Array.from(new Set(calendars.map((c) => c.accountId))).map(
-                      (accountId) => (
-                        <optgroup
-                          key={accountId}
-                          label={
-                            accounts.find((a) => a.id === accountId)?.email ||
-                            'Google Calendar'
-                          }
-                        >
-                          {calendars
-                            .filter((c) => c.accountId === accountId)
-                            .map((c) => (
-                              <option
-                                key={c.id}
-                                value={c.id}
-                                disabled={
-                                  !['owner', 'writer'].includes(c.accessRole)
-                                }
-                              >
-                                {c.name}
-                                {!['owner', 'writer'].includes(c.accessRole)
-                                  ? ' (read only)'
-                                  : ''}
-                              </option>
-                            ))}
-                        </optgroup>
-                      ),
-                    )}
                   </GlassSelect>
                 </label>
                 <label className="inline">
@@ -700,9 +586,7 @@ function EventEditor() {
                       ].includes(draft.recurrence)
                         ? 'custom'
                         : (draft.recurrence ??
-                          (draft.recurringEventId || draft.localSeriesId
-                            ? 'inherit'
-                            : ''))
+                          (draft.localSeriesId ? 'inherit' : ''))
                     }
                     onChange={(e) =>
                       setDraft({
@@ -716,7 +600,7 @@ function EventEditor() {
                       })
                     }
                   >
-                    {(draft.recurringEventId || draft.localSeriesId) && (
+                    {draft.localSeriesId && (
                       <option value="inherit">
                         Series schedule (unchanged)
                       </option>
@@ -750,31 +634,17 @@ function EventEditor() {
                       </span>
                     </label>
                   )}
-                <label>
+                <label htmlFor="event-reminder-control">
                   Reminder
-                  <GlassSelect
-                    value={
-                      draft.googleReminders?.useDefault
-                        ? 'default'
-                        : (draft.reminders?.[0] ?? '')
-                    }
+                  <GlassSelect id="event-reminder"
+                    value={draft.reminders?.[0] ?? ''}
                     onChange={(e) =>
                       setDraft({
                         ...draft,
-                        reminders:
-                          e.target.value && e.target.value !== 'default'
-                            ? [Number(e.target.value)]
-                            : [],
-                        googleReminders:
-                          e.target.value === 'default'
-                            ? { useDefault: true }
-                            : undefined,
+                        reminders: e.target.value ? [Number(e.target.value)] : [],
                       })
                     }
                   >
-                    {draft.calendarId && (
-                      <option value="default">Calendar default</option>
-                    )}
                     <option value="">None</option>
                     <option value="10">10 minutes before</option>
                     <option value="30">30 minutes before</option>
@@ -790,42 +660,6 @@ function EventEditor() {
                     onChange={(e) => setGuestText(e.target.value)}
                   />
                 </label>
-                {!!draft.googleAttendees?.length && (
-                  <ul className="small muted">
-                    {draft.googleAttendees
-                      .filter((guest) =>
-                        guestText
-                          .split(',')
-                          .map((email) => email.trim())
-                          .includes(guest.email),
-                      )
-                      .map((guest) => (
-                        <li key={guest.email}>
-                          {guest.email} ·{' '}
-                          {guest.responseStatus === 'accepted'
-                            ? 'Accepted'
-                            : guest.responseStatus === 'declined'
-                              ? 'Declined'
-                              : guest.responseStatus === 'tentative'
-                                ? 'Maybe'
-                                : 'Awaiting response'}
-                        </li>
-                      ))}
-                  </ul>
-                )}
-                {draft.meetLink &&
-                  /^https:\/\/meet\.google\.com\/[a-z-]+$/.test(
-                    draft.meetLink,
-                  ) && (
-                    <a
-                      className="text-link"
-                      href={draft.meetLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Join Google Meet ↗
-                    </a>
-                  )}
                 <label htmlFor="event-availability-control">
                   Availability
                   <GlassSelect id="event-availability"
@@ -857,55 +691,29 @@ function EventEditor() {
                 </label>
                 <label>
                   Event color
-                  {draft.calendarId ? (
-                    <GlassSelect
-                      value={draft.googleColorId || ''}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          googleColorId: e.target.value || null,
-                          color:
-                            googleEventColors.find(
-                              (c) => c.id === e.target.value,
-                            )?.palette ||
-                            calendars.find((c) => c.id === draft.calendarId)
-                              ?.color ||
-                            'blue',
-                        })
-                      }
-                    >
-                      <option value="">Calendar default</option>
-                      {googleEventColors.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </GlassSelect>
-                  ) : (
-                    <GlassSelect
-                      value={draft.color}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          color: e.target.value as PaletteColor,
-                        })
-                      }
-                    >
-                      {[
-                        'gray',
-                        'brown',
-                        'orange',
-                        'yellow',
-                        'green',
-                        'blue',
-                        'purple',
-                        'pink',
-                        'red',
-                      ].map((c) => (
-                        <option key={c}>{c}</option>
-                      ))}
-                    </GlassSelect>
-                  )}
+                  <GlassSelect
+                    value={draft.color}
+                    onChange={(e) =>
+                      setDraft({
+                        ...draft,
+                        color: e.target.value as PaletteColor,
+                      })
+                    }
+                  >
+                    {[
+                      'gray',
+                      'brown',
+                      'orange',
+                      'yellow',
+                      'green',
+                      'blue',
+                      'purple',
+                      'pink',
+                      'red',
+                    ].map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </GlassSelect>
                 </label>
                 <label>
                   Location
@@ -938,13 +746,7 @@ function EventEditor() {
                     Save event
                   </button>
                 </footer>
-                <p className="small muted">
-                  {draft.calendarId
-                    ? 'Changes sync to Google when online.'
-                    : 'Saved in your workspace. Choose a Google calendar to sync this event.'}
-                </p>
               </form>
-            )
           ) : (
             <p>Event not found.</p>
           )}
