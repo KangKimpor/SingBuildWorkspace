@@ -6,14 +6,16 @@ import { useWorkspace } from '@/data'
 import { db } from '@/data/persistence'
 import { useWorkspaceUI } from '@/shell/workspace'
 import { addDays, weekStart } from '../submissions'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { NbcActivity, NbcSubmission } from '../types'
 import { confirmedCount, MAX_TEMPLATE_BYTES, reportFilename, reportingBlock, weeklyWorkbook, XLSX_TYPE } from './workbook'
 import { loadReportTemplate } from './template'
 
 export default function ExportWorkbook({ projectId, activities, submissions, onClose }: { projectId: string; activities: NbcActivity[]; submissions: NbcSubmission[]; onClose: () => void }) {
   const scope = useWorkspace(s => s.scope), current = weekStart()
-  const key = `nbc-report-template:${scope}:${projectId}`
+  const owners = projectHandlers(projectId)
+  // v2 invalidates the six-handler template cached before Vuth was added.
+  const key = `nbc-report-template:v2:${scope}:${projectId}`
   const [week, setWeek] = useState(current), [template, setTemplate] = useState<{ data: ArrayBuffer; name: string } | null>(null)
   const [busy, setBusy] = useState(false), [loading, setLoading] = useState(true), [error, setError] = useState('')
   const weeks = [...new Set([current, addDays(current, -7), ...submissions.filter(s => s.confirmedAt && s.weekStart <= current).map(s => s.weekStart)])].sort().reverse()
@@ -59,10 +61,10 @@ export default function ExportWorkbook({ projectId, activities, submissions, onC
     <Dialog.Overlay className="scrim"/>
     <Dialog.Content className="event-editor project-editor glass" data-material="thick">
       <div className="row-between"><Dialog.Title className="t-h3">Weekly client report</Dialog.Title><Dialog.Close disabled={busy} className="ibtn" aria-label="Close export"><X size={18}/></Dialog.Close></div>
-      <Dialog.Description className="small muted">Export the Progress sheet and all six handler sheets in your workbook’s existing format.</Dialog.Description>
+      <Dialog.Description className="small muted">Export the Progress sheet and every handler sheet in your workbook’s existing format.</Dialog.Description>
       <form onSubmit={event => { event.preventDefault(); void download() }}>
         <label htmlFor="export-week">Reporting week<GlassSelect id="export-week" aria-label="Reporting week" disabled={busy} value={week} onChange={event => setWeek(event.target.value)}>{weeks.map(value => <option key={value} value={value}>{reportingBlock(value)} {value.slice(0, 4)}{value === current ? ' · This week' : ''}</option>)}</GlassSelect></label>
-        <p className="small" role="status">{confirmed} of {handlers.length} handlers confirmed. {confirmed < handlers.length ? 'The workbook will show the confirmation count.' : 'All handlers have confirmed this week.'} Unconfirmed draft edits are excluded.</p>
+        <p className="small" role="status">{confirmed} of {owners.length} handlers confirmed. {confirmed < owners.length ? 'The workbook will show the confirmation count.' : 'All handlers have confirmed this week.'} Unconfirmed draft edits are excluded.</p>
         {scope === 'guest' && <label>Excel template<input type="file" accept=".xlsx" aria-label="Weekly report template" disabled={busy || loading} onChange={event => { const file = event.target.files?.[0]; if (file) void choose(file); event.target.value = '' }}/></label>}
         {template && <p className="small muted">Saved template: {template.name}</p>}
         <p className="small muted">{loading ? 'Loading report format…' : scope === 'guest' ? 'Choose your NBC BOQ workbook once for this demo device.' : 'The project baseline workbook format is ready to export.'}</p>

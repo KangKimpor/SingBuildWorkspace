@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { canUpdate, submissionId, weekLabel } from '../submissions'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
 
 interface Props { projectId: string; week: string; activities: NbcActivity[]; submissions: NbcSubmission[]; onChoose: (handler: Handler) => void }
@@ -12,7 +12,7 @@ export function HandlerGate({ projectId, week, activities, submissions, onChoose
     <h2>Who is updating?</h2>
     <p className="muted">Choose your handler name before you update progress. You will see and edit only your own activities. Week of {weekLabel(week)}.</p>
     <div className="nbc-gate-list" role="group" aria-label="Handler">
-      {handlers.map((h) => {
+      {projectHandlers(projectId).map((h) => {
         const done = submissions.find((s) => s.id === submissionId(projectId, week, h))?.status === 'confirmed'
         const count = activities.filter((a) => canUpdate(a, h) && a.wbs !== 'GR&P').length
         return <button key={h} aria-pressed={picked === h} onClick={() => setPicked(h)}>

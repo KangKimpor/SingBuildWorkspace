@@ -1,5 +1,17 @@
 # NBC BP04 progress tracker
 
+## 3 November 2026 — Vuth added as the seventh handler
+
+The supplied BP04 workbook is the current progress baseline. Its handler tabs now read **Sitha · Lychhinh · Chhorvaon · Srun · Kheng · Vuth · Tola**, and **Vuth** is available throughout the app, API and database. Week `2026-11-02` stays open with no submissions or drafts; the file's weekly block label was ignored because its values are the `2026-10-26` block already recorded in production.
+
+Forward migration `20261104091000_nbc_vuth_handler` adds `kw_private.nbc_project_handlers(project_id)`, updates the activity assignment check, and updates the submission writer, audited reassignment and report guard. BP02 intentionally keeps its original six-handler, seven-sheet workbook.
+
+A guarded, single-transaction reassignment moved 52 BP04 leaves to match the tabs (Sitha→Vuth 6, Kheng→Vuth 18, Sitha→Kheng 23, Sitha→Srun 5), alongside 116 BP03 leaves in the same guarded run. Every update matched the recorded handler and row version, and each appended one audit event by the company owner. Progress, remarks, weights, the two confirmed last-week BP04 submissions, summaries and the open week were unchanged.
+
+The stored template was replaced with the new eight-sheet workbook, with the 21 proper `Ø` task names rewritten to the mojibake form already stored on those activity rows so export validation reconciles. The client template cache key is now `nbc-report-template:v2:…`.
+
+Final assigned leaf counts: Sitha 28, Lychhinh 19, Chhorvaon 6, Srun 39, Kheng 49, Vuth 24 and Tola 118, plus shared GR&P — 283 assigned leaves. Where a moved activity's recorded responsibility differs from its new handler, existing confirmations show **Needs review** under the documented reassignment behavior.
+
 ## Live release · 30 October 2026
 
 The user authorized completing the live setup after pushing the implementation to main. BP04 is now initialized in Supabase project `nlcpjdokfvawlpzyfytx` and available through [the production workspace](https://kimpor-workspace.vercel.app/projects-progress). Vercel production deployment `dpl_9wsNJtDhJJK9wxj9mNdyxn6S1gxT` serves implementation commit `f1cdc165f0ce0e10b1edf749b1876c47bd023c06`; its workspace and performance CI runs both passed.
@@ -16,7 +28,7 @@ NBC BP04 – Pan Pacific Hotel reuses BP03's three views and handler workflow. T
 
 ## XLSX progress import
 
-In **Project Progress**, choose **Import XLSX**, select the project's BOQ workbook, review the changes and choose **Import drafts**. Import accepts the supplied BP04 seven-sheet workbook and matching BP03 workbooks. Each ordinary leaf reads its handler-sheet Accumulation % input (column M); shared GR&P reads Progress column N. Cached parent/master formulas are not authoritative and no spreadsheet formulas execute. Preview recalculates overall progress from the existing project weights.
+In **Project Progress**, choose **Import XLSX**, select the project's BOQ workbook, review the changes and choose **Import drafts**. Import accepts the supplied BP04 workbook with its eight sheets (Progress plus seven handler tabs) and matching BP03 workbooks. Each ordinary leaf reads its handler-sheet Accumulation % input (column M); shared GR&P reads Progress column N. Cached parent/master formulas are not authoritative and no spreadsheet formulas execute. Preview recalculates overall progress from the existing project weights.
 
 WBS rows, task names and relative/global weights must match the selected project. Blank, formula, nonnumeric, out-of-range, missing and duplicate handler inputs are rejected. Import changes percentages only: hierarchy, weights, assignments, historical weeks and templates remain intact. Lowered progress requires a reason, copied into its activity remarks. A changed shared GR&P value requires an explicit responsible handler and appears in only that handler's draft.
 
@@ -31,7 +43,7 @@ The failed main-branch build shown on 30 October was the initial stylesheet size
 
 ## Reconciliation
 
-The local extractor verifies all 382 WBS rows: 98 parents and 284 editable entries (283 assigned plus shared GR&P). Assignments: Sitha 84, Lychhinh 19, Chhorvaon 6, Srun 34, Kheng 22, Tola 118. Root and effective leaf weights both total 1.0. BOQ total is USD 1,518,404.74. Initial overall progress is 0%, matching the workbook. Every parent, duration-derived relative weight, propagated global weight, handler-linked percentage and root BOQ share is checked against the source. The baseline is undated; no historical confirmation/report is fabricated from it.
+The local extractor verifies all 382 WBS rows: 98 parents and 284 editable entries (283 assigned plus shared GR&P). Current assignments: Sitha 28, Lychhinh 19, Chhorvaon 6, Srun 39, Kheng 49, Vuth 24, Tola 118. Root and effective leaf weights both total 1.0. BOQ total is USD 1,518,404.74. Initial overall progress is 0%, matching the workbook. Every parent, duration-derived relative weight, propagated global weight, handler-linked percentage and root BOQ share is checked against the source. The baseline is undated; no historical confirmation/report is fabricated from it.
 
 ## Local review
 

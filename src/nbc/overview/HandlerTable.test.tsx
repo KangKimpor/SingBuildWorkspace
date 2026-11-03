@@ -13,10 +13,10 @@ function setup(submissions: NbcSubmission[] = []) {
 }
 const row = (name: string) => screen.getByRole('row', { name: new RegExp(name) })
 
-test('lists the six handlers with the five columns', () => {
+test('lists the seven handlers with the five columns', () => {
   setup()
   expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Handler', 'This week', 'Last week', 'Changed', 'Contribution'])
-  expect(['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Tola'].every((n) => within(screen.getByRole('table')).getByText(n))).toBe(true)
+  expect(['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Vuth', 'Tola'].every((n) => within(screen.getByRole('table')).getByText(n))).toBe(true)
 })
 
 test('a confirmed current-week update shows Updated and its changed count', () => {

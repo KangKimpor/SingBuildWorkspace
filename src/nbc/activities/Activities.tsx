@@ -16,7 +16,7 @@ import { issuesEnabled } from '../features'
 import { calculate } from '../progress'
 import { updateActivity } from '../actions'
 import { money, percent } from '../format'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import { activityHandlers } from '../handlers'
 import type { NbcActivity } from '../types'
 import { ActivityDetail } from './ActivityDetail'
@@ -30,7 +30,7 @@ function HandlerPicker({ a, activities }: { a: NbcActivity; activities: NbcActiv
   const label = activityHandlers(a, activities)
   if (!a.editable) return <span className="nbc-group-handlers" title={label}>{label}</span>
   return <GlassPopover label={`Assign ${a.wbs}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${a.wbs}: ${label}`}>{label}</button>}>
-    <GlassSelect aria-label={`Handler for ${a.wbs}`} value={a.handler} onChange={(e) => { try { void Promise.resolve(updateActivity(a.id, { handler: e.target.value })).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}>{a.wbs === 'GR&P' ? <option value="">Shared</option> : !a.handler && <option value="" disabled>Unassigned</option>}{[...new Set([...handlers, a.handler].filter(Boolean))].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
+    <GlassSelect aria-label={`Handler for ${a.wbs}`} value={a.handler} onChange={(e) => { try { void Promise.resolve(updateActivity(a.id, { handler: e.target.value })).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}>{a.wbs === 'GR&P' ? <option value="">Shared</option> : !a.handler && <option value="" disabled>Unassigned</option>}{[...new Set([...projectHandlers(a.projectId), a.handler].filter(Boolean))].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
   </GlassPopover>
 }
 
@@ -68,7 +68,7 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
   return <section className="nbc-activities">
     <div className="nbc-filters">
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
-      <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...handlers, ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
+      <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...projectHandlers(projectId), ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
       <GlassSelect aria-label="Work area" value={area} onChange={(e) => filter('area', e.target.value)}><option value="">All areas</option>{[...new Set(activities.map((a) => a.area))].map((a) => <option key={a}>{a}</option>)}</GlassSelect>
       <GlassSelect aria-label="Progress range" value={range} onChange={(e) => setRange(e.target.value)}><option value="all">All progress</option><option value="zero">0% · Not started</option><option value="active">1–99% · In progress</option><option value="done">100% · Done</option></GlassSelect>
       <button className="nbc-chip" aria-pressed={changed} onClick={() => setChanged(!changed)}>Changed this week</button>

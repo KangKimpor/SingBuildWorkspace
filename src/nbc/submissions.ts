@@ -1,5 +1,5 @@
 import { calculate, percentage } from './progress'
-import { handlers } from './types'
+import { projectHandlers } from './types'
 import type { Handler, NbcActivity, NbcSubmission, NbcWeekSummary, SubmissionEntry } from './types'
 
 export const REPORTING_TIMEZONE = 'Asia/Phnom_Penh'
@@ -72,7 +72,7 @@ export function submissionStatus(s: NbcSubmission | undefined, week: string, act
 }
 
 export function validateEntries(entries: SubmissionEntry[], activities: NbcActivity[], handler: Handler) {
-  if (!handlers.includes(handler) || new Set(entries.map((e) => e.activityId)).size !== entries.length) throw new Error('Invalid handler or duplicate activities.')
+  if (!projectHandlers(activities[0]?.projectId).includes(handler) || new Set(entries.map((e) => e.activityId)).size !== entries.length) throw new Error('Invalid handler or duplicate activities.')
   const byId = new Map(activities.map((a) => [a.id, a]))
   for (const e of entries) {
     const activity = byId.get(e.activityId)

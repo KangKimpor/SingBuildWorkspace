@@ -1,33 +1,29 @@
 # NBC BP02 progress tracker
 
-NBC BP02 – Pan Pacific Hotel (guestrooms and corridor/lift lobby, L13–L23) is added to Projects Progress with project ID `nbc-bp02` and activity IDs `nbc-bp02:<WBS>`. It reuses the shared BOQ workflow (Overview, Project Progress, Update Progress, autosave, history, Excel export). BP03 and BP04 data and defaults are unchanged.
+## 3 November 2026 — new baseline workbook
 
-## Source and reconciliation
+`NBC_BP02_Progress_Tracking_by_BOQ_01_November_07_November_updated.xlsx` (SHA-256 `ceaa97da10c3b015929dca51f6c45d44360464a4420736565fd09b084b918c81`) is now the BP02 baseline for percentages, handlers, weights and the stored Excel template. The previous BP02 activities, submissions, summaries and template were replaced; the file's weekly block label was ignored and its values are recorded as the confirmed `2026-10-26` block (six handlers, previous = current, so no weekly change). Week `2026-11-02` is open with no submissions or drafts. BP03 and BP04 were not touched.
 
-Source: `C:/Users/Por/Downloads/NBC-BP02-Progress Tracking by BOQ.xlsx` (SHA-256 `cf01e961c4f091b753271f151c7cd604007b21492fe1982553c4162092d89144`), used as data only. Regenerate private files (ignored `.private/nbc-bp02/`) with:
+**Why the structure changed.** In the new workbook Tola has one MEP row per floor (his tab), while the Progress sheet repeats every MEP task under each room type and links each repeat by formula to that one row (5,471 repeats). The app keeps one activity per handler row, so BP02 now holds Tola's MEP once per floor under that floor, weighted by the sum of the rows that read it. Floor totals and the overall figure equal the workbook exactly (overall 81.3868%, the workbook's BOQ-weighted total in `Progress!P5`; its `N5` block-weighted 83.64% uses fixed 50/5/45 block weights that the app does not model). Room-type group percentages no longer include Tola's MEP. Chhorvaon's sanitary-ware tasks stay inside their room types.
+
+Result: 5,521 activities (2,038 parents, 3,483 editable leaves). Handlers: Sitha 628 · Lychhinh 650 · Chhorvaon 357 · Srun 487 · Kheng 888 · Tola 473. BOQ total USD 4,985,118.99. This is 3,562 fewer rows than before, which also reduces sync size.
+
+**Export.** The stored workbook keeps its own roll-up formulas. The export updates each handler row in place (Chhorvaon's older `.14.3.1` keys are matched), rewrites the handler links of every repeated Progress MEP row to the shared Tola row (also after a reassignment), refreshes floor figures and leaves the template's roll-ups to recalculate on opening. Validation compares leaf global weights; for Tola rows it compares the sum of the Progress rows that read them. Room-group relative weights are not compared because they intentionally differ.
+
+**Database.** No schema migration was needed (all migrations through `20261104091000_nbc_vuth_handler` were already live). A guarded single transaction (`scripts/nbc-bp02-baseline-sql.py` → private `.private/nbc-bp02/sql/`) staged the data, copied the old BP02 rows to `kw_private.nbc_bp02_bk_*_20261103_162856`, replaced activities/template/submissions/summaries and verified counts, the editable rule, the template hash and the overall figure before committing. BP02 has 5,521 activities, 6 confirmed `2026-10-26` submissions and summaries for `2026-10-26` and `2026-11-02`; BP03 (790) and BP04 (382) are unchanged.
+
+Regenerate private files with:
 
 ```powershell
-python scripts/nbc-bp02-extract.py 'C:/Users/Por/Downloads/NBC-BP02-Progress Tracking by BOQ.xlsx'
+python scripts/nbc-bp02-extract.py 'C:/path/NBC_BP02_Progress_Tracking_by_BOQ_01_November_07_November_updated.xlsx'
 ```
 
-The extractor verifies: 9,083 WBS rows (3,237 parents, 5,846 editable leaves, 11 floor roots, no GR&P); handler assignments Sitha 1,126, Lychhinh 780, Chhorvaon 357, Srun 357, Kheng 390, Tola 2,836 (every leaf assigned once); child relative weights sum to 1 under every parent; global = relative × parent global; leaf global weights total 1.0; BOQ total USD 4,985,118.99; every parent progress matches the weighted children; starting overall progress 81.4587% matches the workbook's TOTAL row. BP02 weights are BOQ/unit-rate based (Weights sheet), not duration based, so the duration-share check used for BP03/BP04 is skipped. Floor / Work area / Trade breakdowns use floor / room-type group / activity.
+The extractor verifies the workbook's own links (each Progress leaf's formula, value and handler row), every floor against the workbook, total weight, BOQ total and the overall figure.
 
-## Plan source
+## Earlier setup (30 October 2026)
 
-Contract dates and the planned S-curve come only from `G:/Shared drives/PROJECT DEPARTMENT/NBC - External Weekly Report/20. 18 October to 24 October/BP-02/2. & 5. BP-02 Weekly 58 - 18 Oct - 24 Oct 2026.xlsx`: `PI(p)!B28/D28` give 1 Sep 2025 – 20 Jun 2026, and `SC(p)!B52:BF52` / `B55:BF55` give 57 projected cumulative points (real 2025–2026 dates, no year alignment). A 0% anchor is added on the commencement date. No activities, actual progress or history were taken from that report. The BOQ workbook has no confirmations for its reporting week (Weekly 59), so no history or summaries are created.
-
-## Changes for BP02
-
-- Export accepts `1.8.x` WBS keys, ignores the extra Notes/Weights/Schedule Import sheets, and reads cross-sheet weight cells (Weights sheet) from their saved values while still comparing every weight with the project.
-- BP02 has its own plan (`BP02_PLAN`); plan display tolerates a project without one.
-- Very large local workspaces exceed browser localStorage; saves now fall back to the IndexedDB snapshot (and a cache without activities when signed in) instead of failing.
-
-## Remaining setup
-
-1. Database (not yet applied — needs a `supabase login`/access token or database URL, which this environment lacks): back up, then run the guarded `.private/nbc-bp02/initialize.sql` with `owner_id` set to the existing company storage owner (`select distinct user_id from kw_projects where data->>'nbcBp03'='true'`). It inserts the project, 9,083 activities and the source template, and never overwrites existing rows. No migration is needed (`20261030090000_nbc_multiple_projects` is already live).
-2. Push to main so the frontend (plan, export, storage fallback) deploys.
-3. Verify BP03/BP04 rows compare unchanged before/after, as in the BP04 release.
+NBC BP02 – Pan Pacific Hotel (guestrooms and corridor/lift lobby, L13–L23) was added with project ID `nbc-bp02` and activity IDs `nbc-bp02:<WBS>`. It reuses the shared BOQ workflow (Overview, Project Progress, Update Progress, autosave, history, Excel export). BP02 has its own plan (`BP02_PLAN`) from the weekly report: contract dates 1 Sep 2025 – 20 Jun 2026 and 57 projected points (`SC(p)!B52:BF52`, `B55:BF55`), with a 0% anchor on the commencement date. Very large local workspaces fall back to the IndexedDB snapshot instead of failing a localStorage save.
 
 ## Verification
 
-Unit tests (`src/nbc/projects.test.ts`, private BP02 test) reconcile all 9,083 nodes, weights, BOQ total and export total after an edit. `e2e/nbc-bp02.spec.ts` (Chromium) covers draft autosave, refresh persistence, confirmation, weighted summary, BP03 isolation and the BP02 Excel download. Typecheck, lint, all unit tests and existing NBC e2e pass. Not run: the disposable PostgreSQL check, WebKit, and any live database/browser acceptance.
+Unit tests (`src/nbc/projects.test.ts`, private BP02 tests) reconcile every node, weight, the BOQ total, the export totals after an edit, and the export hierarchy/floor code after a handler reassignment. `e2e/nbc-bp02.spec.ts` covers the browser journey. Not run after the rebuild: the disposable PostgreSQL check and WebKit.

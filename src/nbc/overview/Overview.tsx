@@ -5,7 +5,7 @@ import { calculate } from '../progress'
 import { addDays, weekLabel, weekStart } from '../submissions'
 import { percent } from '../format'
 import { daysBetween, daysToCompletion, projectPlan, planDate, plannedProgress } from '../plan'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
 import { deadlineNote } from '../update/deadline'
 import Trend from '../Trend'
@@ -25,7 +25,7 @@ export default function Overview({ project, activities, submissions, summaries, 
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
   const overall = useMemo(() => { try { return calculate(activities).overall } catch { return 0 } }, [activities])
   const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }), current = weekStart(today)
-  const owners = handlers
+  const owners = projectHandlers(project.id)
   const updated = owners.filter((h) => submissions.some((s) => s.handler === h && s.weekStart === current && s.status === 'confirmed'))
   const thisWeek = summaries.find((s) => s.weekStart === current), lastWeek = summaries.find((s) => s.weekStart === addDays(current, -7))
   const plan = projectPlan(project.id)

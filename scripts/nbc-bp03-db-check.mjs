@@ -92,11 +92,15 @@ await assert.rejects(call('confirm',current),/Authentication/)
 await db.exec('reset role; set role anon')
 await assert.rejects(db.exec('select * from public.kw_nbc_submissions'),/permission denied/)
 await db.exec('reset role')
-for (const name of (await readdir('supabase/migrations')).filter(s => /_nbc_(export_template|baseline_reset_guard|confirm_late_assignment|operation_conflict|baseline_reset_restore|save_set_based)\.sql$/.test(s)).sort()) await db.exec(await readFile(`supabase/migrations/${name}`, 'utf8'))
+for (const name of (await readdir('supabase/migrations')).filter(s => /_nbc_(export_template|baseline_reset_guard|confirm_late_assignment|operation_conflict|baseline_reset_restore|save_set_based|vuth_handler)\.sql$/.test(s)).sort()) await db.exec(await readFile(`supabase/migrations/${name}`, 'utf8'))
 // A migration that rebuilds the writer from an older body silently drops the reset guard. The
 // files above replay that exact ordering, so assert the live definition still carries it.
 assert.match((await db.query("select pg_get_functiondef('kw_private.nbc_submission_write(text,jsonb,timestamptz)'::regprocedure) as d")).rows[0].d, /BP03 baseline was reset/)
 assert.doesNotMatch((await db.query("select pg_get_functiondef('kw_private.nbc_submission_write(text,jsonb,timestamptz)'::regprocedure) as d")).rows[0].d, /for entry in select \* from jsonb_array_elements\(payload->'entries'\)/)
+// Vuth is the seventh handler in the BP03/BP04 workbooks; BP02 keeps its six-tab workbook.
+assert.equal((await db.query("select 'Vuth' = any(kw_private.nbc_project_handlers('nbc-bp03')) as ok")).rows[0].ok, true)
+assert.equal((await db.query("select 'Vuth' = any(kw_private.nbc_project_handlers('nbc-bp04')) as ok")).rows[0].ok, true)
+assert.equal((await db.query("select 'Vuth' = any(kw_private.nbc_project_handlers('nbc-bp02')) as ok")).rows[0].ok, false)
 await db.exec("insert into public.kw_nbc_templates values('nbc-bp03','Synthetic.xlsx','UEs=')")
 await db.exec(`alter table public.kw_nbc_activities disable trigger nbc_activity_guard;
   update public.kw_nbc_activities set data=data||jsonb_build_object('baselineResetAt',clock_timestamp(),'updatedAt',clock_timestamp());
@@ -112,12 +116,13 @@ const batchExpected = Object.fromEntries(batchRows.map((r) => [r.id,r.updated_at
 const batch = (await db.query('select public.kw_nbc_reassign_activities($1,$2::jsonb,$3,$4::jsonb) as result',['nbc-bp03',JSON.stringify(['tola','shared']),'Kheng',JSON.stringify(batchExpected)])).rows[0].result
 assert.equal(batch.conflict,false)
 assert.equal(batch.rows.length,2)
-assert.equal(batch.rows.find((r) => r.id==='tola').data.handler,'Kheng')
-assert.equal(batch.rows.find((r) => r.id==='shared').data.progress,0)
-assert.equal(batch.rows.find((r) => r.id==='tola').data.history.at(-1).editor,other)
+assert.equal((await select('kw_nbc_activities','tola')).data.handler,'Kheng')
+assert.equal((await select('kw_nbc_activities','shared')).data.progress,0)
+assert.equal((await select('kw_nbc_activities','tola')).data.history.at(-1).editor,other)
 assert.equal((await db.query('select public.kw_nbc_reassign_activities($1,$2::jsonb,$3,$4::jsonb) as result',['nbc-bp03',JSON.stringify(['tola','shared']),'Sitha',JSON.stringify(batchExpected)])).rows[0].result.conflict,true)
 const sharedVersion = (await select('kw_nbc_activities','shared')).updated_at
-assert.equal((await db.query('select public.kw_nbc_reassign_activities($1,$2::jsonb,$3,$4::jsonb) as result',['nbc-bp03',JSON.stringify(['shared']),'',JSON.stringify({shared:sharedVersion})])).rows[0].result.rows[0].data.handler,'')
+await db.query('select public.kw_nbc_reassign_activities($1,$2::jsonb,$3,$4::jsonb) as result',['nbc-bp03',JSON.stringify(['shared']),'',JSON.stringify({shared:sharedVersion})])
+assert.equal((await select('kw_nbc_activities','shared')).data.handler,'')
 await db.exec('reset role; set role anon')
 await assert.rejects(db.exec('select * from public.kw_nbc_templates'),/permission denied/)
 await assert.rejects(db.query("select public.kw_nbc_reassign_activities('nbc-bp03','[\"shared\"]'::jsonb,'Tola','{}'::jsonb)"),/permission denied/)

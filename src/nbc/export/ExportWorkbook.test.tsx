@@ -15,7 +15,7 @@ vi.mock('@/data/persistence', async () => {
     delete: vi.fn(async (id: string) => { cachedTemplates.delete(id) }),
   } } }
 })
-const key = 'nbc-report-template:signed-in-account:nbc-bp03'
+const key = 'nbc-report-template:v2:signed-in-account:nbc-bp03'
 beforeEach(() => { vi.clearAllMocks(); cachedTemplates.clear(); useWorkspace.setState({ scope: 'signed-in-account' }) })
 const show = () => render(<ExportWorkbook projectId="nbc-bp03" activities={fixtureActivities()} submissions={[]} onClose={() => {}}/>)
 

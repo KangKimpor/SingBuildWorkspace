@@ -109,7 +109,7 @@ for (const mobile of [false, true]) test(`weekly XLSX exports confirmed snapshot
   await setup(page, history()); await page.goto('/projects-progress/nbc-bp03/overview')
   await page.getByRole('button', { name: 'Export XLSX', exact: true }).click()
   const dialog = page.getByRole('dialog')
-  await expect(dialog.getByRole('status')).toContainText('0 of 6 handlers confirmed')
+  await expect(dialog.getByRole('status')).toContainText('0 of 7 handlers confirmed')
   await page.getByLabel('Weekly report template').setInputFiles({ name: 'NBC-template.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(fixtureTemplate()) })
   await expect(page.getByText('Saved template: NBC-template.xlsx')).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('export.png') })

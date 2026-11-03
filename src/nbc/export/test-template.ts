@@ -1,11 +1,11 @@
 import { strToU8, zipSync } from 'fflate'
 import { fixtureActivities } from '../test-fixture'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 const text = (address: string, value: string) => `<c r="${address}" t="inlineStr"><is><t>${value.replaceAll('&', '&amp;')}</t></is></c>`
 export function fixtureTemplate(assignedOnly = false) {
-  const activities = fixtureActivities(), names = ['Progress', ...handlers]
+  const activities = fixtureActivities(), names = ['Progress', ...projectHandlers(activities[0]!.projectId)]
   const files: Record<string, Uint8Array> = {
     'xl/workbook.xml': strToU8(`<workbook xmlns="${NS}" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>${names.map((name, i) => `<sheet name="${name}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('')}</sheets></workbook>`),
     'xl/_rels/workbook.xml.rels': strToU8(`<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${names.map((_, i) => `<Relationship Id="rId${i + 1}" Target="worksheets/sheet${i + 1}.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"/>`).join('')}<Relationship Id="calc" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/calcChain" Target="calcChain.xml"/></Relationships>`),

@@ -1,12 +1,13 @@
 import { useWorkspace } from '@/data'
 import { useAccount, reassignNbcActivities } from '@/data/sync'
-import { handlers } from './types'
+import { projectHandlers } from './types'
 import type { Handler, NbcActivity } from './types'
 export { saveDraft, confirmUpdate, undoConfirm, reopenUpdate, deleteUpdate } from './submission-actions'
 
 export function assignActivities(ids: string[], handler: string) {
   const state = useWorkspace.getState(), activities = state.nbc_activities ?? [], selected = new Set(ids)
-  if (!handlers.includes(handler as Handler) || ids.some((id) => !activities.some((a) => a.id === id && a.editable))) throw new Error('Choose editable activities and a valid handler.')
+  const target = activities.find((a) => selected.has(a.id))
+  if (!target || !projectHandlers(target.projectId).includes(handler as Handler) || ids.some((id) => !activities.some((a) => a.id === id && a.editable))) throw new Error('Choose editable activities and a valid handler.')
   const at = new Date().toISOString()
   const updated = activities.map((a) => selected.has(a.id) && a.handler !== handler ? {
     ...a, handler, updatedAt: at, history: [...a.history, { id: crypto.randomUUID(), at, editor: state.scope, previous: a.progress, progress: a.progress, remark: a.remark, handler }],
@@ -28,7 +29,7 @@ export function updateActivity(id: string, patch: Pick<Partial<NbcActivity>, 'pr
   const activity = activities.find((a) => a.id === id)
   if (!activity?.editable) throw new Error('Only leaf activities and GR&P can be edited.')
   if (patch.progress !== undefined || patch.remark !== undefined) throw new Error('Use a handler draft and Confirm update.')
-  if (patch.handler !== undefined && !handlers.includes(patch.handler as Handler) && !(activity.wbs === 'GR&P' && patch.handler === '')) throw new Error('Choose one of the six handlers.')
+  if (patch.handler !== undefined && !projectHandlers(activity.projectId).includes(patch.handler as Handler) && !(activity.wbs === 'GR&P' && patch.handler === '')) throw new Error('Choose a valid handler.')
   if (Object.entries(patch).every(([key, value]) => activity[key as keyof NbcActivity] === value)) return
   if (state.scope !== 'guest') {
     if (!useAccount.getState().session) throw new Error('Wait for cloud sync before reassigning activities.')

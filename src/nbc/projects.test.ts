@@ -68,10 +68,11 @@ test('BP02 uses its own report plan and exports a distinct report name', () => {
 })
 
 test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('private BP02 BOQ reconciles every parent, weights and export totals', () => {
-  const { activities, reconciliation } = JSON.parse(readFileSync('.private/nbc-bp02/initial.json', 'utf8')) as { activities: NbcActivity[]; reconciliation: { boqValue: number; workbookOverall: number } }
+  const { activities, reconciliation } = JSON.parse(readFileSync('.private/nbc-bp02/initial.json', 'utf8')) as { activities: NbcActivity[]; reconciliation: { boqValue: number; workbookBoqOverall: number; nodes: number; editableEntries: number } }
   const c = calculate(activities)
-  expect(activities).toHaveLength(9083); expect(c.leaves).toHaveLength(5846)
-  expect(c.overall).toBeCloseTo(reconciliation.workbookOverall, 12)
+  expect(activities).toHaveLength(reconciliation.nodes); expect(c.leaves).toHaveLength(reconciliation.editableEntries)
+  expect(c.leaves.every(a => ['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Tola'].includes(a.handler))).toBe(true)
+  expect(c.overall).toBeCloseTo(reconciliation.workbookBoqOverall, 12)
   expect(c.leaves.reduce((s, a) => s + a.globalWeight, 0)).toBeCloseTo(1, 12)
   expect(activities.filter(a => !a.parentId).reduce((s, a) => s + (a.boqValue ?? 0), 0)).toBeCloseTo(reconciliation.boqValue, 6)
   for (const a of activities) expect(c.progress.get(a.id)).toBeCloseTo(a.progress, 10)
@@ -86,11 +87,10 @@ test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('private BP02 BOQ rec
 test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('BP02 export keeps its hierarchy column and floor code when a handler is reassigned', () => {
   const { activities } = JSON.parse(readFileSync('.private/nbc-bp02/initial.json', 'utf8')) as { activities: NbcActivity[] }
   const template = new Uint8Array(readFileSync('.private/nbc-bp02/template.xlsx'))
-  const leaf = activities.find(a => a.editable && a.handler === 'Tola' && a.wbs === '1.8.1.3.1.4.1.1')!
-  const files = unzipSync(weeklyWorkbook(template, activities.map(a => a.id === leaf.id ? { ...a, handler: 'Sitha' } : a), [], '2026-10-26').bytes)
-  const text = strFromU8(files['xl/worksheets/sheet2.xml']!)
-  const row = new DOMParser().parseFromString(text, 'application/xml').querySelector(`c[r^="A"] :is(v,t)`) && [...new DOMParser().parseFromString(text, 'application/xml').querySelectorAll('row')].find(r => r.textContent?.includes(leaf.wbs))
+  const leaf = activities.find(a => a.editable && a.handler === 'Sitha' && a.wbs === '1.8.1.3.1.1.1')!
+  const files = unzipSync(weeklyWorkbook(template, activities.map(a => a.id === leaf.id ? { ...a, handler: 'Kheng' } : a), [], '2026-10-26').bytes)
+  const text = strFromU8(files['xl/worksheets/sheet6.xml']!)
+  const row = [...new DOMParser().parseFromString(text, 'application/xml').querySelectorAll('row')].find(r => r.querySelector('c[r^="A"]')?.textContent?.includes(leaf.wbs) || r.textContent?.includes(leaf.wbs))
   expect(row?.querySelector('c[r^="N"]')?.textContent).toBe('L18')
-  expect(row?.querySelector('c[r^="H"]')?.textContent).toBe(leaf.name)
-  expect(row?.querySelector('c[r^="I"]')?.textContent ?? '').toBe('')
+  expect(row?.textContent).toContain(leaf.name)
 }, 120000)

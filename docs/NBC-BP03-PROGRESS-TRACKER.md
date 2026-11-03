@@ -1,5 +1,17 @@
 # NBC BP03 progress tracker
 
+## 3 November 2026 — Vuth added as the seventh handler
+
+The supplied BP03 and BP04 workbooks are now the current progress baseline. Their handler tabs read **Sitha · Lychhinh · Chhorvaon · Srun · Kheng · Vuth · Tola**, and **Vuth** is available throughout the app, API and database. Week `2026-11-02` stays open with no submissions or drafts; the files' weekly block labels were ignored because their values are the `2026-10-26` block already recorded in production.
+
+Forward migration `20261104091000_nbc_vuth_handler` adds `kw_private.nbc_project_handlers(project_id)`, updates the activity assignment check, and updates the submission writer, audited reassignment and report guard. BP02 intentionally keeps its original six-handler, seven-sheet workbook.
+
+A guarded, single-transaction reassignment moved 116 BP03 and 52 BP04 leaves to match the workbook tabs (BP03: Sitha→Vuth 18, Kheng→Vuth 27, Sitha→Kheng 46, Sitha→Srun 25; BP04: Sitha→Vuth 6, Kheng→Vuth 18, Sitha→Kheng 23, Sitha→Srun 5). Every update matched both the recorded handler and row version, and each appended one audit event by the company owner. Leaf progress, remarks and weights, all 12 confirmed last-week submissions, the five summaries and the open `2026-11-02` week were unchanged. Confirmations keep their recorded entries; where a moved activity's recorded responsibility differs from its new handler, the app shows **Needs review**, as documented for reassignment.
+
+Both stored templates were replaced with the new eight-sheet workbooks. BP04's 21 proper `Ø` task names were kept byte-compatible with the mojibake already stored in the database, so export validation reconciles. The client template cache key is now `nbc-report-template:v2:…`, discarding templates cached before Vuth existed.
+
+Final assigned leaf counts — BP03: Sitha 61, Lychhinh 50, Chhorvaon 6, Srun 56, Kheng 93, Vuth 45, Tola 250 plus shared GR&P; BP04: Sitha 28, Lychhinh 19, Chhorvaon 6, Srun 39, Kheng 49, Vuth 24, Tola 118 plus GR&P. The totals remain 561 and 283 assigned leaves.
+
 ## 29 October 2026 baseline and export update
 
 The user authorized a new reset from `NBC-BP03-Progress Tracking by BOQ.xlsx` (SHA-256 `ba26e882a57164851ff40a0b8d29ed80579b728ffba8123b681afa04a268713d`). The extraction reconciled 790 activities, 562 leaves, 228 parents and 42.023278891003885% overall. The pre-reset dataset, including four submissions and two summaries, is backed up privately in `.private/nbc-reset-20261029/database-before-reset.json`. A guarded transaction replaced the activity baseline/current values, assignments, remarks and history from the workbook and cleared its submissions/summaries/reports. Personal issue tasks were retained. This explicitly supersedes the older instruction below not to reset this dataset.
@@ -38,7 +50,7 @@ If last week changes, this week's confirmed entries and drafts retain their prop
 
 `kw_nbc_summaries` stores overall progress, previous progress and per-handler weighted contributions for every recorded week. GR&P has a separate contribution and is counted once. Only the two editable weekly summaries are recalculated by submission operations; older summaries are frozen. Trend reads summaries across all weeks. KPIs use current live values and weekly summaries. Past Updates retains all handler submissions, with read-only Older weeks sections and formula-safe UTF-8 CSV export.
 
-Overview shows a six-row handler table (This week, Last week, Changed, Contribution) whose rows expand to weekly history. Chips show Updated, Updated late, Not yet, Overdue or Needs review, together with confirmation time and changed counts. Clicking opens the relevant handler/week. A KPI reads `N of 6 handlers updated this week`. NBC Realtime watches activities, submissions and summaries; confirmation also refreshes the canonical cloud state.
+Overview shows a seven-row handler table for BP03/BP04 (This week, Last week, Changed, Contribution) whose rows expand to weekly history. Chips show Updated, Updated late, Not yet, Overdue or Needs review, together with confirmation time and changed counts. Clicking opens the relevant handler/week. A KPI reads `N of 7 handlers updated this week`. NBC Realtime watches activities, submissions and summaries; confirmation also refreshes the canonical cloud state.
 
 ## Production state and applied migrations
 
@@ -67,7 +79,7 @@ New tables allow company-scoped reads but no direct application writes. Draft CA
 
 ## Private source data
 
-The source workbook and extraction outputs remain private and excluded from Git. The existing extraction script is unchanged. Its reconciliation covers 790 nodes, 228 calculated parents, 561 assigned activities plus shared GR&P, and an initial weighted overall progress of **42.023278891003885%**. Handler counts are Sitha 193, Lychhinh 50, Chhorvaon 6, Srun 31, Kheng 31 and Tola 250. Weights/durations are immutable baseline metadata; calculations retain fractions and round for presentation only.
+The source workbook and extraction outputs remain private and excluded from Git. The existing extraction script is unchanged. Its reconciliation covers 790 nodes, 228 calculated parents, 561 assigned activities plus shared GR&P, and an initial weighted overall progress of **42.023278891003885%**. Current handler counts are Sitha 61, Lychhinh 50, Chhorvaon 6, Srun 56, Kheng 93, Vuth 45 and Tola 250. Weights/durations are immutable baseline metadata; calculations retain fractions and round for presentation only.
 
 ## Verification
 
@@ -76,6 +88,6 @@ The three-tab redesign was verified locally on 27 October 2026: **130 unit tests
 - `corepack pnpm lint`, `corepack pnpm typecheck`, `corepack pnpm test`, `corepack pnpm build` and `git diff --check` are the release checks.
 - `node scripts/nbc-bp03-db-check.mjs` uses disposable PGlite and synthetic activities. It never reads credentials or connects to production. It executes the original migrations followed by the forward migration, checks archive conversion, account sharing, autosave isolation, confirmation, edit/delete/undo, re-chaining, shared GR&P conflicts, frozen summaries, CAS, direct-write rejection and anonymous denial. If needed, install its pinned test runtime outside the app: `npm install --prefix .private/validation --no-save @electric-sql/pglite@0.5.11`.
 - Unit tests cover Monday/year boundaries, Sunday deadline precision, late flags, handler-only drafts, shared GR&P, confirmation/edit/delete/undo, editable-window rejection, drafts/confirmed re-chaining, summaries and raw-text recovery/account isolation. Existing calculation/workbook reconciliation and unrelated workspace tests remain.
-- Playwright covers current-week-only updates, one-click confirmation, no-change confirmation, reload recovery, note entry, Undo, edit/delete rollback, six-handler history, last-week editing from history, all-week Trend and read-only older actions. Desktop/iPad/iPhone checks include light/dark accessibility scans, table/footer bounds and keyboard-height phone viewports in Chromium and WebKit.
+- Playwright covers current-week-only updates, one-click confirmation, no-change confirmation, reload recovery, note entry, Undo, edit/delete rollback, handler history, last-week editing from history, all-week Trend and read-only older actions. Desktop/iPad/iPhone checks include light/dark accessibility scans, table/footer bounds and keyboard-height phone viewports in Chromium and WebKit.
 
 A rollback-only production transaction under the authenticated role verified draft autosave isolation, ordinary/shared activity confirmation, Undo, Delete, baseline restoration and the absence of residual submissions/summaries. Introspection verified RLS, authenticated read access, no anonymous table grants or direct application write grants, and both Realtime publication entries. Supabase reported no new findings for the submission tables or RPC. These checks do not replace a signed-in frontend/PostgREST/Realtime acceptance test after deploying the matching frontend. Physical phone keyboard behavior also needs a device smoke test.

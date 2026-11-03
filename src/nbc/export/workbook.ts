@@ -2,7 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from 'fflate'
 import { calculate } from '../progress'
 import { weightValues } from './weight-values'
 import { addDays, appliedEntries, submissionStatus, weekStart } from '../submissions'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { NbcActivity, NbcSubmission } from '../types'
 
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
@@ -37,7 +37,7 @@ export function reportValues(activities: NbcActivity[], submissions: NbcSubmissi
   return { current: calculate(activities, values), previous: calculate(activities, previous) }
 }
 
-export const confirmedCount = (activities: NbcActivity[], submissions: NbcSubmission[], week: string) => handlers.filter(handler => {
+export const confirmedCount = (activities: NbcActivity[], submissions: NbcSubmission[], week: string) => projectHandlers(activities[0]?.projectId).filter(handler => {
   const submission = submissions.find(s => s.projectId === activities[0]?.projectId && s.weekStart === week && s.handler === handler)
   return submission?.status === 'confirmed' && submissionStatus(submission, week, activities) !== 'Needs review'
 }).length
@@ -53,9 +53,10 @@ export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[])
     return true
   } })
   const book = xml(files['xl/workbook.xml']), rels = xml(files['xl/_rels/workbook.xml.rels'])
-  const expected = ['Progress', ...handlers], sheets = elements(book, 'sheet').slice(0, expected.length)
+  const owners = projectHandlers(activities[0]!.projectId)
+  const expected = ['Progress', ...owners], sheets = elements(book, 'sheet').slice(0, expected.length)
   // Extra reference sheets after the handler tabs (Notes, Weights, Schedule Import in BP02) are left untouched.
-  if (sheets.length !== expected.length || sheets.some((s, i) => s.getAttribute('name') !== expected[i])) throw new Error('Use the NBC workbook with Progress and all six handler sheets.')
+  if (sheets.length !== expected.length || sheets.some((s, i) => s.getAttribute('name') !== expected[i])) throw new Error(`Use the NBC workbook with Progress and all ${owners.length} handler sheets.`)
   const strings = files['xl/sharedStrings.xml'] ? elements(xml(files['xl/sharedStrings.xml']), 'si').map(si => elements(si, 't').map(t => t.textContent ?? '').join('')) : []
   const paths = sheets.map(sheet => {
     const rel = [...rels.documentElement.children].find(r => r.getAttribute('Id') === sheet.getAttributeNS(REL, 'id'))
@@ -73,30 +74,58 @@ export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[])
   const findCell = (row: Element, column: string) => [...row.children].find(c => c.getAttribute('r')?.replace(/\d+$/, '') === column)
   const rows = (doc: Document) => elements(doc, 'row')
   const wbsRows = (doc: Document) => {
-    const entries = rows(doc).flatMap(row => { const key = read(findCell(row, 'A')); return /^1\.\d+(?:\.\d+)+$/.test(key) || key === 'GR&P' ? [[key, row] as const] : [] })
+    const entries = rows(doc).flatMap(row => { const key = read(findCell(row, 'A')); return /^1\.\d+(?:\.(?:\d+|M\d+))+$/.test(key) || key === 'GR&P' ? [[key, row] as const] : [] })
     const result = new Map(entries)
     if (result.size !== entries.length) throw new Error('The template contains duplicate WBS activities.')
     return result
   }
   const masterRows = wbsRows(docs[0]!), byWbs = new Map(activities.map(a => [a.wbs, a]))
-  if (masterRows.size !== activities.length || byWbs.size !== activities.length || activities.some(a => !masterRows.has(a.wbs))) throw new Error('The template WBS activities do not match this project. Choose the matching NBC workbook.')
+  // BP02 keeps Tola's floor-level MEP rows once; the Progress sheet repeats them per room type and links each repeat to that row.
+  const bp02 = activities[0]!.projectId === 'nbc-bp02'
+  const handlerKeys = owners.map((_, i) => wbsRows(docs[i + 1]!))
+  const tolaRows = bp02 ? handlerKeys[owners.indexOf('Tola')]! : undefined
+  const derived = bp02 ? [...masterRows.keys()].filter(key => !byWbs.has(key)) : []
+  if (byWbs.size !== activities.length || (!bp02 && masterRows.size !== activities.length)) throw new Error('The template WBS activities do not match this project. Choose the matching NBC workbook.')
+  if (activities.some(a => !masterRows.has(a.wbs) && !(bp02 && tolaRows!.has(a.wbs)))) throw new Error('The template WBS activities do not match this project. Choose the matching NBC workbook.')
   const weight = weightValues(new Map(elements(docs[0]!, 'c').map(cell => [cell.getAttribute('r')!, cell])), read)
+  const rowKeys = handlerKeys.map(map => new Map([...map].map(([key, row]) => [row.getAttribute('r')!, key])))
+  // Derived Progress leaves: the floor-level handler row each one reads, plus the weight it contributes.
+  const links: { row: Element; key: string; handler: string }[] = [], linked = new Map<string, number>()
+  for (const key of derived) {
+    const row = masterRows.get(key)!, formula = elements(findCell(row, 'N') ?? row, 'f')[0]?.textContent ?? ''
+    const match = /^'?(\w+)'?!M(\d+)$/.exec(formula)
+    if (!match) continue
+    const target = rowKeys[owners.indexOf(match[1] as typeof owners[number])]?.get(match[2]!)
+    if (!target) throw new Error(`Template WBS ${key} links to an unknown handler row.`)
+    let contribution: number
+    try { contribution = weight(`S${row.getAttribute('r')}`) } catch { throw new Error(`Template weighting cannot be read for WBS ${key}.`) }
+    links.push({ row, key: target, handler: match[1]! }); linked.set(target, (linked.get(target) ?? 0) + contribution)
+  }
   for (const a of activities) {
-    if (a.editable && a.wbs !== 'GR&P' && !handlers.some(h => h === a.handler)) throw new Error(`Assign WBS ${a.wbs} to one of the six handlers before exporting.`)
-    const row = masterRows.get(a.wbs)!
+    if (a.editable && a.wbs !== 'GR&P' && !owners.some(h => h === a.handler)) throw new Error(`Assign WBS ${a.wbs} to one of the ${owners.length} handlers before exporting.`)
+    const row = masterRows.get(a.wbs)
+    if (!row) {
+      if (a.editable && Math.abs((linked.get(a.wbs) ?? 0) - a.globalWeight) > 1e-9) throw new Error(`Template weighting does not match WBS ${a.wbs}.`)
+      if (read(findCell(tolaRows!.get(a.wbs)!, 'J')) !== a.name) throw new Error(`Template task name does not match WBS ${a.wbs}.`)
+      continue
+    }
     if (read(findCell(row, 'J')) !== a.name) throw new Error(`Template task name does not match WBS ${a.wbs}.`)
-    for (const [column, value] of [['K', a.relativeWeight], ['S', a.globalWeight]] as const) {
+    // BP02 room-type groups no longer contain Tola's MEP, so only leaf global weights are comparable there.
+    if (bp02 && !a.editable) continue
+    const checks: [string, number][] = bp02 ? [['S', a.globalWeight]] : [['K', a.relativeWeight], ['S', a.globalWeight]]
+    for (const [column, value] of checks) {
       let actual: number
       try { actual = weight(`${column}${row.getAttribute('r')}`) } catch { throw new Error(`Template weighting cannot be read for WBS ${a.wbs}.`) }
       if (Math.abs(actual - value) > 1e-9) throw new Error(`Template weighting does not match WBS ${a.wbs}.`)
     }
   }
-  return { files, book, rels, paths, docs, read, findCell, rows, wbsRows, masterRows, byWbs }
+  return { files, book, rels, paths, docs, read, findCell, rows, wbsRows, masterRows, byWbs, bp02, links }
 }
 
 /** Patches a copy of the private template; unrelated workbook parts stay byte-identical. */
 export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], submissions: NbcSubmission[], week: string) {
-  const { files, book, rels, paths, docs, read, findCell, rows, wbsRows, masterRows, byWbs } = readNbcWorkbook(template, activities)
+  const { files, book, rels, paths, docs, read, findCell, rows, wbsRows, masterRows, byWbs, bp02, links } = readNbcWorkbook(template, activities)
+  const owners = projectHandlers(activities[0]!.projectId)
   const { current, previous } = reportValues(activities, submissions, week)
   const set = (row: Element, column: string, value: number | string, formula?: string) => {
     const doc = row.ownerDocument
@@ -136,7 +165,7 @@ export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], 
     if (code && a) floorCodes.set(rootOf(a).wbs, code)
   }
   // Rebuild handler rows from current assignments, keeping the template's row styles by level.
-  for (const [i, handler] of handlers.entries()) {
+  for (const [i, handler] of owners.entries()) {
     const doc = docs[i + 1]!, data = elements(doc, 'sheetData')[0]!
     const included = new Set<string>()
     for (const a of activities) if (a.editable && a.wbs !== 'GR&P' && a.handler === handler) {
@@ -145,9 +174,11 @@ export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], 
     }
     const body = ordered.filter(a => included.has(a.id))
     const existing = wbsRows(doc)
-    if (existing.size === body.length && body.every(a => existing.has(a.wbs))) {
+    // Chhorvaon's BP02 sanitary-ware rows keep the older key without the `.M4` segment on his tab.
+    const rowOf = (a: NbcActivity) => existing.get(a.wbs) ?? (bp02 ? existing.get(a.wbs.replace('.M4', '')) : undefined)
+    if ((bp02 || existing.size === body.length) && body.every(a => rowOf(a))) {
       for (const a of body.filter(a => a.editable)) {
-        const row = existing.get(a.wbs)!, number = Number(row.getAttribute('r'))
+        const row = rowOf(a)!, number = Number(row.getAttribute('r'))
         set(row, 'K', previous.progress.get(a.id)!); set(row, 'M', current.progress.get(a.id)!)
         set(row, 'L', Math.round((current.progress.get(a.id)! - previous.progress.get(a.id)!) * 1e6) / 1e6, `ROUND(M${number}-K${number},6)`)
         handlerRows.set(a.id, { handler, row: number })
@@ -164,7 +195,7 @@ export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], 
       row.setAttribute('r', String(number))
       for (const cell of row.children) { cell.setAttribute('r', cell.getAttribute('r')!.replace(/\d+$/, String(number))); cell.replaceChildren(); cell.removeAttribute('t') }
       // The name goes in the hierarchy column the Progress sheet uses for this row (differs between projects).
-      const master = masterRows.get(a.wbs)!, levelColumn = 'BCDEFGHI'.split('').find(column => read(findCell(master, column)) !== '')
+      const master = masterRows.get(a.wbs) ?? (bp02 ? wbsRows(doc).get(a.wbs) : undefined), levelColumn = master && 'BCDEFGHI'.split('').find(column => read(findCell(master, column)) !== '')
       set(row, 'A', a.wbs); set(row, levelColumn ?? String.fromCharCode(65 + Math.min(depth, 8)), a.name); set(row, 'J', a.name)
       const floor = floorCodes.get(rootOf(a).wbs)
       if (floor) set(row, 'N', floor)
@@ -178,7 +209,32 @@ export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], 
     const dimension = elements(doc, 'dimension')[0], lastColumn = /:([A-Z]+)\d+$/.exec(dimension?.getAttribute('ref') ?? '')?.[1] ?? 'M'
     dimension?.setAttribute('ref', `A1:${lastColumn.length > 1 || lastColumn > 'M' ? lastColumn : 'M'}${Math.max(4, body.length + 4)}`)
   }
-  for (const a of activities) {
+  const setCached = (row: Element, column: string, value: number) => {
+    const cell = findCell(row, column)
+    if (!cell) return
+    for (const v of elements(cell, 'v')) v.remove()
+    cell.removeAttribute('t'); const v = row.ownerDocument.createElementNS(NS, 'v'); v.textContent = String(value); cell.append(v)
+  }
+  if (bp02) {
+    // The template's own roll-up formulas (which still include every repeated MEP row) stay intact and recalculate in Excel;
+    // only the handler links and the cached floor figures are refreshed.
+    const link = (row: Element, assigned: { handler: string; row: number } | undefined, before: number, after: number) => {
+      const r = Number(row.getAttribute('r'))
+      set(row, 'L', before, assigned ? `'${assigned.handler}'!K${assigned.row}` : undefined)
+      set(row, 'N', after, assigned ? `'${assigned.handler}'!M${assigned.row}` : undefined)
+      set(row, 'M', Math.round((after - before) * 1e6) / 1e6, `ROUND(N${r}-L${r},6)`)
+    }
+    for (const a of activities) {
+      const row = masterRows.get(a.wbs)
+      if (!row) continue
+      if (a.editable) link(row, handlerRows.get(a.id), previous.progress.get(a.id)!, current.progress.get(a.id)!)
+      else if (!a.parentId) { setCached(row, 'L', previous.progress.get(a.id)!); setCached(row, 'N', current.progress.get(a.id)!) }
+    }
+    for (const { row, key } of links) {
+      const source = byWbs.get(key)
+      if (source) link(row, handlerRows.get(source.id), previous.progress.get(source.id)!, current.progress.get(source.id)!)
+    }
+  } else for (const a of activities) {
     const row = masterRows.get(a.wbs)!, r = rowNumber(a), children = current.children.get(a.id) ?? [], assigned = handlerRows.get(a.id)
     const sum = (column: string) => children.map(c => `K${rowNumber(c)}*${column}${rowNumber(c)}`).join('+')
     const before = previous.progress.get(a.id)!, after = current.progress.get(a.id)!
@@ -200,7 +256,7 @@ export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], 
   for (const [i, doc] of docs.entries()) {
     let period = rows(doc).find(row => row.getAttribute('r') === '3')
     if (!period) { period = doc.createElementNS(NS, 'row'); period.setAttribute('r', '3'); const data = elements(doc, 'sheetData')[0]!; data.insertBefore(period, rows(doc).find(row => Number(row.getAttribute('r')) > 3) ?? null) }
-    set(period, 'A', `Reporting week: ${reportingBlock(week)} ${week.slice(0, 4)}. ${confirmed}/6 handlers confirmed.`)
+    set(period, 'A', `Reporting week: ${reportingBlock(week)} ${week.slice(0, 4)}. ${confirmed}/${owners.length} handlers confirmed.`)
     files[paths[i]!] = bytes(doc)
   }
   let calc = elements(book, 'calcPr')[0]

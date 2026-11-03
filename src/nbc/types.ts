@@ -1,5 +1,8 @@
-export const handlers = ['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Tola'] as const
+export const handlers = ['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Vuth', 'Tola'] as const
 export type Handler = typeof handlers[number]
+/** BP02 still uses the original seven-sheet workbook, so it keeps its six handler tabs. */
+export const bp02Handlers = ['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Tola'] as const satisfies readonly Handler[]
+export const projectHandlers = (projectId: string | undefined): readonly Handler[] => projectId === 'nbc-bp02' ? bp02Handlers : handlers
 export interface SubmissionEntry {
   activityId: string
   previous: number

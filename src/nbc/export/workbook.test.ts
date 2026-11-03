@@ -38,9 +38,9 @@ test('export keeps unrelated parts, numeric percentages, template layout and liv
   expect(output['xl/calcChain.xml']).toBeUndefined()
   expect(cell(output, 1, 'N9').querySelector('v')?.textContent).toBe('0.25')
   expect(cell(output, 1, 'N9').querySelector('f')?.textContent).toBe("'Tola'!M6")
-  expect(cell(output, 7, 'M6').getAttribute('t')).toBeNull()
-  expect(cell(output, 7, 'M6').querySelector('v')?.textContent).toBe('0.25')
-  expect(cell(output, 7, 'L6').querySelector('f')?.textContent).toBe('ROUND(M6-K6,6)')
+  expect(cell(output, 8, 'M6').getAttribute('t')).toBeNull()
+  expect(cell(output, 8, 'M6').querySelector('v')?.textContent).toBe('0.25')
+  expect(cell(output, 8, 'L6').querySelector('f')?.textContent).toBe('ROUND(M6-K6,6)')
   expect(strFromU8(output['xl/worksheets/sheet1.xml']!)).toContain('orientation="portrait"')
   expect(strFromU8(output['xl/worksheets/sheet1.xml']!)).toContain('topLeftCell="B5"')
 })
@@ -53,21 +53,21 @@ test('reassignment moves the handler row and rewires the master progress formula
   template['xl/worksheets/sheet6.xml'] = strToU8(new XMLSerializer().serializeToString(sheet))
   const output = unzipSync(weeklyWorkbook(zipSync(template), activities, [], '2026-10-26').bytes)
   expect(cell(output, 1, 'N9').querySelector('f')?.textContent).toBe("'Kheng'!M6")
-  expect(strFromU8(output['xl/worksheets/sheet7.xml']!)).not.toContain('Install board')
+  expect(strFromU8(output['xl/worksheets/sheet8.xml']!)).not.toContain('Install board')
 })
 
 test('unchanged handler assignments keep original rows, formatting and trailing content', () => {
   const files = unzipSync(fixtureTemplate())
-  const doc = new DOMParser().parseFromString(strFromU8(files['xl/worksheets/sheet7.xml']!), 'application/xml')
+  const doc = new DOMParser().parseFromString(strFromU8(files['xl/worksheets/sheet8.xml']!), 'application/xml')
   const rows = [...doc.getElementsByTagNameNS(NS, 'row')]
   rows.find(r => r.getAttribute('r') === '6')!.remove()
   const leaf = rows.find(r => r.getAttribute('r') === '7')!
   leaf.setAttribute('ht', '37'); leaf.setAttribute('hidden', '1')
   const footer = doc.createElementNS(NS, 'row'); footer.setAttribute('r', '20')
   doc.getElementsByTagNameNS(NS, 'sheetData')[0]!.append(footer)
-  files['xl/worksheets/sheet7.xml'] = strToU8(new XMLSerializer().serializeToString(doc))
+  files['xl/worksheets/sheet8.xml'] = strToU8(new XMLSerializer().serializeToString(doc))
   const output = unzipSync(weeklyWorkbook(zipSync(files), fixtureActivities(), [], '2026-10-26').bytes)
-  const saved = new DOMParser().parseFromString(strFromU8(output['xl/worksheets/sheet7.xml']!), 'application/xml')
+  const saved = new DOMParser().parseFromString(strFromU8(output['xl/worksheets/sheet8.xml']!), 'application/xml')
   expect([...saved.getElementsByTagNameNS(NS, 'row')].find(r => r.getAttribute('r') === '7')?.getAttribute('ht')).toBe('37')
   expect([...saved.getElementsByTagNameNS(NS, 'row')].some(r => r.getAttribute('r') === '20')).toBe(true)
   expect(cell(output, 1, 'N9').querySelector('f')?.textContent).toBe("'Tola'!M7")
@@ -81,7 +81,7 @@ test('rejects mismatched WBS data and changed template weights', () => {
   expect(() => weeklyWorkbook(new Uint8Array(10 * 1024 * 1024 + 1), fixtureActivities(), [], '2026-10-26')).toThrow('10 MB')
   expect(() => weeklyWorkbook(new Uint8Array(), fixtureActivities(), [], '2026-10-26')).toThrow()
   const unassigned = fixtureActivities().map(a => a.handler === 'Tola' ? { ...a, handler: '' } : a)
-  expect(() => weeklyWorkbook(fixtureTemplate(), unassigned, [], '2026-10-26')).toThrow('six handlers')
+  expect(() => weeklyWorkbook(fixtureTemplate(), unassigned, [], '2026-10-26')).toThrow('one of the 7 handlers')
 })
 
 test('reassignment requiring review does not count as a completed weekly report', () => {

@@ -1,6 +1,6 @@
 import { addDays, weekDeadline, weekStart } from '../submissions'
 import { percent } from '../format'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
 import { deadlineNote } from '../update/deadline'
 
@@ -24,7 +24,7 @@ interface AttentionInput { projectId: string; activities: NbcActivity[]; submiss
 /** What needs a manager's eye this week, most urgent first. Private coordination tasks are deliberately not included. */
 export function attentionItems({ projectId, activities, submissions, today, now }: AttentionInput): AttentionItem[] {
   const current = weekStart(today), base = `/projects-progress/${projectId}`, items: AttentionItem[] = []
-  const missing = handlers.filter((h) => activities.some((a) => a.editable && a.handler === h) && !submissions.some((s) => s.handler === h && s.weekStart === current && s.status === 'confirmed'))
+  const missing = projectHandlers(projectId).filter((h) => activities.some((a) => a.editable && a.handler === h) && !submissions.some((s) => s.handler === h && s.weekStart === current && s.status === 'confirmed'))
   if (missing.length) {
     const overdue = now >= weekDeadline(current)
     items.push({ id: 'missing', tone: overdue ? 'red' : 'amber', title: `${missing.join(', ')} ${missing.length === 1 ? 'has' : 'have'} not updated`, detail: overdue ? 'Deadline passed Saturday 12:00 PM' : deadlineNote(current, now).text, impact: overdue ? 'overdue' : `${missing.length} to go`, to: `${base}/update` })

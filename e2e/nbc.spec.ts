@@ -41,7 +41,7 @@ test('autosaved draft survives reload without changing live progress, then confi
   await confirm(page, 'Crane coordination complete'); await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByLabel('This week % for 1.6.1.2')).toHaveCount(0)
   await page.getByRole('link', { name: 'Overview', exact: true }).click()
-  await expect(page.getByText('1 of 6 handlers updated this week')).toBeVisible()
+  await expect(page.getByText('1 of 7 handlers updated this week')).toBeVisible()
   await page.getByRole('button', { name: 'Expand Tola', exact: true }).click()
   await expect(page.getByRole('link', { name: 'Tola this week update' })).toContainText('Updated')
 })
@@ -236,11 +236,11 @@ test.describe('mobile progress work', () => {
   })
 })
 
-test('real BOQ keeps all six handler groups usable and supplies shared GR&P', async ({ page }) => {
+test('real BOQ keeps all seven handler groups usable and supplies shared GR&P', async ({ page }) => {
   const file = '.private/nbc-bp03/initial.json'; test.skip(!existsSync(file), 'Private dataset excluded from Git')
   const { activities } = JSON.parse(readFileSync(file, 'utf8'))
   await setup(page, { activities, submissions: [], summaries: [] }); await page.goto('/projects-progress/nbc-bp03/update')
-  for (const handler of ['Sitha','Lychhinh','Chhorvaon','Srun','Kheng','Tola']) {
+  for (const handler of ['Sitha','Lychhinh','Chhorvaon','Srun','Kheng','Vuth','Tola']) {
     await page.getByRole('button', { name: new RegExp(`^${handler}`) }).click(); await page.getByRole('button', { name: `Continue as ${handler}`, exact: true }).click()
     await expect(page.getByLabel('This week % for GR&P')).toBeVisible()
     const group = page.locator('.nbc-update tr[data-group=true] button').last(); await group.click(); await expect(group).toHaveAttribute('aria-expanded', 'false'); await group.click(); await expect(group).toHaveAttribute('aria-expanded', 'true')

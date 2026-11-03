@@ -20,7 +20,7 @@ Activities and Update Progress share one table that mirrors the source workbook:
 
 ## Overview
 
-A summary line (`42.02% overall · 4 of 6 handlers updated this week · 26 Oct – 1 Nov`), the all-week trend (with a table alternative), and a handler table with `This week · Last week · Changed · Contribution`. A handler row expands inline to This week, Last week and a collapsed **Older weeks**. Each week has a `···` menu: **Open** (read-only side panel with entries and note), **Edit** (this week and last week only; opens Update Progress) and **Export CSV**. Older weeks offer only Open and Export CSV. A missing last-week update is shown as Missing, with no create action. Area, floor and trade breakdowns sit behind a collapsed **Breakdown** toggle.
+A summary line (`42.02% overall · 4 of 7 handlers updated this week · 26 Oct – 1 Nov`), the all-week trend (with a table alternative), and a handler table with `This week · Last week · Changed · Contribution`. A handler row expands inline to This week, Last week and a collapsed **Older weeks**. Each week has a `···` menu: **Open** (read-only side panel with entries and note), **Edit** (this week and last week only; opens Update Progress) and **Export CSV**. Older weeks offer only Open and Export CSV. A missing last-week update is shown as Missing, with no create action. Area, floor and trade breakdowns sit behind a collapsed **Breakdown** toggle.
 
 ## Activities
 

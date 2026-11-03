@@ -7,12 +7,13 @@ import { reopenUpdate } from '../actions'
 import { summarize } from '../progress'
 import { addDays, changedEntries, submissionStatus, weekLabel, weekStart } from '../submissions'
 import { delta, exportSubmission, percent } from '../format'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
 import { SubmissionPeek } from './SubmissionPeek'
 
 export function HandlerTable({ projectId, activities, submissions, now }: { projectId: string; activities: NbcActivity[]; submissions: NbcSubmission[]; now: number }) {
   const navigate = useNavigate(), current = weekStart(new Date(now).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' })), last = addDays(current, -7)
+  const owners = projectHandlers(projectId)
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set()), [older, setOlder] = useState<ReadonlySet<string>>(new Set())
   const [peek, setPeek] = useState<NbcSubmission | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const total = summarize(activities).contribution
@@ -45,7 +46,7 @@ export function HandlerTable({ projectId, activities, submissions, now }: { proj
     <div className="table-scroll">
     <table className="nbc-handlers"><caption className="sr-only">Handler updates · due Saturday 12:00 PM · Phnom Penh</caption>
       <thead className="sr-only"><tr><th scope="col">Handler</th><th scope="col">This week</th><th scope="col">Last week</th><th scope="col" className="nbc-num">Changed</th><th scope="col" className="nbc-num">Contribution</th></tr></thead>
-      <tbody>{handlers.flatMap((handler) => {
+      <tbody>{owners.flatMap((handler) => {
         const now_ = find(handler, current), prev = find(handler, last), expanded = open.has(handler)
         const contribution = summarize(activities.filter((a) => a.handler === handler)).contribution
         const cell = (s: NbcSubmission | undefined, week: string, missing: string) => s || week === current

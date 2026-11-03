@@ -4,7 +4,7 @@ import { Maximize2, Minimize2 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useWorkspace } from '@/data'
 import { submissionId, weekStart } from '../submissions'
-import { handlers } from '../types'
+import { projectHandlers } from '../types'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
 import { deadlineNote, useNow } from './deadline'
 import { HandlerGate } from './HandlerGate'
@@ -37,7 +37,7 @@ function UpdateScreen({ projectId, activities, submissions, handler, onChange }:
 export default function UpdateProgress({ projectId, activities, submissions }: Props) {
   const [params, setParams] = useSearchParams()
   // A handler in the link (for example from Overview) counts as already chosen. Otherwise ask first.
-  const [handler, setHandler] = useState<Handler | null>(() => handlers.find((h) => h === params.get('handler')) ?? null)
+  const [handler, setHandler] = useState<Handler | null>(() => projectHandlers(projectId).find((h) => h === params.get('handler')) ?? null)
   function choose(value: Handler | null) {
     setHandler(value)
     const next = new URLSearchParams(params)
