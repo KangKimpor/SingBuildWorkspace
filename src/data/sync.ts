@@ -25,7 +25,14 @@ const SNAPSHOT_DELAY_MS = 1200
  * Collections large enough that a full reconcile should read only a small
  * `id,updated_at` manifest and then fetch the rows that actually changed.
  */
-const MANIFEST_COLLECTIONS = new Set<CloudCollection>(['pages', 'events', 'nbc_activities'])
+const MANIFEST_COLLECTIONS = new Set<CloudCollection>([
+  'pages',
+  'tasks',
+  'events',
+  'nbc_activities',
+  'nbc_submissions',
+])
+const MANIFEST_BATCH_SIZE = 150
 let applying = false, generation = 0, initialized = false, hydrated = false
 let activeRun: Promise<void> | undefined
 let realtime: RealtimeChannel | undefined
@@ -35,6 +42,12 @@ let retry = 0, refreshRequested = false, refreshFull = false, live = false, wasL
 // Incremental pulls resume from the newest row already seen in each collection. A
 // snapshot with no watermarks predates delta sync and gets one full reconcile.
 let watermarks = new Map<CloudCollection, string>()
+function advanceWatermark(collection: CloudCollection, stamp: string | undefined) {
+  if (!stamp) return
+  const current = watermarks.get(collection)
+  const next = laterStamp(current, stamp)
+  if (next) watermarks.set(collection, next)
+}
 let lastFullPull = 0
 let cloudInitialization: Promise<void> | undefined
 const tabId = (() => {
@@ -71,14 +84,32 @@ function profile(content: Content): Data {
 function normalize(content: Content): Content {
   return { ...content, taskViews: content.taskViews ?? [], projects: content.projects.map((p) => ({ ...p, workspace: p.workspace === 'team' ? 'team' : 'personal' })) }
 }
+export function changedAppliedActivityIds(
+  appliedEntries: { activityId?: string; progress?: number; previous?: number; remark?: string; previousRemark?: string }[] | undefined,
+): Set<string> {
+  const ids = new Set<string>()
+  for (const e of appliedEntries ?? []) {
+    if (!e.activityId) continue
+    const progressChanged = typeof e.progress === 'number' && typeof e.previous === 'number' && Math.abs(e.progress - e.previous) > 1e-12
+    const remarkChanged = (e.remark ?? '').trim() !== (e.previousRemark ?? '').trim()
+    if (progressChanged || remarkChanged) ids.add(e.activityId)
+  }
+  return ids
+}
+
 function compactSubmissionPayload(payload: Data): Data {
   const rawEntries = (payload as { entries?: unknown[] })?.entries
-  if (!Array.isArray(rawEntries) || rawEntries.length <= 1) return payload
-  const appliedIds = new Set(((payload as { appliedEntries?: { activityId?: string }[] })?.appliedEntries ?? []).map((e) => e.activityId))
+  const rest = { ...payload }
+  // The server preserves old.data->'appliedEntries' via coalesce(old.data, '{}'); never re-upload it on draft saves.
+  delete rest.appliedEntries
+  if (!Array.isArray(rawEntries) || rawEntries.length <= 1) return rest
+  const appliedIds = changedAppliedActivityIds(
+    (payload as { appliedEntries?: { activityId?: string; progress?: number; previous?: number; remark?: string; previousRemark?: string }[] })?.appliedEntries,
+  )
   const changedEntriesOnly = (rawEntries as { activityId?: string; progress: number; previous: number; remark?: string }[]).filter(
     (e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || (e.activityId && appliedIds.has(e.activityId)),
   )
-  return { ...payload, entries: changedEntriesOnly }
+  return { ...rest, entries: changedEntriesOnly }
 }
 /**
  * Write only the pending-write journal. The full workspace lives in IndexedDB;
@@ -170,6 +201,7 @@ export function acknowledgeSavedRow(scope: string, collection: CloudCollection, 
   if (scope !== useWorkspace.getState().scope) return
   const key = keyFor(scope, collection, id)
   versions.set(key, row.updated_at)
+  advanceWatermark(collection, row.updated_at)
   pending.delete(key)
   void db.outbox.delete(key).catch(() => {})
   applyRow(collection, row, id)
@@ -185,19 +217,37 @@ export async function reassignNbcActivities(projectId: string, ids: string[], ha
     p_expected: expected,
   })
   if (error) throw error
-  const result = data as { conflict?: boolean; rows?: Row[] } | null
+  const result = data as { conflict?: boolean; rows?: (Partial<Row> & { id: string; updated_at: string; editor?: string })[] } | null
   if (result?.conflict) throw new Error('Activities changed in another session. Reload and try again.')
   if (!result?.rows || result.rows.length !== ids.length) throw new Error('The server did not confirm every assignment.')
   const saved = new Map(result.rows.map((row) => [row.id, row]))
   for (const row of result.rows) {
     const key = keyFor(scope, 'nbc_activities', row.id)
     versions.set(key, row.updated_at)
+    advanceWatermark('nbc_activities', row.updated_at)
     pending.delete(key)
     void db.outbox.delete(key).catch(() => {})
   }
   applyRemotePatch({ nbc_activities: (useWorkspace.getState().nbc_activities ?? []).map((activity) => {
     const row = saved.get(activity.id)
-    return row ? rowEntity('nbc_activities', row) : activity
+    if (!row) return activity
+    if (row.data) return rowEntity('nbc_activities', row as Row)
+    const entry = {
+      id: crypto.randomUUID(),
+      at: row.updated_at,
+      recordedAt: row.updated_at,
+      editor: row.editor ?? scope,
+      previous: activity.progress,
+      progress: activity.progress,
+      remark: activity.remark,
+      handler,
+    }
+    return {
+      ...activity,
+      handler,
+      updatedAt: row.updated_at,
+      history: [...(activity.history ?? []), entry],
+    }
   }) as unknown as Content['nbc_activities'] })
   cacheSnapshot(scope)
 }
@@ -234,6 +284,7 @@ export function initializeCloud() {
     const client = await initializeSupabase()
     if (!client) { useAccount.setState({ ready: true }); return }
     client.auth.onAuthStateChange((event, session) => {
+      if (event === 'INITIAL_SESSION') return
       if (event === 'PASSWORD_RECOVERY') useAccount.setState({ recovering: true })
       if (event === 'TOKEN_REFRESHED' && session && session.user.id === useWorkspace.getState().scope) {
         useAccount.setState({ session })
@@ -286,7 +337,17 @@ async function switchAccount(session: Session | null) {
         lastFullPull = snapshot.lastFullPull ? Date.parse(snapshot.lastFullPull) || Date.now() : (watermarks.size > 0 ? Date.now() : 0)
         // A snapshot with watermarks can resume incrementally instead of pulling 8 MB of BOQ again.
         hydrated = watermarks.size > 0
-        applyRemotePatch(normalize(snapshot.content))
+        const normalized = normalize(snapshot.content)
+        for (const col of collections) {
+          for (const item of (normalized[col] ?? []) as { id?: string; updatedAt?: string }[]) {
+            if (item?.id && item.updatedAt) versions.set(keyFor(scope, col, item.id), item.updatedAt)
+          }
+        }
+        const profileWatermark = watermarks.get('profiles')
+        if (profileWatermark && profileWatermark !== EPOCH) {
+          versions.set(keyFor(scope, 'profiles', scope), profileWatermark)
+        }
+        applyRemotePatch(normalized)
       }
       // The full-workspace localStorage cache is obsolete; IndexedDB holds the snapshot.
       try { for (const key of Object.keys(localStorage)) if (key.startsWith('kw-cloud-cache:')) localStorage.removeItem(key) } catch { /* ignore */ }
@@ -306,8 +367,16 @@ async function switchAccount(session: Session | null) {
     if (!row?.data || !row.updated_at) { void syncWorkspace(); return }
     applyRealtimeRow(collection, row)
   })
-  // Broadcast deletes carry no table or id; only pages and tasks are hard-deleted in this app.
-  realtime.on('broadcast', { event: 'DELETE' }, () => { if (current === generation) void refreshCollections(['pages', 'tasks'], { full: true }) })
+  // Broadcast deletes carry the collection and id; only pages and tasks are hard-deleted in this app.
+  realtime.on('broadcast', { event: 'DELETE' }, (message) => {
+    if (current !== generation) return
+    const payload = (message as { payload?: { collection?: string; id?: string } } | undefined)?.payload
+    if (payload?.id && (payload.collection === 'pages' || payload.collection === 'tasks')) {
+      applyDeletedRow(payload.collection, payload.id)
+      return
+    }
+    void refreshCollections(['pages', 'tasks'], { full: true })
+  })
   realtime.on('system', {}, (message) => {
     if (current === generation && message.extension === 'postgres_changes' && message.status === 'error') { live = false; refreshRequested = true; useWorkspace.setState({ sync: { kind: 'error', reason: 'Live updates unavailable. Check the workspace Realtime publication and permissions.' } }) }
   })
@@ -318,8 +387,12 @@ async function switchAccount(session: Session | null) {
     if (live) {
       wasLive = true
       // A reconnected channel missed broadcasts, so reconcile hard deletes before resuming deltas.
-      if (reconnect) void refreshCollections(['pages', 'tasks'], { full: true })
-      void syncWorkspace()
+      if (reconnect) {
+        void refreshCollections(['pages', 'tasks'], { full: true })
+        void syncWorkspace()
+      } else if (!activeRun && useWorkspace.getState().sync.kind !== 'saving') {
+        useWorkspace.setState({ sync: pending.size ? { kind: 'saving' } : { kind: 'saved' } })
+      }
     } else if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(status)) {
       refreshRequested = true
       useWorkspace.setState({ sync: { kind: 'error', reason: 'Live updates disconnected. Reconnecting; pending changes are retained.' } })
@@ -392,6 +465,7 @@ export function applyRealtimeRow(collection: CloudCollection, incoming: { id?: s
   const seen = versions.get(key)
   if (seen && laterStamp(incoming.updated_at, seen) !== incoming.updated_at) return false
   versions.set(key, incoming.updated_at)
+  advanceWatermark(collection, incoming.updated_at)
   applyRow(collection, { id, data: incoming.data, updated_at: incoming.updated_at }, id)
   cacheSnapshot(scope)
   return true
@@ -416,11 +490,18 @@ function applyRow(collection: CloudCollection, row: Row | null, id: string) {
     applyRemotePatch({ [collection]: list })
   }
 }
-async function pullCloud(scope: string, current: number, only: CloudCollection[] = [...collections, 'profiles'], full = false) {
+async function pullCloud(
+  scope: string,
+  current: number,
+  only: CloudCollection[] = [...collections, 'profiles'],
+  full = false,
+  projectId?: string,
+) {
   for (const collection of only) {
     // Older deployments and ordinary projects do not need the NBC tables.
     if (collection.startsWith('nbc_') && !useWorkspace.getState().projects.some((p) => p.nbcBp03)) continue
-    const watermark = watermarks.get(collection)
+    const watermarkKey = (projectId && collection.startsWith('nbc_') ? `${collection}:${projectId}` : collection) as CloudCollection
+    const watermark = watermarks.get(watermarkKey) ?? watermarks.get(collection)
     // A collection without a watermark has never been read in full.
     const reconcile = full || !watermark
     if (collection === 'profiles') {
@@ -448,24 +529,29 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
     }
     const state = useWorkspace.getState()
     const merged = new Map<string, Data>(((state[collection] ?? []) as unknown as Data[]).map((row) => [String(row.id), row]))
-    const useManifest = reconcile && merged.size > 0 && MANIFEST_COLLECTIONS.has(collection)
+    const useManifest = merged.size > 0 && MANIFEST_COLLECTIONS.has(collection)
 
     if (useManifest) {
       const manifest: { id: string; updated_at: string }[] = []
       for (let offset = 0; ; offset += 1000) {
         let query = supabase!.from(`kw_${collection}`).select('id,updated_at')
         if (collection !== 'projects' && !collection.startsWith('nbc_')) query = query.eq('user_id', scope)
+        if (projectId && collection.startsWith('nbc_')) query = query.eq('project_id', projectId)
+        if (!reconcile) query = query.gt('updated_at', watermark!)
         const result = await query.order('updated_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + 999)
         if (result.error) throw result.error
         if (current !== generation) return
         manifest.push(...result.data)
         if (result.data.length < 1000) break
       }
-      const present = new Set(manifest.map((r) => r.id))
-      for (const id of Array.from(merged.keys())) {
-        if (!present.has(id) && !pending.has(keyFor(scope, collection, id))) {
-          merged.delete(id)
-          versions.delete(keyFor(scope, collection, id))
+      if (reconcile) {
+        const present = new Set(manifest.map((r) => r.id))
+        for (const [id, row] of Array.from(merged.entries())) {
+          if (projectId && collection.startsWith('nbc_') && row.projectId !== projectId) continue
+          if (!present.has(id) && !pending.has(keyFor(scope, collection, id))) {
+            merged.delete(id)
+            versions.delete(keyFor(scope, collection, id))
+          }
         }
       }
       const toFetch: string[] = []
@@ -477,51 +563,44 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
           toFetch.push(item.id)
         }
       }
-      watermarks.set(collection, newest ?? EPOCH)
+      if (reconcile) {
+        watermarks.set(watermarkKey, newest ?? EPOCH)
+        if (!projectId) watermarks.set(collection, newest ?? EPOCH)
+      } else if (newest) {
+        watermarks.set(watermarkKey, newest)
+        if (!projectId) watermarks.set(collection, newest)
+      }
       if (toFetch.length > 0) {
-        if (toFetch.length > 500) {
-          for (let offset = 0; ; offset += 1000) {
-            let query = supabase!.from(`kw_${collection}`).select('id,data,updated_at')
-            if (collection !== 'projects' && !collection.startsWith('nbc_')) query = query.eq('user_id', scope)
-            const result = await query.order('updated_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + 999)
+        for (let i = 0; i < toFetch.length; i += MANIFEST_BATCH_SIZE) {
+          const batch = toFetch.slice(i, i + MANIFEST_BATCH_SIZE)
+          let query = supabase!.from(`kw_${collection}`).select('id,data,updated_at')
+          if (collection !== 'projects' && !collection.startsWith('nbc_')) query = query.eq('user_id', scope)
+          if (projectId && collection.startsWith('nbc_')) query = query.eq('project_id', projectId)
+          if (typeof (query as unknown as { in?: (k: string, v: string[]) => unknown }).in === 'function') {
+            const result = await (query as unknown as { in: (k: string, v: string[]) => Promise<{ error: Error | null; data: Row[] }> }).in('id', batch)
             if (result.error) throw result.error
             if (current !== generation) return
             for (const row of result.data) {
               const key = keyFor(scope, collection, row.id)
-              if (!pending.has(key)) {
+              const queued = pending.get(key)
+              if (!queued) {
                 versions.set(key, row.updated_at)
                 merged.set(row.id, rowEntity(collection, row))
+              } else if (collection === 'nbc_submissions' && !queued.base) {
+                versions.set(key, row.updated_at)
+                pending.set(key, { ...queued, base: row.updated_at, original: row.data })
               }
             }
-            if (result.data.length < 1000) break
-          }
-        } else {
-          for (let i = 0; i < toFetch.length; i += 40) {
-            const batch = toFetch.slice(i, i + 40)
-            let query = supabase!.from(`kw_${collection}`).select('id,data,updated_at')
-            if (collection !== 'projects' && !collection.startsWith('nbc_')) query = query.eq('user_id', scope)
-            if (typeof (query as unknown as { in?: (k: string, v: string[]) => unknown }).in === 'function') {
-              const result = await (query as unknown as { in: (k: string, v: string[]) => Promise<{ error: Error | null; data: Row[] }> }).in('id', batch)
-              if (result.error) throw result.error
+          } else {
+            for (const id of batch) {
+              const res = await supabase!.from(`kw_${collection}`).select('id,data,updated_at').eq('id', id).maybeSingle()
               if (current !== generation) return
-              for (const row of result.data) {
+              if (res.data) {
+                const row = res.data as Row
                 const key = keyFor(scope, collection, row.id)
                 if (!pending.has(key)) {
                   versions.set(key, row.updated_at)
                   merged.set(row.id, rowEntity(collection, row))
-                }
-              }
-            } else {
-              for (const id of batch) {
-                const res = await supabase!.from(`kw_${collection}`).select('id,data,updated_at').eq('id', id).maybeSingle()
-                if (current !== generation) return
-                if (res.data) {
-                  const row = res.data as Row
-                  const key = keyFor(scope, collection, row.id)
-                  if (!pending.has(key)) {
-                    versions.set(key, row.updated_at)
-                    merged.set(row.id, rowEntity(collection, row))
-                  }
                 }
               }
             }
@@ -534,6 +613,7 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
         let query = supabase!.from(`kw_${collection}`).select('id,data,updated_at')
         // RLS returns the caller's private projects plus the one shared NBC project.
         if (collection !== 'projects' && !collection.startsWith('nbc_')) query = query.eq('user_id', scope)
+        if (projectId && collection.startsWith('nbc_')) query = query.eq('project_id', projectId)
         if (!reconcile) query = query.gt('updated_at', watermark!)
         const result = await query.order('updated_at', { ascending: true }).order('id', { ascending: true }).range(offset, offset + 999)
         if (result.error) throw result.error
@@ -543,8 +623,13 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
       }
       let newest = watermark
       for (const row of rows) newest = laterStamp(newest, row.updated_at)
-      if (reconcile) watermarks.set(collection, newest ?? EPOCH)
-      else if (newest) watermarks.set(collection, newest)
+      if (reconcile) {
+        watermarks.set(watermarkKey, newest ?? EPOCH)
+        if (!projectId) watermarks.set(collection, newest ?? EPOCH)
+      } else if (newest) {
+        watermarks.set(watermarkKey, newest)
+        if (!projectId) watermarks.set(collection, newest)
+      }
       const present = new Set(rows.map((row) => row.id))
       for (const row of rows) {
         const key = keyFor(scope, collection, row.id)
@@ -558,7 +643,12 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
         }
       }
       // Only a full read can reveal rows deleted while this client was away.
-      if (reconcile) for (const id of Array.from(merged.keys())) if (!present.has(id) && !pending.has(keyFor(scope, collection, id))) merged.delete(id)
+      if (reconcile) {
+        for (const [id, row] of Array.from(merged.entries())) {
+          if (projectId && collection.startsWith('nbc_') && row.projectId !== projectId) continue
+          if (!present.has(id) && !pending.has(keyFor(scope, collection, id))) merged.delete(id)
+        }
+      }
     }
     for (const write of pending.values()) if (write.collection === collection) {
       if (write.remove) merged.delete(write.id)
@@ -570,7 +660,7 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
     hydrated = true
     if (full || !lastFullPull) lastFullPull = Date.now()
   }
-  cacheSnapshot(scope)
+  await writeSnapshot(scope)
 }
 
 /**
@@ -582,7 +672,10 @@ async function pullCloud(scope: string, current: number, only: CloudCollection[]
  * `full` also reconciles rows deleted elsewhere; ordinary refreshes only read rows
  * newer than the persisted watermark.
  */
-export async function refreshCollections(names: Collection[], options: { full?: boolean } = {}): Promise<void> {
+export async function refreshCollections(
+  names: Collection[],
+  options: { full?: boolean; projectId?: string } = {},
+): Promise<void> {
   if (!supabase || !useAccount.getState().session || useWorkspace.getState().scope === 'guest') return
   if (!hydrated) { await syncWorkspace(); return }
   if (!navigator.onLine) return
@@ -590,12 +683,13 @@ export async function refreshCollections(names: Collection[], options: { full?: 
   const current = generation, scope = useWorkspace.getState().scope
   if (current !== generation || scope !== useWorkspace.getState().scope) return
   activeRun = (async () => {
-    try { await pullCloud(scope, current, names as CloudCollection[], !!options.full) }
+    try { await pullCloud(scope, current, names as CloudCollection[], !!options.full, options.projectId) }
     catch { refreshRequested = true }
     finally { if (current === generation) activeRun = undefined }
   })()
   return activeRun
 }
+
 /**
  * Wait until `blocked()` is false, pushing the queue as many times as it takes.
  *
@@ -753,11 +847,13 @@ export function syncWorkspace(refresh = true): Promise<void> {
             pending.set(write.key, { ...latest, data: rebased.data, original: row!.data, base: row!.updated_at })
           }
         } else {
-          if (!row) throw new Error('The server did not confirm this write.')
+          if (!row?.updated_at) throw new Error('The server did not confirm this write.')
+          const baseData: Data = row.data ? { ...write.data, ...row.data } : { ...write.data }
           const appliedRow: Row = write.collection === 'nbc_submissions' && Array.isArray(fullEntries)
-            ? { ...row, data: { ...write.data, ...row.data, entries: fullEntries, updatedAt: row.updated_at } }
-            : row
+            ? { id: row.id ?? write.id, updated_at: row.updated_at, data: { ...baseData, entries: fullEntries, updatedAt: row.updated_at } }
+            : { id: row.id ?? write.id, updated_at: row.updated_at, data: { ...baseData, updatedAt: row.updated_at } }
           versions.set(write.key, row.updated_at)
+          advanceWatermark(write.collection, row.updated_at)
           if (latest.version === write.version) {
             pending.delete(write.key)
             applyRow(write.collection, appliedRow, write.id)

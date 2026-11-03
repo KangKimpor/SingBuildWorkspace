@@ -6,7 +6,7 @@ import type { ProjectSummary } from '@/data'
 import { useWorkspace } from '@/data'
 import { Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
-import { applyDeletedRow, applyRealtimeRow, refreshCollections } from '@/data/sync'
+import { applyDeletedRow, applyRealtimeRow, pendingCollectionIds, refreshCollections } from '@/data/sync'
 import { calculate } from './progress'
 import { issuesEnabled } from './features'
 import Overview from './overview/Overview'
@@ -42,7 +42,14 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
     const fallbacks = new Map<string, ReturnType<typeof setTimeout>>()
     const schedule = (collection: 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries') => {
       clearTimeout(fallbacks.get(collection))
-      fallbacks.set(collection, setTimeout(() => { fallbacks.delete(collection); void refreshCollections([collection]) }, 800))
+      fallbacks.set(
+        collection,
+        setTimeout(() => {
+          fallbacks.delete(collection)
+          if (pendingCollectionIds(collection).size > 0) return
+          void refreshCollections([collection], { projectId: project.id })
+        }, 1200),
+      )
     }
     for (const table of ['kw_nbc_activities', 'kw_nbc_submissions', 'kw_nbc_summaries'] as const) {
       const collection = table.slice(3) as 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries'
@@ -57,7 +64,7 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
     let wasSubscribed = false
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        if (wasSubscribed) void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries'])
+        if (wasSubscribed) void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries'], { projectId: project.id })
         wasSubscribed = true
       }
     })

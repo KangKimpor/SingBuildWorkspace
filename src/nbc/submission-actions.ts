@@ -1,5 +1,5 @@
 import { useWorkspace } from '@/data'
-import { acknowledgeSavedRow, applyDeletedRow, flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
+import { acknowledgeSavedRow, applyDeletedRow, changedAppliedActivityIds, flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
 import { appliedEntries, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
@@ -43,7 +43,7 @@ function buildDraft(week: string, handler: Handler, entries: SubmissionEntry[], 
   const activities = (state.nbc_activities ?? []).filter((a) => a.projectId === project.id)
   validateEntries(entries, activities, handler)
   const byId = new Map(activities.map((a) => [a.id, a]))
-  const appliedIds = new Set(submission?.appliedEntries?.map((p) => p.activityId))
+  const appliedIds = changedAppliedActivityIds(submission?.appliedEntries)
   // Untouched shared GR&P never competes with another handler's update.
   const savedEntries = entries.filter((e) => {
     const a = byId.get(e.activityId)
@@ -83,7 +83,7 @@ const write = async (submission: NbcSubmission, week: string, handler: Handler, 
 
 function compactDraft(draft: NbcSubmission, activities: NbcActivity[]): NbcSubmission {
   const byId = new Map(activities.map((a) => [a.id, a]))
-  const appliedIds = new Set(draft.appliedEntries?.map((e) => e.activityId))
+  const appliedIds = changedAppliedActivityIds(draft.appliedEntries)
   const normalized = draft.entries.map((e) => {
     const a = byId.get(e.activityId)
     if (a && a.wbs !== 'GR&P' && a.updatedAt && (!e.baseRevision || (a.baselineResetAt && Date.parse(e.baseRevision) < Date.parse(a.baselineResetAt)))) {
@@ -91,9 +91,11 @@ function compactDraft(draft: NbcSubmission, activities: NbcActivity[]): NbcSubmi
     }
     return e
   })
-  if (normalized.length <= 1) return { ...draft, entries: normalized }
+  const rest = { ...draft }
+  delete rest.appliedEntries
+  if (normalized.length <= 1) return { ...rest, entries: normalized }
   const changedOnly = normalized.filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || appliedIds.has(e.activityId))
-  return { ...draft, entries: changedOnly }
+  return { ...rest, entries: changedOnly }
 }
 
 async function ensureDraftOnServer(draft: NbcSubmission, scope: string): Promise<NbcSubmission> {
@@ -105,7 +107,7 @@ async function ensureDraftOnServer(draft: NbcSubmission, scope: string): Promise
 
   let res = await send(payload, draft.updatedAt || null)
   if (res.error && payload.entries.length === draft.entries.length && draft.entries.length > 0 && (res.error.message?.includes('Invalid draft') || res.error.code === '57014')) {
-    const appliedIds = new Set(draft.appliedEntries?.map((e) => e.activityId))
+    const appliedIds = changedAppliedActivityIds(draft.appliedEntries)
     const fallback: NbcSubmission = { ...payload, entries: payload.entries.filter((e) => Math.abs(e.progress - e.previous) > 1e-12 || (e.remark && e.remark.trim().length > 0) || appliedIds.has(e.activityId)) }
     res = await send(fallback, draft.updatedAt || null)
   }
@@ -118,10 +120,10 @@ async function ensureDraftOnServer(draft: NbcSubmission, scope: string): Promise
     res = await send(payload, remoteRow?.updated_at ?? null)
   }
   if (res.error) throw new Error(res.error.message || 'Your draft is kept. Connect and wait for autosave before confirming.')
-  const savedRow = res.data?.row as { id: string; data: NbcSubmission; updated_at: string } | null
-  if (!savedRow) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
+  const savedRow = res.data?.row as { id: string; data?: NbcSubmission; updated_at: string } | null
+  if (!savedRow?.updated_at) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
   const merged: NbcSubmission = { ...draft, ...savedRow.data, entries: draft.entries, note: draft.note, updatedAt: savedRow.updated_at }
-  acknowledgeSavedRow(scope, 'nbc_submissions', draft.id, { id: draft.id, data: merged as unknown as Record<string, unknown>, updatedAt: savedRow.updated_at } as unknown as { id: string; data: Record<string, unknown>; updated_at: string })
+  acknowledgeSavedRow(scope, 'nbc_submissions', draft.id, { id: draft.id, data: merged as unknown as Record<string, unknown>, updated_at: savedRow.updated_at })
   return merged
 }
 
@@ -146,7 +148,7 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
         submission = await ensureDraftOnServer(submission ?? initialDraft, scope)
       } else {
         if (!flushed) throw new Error('Your draft is kept. Connect and wait for autosave before confirming.')
-        await refreshCollections([...NBC_COLLECTIONS])
+        await refreshCollections([...NBC_COLLECTIONS], { projectId })
         ;({ state, submission } = context(week, handler, projectId))
         if (!submission) throw new Error('This update changed. Reload before continuing.')
       }
@@ -192,7 +194,7 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
     if (error) { await syncWorkspace(); throw new Error(error.message) }
     // The delete operation removes the submission row; no filtered Realtime delete reaches us.
     if (operation === 'delete') applyDeletedRow('nbc_submissions', id)
-    await refreshCollections([...NBC_COLLECTIONS])
+    await refreshCollections([...NBC_COLLECTIONS], { projectId })
     if (useWorkspace.getState().scope !== scope) throw new Error('Account changed.')
     if (data.conflict) throw new Error('This update changed in another session. Review it and try again.')
   }

@@ -3,7 +3,7 @@ import { expect, test, vi, beforeEach } from 'vitest'
 const cloud = vi.hoisted(() => {
   type Row = { id: string; data: Record<string, unknown>; updated_at: string }
   const records = new Map<string, Row>()
-  const queries: { table: string; select: string; gte?: string; in?: string[] }[] = []
+  const queries: { table: string; select: string; gte?: string; gt?: string; in?: string[]; projectId?: string }[] = []
   let sequence = Date.parse('2026-01-01T00:00:00Z')
   const session = (id: string) => ({ user: { id }, access_token: `token-${id}` })
   const state = {
@@ -29,29 +29,45 @@ const cloud = vi.hoisted(() => {
     })),
     removeChannel: vi.fn(async () => {}),
     from: vi.fn((table: string) => {
-      let selectFields = '', minimum = '', inIds: Set<string> | null = null
-      const visible = () => [...records.entries()].filter(([key]) => {
-        return key.includes(`:${table.slice(3)}:`)
+      let selectFields = '', minimum = '', strictMinimum = false, projectFilter = '', inIds: Set<string> | null = null
+      const visible = () => [...records.entries()].filter(([key, row]) => {
+        if (!key.includes(`:${table.slice(3)}:`)) return false
+        if (projectFilter && row.data.projectId !== projectFilter) return false
+        return true
       }).map(([, row]) => row).filter((r) => !inIds || inIds.has(r.id))
 
       const query = {
         select: (fields: string) => {
           selectFields = fields
-          queries.push({ table, select: fields, get in() { return inIds ? [...inIds] : undefined }, get gte() { return minimum || undefined } })
+          queries.push({
+            table,
+            select: fields,
+            get in() { return inIds ? [...inIds] : undefined },
+            get gte() { return !strictMinimum && minimum ? minimum : undefined },
+            get gt() { return strictMinimum && minimum ? minimum : undefined },
+            get projectId() { return projectFilter || undefined },
+          })
           return query
         },
-        eq: () => query,
+        eq: (key: string, value: string) => {
+          if (key === 'project_id') projectFilter = value
+          return query
+        },
         in: (key: string, values: string[]) => {
           if (key === 'id') inIds = new Set(values)
           return query
         },
         gte: (key: string, value: string) => {
-          if (key === 'updated_at') minimum = value
+          if (key === 'updated_at') { minimum = value; strictMinimum = false }
+          return query
+        },
+        gt: (key: string, value: string) => {
+          if (key === 'updated_at') { minimum = value; strictMinimum = true }
           return query
         },
         order: () => query,
         range: async (start: number, end: number) => {
-          const rows = visible().filter((r) => !minimum || r.updated_at >= minimum).map((r) => {
+          const rows = visible().filter((r) => !minimum || (strictMinimum ? r.updated_at > minimum : r.updated_at >= minimum)).map((r) => {
             if (selectFields === 'id,updated_at') return { id: r.id, updated_at: r.updated_at }
             return structuredClone(r)
           }).slice(start, end + 1)
@@ -66,7 +82,13 @@ const cloud = vi.hoisted(() => {
       }
       return query
     }),
-    rpc: vi.fn(async () => ({ error: null, data: { conflict: false, row: null } })),
+    rpc: vi.fn(async (_name: string, args: { collection?: string; record_id?: string; payload?: Record<string, unknown> }) => ({
+      error: null,
+      data: {
+        conflict: false,
+        row: { id: args?.record_id ?? 'row-1', updated_at: new Date(sequence += 1000).toISOString() },
+      },
+    })),
   }
   return { state, client }
 })
@@ -106,8 +128,10 @@ test('manifest reconcile only queries id,updated_at for large collections and do
   mockSnapshot = {
     scope: 'account-test',
     content: {
-      pages: [{ id: 'page-1', title: 'Page 1', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null, updatedAt: page1.updated_at },
-               { id: 'page-2', title: 'Page 2', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null, updatedAt: page2.updated_at }],
+      pages: [
+        { id: 'page-1', title: 'Page 1', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null, updatedAt: page1.updated_at },
+        { id: 'page-2', title: 'Page 2', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null, updatedAt: page2.updated_at },
+      ],
       projects: [{ id: 'nbc-bp03', name: 'BP03', nbcBp03: true, workspace: 'team', color: 'blue', progress: 0, description: '', target: '', status: 'Planned' }],
       tasks: [],
       events: [],
@@ -121,28 +145,22 @@ test('manifest reconcile only queries id,updated_at for large collections and do
     lastFullPull: new Date().toISOString(),
   }
 
-  const { initializeData } = await import('@/data/sync')
+  const { initializeData, refreshCollections } = await import('@/data/sync')
   await initializeData()
-
-  const { refreshCollections } = await import('@/data/sync')
   cloud.state.queries.length = 0
 
-  // Trigger a full reconcile of pages
   await refreshCollections(['pages'], { full: true })
 
-  // It should have queried only id,updated_at manifest
   const pageQueries = cloud.state.queries.filter((q) => q.table === 'kw_pages')
   expect(pageQueries.some((q) => q.select === 'id,updated_at')).toBe(true)
-  // No changed rows, so no id,data,updated_at query was made
   expect(pageQueries.some((q) => q.select === 'id,data,updated_at')).toBe(false)
 })
 
 test('manifest reconcile prunes deleted rows from workspace', async () => {
   const { useWorkspace } = await import('@/data')
-  const { refreshCollections } = await import('@/data/sync')
+  const { refreshCollections, applyRemotePatch } = await import('@/data/sync')
 
   const page1 = cloud.state.row('pages', 'page-1', { title: 'Page 1', blocks: [] })
-  const { applyRemotePatch } = await import('@/data/sync')
   applyRemotePatch({
     pages: [
       { id: 'page-1', title: 'Page 1', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null, updatedAt: page1.updated_at },
@@ -150,14 +168,34 @@ test('manifest reconcile prunes deleted rows from workspace', async () => {
     ],
   })
 
-  // Cloud only has page-1 now; page-2 was deleted on server
   cloud.state.records.delete('account-test:pages:page-2')
   cloud.state.queries.length = 0
 
   await refreshCollections(['pages'], { full: true })
 
-  // page-2 should be removed from local state
   const pages = useWorkspace.getState().pages
   expect(pages.find((p) => p.id === 'page-2')).toBeUndefined()
   expect(pages.find((p) => p.id === 'page-1')).toBeDefined()
+})
+
+test('delta refresh skips downloading row data when Realtime already applied the update', async () => {
+  const { applyRealtimeRow, refreshCollections } = await import('@/data/sync')
+  const updated = cloud.state.row('pages', 'page-1', { title: 'Live via Realtime', blocks: [] })
+
+  expect(applyRealtimeRow('pages', updated)).toBe(true)
+  cloud.state.queries.length = 0
+
+  await refreshCollections(['pages'])
+  const dataQueries = cloud.state.queries.filter((q) => q.table === 'kw_pages' && q.select === 'id,data,updated_at')
+  expect(dataQueries).toHaveLength(0)
+})
+
+test('changedAppliedActivityIds only retains appliedEntries that actually changed', async () => {
+  const { changedAppliedActivityIds } = await import('@/data/sync')
+  const ids = changedAppliedActivityIds([
+    { activityId: 'a-unchanged', previous: 0.25, progress: 0.25, remark: '', previousRemark: '' },
+    { activityId: 'a-progress-changed', previous: 0.25, progress: 0.5, remark: '', previousRemark: '' },
+    { activityId: 'a-remark-changed', previous: 0.25, progress: 0.25, remark: 'New note', previousRemark: '' },
+  ])
+  expect([...ids]).toEqual(['a-progress-changed', 'a-remark-changed'])
 })
