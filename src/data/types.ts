@@ -137,8 +137,6 @@ export interface CalendarEvent {
   sourceTimeZone?: string
   startInstant?: string
   endInstant?: string
-  isSeriesMaster?: boolean
-  deleteAfter?: string
   localSeriesId?: string
   excludedDates?: string[]
   reminders?: number[]

@@ -45,7 +45,7 @@ export function expandEvents(
   to: Date,
 ): CalendarEvent[] {
   const result: CalendarEvent[] = []
-  for (const event of events.filter((e) => !e.deletedAt && !e.isSeriesMaster)) {
+  for (const event of events.filter((e) => !e.deletedAt)) {
     let starts = [new Date(`${event.date}T12:00:00`)]
     if (event.recurrence) {
       try {

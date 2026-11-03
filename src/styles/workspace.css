@@ -1636,9 +1636,6 @@ button:disabled {
 .page-root-drop { margin-block:var(--space-8); padding:var(--space-12); border:1px dashed var(--border-strong); border-radius:var(--radius-control); font-size:var(--fs-small); }
 @media(pointer:coarse){ .page-tree-handle,.page-tree-toggle { width:var(--h-sidebar-item); min-width:var(--h-sidebar-item); height:var(--h-sidebar-item); } }
 
-.calendar-connect-step { margin-block: 24px; padding: 24px; display: grid; justify-items: start; gap: 12px; }
-.calendar-connect-step p { margin: 0; max-width: 60ch; line-height: 1.6; }
-.calendar-connect-step a { text-decoration: none; }
 
 .task-main { display:flex;flex:1;min-width:0;align-items:center; }
 .task-main .task-open { flex:1;min-width:0; }

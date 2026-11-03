@@ -76,7 +76,7 @@ export function SearchResults({
             icon: CheckSquare,
           })),
         ...events
-          .filter((e) => !e.deletedAt && !e.isSeriesMaster)
+          .filter((e) => !e.deletedAt)
           .map((e) => ({
             id: e.id,
             title: e.title,

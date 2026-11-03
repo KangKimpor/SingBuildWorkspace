@@ -81,7 +81,6 @@ let mockSnapshot: { scope: string; content: any; watermarks?: Record<string, str
 vi.mock('@/data/persistence', async () => ({
   ...await vi.importActual<typeof import('@/data/persistence')>('@/data/persistence'),
   collections: ['pages', 'projects', 'tasks', 'events', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'],
-  eventWriteReady: () => true,
   db: {
     snapshots: {
       get: async () => mockSnapshot ? structuredClone(mockSnapshot) : null,

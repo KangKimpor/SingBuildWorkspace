@@ -3,9 +3,9 @@ import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { supabase, initializeSupabase, hasStoredSession } from '@/lib/supabase'
 import { useWorkspaceUI } from '@/shell/workspace'
 import { contentOf, emptyContent, useWorkspace } from './index'
-import { collections, db, eventWriteReady, purgedRows } from './persistence'
+import { collections, db, purgedRows } from './persistence'
 import type { Collection, Content, Pending } from './persistence'
-import type { CalendarEvent, WorkspacePage } from './types'
+import type { WorkspacePage } from './types'
 import { syncWorkspaceFiles } from './files'
 import { changedFields, rebaseWrite } from './sync-merge'
 
@@ -646,7 +646,7 @@ export function syncWorkspace(refresh = true): Promise<void> {
       if (!valid()) return
       let conflicts = 0
       for (;;) {
-        const write = [...pending.values()].find((p) => p.collection !== 'events' || eventWriteReady(p.data as unknown as CalendarEvent))
+        const write = pending.values().next().value
         if (!write) break
         if (write.remove) {
           if (!['pages', 'tasks'].includes(write.collection)) throw new Error('Only trashed pages and tasks can be permanently deleted.')
@@ -788,11 +788,7 @@ export function syncWorkspace(refresh = true): Promise<void> {
     } finally {
       if (valid()) {
         activeRun = undefined
-        const delayed = [...pending.values()].filter((p) => p.collection === 'events' && !eventWriteReady(p.data as unknown as CalendarEvent))
-        if (!retry && delayed.length) {
-          const at = Math.min(...delayed.map((p) => Date.parse(String(p.data.deleteAfter))))
-          retryTimer = setTimeout(() => void syncWorkspace(false), Math.max(0, at - Date.now()))
-        } else if (!retry && (refreshRequested || refreshFull || pending.size)) queueMicrotask(() => void syncWorkspace(false))
+        if (!retry && (refreshRequested || refreshFull || pending.size)) queueMicrotask(() => void syncWorkspace(false))
       }
     }
   })()

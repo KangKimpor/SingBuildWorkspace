@@ -58,7 +58,7 @@ const cloud = vi.hoisted(() => {
 vi.mock('@/lib/supabase', () => ({ supabase: cloud.client, hasStoredSession: () => true, initializeSupabase: async () => cloud.client }))
 vi.mock('@/data/persistence', async () => ({
   ...await vi.importActual<typeof import('@/data/persistence')>('@/data/persistence'),
-  collections: ['pages', 'projects', 'tasks', 'events', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'], eventWriteReady: () => true,
+  collections: ['pages', 'projects', 'tasks', 'events', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'],
   db: { snapshots: { get: async () => { throw Error('IndexedDB disabled') }, put: async () => { throw Error('IndexedDB disabled') } }, outbox: { where: () => ({ equals: () => ({ toArray: async () => { throw Error('IndexedDB disabled') } }) }), delete: async () => {} } },
 }))
 vi.mock('@/data/files', () => ({ syncWorkspaceFiles: async (data: unknown) => data }))
