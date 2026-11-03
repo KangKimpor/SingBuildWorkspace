@@ -42,6 +42,31 @@ export const confirmedCount = (activities: NbcActivity[], submissions: NbcSubmis
   return submission?.status === 'confirmed' && submissionStatus(submission, week, activities) !== 'Needs review'
 }).length
 
+const columnNumber = (column: string) => [...column].reduce((n, c) => n * 26 + c.charCodeAt(0) - 64, 0)
+const columnName = (number: number) => { let name = ''; for (let n = number; n > 0; n = Math.floor((n - 1) / 26)) name = String.fromCharCode(65 + (n - 1) % 26) + name; return name }
+/** Shifts the relative A1 references of a shared-formula master to a dependent cell; `$` anchors and quoted text stay put. */
+function shiftFormula(formula: string, rows: number, columns: number) {
+  return formula.split(/("(?:[^"]|"")*")/).map((part, i) => i % 2 ? part : part.replace(/(^|[^A-Za-z0-9_.])(\$?)([A-Z]{1,3})(\$?)(\d+)(?![A-Za-z0-9_(])/g, (_, lead: string, cd: string, c: string, rd: string, r: string) =>
+    `${lead}${cd}${cd ? c : columnName(columnNumber(c) + columns)}${rd}${rd ? r : Number(r) + rows}`)).join('')
+}
+/** Excel stores repeated formulas once (the master) and refers dependents to it; rewriting a master would orphan them, so every cell gets its own formula. */
+function expandSharedFormulas(doc: Document) {
+  const masters = new Map<string, { formula: string; row: number; column: number }>()
+  const cells = elements(doc, 'c').flatMap(cell => { const f = elements(cell, 'f')[0]; return f?.getAttribute('t') === 'shared' ? [[cell, f] as const] : [] })
+  for (const [cell, f] of cells) if (f.textContent) {
+    const [, column, row] = /^([A-Z]+)(\d+)$/.exec(cell.getAttribute('r')!)!
+    masters.set(f.getAttribute('si')!, { formula: f.textContent, row: Number(row), column: columnNumber(column!) })
+  }
+  for (const [cell, f] of cells) {
+    if (!f.textContent) {
+      const master = masters.get(f.getAttribute('si')!), [, column, row] = /^([A-Z]+)(\d+)$/.exec(cell.getAttribute('r')!)!
+      if (!master) throw new Error('The Excel template contains an unreadable shared formula.')
+      f.textContent = shiftFormula(master.formula, Number(row) - master.row, columnNumber(column!) - master.column)
+    }
+    for (const attribute of ['t', 'si', 'ref']) f.removeAttribute(attribute)
+  }
+}
+
 /** Shared read-only validation; only supported weight arithmetic is evaluated. */
 export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[]) {
   if (!activities.length) throw new Error('There are no BOQ activities to export.')
@@ -66,6 +91,7 @@ export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[])
     return path
   })
   const docs = paths.map(path => xml(files[path]))
+  for (const doc of docs) expandSharedFormulas(doc)
   const read = (cell: Element | undefined) => {
     if (!cell) return ''
     if (cell.getAttribute('t') === 's') return strings[Number(elements(cell, 'v')[0]?.textContent)] ?? ''
@@ -248,10 +274,14 @@ export function weeklyWorkbook(template: Uint8Array, activities: NbcActivity[], 
   if (!total || read(findCell(total, 'J')) !== 'TOTAL') throw new Error('The template is missing its progress total row.')
   const roots = current.children.get(null) ?? [], weight = roots.reduce((sum, a) => sum + a.relativeWeight, 0)
   const weighted = (column: string) => roots.map(a => `K${rowNumber(a)}*${column}${rowNumber(a)}`).join('+')
-  set(total, 'L', weight ? previous.overall / weight : 0, `IFERROR((${weighted('L')})/K5,0)`)
-  set(total, 'N', weight ? current.overall / weight : 0, `IFERROR((${weighted('N')})/K5,0)`)
-  set(total, 'M', weight ? Math.round((current.overall - previous.overall) / weight * 1e6) / 1e6 : 0, 'ROUND(N5-L5,6)')
-  set(total, 'P', current.overall, `SUM(${roots.map(a => `P${rowNumber(a)}`).join(',')})`)
+  // BP02's TOTAL follows the workbook's own block weighting (Notes sheet), so its formulas stay and recalculate in Excel.
+  if (bp02) setCached(total, 'P', current.overall)
+  else {
+    set(total, 'L', weight ? previous.overall / weight : 0, `IFERROR((${weighted('L')})/K5,0)`)
+    set(total, 'N', weight ? current.overall / weight : 0, `IFERROR((${weighted('N')})/K5,0)`)
+    set(total, 'M', weight ? Math.round((current.overall - previous.overall) / weight * 1e6) / 1e6 : 0, 'ROUND(N5-L5,6)')
+    set(total, 'P', current.overall, `SUM(${roots.map(a => `P${rowNumber(a)}`).join(',')})`)
+  }
   const confirmed = confirmedCount(activities, submissions, week)
   for (const [i, doc] of docs.entries()) {
     let period = rows(doc).find(row => row.getAttribute('r') === '3')

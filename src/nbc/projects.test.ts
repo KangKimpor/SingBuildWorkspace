@@ -78,10 +78,15 @@ test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('private BP02 BOQ rec
   for (const a of activities) expect(c.progress.get(a.id)).toBeCloseTo(a.progress, 10)
   const template = new Uint8Array(readFileSync('.private/nbc-bp02/template.xlsx'))
   const doc = (bytes: Uint8Array) => new DOMParser().parseFromString(strFromU8(unzipSync(bytes)['xl/worksheets/sheet1.xml']!), 'application/xml')
-  expect(Number(doc(weeklyWorkbook(template, activities, [], '2026-10-26').bytes).querySelector('c[r="N5"] v')?.textContent)).toBeCloseTo(c.overall, 12)
+  expect(Number(doc(weeklyWorkbook(template, activities, [], '2026-10-26').bytes).querySelector('c[r="P5"] v')?.textContent)).toBeCloseTo(c.overall, 12)
+  // Excel's shared formulas must not be orphaned: every formula is written out and repeated MEP rows still link to Tola's floor row.
+  const sheet = new DOMParser().parseFromString(strFromU8(unzipSync(weeklyWorkbook(template, activities, [], '2026-10-26').bytes)['xl/worksheets/sheet1.xml']!), 'application/xml')
+  expect(sheet.querySelectorAll('f[t="shared"]')).toHaveLength(0)
+  const tolaLinks = [...sheet.querySelectorAll('c f')].filter(f => /^'Tola'!M\d+$/.test(f.textContent ?? '') && /^N\d+$/.test(f.parentElement!.getAttribute('r')!))
+  expect(tolaLinks.length).toBeGreaterThan(5000)
   const leaf = c.leaves.find(a => a.handler === 'Tola' && a.progress < 1)!
   const edited = activities.map(a => a.id === leaf.id ? { ...a, progress: 1 } : a)
-  expect(Number(doc(weeklyWorkbook(template, edited, [], '2026-10-26').bytes).querySelector('c[r="N5"] v')?.textContent)).toBeCloseTo(c.overall + leaf.globalWeight * (1 - leaf.progress), 12)
+  expect(Number(doc(weeklyWorkbook(template, edited, [], '2026-10-26').bytes).querySelector('c[r="P5"] v')?.textContent)).toBeCloseTo(c.overall + leaf.globalWeight * (1 - leaf.progress), 12)
 }, 120000)
 
 test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('BP02 export keeps its hierarchy column and floor code when a handler is reassigned', () => {
