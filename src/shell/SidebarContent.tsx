@@ -93,7 +93,6 @@ export function SidebarContent({
             <button
               type="button"
               className="nav-item sidebar-search"
-              aria-label="Search workspace"
               title="Search workspace"
               onClick={() => {
                 onNavigate?.()
