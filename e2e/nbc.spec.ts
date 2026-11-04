@@ -40,7 +40,7 @@ test('autosaved draft survives reload without changing live progress, then confi
   await page.reload(); await expect(page.getByLabel('This week % for 1.6.1.2')).toHaveValue('62.5%')
   await confirm(page, 'Crane coordination complete'); await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.getByLabel('This week % for 1.6.1.2')).toHaveCount(0)
-  await page.getByRole('link', { name: 'Overview', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Overview', exact: true }).click()
   await expect(page.getByText('1 of 6 handlers updated this week')).toBeVisible()
   await page.getByRole('button', { name: 'Expand Tola', exact: true }).click()
   await expect(page.getByRole('link', { name: 'Tola this week update' })).toContainText('Updated')

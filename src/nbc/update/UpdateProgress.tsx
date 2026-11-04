@@ -30,9 +30,9 @@ function UpdateScreen({ projectId, activities, submissions, handler, onChange }:
       ? <span className="nbc-deadline" data-tone={selected.late ? 'late' : 'ok'}>{selected.late ? 'Late' : 'On time'}</span>
       : deadline.tone !== 'late' && <span className="nbc-deadline" data-tone={deadline.tone}>{deadline.text}</span>}
     <button className="nbc-chip nbc-change-handler" aria-label={`Change handler, currently ${handler}`} onClick={onChange}>Change Handler</button>
-    <button className="nbc-chip nbc-expand-editor" aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>
+    <button className="nbc-chip nbc-expand-editor" aria-label={expanded ? 'Collapse editor' : 'Expand editor'} aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>
       {expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
-      {expanded ? 'Collapse editor' : 'Expand editor'}
+      {expanded ? 'Collapse' : 'Expand'}
     </button>
   </>
   return <section className="nbc-update" data-expanded={expanded} aria-label="Weekly progress update">

@@ -102,8 +102,8 @@
 }
 .nbc-update-gate { height: auto; min-height: 0; }
 /* Deadline and handler chips sit in the table's search row, so they inherit its height. */
-.nbc-update-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
-.nbc-update .nbc-update-controls .nbc-deadline { padding: 0 10px; min-height: var(--h-button); font-size: 12px; }
+.nbc-update-controls { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+.nbc-update .nbc-update-controls .nbc-deadline { padding: 0 8px; min-height: 30px; font-size: 11px; white-space: nowrap; }
 
 /* Segmented controls and chips */
 .nbc-seg { display: inline-flex; padding: 2px; border: 0; border-radius: 8px; background: var(--status-neutral-bg); }
@@ -390,6 +390,7 @@
   .nbc-update .nbc-wbs tr[data-level='1'] .nbc-unit { color: var(--text-secondary); }
   .nbc-update .nbc-wbs td[data-label]::before { font-family: var(--font-sans); }
   .nbc-update .nbc-filters { min-width: 0; }
+  .nbc-update .nbc-update-controls { flex-wrap: wrap; }
   .nbc-update .nbc-seg { max-width: 100%; overflow-x: auto; }
   .nbc-update .nbc-seg button { padding-inline: 8px; }
 }

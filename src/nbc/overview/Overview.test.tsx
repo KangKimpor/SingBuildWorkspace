@@ -17,7 +17,7 @@ test('headline numbers compare actual progress with the contract plan and deadli
   expect(kpis.getByText(/behind/)).toBeTruthy()
   expect(kpis.getByText('Plan: 100.0% by now')).toBeTruthy()
   expect(kpis.getByText('0 of 6 handlers updated this week')).toBeTruthy()
-  expect(kpis.getByText('2 days left')).toBeTruthy()
+  expect(kpis.getByText('2d left')).toBeTruthy()
 })
 
 test('forecast waits for a confirmed week, and attention lists handlers who have not updated', () => {

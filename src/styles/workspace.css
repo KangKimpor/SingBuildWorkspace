@@ -46,12 +46,6 @@ body {
   height: var(--space-24);
   color: var(--on-accent);
 }
-.sidebar-search {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  margin-block: var(--space-8) var(--space-12);
-  font-size: var(--fs-small);
-}
 .sidebar-foot {
   gap: var(--space-12);
 }

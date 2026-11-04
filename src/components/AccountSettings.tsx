@@ -1,21 +1,10 @@
 import { useState } from 'react'
-import {
-  ArrowRight,
-  Check,
-  Cloud,
-  Download,
-  Eye,
-  EyeOff,
-  LockKeyhole,
-  Mail,
-  RefreshCw,
-} from 'lucide-react'
+import { Check, Cloud, Download, LockKeyhole, RefreshCw } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { syncWorkspace, useAccount } from '@/data/sync'
 import { contentOf, useWorkspace } from '@/data'
 import './account-settings.css'
 
-type Mode = 'signin' | 'signup' | 'reset' | 'confirm'
 function GoogleMark() {
   return (
     <span className="google-mark" aria-hidden="true">
@@ -38,21 +27,9 @@ function backupWorkspace() {
 export function AccountSettings({ standalone = false, loading = false }: { standalone?: boolean; loading?: boolean }) {
   const { session, recovering, error: accountError } = useAccount()
   const sync = useWorkspace((s) => s.sync)
-  const [mode, setMode] = useState<Mode>('signin'),
-    [email, setEmail] = useState(''),
-    [password, setPassword] = useState(''),
-    [name, setName] = useState(''),
-    [visible, setVisible] = useState(false)
-  const [busy, setBusy] = useState(''),
-    [message, setMessage] = useState(''),
-    [error, setError] = useState('')
-  function changeMode(next: Mode) {
-    setMode(next)
-    setError('')
-    setMessage('')
-    setPassword('')
-    setVisible(false)
-  }
+  const [busy, setBusy] = useState('')
+  const [message, setMessage] = useState('')
+  const [error, setError] = useState('')
   async function run(action: string, work: () => Promise<void>) {
     setBusy(action)
     setError('')
@@ -68,49 +45,6 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
     } finally {
       setBusy('')
     }
-  }
-  async function submit() {
-    if (!supabase)
-      throw new Error(
-        'Account services are unavailable. Your local workspace is safe.',
-      )
-    const redirectTo = `${location.origin}/settings/account`
-    if (recovering) {
-      const { error } = await supabase.auth.updateUser({ password })
-      if (error) throw error
-      useAccount.setState({ recovering: false })
-      setPassword('')
-      setMessage('Your password has been updated.')
-      return
-    }
-    if (mode === 'reset') {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
-      })
-      if (error) throw error
-      setMessage('Check your inbox for a password reset link.')
-      return
-    }
-    if (mode === 'signup') {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: redirectTo,
-          data: { full_name: name.trim() },
-        },
-      })
-      if (error) throw error
-      if (!data.session) setMode('confirm')
-      setPassword('')
-      return
-    }
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    if (error) throw error
-    setPassword('')
   }
   async function google() {
     if (!supabase)
@@ -203,8 +137,6 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
         </button>
       </div>
     )
-  const isSignup = mode === 'signup',
-    isReset = mode === 'reset'
   const Heading = standalone ? 'h1' : 'h2'
   return (
     <div className="account-auth-layout">
@@ -212,192 +144,18 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
         className="account-auth-card flat-card"
         aria-label="Workspace authentication"
       >
-        {!recovering && mode !== 'confirm' && (
-          <nav className="account-mode-tabs" aria-label="Authentication mode">
-            <button
-              aria-current={mode === 'signin' || isReset ? 'page' : undefined}
-              onClick={() => changeMode('signin')}
-            >
-              Sign in
-            </button>
-            <button
-              aria-current={isSignup ? 'page' : undefined}
-              onClick={() => changeMode('signup')}
-            >
-              Create account
-            </button>
-          </nav>
-        )}
-        {mode === 'confirm' ? (
-          <div className="account-confirm">
-            <div className="account-section-icon">
-              <Mail size={24} />
-            </div>
-            <Heading>Check your inbox</Heading>
-            <p className="muted">
-              We sent a confirmation link to <strong>{email}</strong>. Open it
-              to finish creating your workspace account.
-            </p>
-            <p className="small muted">
-              Can’t find it? Check your spam folder.
-            </p>
-            <button className="btn-accent" onClick={() => changeMode('signin')}>
-              Back to sign in
-              <ArrowRight size={16} />
-            </button>
-          </div>
-        ) : (
-          <>
-            <header className="account-form-heading">
-              <Heading>
-                {recovering
-                  ? 'Choose a new password'
-                  : isReset
-                    ? 'Reset your password'
-                    : isSignup
-                      ? 'Make room for your ideas'
-                      : 'Welcome'}
-              </Heading>
-              {(recovering || isReset || isSignup) && <p className="muted">
-                {recovering
-                  ? 'Use a strong password to keep your workspace secure.'
-                  : isReset
-                    ? 'We’ll email you a link to get back in.'
-                    : isSignup
-                      ? 'Create your private workspace in a moment.'
-                      : 'Sign in to your SingBuild Workspace.'}
-              </p>}
-            </header>
-            {!isReset && !recovering && (
-              <>
-                <button
-                  className="account-google"
-                  disabled={loading || !!busy || !supabase}
-                  onClick={() => void run('google', google)}
-                >
-                  <GoogleMark />
-                  {busy === 'google'
-                    ? 'Opening Google…'
-                    : 'Continue with Google'}
-                </button>
-                <div className="account-divider">
-                  <span />
-                  or continue with email
-                  <span />
-                </div>
-              </>
-            )}
-            <form
-              className="account-auth-form"
-              onSubmit={(e) => {
-                e.preventDefault()
-                void run('email', submit)
-              }}
-            >
-              {isSignup && !recovering && (
-                <label>
-                  Your name
-                  <input
-                    autoComplete="name"
-                    required
-                    maxLength={100}
-                    placeholder="How should we call you?"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </label>
-              )}
-              {!recovering && (
-                <label>
-                  Email address
-                  <input
-                    type="email"
-                    autoComplete="email"
-                    required
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </label>
-              )}
-              {!isReset && (
-                <div className="account-password-field">
-                  <span className="account-password-label">
-                    <label htmlFor="account-password">{recovering ? 'New password' : 'Password'}</label>
-                    {!isSignup && !recovering && (
-                      <button
-                        className="text-link"
-                        type="button"
-                        onClick={() => changeMode('reset')}
-                      >
-                        Forgot password?
-                      </button>
-                    )}
-                  </span>
-                  <span className="account-password-input">
-                    <input
-                      id="account-password"
-                      type={visible ? 'text' : 'password'}
-                      aria-label={recovering ? 'New password' : 'Password'}
-                      autoComplete={
-                        isSignup || recovering
-                          ? 'new-password'
-                          : 'current-password'
-                      }
-                      required
-                      minLength={isSignup || recovering ? 12 : undefined}
-                      placeholder={
-                        isSignup || recovering
-                          ? 'At least 12 characters'
-                          : 'Enter your password'
-                      }
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      className="ibtn"
-                      aria-label={visible ? 'Hide password' : 'Show password'}
-                      onClick={() => setVisible(!visible)}
-                    >
-                      {visible ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                  </span>
-                  {(isSignup || recovering) && (
-                    <span className="small muted">
-                      Use at least 12 characters for a strong password.
-                    </span>
-                  )}
-                </div>
-              )}
-              {notice}
-              <button
-                className="btn-accent account-submit"
-                disabled={loading || !!busy || !supabase}
-              >
-                {busy === 'email'
-                  ? 'Please wait…'
-                  : recovering
-                    ? 'Update password'
-                    : isReset
-                      ? 'Send reset link'
-                      : isSignup
-                        ? 'Create your account'
-                        : 'Sign in'}
-                {!busy && <ArrowRight size={17} />}
-              </button>
-              {isReset && (
-                <button
-                  type="button"
-                  className="btn-text"
-                  onClick={() => changeMode('signin')}
-                >
-                  Back to sign in
-                </button>
-              )}
-            </form>
-          </>
-        )}
+        <header className="account-form-heading">
+          <Heading>Welcome</Heading>
+        </header>
+        {notice}
+        <button
+          className="account-google"
+          disabled={loading || !!busy || !supabase}
+          onClick={() => void run('google', google)}
+        >
+          <GoogleMark />
+          {busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
+        </button>
         {loading && <p className="small muted" role="status">Connecting to your account…</p>}
         {!loading && !supabase && <p className="account-notice account-error" role="alert">Account services are unavailable. Please try again shortly.</p>}
         {!standalone && <footer className="account-form-footer">

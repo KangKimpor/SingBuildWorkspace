@@ -5,8 +5,6 @@
 .auth-main .account-auth-layout { display:block; width:min(372px,100%); padding:0; }
 .auth-main .account-auth-card { padding:0; border:0; background:transparent; box-shadow:none; }
 .auth-main h1 { margin:0 0 8px; font-size:30px; font-weight:650; line-height:1.25; letter-spacing:-.025em; }
-.auth-main .account-mode-tabs { margin-bottom:28px; }
-.auth-main .account-submit { min-height:48px; background:#2563eb; color:#fff; }
-.auth-main .text-link { color:var(--accent-text); }
+.auth-main .account-form-heading { margin-bottom:28px; text-align:center; }
 .auth-footer { text-align:center; padding:24px; color:var(--text-secondary); font-size:12px; }
 @media(max-width:480px) { .auth-header { padding:20px 24px; } }

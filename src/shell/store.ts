@@ -10,19 +10,7 @@ export function breakpointFor(width: number): Breakpoint {
   return 'large'
 }
 
-export const SIDEBAR_MIN = 270
-export const SIDEBAR_MAX = 380
-export const SIDEBAR_DEFAULT = 270
-const WIDTH_KEY = 'kw-sidebar-w'
-
-function readWidth(): number {
-  try {
-    const n = Number(localStorage.getItem(WIDTH_KEY))
-    return n >= SIDEBAR_MIN && n <= SIDEBAR_MAX ? n : SIDEBAR_DEFAULT
-  } catch {
-    return SIDEBAR_DEFAULT
-  }
-}
+export const SIDEBAR_WIDTH = 270
 
 export type SheetKind = 'quick-add' | null
 
@@ -33,29 +21,16 @@ interface ShellState {
   /** Overlay drawer (medium) is open. */
   drawerOpen: boolean
   sheet: SheetKind
-  setSidebarWidth: (w: number) => void
   setSidebarOpen: (open: boolean) => void
   setDrawerOpen: (open: boolean) => void
   setSheet: (sheet: SheetKind) => void
 }
 
 export const useShell = create<ShellState>((set) => ({
-  sidebarWidth: readWidth(),
+  sidebarWidth: SIDEBAR_WIDTH,
   sidebarOpen: true,
   drawerOpen: false,
   sheet: null,
-  setSidebarWidth: (w) => {
-    const sidebarWidth = Math.min(
-      SIDEBAR_MAX,
-      Math.max(SIDEBAR_MIN, Math.round(w / 4) * 4),
-    )
-    try {
-      localStorage.setItem(WIDTH_KEY, String(sidebarWidth))
-    } catch {
-      /* storage unavailable */
-    }
-    set({ sidebarWidth })
-  },
   setSidebarOpen: (sidebarOpen) => set({ sidebarOpen }),
   setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
   setSheet: (sheet) => set({ sheet }),

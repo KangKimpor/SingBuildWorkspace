@@ -118,7 +118,7 @@ test('asks who is updating first and only opens the editor after Continue', () =
 
 test('the search row shows the Friday 11:59 PM deadline while the week stays Monday to Sunday', () => {
   render(<Screen/>)
-  expect(screen.getByText('Due Friday 11:59 PM · 3 days left')).toBeTruthy()
+  expect(screen.getByText('Due Fri 11:59 PM · 3d left')).toBeTruthy()
   expect(screen.queryByRole('heading', { name: 'Update Progress' })).toBeNull()
   expect(screen.queryByText(/^Tola · 26 Oct – 1 Nov/)).toBeNull()
 })

@@ -3,18 +3,15 @@ import {
   Building2,
   ChevronDown,
   ChevronRight,
+  Eye,
   PanelLeftClose,
   PanelLeftOpen,
-  Search,
   Settings,
   SquarePen,
-  Trash2,
 } from 'lucide-react'
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useProjects } from '@/data'
-import { modKey } from './store'
-import { useWorkspaceUI } from './workspace'
 
 const ic = { size: 18, strokeWidth: 1.75 } as const
 const expandedKey = 'kw-sidebar-expanded-projects'
@@ -88,24 +85,6 @@ export function SidebarContent({
       </div>
 
       <nav className="sidebar-body" aria-label="Primary">
-        <ul className="nav-list sidebar-tools">
-          <li>
-            <button
-              type="button"
-              className="nav-item sidebar-search"
-              title="Search workspace"
-              onClick={() => {
-                onNavigate?.()
-                useWorkspaceUI.getState().setCommandOpen(true)
-              }}
-            >
-              <span className="nav-icon"><Search size={17} /></span>
-              <span className="nav-label">Search workspace…</span>
-              <span className="kbd">{modKey()} K</span>
-            </button>
-          </li>
-        </ul>
-
         <div className="nav-section">
           <div className="t-caption"><NavLink to="/projects-progress" end onClick={onNavigate}>Projects Progress</NavLink></div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">
@@ -143,6 +122,7 @@ export function SidebarContent({
                     inert={!isExpanded}
                   >
                     <ul className="nav-list nav-project-views" aria-label={`${project.name} views`}>
+                      <Item to={`/projects-progress/${project.id}/overview`} icon={<Eye {...ic} />} label="Overview" onNavigate={onNavigate} />
                       <Item to={`/projects-progress/${project.id}/activities`} icon={<BarChart3 {...ic} />} label="Project Progress" onNavigate={onNavigate} />
                       <Item to={`/projects-progress/${project.id}/update`} icon={<SquarePen {...ic} />} label="Update Progress" onNavigate={onNavigate} />
                     </ul>
@@ -156,7 +136,6 @@ export function SidebarContent({
 
       <div className="sidebar-foot">
         <ul className="nav-list">
-          <Item to="/trash" icon={<Trash2 {...ic} />} label="Trash" onNavigate={onNavigate} />
           <Item to="/settings/appearance" icon={<Settings {...ic} />} label="Settings" onNavigate={onNavigate} />
         </ul>
       </div>

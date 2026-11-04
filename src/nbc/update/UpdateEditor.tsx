@@ -106,9 +106,11 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
       {areas.length > 1 && <GlassSelect aria-label="Work area" value={area} onChange={(e) => setArea(e.target.value)}><option value="">All areas</option>{areas.map((a) => <option key={a}>{a}</option>)}</GlassSelect>}
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
       <span className="nbc-spacer"/>
-      {controls && <div className="nbc-update-controls">{controls}</div>}
-      <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={expandAll}><ChevronsDown size={16}/></button>
-      <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={collapseAll}><ChevronsUp size={16}/></button>
+      <div className="nbc-update-controls">
+        {controls}
+        <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={expandAll}><ChevronsDown size={16}/></button>
+        <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={collapseAll}><ChevronsUp size={16}/></button>
+      </div>
     </div>
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}</p>}
     {rows.length === 0

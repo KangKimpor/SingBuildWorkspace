@@ -34,7 +34,6 @@ html:has(.nbc-project) .topbar [data-tone=error] { background: var(--status-dang
 html:has(.nbc-project) .topbar [data-testid=sync-pill] > span:not(.dot) { animation: precision-fade var(--dur-fast) var(--ease-standard); }
 html:has(.nbc-project) .dot { animation: none; width: 6px; height: 6px; border-radius: 999px; background: var(--status-success); }
 html:has(.nbc-project) .sync-check path { stroke-dasharray: 24; animation: precision-check var(--dur-base) var(--ease-enter); }
-html:has(.nbc-project) .sidebar-search kbd { min-width: max-content; }
 html:has(.nbc-project) .nav-projects .nav-item[aria-current=page] { background: var(--accent-selection); color: var(--accent-blue); border-radius: 8px; }
 html:has(.nbc-project) .scrim { background: var(--scrim); backdrop-filter: none; }
 html:has(.nbc-project) :is(.bsheet,.rsheet,.drawer,[role=dialog]) { box-shadow: 0 0 0 1px var(--border-subtle),0 6px 16px rgb(15 15 15 / 12%); }
