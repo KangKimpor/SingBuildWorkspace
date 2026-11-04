@@ -1,6 +1,7 @@
 import { useWorkspace } from '@/data'
 import { acknowledgeSavedRow, applyDeletedRow, changedAppliedActivityIds, flushPending, pendingCollectionIds, refreshCollections, syncWorkspace } from '@/data/sync'
 import { supabase } from '@/lib/supabase'
+import { handlerComplete } from './handlers'
 import { appliedEntries, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, validateEntries } from './submissions'
 import type { SubmissionOperation } from './submissions'
 import type { Handler, NbcActivity, NbcSubmission, SubmissionEntry } from './types'
@@ -22,7 +23,7 @@ export function draftEntries(week: string, handler: Handler, projectId = 'nbc-bp
   return (state.nbc_activities ?? []).filter((a) => a.projectId === project.id && canUpdate(a, handler)).map((a) => {
     if (existing.has(a.id)) {
       const saved = existing.get(a.id)!
-      if (a.wbs !== 'GR&P' && a.updatedAt && (!saved.baseRevision || (a.baselineResetAt && Date.parse(saved.baseRevision) < Date.parse(a.baselineResetAt)))) {
+      if (a.updatedAt && (!saved.baseRevision || (a.baselineResetAt && Date.parse(saved.baseRevision) < Date.parse(a.baselineResetAt)))) {
         return { ...saved, baseRevision: a.updatedAt }
       }
       return saved
@@ -41,14 +42,10 @@ function buildDraft(week: string, handler: Handler, entries: SubmissionEntry[], 
   if (submission?.status === 'confirmed') throw new Error('Choose Edit before changing a confirmed update.')
   if (note.length > 4000) throw new Error('Keep the note under 4,000 characters.')
   const activities = (state.nbc_activities ?? []).filter((a) => a.projectId === project.id)
+  if (handlerComplete(activities, handler)) throw new Error('This handler has completed all activities and can no longer update them.')
   validateEntries(entries, activities, handler)
   const byId = new Map(activities.map((a) => [a.id, a]))
-  const appliedIds = changedAppliedActivityIds(submission?.appliedEntries)
-  // Untouched shared GR&P never competes with another handler's update.
-  const savedEntries = entries.filter((e) => {
-    const a = byId.get(e.activityId)
-    return a?.wbs !== 'GR&P' || e.progress !== e.previous || e.remark !== a?.remark || appliedIds.has(e.activityId)
-  })
+  const savedEntries = entries.filter((e) => byId.has(e.activityId))
   const draft: NbcSubmission = { id, projectId: project.id, weekStart: week, handler, status: 'draft', confirmedAt: null, confirmedBy: null, late: false, note, entries: savedEntries, ...submission, updatedAt: new Date().toISOString() }
   draft.entries = savedEntries; draft.note = note
   if (submission && submission.status === 'draft' && submission.entries.length === savedEntries.length && sameDraftIntent(submission, draft)) {
@@ -86,7 +83,7 @@ function compactDraft(draft: NbcSubmission, activities: NbcActivity[]): NbcSubmi
   const appliedIds = changedAppliedActivityIds(draft.appliedEntries)
   const normalized = draft.entries.map((e) => {
     const a = byId.get(e.activityId)
-    if (a && a.wbs !== 'GR&P' && a.updatedAt && (!e.baseRevision || (a.baselineResetAt && Date.parse(e.baseRevision) < Date.parse(a.baselineResetAt)))) {
+    if (a && a.updatedAt && (!e.baseRevision || (a.baselineResetAt && Date.parse(e.baseRevision) < Date.parse(a.baselineResetAt)))) {
       return { ...e, baseRevision: a.updatedAt }
     }
     return e
@@ -129,6 +126,9 @@ async function ensureDraftOnServer(draft: NbcSubmission, scope: string): Promise
 
 async function operate(week: string, handler: Handler, operation: SubmissionOperation, projectId: string) {
   let { state, id, submission } = context(week, handler, projectId)
+  if (operation !== 'undo' && handlerComplete((state.nbc_activities ?? []).filter((a) => a.projectId === projectId), handler)) {
+    throw new Error('This handler has completed all activities and can no longer update them.')
+  }
   if (!submission) throw new Error('Update not found.')
   if (state.scope === 'guest') {
     const result = transitionSubmission({ activities: state.nbc_activities ?? [], submissions: state.nbc_submissions ?? [], summaries: state.nbc_summaries ?? [] }, id, operation, state.scope)

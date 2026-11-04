@@ -1,10 +1,26 @@
 import { registerSW } from 'virtual:pwa-register'
 import { useInstall } from './install'
+import { announceUpdate } from './update'
 
 let registered = false
+
 export function registerUpdates() {
   if (registered) return
   registered = true
+  if ('serviceWorker' in navigator) {
+    const hadController = !!navigator.serviceWorker.controller
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      // This tab already shows its own notice, so reload it as soon as it is controlled.
+      if (useInstall.getState().update) {
+        location.reload()
+        return
+      }
+      // A first installation claims this page, which already runs the newest build.
+      if (!hadController) return
+      // Another tab activated a deployment: show the notice here and adopt it too.
+      announceUpdate(async () => location.reload())
+    })
+  }
   const updateSW = registerSW({
     immediate: true,
     onRegisteredSW(_url, registration) {
@@ -19,21 +35,9 @@ export function registerUpdates() {
       setInterval(check, 60_000)
       check()
     },
-    // Reload only the tab that requested it, including its first installation session.
     onNeedReload() {},
     onNeedRefresh() {
-      useInstall.setState({
-        update: async () => {
-          const reload = () => location.reload()
-          navigator.serviceWorker.addEventListener('controllerchange', reload, { once: true })
-          try {
-            await updateSW(true)
-          } catch (error) {
-            navigator.serviceWorker.removeEventListener('controllerchange', reload)
-            throw error
-          }
-        },
-      })
+      announceUpdate(() => updateSW(true))
     },
   })
 }

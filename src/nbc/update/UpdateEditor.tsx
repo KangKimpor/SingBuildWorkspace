@@ -110,7 +110,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
       <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={expandAll}><ChevronsDown size={16}/></button>
       <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={collapseAll}><ChevronsUp size={16}/></button>
     </div>
-    {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}{draft.error.includes('GR&P changed') && <button className="text-link" onClick={draft.reloadShared}>Reload shared GR&amp;P</button>}</p>}
+    {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}</p>}
     {rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
       : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}. GR&P is shared by all handlers.`} collapsed={openGroups} onToggle={toggle}

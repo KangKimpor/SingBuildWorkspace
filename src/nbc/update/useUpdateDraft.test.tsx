@@ -31,7 +31,7 @@ test('typing a valid value marks the activity changed and moves the weighted con
   const { result } = setup()
   act(() => result.current.setText('nbc:1.6.1.2', '65'))
   expect(result.current.changed).toHaveLength(1)
-  expect(result.current.contribution).toBeCloseTo(0.24, 10)
+  expect(result.current.contribution).toBeCloseTo(0.3, 10)
   expect(result.current.invalid.size).toBe(0)
 })
 
@@ -49,7 +49,7 @@ test('a valid value autosaves once after 400 ms and never changes live progress'
   expect(useWorkspace.getState().nbc_submissions ?? []).toHaveLength(0)
   act(() => { vi.advanceTimersByTime(450) })
   expect(useWorkspace.getState().nbc_submissions).toHaveLength(1)
-  expect(useWorkspace.getState().nbc_activities![3]!.progress).toBe(0.25)
+  expect(useWorkspace.getState().nbc_activities![2]!.progress).toBe(0.25)
   expect(result.current.status).toBe('saved')
 })
 
@@ -63,6 +63,8 @@ test('confirm is blocked while any value is invalid and keeps the draft', async 
 })
 
 test('one invalid row does not hide the other edits', () => {
+  const [, , board] = fixtureActivities()
+  useWorkspace.setState({ nbc_activities: [...fixtureActivities(), { ...board!, id: 'nbc:1.6.1.3', wbs: '1.6.1.3', name: 'Extra', order: 4, relativeWeight: 0, globalWeight: 0 }] })
   const { result } = setup()
   act(() => result.current.setText('nbc:1.6.1.2', 'abc'))
   const other = result.current.rows.find((e) => e.activityId !== 'nbc:1.6.1.2')!

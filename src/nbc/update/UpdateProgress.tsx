@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Maximize2, Minimize2 } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import { useWorkspace } from '@/data'
+import { handlerComplete } from '../handlers'
 import { submissionId, weekStart } from '../submissions'
 import { projectHandlers } from '../types'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
@@ -18,6 +19,11 @@ function UpdateScreen({ projectId, activities, submissions, handler, onChange }:
   const week = weekStart()
   const selected = submissions.find((s) => s.id === submissionId(projectId, week, handler))
   const deadline = deadlineNote(week, now)
+  if (handlerComplete(activities, handler)) return <div className="nbc-gate" data-complete="true">
+    <h2>{handler} is complete</h2>
+    <p className="muted">Every activity assigned to {handler} is at 100%, so this update is locked. If more work is needed, an activity must first be reassigned or corrected.</p>
+    <button className="btn-secondary nbc-gate-go" onClick={onChange}>Choose another handler</button>
+  </div>
   // Deadline and editor controls sit in the table's search row so the header row is not needed.
   const controls = <>
     {selected?.status === 'confirmed'

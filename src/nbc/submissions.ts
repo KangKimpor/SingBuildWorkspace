@@ -25,7 +25,7 @@ export function assertEditableWeek(week: string, now = new Date()) {
   if (weekStart(week) !== week || ![current, addDays(current, -7)].includes(week)) throw new Error('Only this week and last week can be changed.')
 }
 export const submissionId = (project: string, week: string, handler: Handler) => `${project}:${week}:${handler}`
-export const canUpdate = (activity: NbcActivity, handler: Handler) => activity.editable && (activity.handler === handler || activity.wbs === 'GR&P')
+export const canUpdate = (activity: NbcActivity, handler: Handler) => activity.editable && activity.handler === handler
 export const appliedEntries = (s: NbcSubmission) => s.status === 'confirmed' ? s.entries : s.appliedEntries ?? []
 export const changedEntries = (entries: SubmissionEntry[]) => entries.filter((e) => Math.abs(e.progress - e.previous) > 1e-12)
 /**
@@ -64,8 +64,8 @@ export function weekLabel(week: string) {
 export function submissionStatus(s: NbcSubmission | undefined, week: string, activities: NbcActivity[], now = Date.now()) {
   if (s?.confirmedAt) {
     const byId = new Map(activities.map((a) => [a.id, a]))
-    const assigned = new Set(activities.filter((a) => a.editable && a.wbs !== 'GR&P' && a.handler === s.handler).map((a) => a.id))
-    const recorded = new Set(appliedEntries(s).filter((e) => byId.get(e.activityId)?.wbs !== 'GR&P').map((e) => e.activityId))
+    const assigned = new Set(activities.filter((a) => a.editable && a.handler === s.handler).map((a) => a.id))
+    const recorded = new Set(appliedEntries(s).filter((e) => byId.has(e.activityId)).map((e) => e.activityId))
     if (assigned.size !== recorded.size || [...assigned].some((id) => !recorded.has(id))) return 'Needs review'
   }
   return s?.status === 'confirmed' ? s.late ? 'Updated late' : 'Updated' : now >= weekDeadline(week) ? 'Overdue' : 'Not yet'
@@ -76,7 +76,7 @@ export function validateEntries(entries: SubmissionEntry[], activities: NbcActiv
   const byId = new Map(activities.map((a) => [a.id, a]))
   for (const e of entries) {
     const activity = byId.get(e.activityId)
-    if (!activity || !canUpdate(activity, handler)) throw new Error('Update only your activities or shared GR&P.')
+    if (!activity || !canUpdate(activity, handler)) throw new Error('Update only your own activities.')
     percentage(e.previous); percentage(e.progress)
     if (typeof e.remark !== 'string' || e.remark.length > 4000) throw new Error('Remarks must be 4,000 characters or fewer.')
   }
@@ -98,13 +98,12 @@ export function transitionSubmission(input: SubmissionState, id: string, operati
   if (operation === 'confirm') {
     if (submission.status !== 'draft') throw new Error('This update is already confirmed.')
     // Work assigned after this draft was saved joins as unchanged, so a late assignment never dead-ends a confirmation.
-    const assigned = project.filter((a) => canUpdate(a, submission.handler) && a.wbs !== 'GR&P')
+    const assigned = project.filter((a) => canUpdate(a, submission.handler))
     const recorded = new Set(submission.entries.map((e) => e.activityId))
     for (const a of assigned) if (!recorded.has(a.id)) submission.entries.push({ activityId: a.id, previous: a.progress, progress: a.progress, remark: a.remark, baseRevision: a.updatedAt })
     validateEntries(submission.entries, project, submission.handler)
     for (const e of submission.entries) {
       const a = byId.get(e.activityId)!
-      if (a.wbs === 'GR&P' && (a.updatedAt ?? '') !== (e.baseRevision ?? '')) throw new Error('GR&P changed in another update. Reload it before confirming.')
       if (!bases.has(a.id)) bases.set(a.id, { progress: a.progress, remark: a.remark })
     }
     submission.status = 'confirmed'; submission.confirmedAt = at; submission.confirmedBy = editor
@@ -151,7 +150,7 @@ export function transitionSubmission(input: SubmissionState, id: string, operati
     const values = new Map(project.filter((a) => a.editable).map((a) => [a.id, updatedById.get(a.id)!.progress]))
     for (const s of [...chain].reverse()) if (s.weekStart > week) for (const e of [...appliedEntries(s)].reverse()) values.set(e.activityId, e.previous)
     const overall = calculate(project, values).overall, contributions: Record<string, number> = {}
-    for (const a of project.filter((a) => a.editable)) contributions[a.wbs === 'GR&P' ? 'GR&P' : a.handler] = (contributions[a.wbs === 'GR&P' ? 'GR&P' : a.handler] ?? 0) + a.globalWeight * values.get(a.id)!
+    for (const a of project.filter((a) => a.editable)) contributions[a.handler] = (contributions[a.handler] ?? 0) + a.globalWeight * values.get(a.id)!
     const previousValues = new Map(values)
     for (const s of [...chain].reverse()) if (s.weekStart === week) for (const e of [...appliedEntries(s)].reverse()) previousValues.set(e.activityId, e.previous)
     const summary = { id: `${submission.projectId}:${week}`, projectId: submission.projectId, weekStart: week, overall, previous: calculate(project, previousValues).overall, contributions, updatedAt: at }

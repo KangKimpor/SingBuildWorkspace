@@ -15,6 +15,8 @@ function Screen({ handler = 'Tola' }: { handler?: string | null }) {
   const activities = useWorkspace((s) => s.nbc_activities!), submissions = useWorkspace((s) => s.nbc_submissions ?? [])
   return <MemoryRouter initialEntries={[handler ? `/update?handler=${handler}` : '/update']}><UpdateProgress projectId={fixtureProject.id} activities={activities} submissions={submissions}/></MemoryRouter>
 }
+// Sitha's only fixture activity is finished, which would lock the handler; a second, unfinished one keeps the update open.
+const withOpenSithaWork = (a: ReturnType<typeof fixtureActivities>) => { a.push({ ...a[1]!, id: 'nbc:1.6.1.3', wbs: '1.6.1.3', name: 'Extra', progress: .2, baseline: .2, order: 4, relativeWeight: 0, globalWeight: 0 }) }
 const wbsOrder = () => [...document.querySelectorAll('tbody tr[data-wbs]')].map((r) => r.getAttribute('data-wbs'))
 const value = (wbs: string) => screen.getByLabelText(`This week % for ${wbs}`) as HTMLInputElement
 
@@ -45,9 +47,9 @@ test('expanding and collapsing the editor preserves typed progress and remarks',
   expect(screen.getByLabelText('Remark for 1.6.1.2')).toHaveValue('Inspection rework')
 })
 
-test('shows the handler leaves under their ancestor groups, then shared GR&P once', () => {
+test('shows the handler leaves under their ancestor groups', () => {
   render(<Screen/>)
-  expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.2', 'GR&P'])
+  expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.2'])
   expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['WBS', 'Description', 'Previous week %', 'This week %', 'Remark'])
 })
 
@@ -66,8 +68,9 @@ test('invalid text keeps its group expanded and visible when the group is collap
 })
 
 test('Needs update hides finished rows but never a row that was edited or is changed', () => {
+  load(withOpenSithaWork)
   render(<Screen handler="Sitha"/>)
-  expect(wbsOrder()).toEqual(['GR&P'])
+  expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.3'])
   fireEvent.click(screen.getByRole('button', { name: /^All/ }))
   expect(wbsOrder()).toContain('1.6.1.1')
   fireEvent.change(value('1.6.1.1'), { target: { value: '90' } })
@@ -78,7 +81,7 @@ test('Needs update hides finished rows but never a row that was edited or is cha
 
 test('the Changed filter lists only rows that differ from last week', () => {
   render(<Screen/>)
-  expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.2', 'GR&P'])
+  expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.2'])
   fireEvent.click(screen.getByRole('button', { name: /^Changed/ }))
   expect(screen.getByText(/No changes yet/)).toBeTruthy()
   fireEvent.click(screen.getByRole('button', { name: /^All/ }))
@@ -87,12 +90,10 @@ test('the Changed filter lists only rows that differ from last week', () => {
   expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.2'])
 })
 
-test('shows an empty state with a way back when every row is completed', () => {
-  load((a) => { for (const x of a) if (x.wbs === 'GR&P') { x.progress = 1; x.baseline = 1 } })
+test('a handler whose activities are all at 100% is locked out of the update', () => {
   render(<Screen handler="Sitha"/>)
-  expect(screen.getByText(/Nothing needs an update/)).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: 'Show all activities' }))
-  expect(wbsOrder()).toContain('GR&P')
+  expect(screen.getByText('Sitha is complete')).toBeTruthy()
+  expect(document.querySelector('tbody tr[data-wbs]')).toBeNull()
 })
 
 test('people type percentages themselves: there are no preset chips', () => {

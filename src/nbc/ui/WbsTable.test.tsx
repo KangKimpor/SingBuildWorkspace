@@ -5,7 +5,7 @@ import { buildWbsRows } from '../wbs-table'
 import { WbsTable } from './WbsTable'
 import type { NbcActivity } from '../types'
 
-const base = fixtureActivities()[2]!
+const base = fixtureActivities()[1]!
 const node = (wbs: string, parent: string | null, patch: Partial<NbcActivity> = {}): NbcActivity => ({ ...base, id: `nbc:${wbs}`, wbs, name: `Name ${wbs}`, parentId: parent ? `nbc:${parent}` : null, editable: false, relativeWeight: 1, globalWeight: 0.1, baseline: 0, progress: 0, history: [], ...patch })
 const activities = [node('1.6.1', null, { order: 1 }), node('1.6.1.1', '1.6.1', { order: 2 }), node('1.6.1.1.1', '1.6.1.1', { order: 3, editable: true, progress: 0.4 })]
 

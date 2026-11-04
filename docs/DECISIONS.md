@@ -96,3 +96,7 @@ The user clarified that bigger means the page fills the screen, with normal text
 ## D-20 Remove Google Calendar integration · November 3, 2026
 
 Google Calendar sync consumed most of the Supabase Free Plan egress: a poll across every connected calendar, with 2,393 provider events (about 2 MB) pulled into every client. The user chose to remove it entirely. Delete the client sync loop, push/acknowledge path, event-editor Google fields, `kw-google` Edge Function source, Vercel proxy and CSP entry. Local events stay and now write through the normal workspace queue. Workspace sign-in with Google is separate Supabase Auth and is kept. Database cleanup (provider events and the Google tables) is a separate, explicitly approved step.
+
+## D-21 Automatic PWA updates with a visible notice · November 4, 2026
+
+Users should always run the latest build, so a waiting service worker is no longer gated behind Reload and Later. On discovery the app shows "Updating to the latest version…" with a spinner, activates the update after a 1.5-second visible grace period and reloads that tab; hidden tabs activate immediately so the next visit is current, and other open tabs show the same notice and adopt the update when one tab activates it. A failed activation keeps the notice with Retry. Rejected: pure `registerType: 'autoUpdate'`, because the generated client reloads as soon as the new worker activates, leaving no visible updating state; rejected: keeping Later, because it lets tabs sit on stale builds indefinitely.

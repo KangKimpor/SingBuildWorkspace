@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { handlerComplete } from '../handlers'
 import { canUpdate, submissionId, weekLabel } from '../submissions'
 import { projectHandlers } from '../types'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
@@ -14,10 +15,11 @@ export function HandlerGate({ projectId, week, activities, submissions, onChoose
     <div className="nbc-gate-list" role="group" aria-label="Handler">
       {projectHandlers(projectId).map((h) => {
         const done = submissions.find((s) => s.id === submissionId(projectId, week, h))?.status === 'confirmed'
-        const count = activities.filter((a) => canUpdate(a, h) && a.wbs !== 'GR&P').length
-        return <button key={h} aria-pressed={picked === h} onClick={() => setPicked(h)}>
+        const complete = handlerComplete(activities, h)
+        const count = activities.filter((a) => canUpdate(a, h)).length
+        return <button key={h} aria-pressed={picked === h} disabled={complete} onClick={() => setPicked(h)}>
           <span><strong>{h}</strong><small>{count} activities</small></span>
-          <span className="nbc-pill" data-status={done ? 'Updated' : 'Not yet'}>{done ? 'Updated' : 'Not yet'}</span>
+          <span className="nbc-pill" data-status={complete ? 'Complete' : done ? 'Updated' : 'Not yet'}>{complete ? 'Complete' : done ? 'Updated' : 'Not yet'}</span>
         </button>
       })}
     </div>

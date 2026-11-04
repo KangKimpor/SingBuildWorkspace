@@ -123,7 +123,7 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   cloud.state.row('projects', fixtureProject.id, fixtureProject)
   for (const activity of fixtureActivities()) cloud.state.row('nbc_activities', activity.id, activity as unknown as Record<string, unknown>)
   await syncWorkspace()
-  await waitFor(() => expect(useWorkspace.getState().nbc_activities).toHaveLength(4))
+  await waitFor(() => expect(useWorkspace.getState().nbc_activities).toHaveLength(3))
   saveDraft(week,'Tola',draftEntries(week,'Tola').map((e)=>({...e,progress:e.activityId==='nbc:1.6.1.2'?.5:e.progress})),'Saved through existing cloud queue')
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
   const reportId=useWorkspace.getState().nbc_submissions![0]!.id
@@ -173,7 +173,7 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   cloud.state.gate = null; release(); oldHandler.fn()
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
   expect(useWorkspace.getState().projects.map((p)=>p.id)).toEqual([fixtureProject.id])
-  expect(useWorkspace.getState().nbc_activities).toHaveLength(4)
+  expect(useWorkspace.getState().nbc_activities).toHaveLength(3)
   expect(useWorkspace.getState().nbc_submissions).toHaveLength(1)
   expect(cloud.client.removeChannel).toHaveBeenCalled()
   expect(useAccount.getState().session?.user.id).toBe('account-b')

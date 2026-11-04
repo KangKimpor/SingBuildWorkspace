@@ -16,7 +16,7 @@ test('headline numbers compare actual progress with the contract plan and deadli
   expect(kpis.getByText('130 days overdue')).toBeTruthy()
   expect(kpis.getByText(/behind/)).toBeTruthy()
   expect(kpis.getByText('Plan: 100.0% by now')).toBeTruthy()
-  expect(kpis.getByText('0 of 7 handlers updated this week')).toBeTruthy()
+  expect(kpis.getByText('0 of 6 handlers updated this week')).toBeTruthy()
   expect(kpis.getByText('3 days left')).toBeTruthy()
 })
 
@@ -24,7 +24,7 @@ test('forecast waits for a confirmed week, and attention lists handlers who have
   show()
   expect(screen.getByText(/forecast appears after the first confirmed week/i)).toBeTruthy()
   const attention = within(screen.getByRole('region', { name: 'Needs attention' }))
-  expect(attention.getByText('Sitha, Tola have not updated')).toBeTruthy()
+  expect(attention.getByText('Tola has not updated')).toBeTruthy()
   expect(attention.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('/projects-progress/nbc-bp03/update')
 })
 

@@ -23,17 +23,17 @@ test('a confirmed current-week update shows Updated and its changed count', () =
   setup([confirmed(current, 0.5)])
   expect(within(row('Tola')).getByText('Updated')).toBeTruthy()
   expect(within(row('Tola')).getByText('1')).toBeTruthy()
-  expect(within(row('Sitha')).getByText('Not yet')).toBeTruthy()
+  expect(within(row('Sitha')).getAllByText('Complete').length).toBeGreaterThan(0)
 })
 
-test('contribution tracks retain the true project share, including zero and shared work', () => {
+test('contribution tracks retain the true project share, including zero work', () => {
   const activities = fixtureActivities()
-  activities[0]!.progress = .5
+  activities[2]!.progress = .5
   render(<MemoryRouter><HandlerTable projectId={fixtureProject.id} activities={activities} submissions={[]} now={now}/></MemoryRouter>)
-  expect(screen.getByRole('progressbar', { name: 'Tola contribution' })).toHaveAttribute('value', '0.15')
+  expect(screen.getByRole('progressbar', { name: 'Tola contribution' })).toHaveAttribute('value', '0.375')
   expect(screen.getByRole('progressbar', { name: 'Kheng contribution' })).toHaveAttribute('value', '0')
-  expect(Number(screen.getByRole('progressbar', { name: 'Total project contribution' }).getAttribute('value'))).toBeCloseTo(.45)
-  expect(screen.getByText('45.00%')).toBeTruthy()
+  expect(Number(screen.getByRole('progressbar', { name: 'Total project contribution' }).getAttribute('value'))).toBeCloseTo(.625)
+  expect(screen.getByText('62.50%')).toBeTruthy()
 })
 
 test('expanding a handler shows this week, last week as Missing, and a collapsed Older weeks', () => {

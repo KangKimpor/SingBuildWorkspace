@@ -7,7 +7,7 @@ declare global {
   interface Window { workerRegistrationPaints: string[]; workerRegistrationHasWorkspace: boolean }
 }
 
-test('first install is offline-ready and later updates reload only on request', async ({ page }) => {
+test('first install is offline-ready and later updates apply automatically', async ({ page }) => {
   await page.addInitScript(() => {
     const register = ServiceWorkerContainer.prototype.register
     ServiceWorkerContainer.prototype.register = function (...args) {
@@ -49,15 +49,15 @@ test('first install is offline-ready and later updates reload only on request', 
     // Exercise both the first-install session and a returning, already controlled tab.
     for (let attempt = 0; attempt < 2; attempt++) {
       revision++
+      const reloaded = page.waitForEvent('domcontentloaded')
       // Returning to an open desktop app or reconnecting must discover deployments.
       await page.evaluate((event) => window.dispatchEvent(new Event(event)), attempt === 0 ? 'focus' : 'online')
-      await expect(page.getByText('New version available', { exact: true })).toBeVisible()
+      await expect(page.getByText('Updating to the latest version…', { exact: true })).toBeVisible()
       expect(loads).toBe(attempt)
-      await Promise.all([
-        page.waitForEvent('domcontentloaded'),
-        page.getByRole('button', { name: 'Reload', exact: true }).click(),
-      ])
+      // The notice is visible while the new worker activates, then the tab reloads itself.
+      await reloaded
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+      await page.waitForFunction(() => !!navigator.serviceWorker.controller)
       expect(loads).toBe(attempt + 1)
     }
   } finally {

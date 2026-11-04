@@ -1,6 +1,6 @@
 import { confirmationTime } from '../format'
 
-export type UpdateStatus = 'Updated' | 'Updated late' | 'Not yet' | 'Overdue' | 'Needs review'
+export type UpdateStatus = 'Updated' | 'Updated late' | 'Not yet' | 'Overdue' | 'Needs review' | 'Complete'
 
 /** Soft tinted pill; the text label always accompanies the colour. */
 export function StatusPill({ status, time }: { status: UpdateStatus; time?: string | null }) {

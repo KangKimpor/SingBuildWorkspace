@@ -27,9 +27,9 @@ export function assignActivities(ids: string[], handler: string) {
 export function updateActivity(id: string, patch: Pick<Partial<NbcActivity>, 'progress' | 'handler' | 'remark'>) {
   const state = useWorkspace.getState(), activities = state.nbc_activities ?? []
   const activity = activities.find((a) => a.id === id)
-  if (!activity?.editable) throw new Error('Only leaf activities and GR&P can be edited.')
+  if (!activity?.editable) throw new Error('Only leaf activities can be edited.')
   if (patch.progress !== undefined || patch.remark !== undefined) throw new Error('Use a handler draft and Confirm update.')
-  if (patch.handler !== undefined && !projectHandlers(activity.projectId).includes(patch.handler as Handler) && !(activity.wbs === 'GR&P' && patch.handler === '')) throw new Error('Choose a valid handler.')
+  if (patch.handler !== undefined && !projectHandlers(activity.projectId).includes(patch.handler as Handler)) throw new Error('Choose a valid handler.')
   if (Object.entries(patch).every(([key, value]) => activity[key as keyof NbcActivity] === value)) return
   if (state.scope !== 'guest') {
     if (!useAccount.getState().session) throw new Error('Wait for cloud sync before reassigning activities.')

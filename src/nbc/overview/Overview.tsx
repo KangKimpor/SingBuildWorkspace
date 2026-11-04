@@ -2,6 +2,7 @@ import './overview.css'
 import { useEffect, useMemo, useState } from 'react'
 import type { ProjectSummary } from '@/data'
 import { calculate } from '../progress'
+import { handlerComplete } from '../handlers'
 import { addDays, weekLabel, weekStart } from '../submissions'
 import { percent } from '../format'
 import { daysBetween, daysToCompletion, projectPlan, planDate, plannedProgress } from '../plan'
@@ -26,7 +27,11 @@ export default function Overview({ project, activities, submissions, summaries, 
   const overall = useMemo(() => { try { return calculate(activities).overall } catch { return 0 } }, [activities])
   const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }), current = weekStart(today)
   const owners = projectHandlers(project.id)
-  const updated = owners.filter((h) => submissions.some((s) => s.handler === h && s.weekStart === current && s.status === 'confirmed'))
+  const active = owners.filter((h) => !handlerComplete(activities, h))
+  const updated = active.filter((h) => submissions.some((s) => s.handler === h && s.weekStart === current && s.status === 'confirmed'))
+  const reporting = active.length
+    ? `${updated.length} of ${active.length} handlers updated this week${updated.length < active.length ? `. Outstanding: ${active.filter((h) => !updated.includes(h)).join(', ')}` : ''}`
+    : 'All handler work is complete.'
   const thisWeek = summaries.find((s) => s.weekStart === current), lastWeek = summaries.find((s) => s.weekStart === addDays(current, -7))
   const plan = projectPlan(project.id)
   const planned = plan ? plannedProgress(today, plan.points) : null, gap = planned === null ? null : overall - planned, days = plan ? daysToCompletion(today, plan.completion) : null
@@ -39,7 +44,7 @@ export default function Overview({ project, activities, submissions, summaries, 
     planned === null || gap === null ? `Overall progress ${percent(overall, 1)}. No planned curve is loaded for this project.` : `Overall progress ${percent(overall, 1)}, ${percent(Math.abs(gap), 1)} ${gap < 0 ? 'behind' : 'ahead of'} the plan (${percent(planned, 1)} planned by now).`,
     plan && days !== null ? `Completion deadline ${planDate(plan.completion)}: ${days < 0 ? `${-days} days overdue` : `${days} days left`}.` : 'Completion deadline: not provided.',
     forecast,
-    `${updated.length} of ${owners.length} handlers updated this week${updated.length < owners.length ? `. Outstanding: ${owners.filter((h) => !updated.includes(h)).join(', ')}` : ''}.`,
+    `${reporting}`,
     ...attention.map((i) => `Attention: ${i.title} (${i.detail}).`),
   ]
 
@@ -49,7 +54,7 @@ export default function Overview({ project, activities, submissions, summaries, 
       <div className="nbc-kpi"><span className="nbc-kpi-label">Overall progress</span><strong className="nbc-kpi-value">{percent(overall, 1)}</strong><span className="small muted">{thisWeek ? `${thisWeek.overall >= thisWeek.previous ? '+' : '−'}${pts(thisWeek.overall - thisWeek.previous)} this week` : lastWeek ? `Last week ${percent(lastWeek.overall, 1)}` : 'No confirmed week yet'}</span></div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Versus plan</span>{gap === null || planned === null ? <><strong className="nbc-kpi-value">No plan</strong><span className="small muted">No planned curve supplied</span></> : <><strong className="nbc-kpi-value" data-tone={gap < -0.04 ? 'bad' : gap < -0.01 ? 'warn' : 'ok'}>{percent(Math.abs(gap), 1)} {gap < 0 ? 'behind' : 'ahead'}</strong><span className="small muted">Plan: {percent(planned, 1)} by now</span></>}</div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Completion deadline</span>{plan && days !== null ? <><strong className="nbc-kpi-value">{planDate(plan.completion)}</strong><span className="small" data-tone={days < 0 ? 'bad' : undefined}>{days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `${days} days left`}</span></> : <><strong className="nbc-kpi-value">Not set</strong><span className="small muted">No contract dates supplied</span></>}</div>
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < owners.length ? 'bad' : undefined}>{deadline.late ? 'Deadline passed' : deadline.text.split(' · ')[1]}</strong><span className="small muted">{updated.length} of {owners.length} handlers updated this week</span></div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < active.length ? 'bad' : undefined}>{deadline.late ? 'Deadline passed' : deadline.text.split(' · ')[1]}</strong><span className="small muted">{active.length ? `${updated.length} of ${active.length} handlers updated this week` : 'All handler work is complete'}</span></div>
     </section>
     <p className="nbc-forecast small" role="status"><span className="nbc-pill">Forecast</span>{forecast}</p>
     <Attention items={attention}/>

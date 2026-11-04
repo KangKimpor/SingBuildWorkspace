@@ -67,6 +67,28 @@ function expandSharedFormulas(doc: Document) {
   }
 }
 
+/** Drops BOQ item 1 (GR&P) from the Progress sheet and from the total-row formulas, so old templates export the trimmed scope. */
+function stripRequirements(doc: Document, read: (cell: Element | undefined) => string, findCell: (row: Element, column: string) => Element | undefined) {
+  const progressRows = elements(doc, 'row'), total = progressRows.find(row => row.getAttribute('r') === '5'), grp = progressRows.find(row => read(findCell(row, 'A')) === 'GR&P')
+  if (!total || !grp) return
+  const row = grp.getAttribute('r')!
+  grp.remove()
+  for (const cell of total.children) {
+    const formula = elements(cell, 'f')[0]
+    if (!formula?.textContent) continue
+    let text = formula.textContent
+    // SUM(K6,K7,...) and SUM(...,K6) drop the argument; IFERROR((K6*L6+K7*L7...)) drops the product.
+    for (const column of ['K', 'L', 'M', 'N', 'O', 'P', 'S', 'T']) {
+      text = text
+        .replace(new RegExp(`\\(\\$?${column}\\$?${row},`), '(')
+        .replace(new RegExp(`,\\$?${column}\\$?${row}(?=[,)])`), '')
+        .replace(new RegExp(`\\(\\$?${column}\\$?${row}\\*[A-Z]+\\$?${row}\\+`), '(')
+        .replace(new RegExp(`\\+\\$?${column}\\$?${row}\\*[A-Z]+\\$?${row}(?=[+)])`), '')
+    }
+    formula.textContent = text
+  }
+}
+
 /** Shared read-only validation; only supported weight arithmetic is evaluated. */
 export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[]) {
   if (!activities.length) throw new Error('There are no BOQ activities to export.')
@@ -98,9 +120,10 @@ export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[])
     return elements(cell, cell.getAttribute('t') === 'inlineStr' ? 't' : 'v').map(v => v.textContent ?? '').join('')
   }
   const findCell = (row: Element, column: string) => [...row.children].find(c => c.getAttribute('r')?.replace(/\d+$/, '') === column)
+  stripRequirements(docs[0]!, read, findCell)
   const rows = (doc: Document) => elements(doc, 'row')
   const wbsRows = (doc: Document) => {
-    const entries = rows(doc).flatMap(row => { const key = read(findCell(row, 'A')); return /^1\.\d+(?:\.(?:\d+|M\d+))+$/.test(key) || key === 'GR&P' ? [[key, row] as const] : [] })
+    const entries = rows(doc).flatMap(row => { const key = read(findCell(row, 'A')); return /^1\.\d+(?:\.(?:\d+|M\d+))+$/.test(key) ? [[key, row] as const] : [] })
     const result = new Map(entries)
     if (result.size !== entries.length) throw new Error('The template contains duplicate WBS activities.')
     return result

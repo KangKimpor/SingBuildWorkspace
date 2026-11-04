@@ -85,10 +85,6 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
     clearHandlerDraft(useWorkspace.getState().scope, projectId, week, handler)
     useWorkspaceUI.getState().notify('Update deleted. Activity values restored.')
   })
-  function reloadShared() {
-    const shared = activities.find((a) => a.wbs === 'GR&P')!
-    field(shared.id, { text: formatPercent(shared.progress), remark: shared.remark, baseRevision: shared.updatedAt }); setError('')
-  }
   const status: DraftStatus = dirty ? 'saving' : sync.kind === 'error' ? 'error' : scope !== 'guest' && sync.kind !== 'saved' ? 'local' : 'saved'
   return {
     confirmed, rows, shown, changed, lowered, contribution, invalid, touched, status, error, busy,
@@ -97,6 +93,6 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
     setText: (id: string, text: string) => field(id, { text }),
     setRemark: (id: string, remark: string) => field(id, { remark }),
     note: form.note, setNote: (note: string) => change({ ...form, note }),
-    confirm, edit, remove, reloadShared,
+    confirm, edit, remove,
   }
 }

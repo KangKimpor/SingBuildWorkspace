@@ -29,19 +29,19 @@ test('confirming before Saturday noon is on time, at noon or after is late, and 
 })
 test('drafts stay separate; confirm, reopen, reconfirm, delete and audit are consistent', () => {
   const start = initial(), id = start.submissions[0]!.id
-  expect(start.activities[3]!.progress).toBe(.25)
+  expect(start.activities[2]!.progress).toBe(.25)
   let s = transitionSubmission(start, id, 'confirm', 'actor', now)
-  expect(s.activities[3]!.progress).toBe(.5)
-  expect(s.activities[3]!.history[0]!.editor).toBe('actor')
-  expect(s.summaries.find((r) => r.weekStart === week)!.overall).toBeCloseTo(.5)
+  expect(s.activities[2]!.progress).toBe(.5)
+  expect(s.activities[2]!.history[0]!.editor).toBe('actor')
+  expect(s.summaries.find((r) => r.weekStart === week)!.overall).toBeCloseTo(.625)
   s = transitionSubmission(s, id, 'reopen', 'actor', now)
-  expect(s.activities[3]!.progress).toBe(.5)
+  expect(s.activities[2]!.progress).toBe(.5)
   s.submissions[0]!.entries[0]!.progress = .75
   s = transitionSubmission(s, id, 'confirm', 'actor', now)
   expect(s.submissions[0]!.entries[0]!.previous).toBe(.25)
   s = transitionSubmission(s, id, 'delete', 'actor', now)
-  expect(s.activities[3]!.progress).toBe(.25)
-  expect(s.activities[3]!.history).toHaveLength(3)
+  expect(s.activities[2]!.progress).toBe(.25)
+  expect(s.activities[2]!.history).toHaveLength(3)
 })
 test('undo is short-lived, restores values, and keeps the editable autosaved draft', () => {
   let s = initial(), id = s.submissions[0]!.id
@@ -49,7 +49,7 @@ test('undo is short-lived, restores values, and keeps the editable autosaved dra
   expect(() => transitionSubmission(s, id, 'undo', 'other', now)).toThrow()
   expect(() => transitionSubmission(s, id, 'undo', 'actor', new Date(+now + 11000))).toThrow('expired')
   s = transitionSubmission(s, id, 'undo', 'actor', now)
-  expect(s.activities[3]!.progress).toBe(.25)
+  expect(s.activities[2]!.progress).toBe(.25)
   expect(s.submissions[0]!.entries[0]!.progress).toBe(.5)
   expect(s.submissions[0]!.status).toBe('draft')
 })
@@ -66,38 +66,33 @@ test('editing/deleting last week rechains this week and freezes older summaries'
   s.submissions[0]!.entries[0]!.progress = .6
   s = transitionSubmission(s, last.id, 'confirm', 'actor', now)
   expect(s.submissions.find((r) => r.id === currentId)!.entries[0]!.previous).toBe(.6)
-  expect(s.activities[3]!.progress).toBe(.8)
-  expect(s.summaries.find((r) => r.weekStart === addDays(week, -7))!.overall).toBeCloseTo(.56)
+  expect(s.activities[2]!.progress).toBe(.8)
+  expect(s.summaries.find((r) => r.weekStart === addDays(week, -7))!.overall).toBeCloseTo(.7)
   s = transitionSubmission(s, last.id, 'delete', 'actor', now)
   expect(s.submissions[0]!.entries[0]!.previous).toBe(.25)
   expect(s.summaries.find((r) => r.id === 'frozen')!.updatedAt).toBe('unchanged')
   s.submissions[0]!.weekStart = '2026-01-05'
   for (const operation of ['confirm','reopen','delete','undo'] as const) expect(() => transitionSubmission(s, currentId, operation, 'actor', now)).toThrow('Only this week')
 })
-test('all handlers may edit shared GR&P; stale shared changes and foreign activities are rejected', () => {
+test('handlers may edit only their own activities; foreign activities are rejected', () => {
   let s = initial(), id = s.submissions[0]!.id
-  expect(canUpdate(s.activities[0]!, 'Sitha')).toBe(true)
-  s.submissions[0]!.entries.push({ activityId: 'nbc:GR&P', previous: 0, progress: .3, remark: 'Shared' })
-  s.activities[0]!.updatedAt = '2026-10-27T01:00:00Z'
-  expect(() => transitionSubmission(s, id, 'confirm', 'actor', now)).toThrow('GR&P changed')
-  s.submissions[0]!.entries[1]!.baseRevision = s.activities[0]!.updatedAt
+  expect(canUpdate(s.activities[2]!, 'Tola')).toBe(true)
+  expect(canUpdate(s.activities[2]!, 'Sitha')).toBe(false)
   s = transitionSubmission(s, id, 'confirm', 'actor', now)
-  expect(s.activities[0]!.progress).toBe(.3)
-  expect(s.summaries.find((r) => r.weekStart === week)!.overall).toBeCloseTo(.56)
   s = transitionSubmission(s, id, 'reopen', 'actor', now)
   s.submissions[0]!.entries[0]!.activityId = 'nbc:1.6.1.1'
-  expect(() => transitionSubmission(s, id, 'confirm', 'actor', now)).toThrow('only your activities')
+  expect(() => transitionSubmission(s, id, 'confirm', 'actor', now)).toThrow('only your own')
 })
 
 test('an activity assigned after the draft was saved joins as unchanged instead of blocking confirmation', () => {
   const start = initial(), id = start.submissions[0]!.id
-  const late = { ...start.activities[3]!, id: 'nbc:1.6.1.9', wbs: '1.6.1.9', name: 'Late assignment', progress: .4, baseline: .4 }
+  const late = { ...start.activities[2]!, id: 'nbc:1.6.1.9', wbs: '1.6.1.9', name: 'Late assignment', progress: .4, baseline: .4 }
   start.activities.push(late)
   const s = transitionSubmission(start, id, 'confirm', 'actor', now)
   expect(s.submissions[0]!.status).toBe('confirmed')
   expect(s.submissions[0]!.entries.find((e) => e.activityId === late.id)).toMatchObject({ previous: .4, progress: .4 })
   expect(s.activities.find((a) => a.id === late.id)!.progress).toBe(.4)
-  expect(s.activities[3]!.progress).toBe(.5)
+  expect(s.activities[2]!.progress).toBe(.5)
   // A later reopen keeps the backfilled row, so reconfirming cannot regress either.
   const again = transitionSubmission(s, id, 'reopen', 'actor', now)
   expect(again.submissions[0]!.entries.some((e) => e.activityId === late.id)).toBe(true)

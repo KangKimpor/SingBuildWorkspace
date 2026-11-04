@@ -22,9 +22,9 @@ test('handlers who have not confirmed this week are listed, and turn red once Sa
   const activities = fixtureActivities()
   const soon = attentionItems({ ...input, activities, submissions: [] })
   expect(soon[0]).toMatchObject({ id: 'missing', tone: 'amber' })
-  expect(soon[0]!.title).toBe('Sitha, Tola have not updated')
-  const late = attentionItems({ ...input, now: Date.parse('2026-10-31T06:00:00Z'), activities, submissions: [sub('Tola', '2026-10-26', [])] })
-  expect(late[0]).toMatchObject({ tone: 'red', title: 'Sitha has not updated', impact: 'overdue' })
+  expect(soon[0]!.title).toBe('Tola has not updated')
+  const late = attentionItems({ ...input, now: Date.parse('2026-10-31T06:00:00Z'), activities, submissions: [] })
+  expect(late[0]).toMatchObject({ tone: 'red', title: 'Tola has not updated', impact: 'overdue' })
 })
 
 test('a confirmed update that lowers progress is flagged with its remark and weighted impact', () => {
@@ -33,7 +33,7 @@ test('a confirmed update that lowers progress is flagged with its remark and wei
   const lowered = items.find((i) => i.id.startsWith('lowered'))!
   expect(lowered.title).toBe('1.6.1.2 Install board lowered 25% → 10%')
   expect(lowered.detail).toBe('Tola · Rework after inspection')
-  expect(lowered.impact).toBe('−9.00% overall')
+  expect(lowered.impact).toBe('−11.25% overall')
 })
 
 test('in-progress work with no change for two weeks is reported, never-updated work is not', () => {

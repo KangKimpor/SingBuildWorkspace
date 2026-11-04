@@ -36,8 +36,8 @@ test('export keeps unrelated parts, numeric percentages, template layout and liv
   expect(output['xl/styles.xml']).toEqual(source['xl/styles.xml'])
   expect(output['xl/comments1.xml']).toEqual(source['xl/comments1.xml'])
   expect(output['xl/calcChain.xml']).toBeUndefined()
-  expect(cell(output, 1, 'N9').querySelector('v')?.textContent).toBe('0.25')
-  expect(cell(output, 1, 'N9').querySelector('f')?.textContent).toBe("'Tola'!M6")
+  expect(cell(output, 1, 'N8').querySelector('v')?.textContent).toBe('0.25')
+  expect(cell(output, 1, 'N8').querySelector('f')?.textContent).toBe("'Tola'!M6")
   expect(cell(output, 8, 'M6').getAttribute('t')).toBeNull()
   expect(cell(output, 8, 'M6').querySelector('v')?.textContent).toBe('0.25')
   expect(cell(output, 8, 'L6').querySelector('f')?.textContent).toBe('ROUND(M6-K6,6)')
@@ -52,7 +52,7 @@ test('reassignment moves the handler row and rewires the master progress formula
   Array.from(sheet.getElementsByTagNameNS(NS, 'row')).filter(row => Number(row.getAttribute('r')) >= 5).forEach(row => row.remove())
   template['xl/worksheets/sheet6.xml'] = strToU8(new XMLSerializer().serializeToString(sheet))
   const output = unzipSync(weeklyWorkbook(zipSync(template), activities, [], '2026-10-26').bytes)
-  expect(cell(output, 1, 'N9').querySelector('f')?.textContent).toBe("'Kheng'!M6")
+  expect(cell(output, 1, 'N8').querySelector('f')?.textContent).toBe("'Kheng'!M6")
   expect(strFromU8(output['xl/worksheets/sheet8.xml']!)).not.toContain('Install board')
 })
 
@@ -70,7 +70,7 @@ test('unchanged handler assignments keep original rows, formatting and trailing 
   const saved = new DOMParser().parseFromString(strFromU8(output['xl/worksheets/sheet8.xml']!), 'application/xml')
   expect([...saved.getElementsByTagNameNS(NS, 'row')].find(r => r.getAttribute('r') === '7')?.getAttribute('ht')).toBe('37')
   expect([...saved.getElementsByTagNameNS(NS, 'row')].some(r => r.getAttribute('r') === '20')).toBe(true)
-  expect(cell(output, 1, 'N9').querySelector('f')?.textContent).toBe("'Tola'!M7")
+  expect(cell(output, 1, 'N8').querySelector('f')?.textContent).toBe("'Tola'!M7")
 })
 
 test('rejects mismatched WBS data and changed template weights', () => {

@@ -45,4 +45,4 @@ For the deterministic browser suite, use the same public test values as CI: `VIT
 
 Custom repeat rules support daily, weekly, monthly and yearly frequencies. Reminders appear while the app is open; background Web Push is outside v1. Week start and clock format are saved with the workspace profile. Theme, glass and motion are device preferences.
 
-App updates are user-controlled: a waiting service worker shows New version available with Reload and Later actions. When upgrading from the older automatic-update build, close all workspace tabs/installed windows once so the new worker can activate. Do not clear site data to update.
+App updates are automatic: when a waiting service worker is found, the tab shows an Updating to the latest version… notice, activates it and reloads itself. Checks run on focus, on reconnect and every minute, and installed windows update the same way. If activation fails, the notice offers Retry. Do not clear site data to update.

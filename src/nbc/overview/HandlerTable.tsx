@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { MoreMenu } from '../ui/MoreMenu'
 import { StatusPill } from '../ui/StatusPill'
 import { reopenUpdate } from '../actions'
+import { handlerComplete } from '../handlers'
 import { summarize } from '../progress'
 import { addDays, changedEntries, submissionStatus, weekLabel, weekStart } from '../submissions'
 import { delta, exportSubmission, percent } from '../format'
@@ -22,21 +23,22 @@ export function HandlerTable({ projectId, activities, submissions, now }: { proj
   const weighted = (s: NbcSubmission) => s.entries.reduce((sum, e) => sum + (e.progress - e.previous) * (activities.find((a) => a.id === e.activityId)?.globalWeight ?? 0), 0)
 
   async function edit(s: NbcSubmission) {
+    if (handlerComplete(activities, s.handler)) { setError(`${s.handler} has completed all activities and can no longer update them.`); return }
     setBusy(true)
     try {
       if (s.status === 'confirmed') await reopenUpdate(s.weekStart, s.handler, projectId)
       navigate(`/projects-progress/${projectId}/update?handler=${s.handler}${s.weekStart === last ? `&week=${s.weekStart}` : ''}`)
     } catch (e) { setError((e as Error).message) } finally { setBusy(false) }
   }
-  function weekRow(handler: Handler, week: string, label: string) {
+  function weekRow(handler: Handler, week: string, label: string, complete: boolean) {
     const s = find(handler, week), editable = week === current
     return <li className="nbc-week-row" key={week}>
       <strong>{label}</strong><span className="small muted">{weekLabel(week)}</span>
-      {s || week === current ? <StatusPill status={submissionStatus(s, week, activities, now)} time={s?.confirmedAt}/> : <span className="small muted">Missing</span>}
+      {complete ? <span className="nbc-pill" data-status="Complete">Complete</span> : s || week === current ? <StatusPill status={submissionStatus(s, week, activities, now)} time={s?.confirmedAt}/> : <span className="small muted">Missing</span>}
       <span className="small">{s ? `${changedEntries(s.entries).length} changed · ${delta(weighted(s))}%` : ''}</span>
       {s && <MoreMenu label={`Actions for ${handler} ${label}`}>
         <button onClick={() => setPeek(s)}>Open</button>
-        {editable && <button disabled={busy} onClick={() => void edit(s)}>Edit</button>}
+        {editable && !complete && <button disabled={busy} onClick={() => void edit(s)}>Edit</button>}
         <button onClick={() => exportSubmission(s, activities)}>Export CSV</button>
       </MoreMenu>}
     </li>
@@ -48,19 +50,22 @@ export function HandlerTable({ projectId, activities, submissions, now }: { proj
       <thead className="sr-only"><tr><th scope="col">Handler</th><th scope="col">This week</th><th scope="col">Last week</th><th scope="col" className="nbc-num">Changed</th><th scope="col" className="nbc-num">Contribution</th></tr></thead>
       <tbody>{owners.flatMap((handler) => {
         const now_ = find(handler, current), prev = find(handler, last), expanded = open.has(handler)
+        const complete = handlerComplete(activities, handler)
         const contribution = summarize(activities.filter((a) => a.handler === handler)).contribution
-        const cell = (s: NbcSubmission | undefined, week: string, missing: string) => s || week === current
-          ? <StatusPill status={submissionStatus(s, week, activities, now)} time={s?.confirmedAt}/> : <span className="small muted">{missing}</span>
+        const cell = (s: NbcSubmission | undefined, week: string, missing: string) => complete
+          ? <span className="nbc-pill" data-status="Complete">Complete</span>
+          : s || week === current
+            ? <StatusPill status={submissionStatus(s, week, activities, now)} time={s?.confirmedAt}/> : <span className="small muted">{missing}</span>
         const rows = [<tr key={handler} className="nbc-handler-row">
-          <td><div className="nbc-handler-name"><span className="nbc-handler-avatar" aria-hidden="true">{handler[0]}</span><button className="nbc-handler-toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${handler}`} onClick={() => setOpen(flip(open, handler))}><span>{handler}</span>{expanded ? <ChevronDown size={14} aria-hidden="true"/> : <ChevronRight size={14} aria-hidden="true"/>}</button></div></td>
-          <td hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">This week</span><Link to={`/projects-progress/${projectId}/update?handler=${handler}`}><span className="sr-only">{handler} this week update · </span>{cell(now_, current, 'Missing')}</Link></td>
-          <td hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">Last week</span>{prev ? <button className="nbc-linkish" onClick={() => setPeek(prev)}><span className="sr-only">{handler} last week update · </span>{cell(prev, last, 'Missing')}</button> : <span className="small muted">Missing</span>}</td>
+          <td><div className="nbc-handler-name"><span className="nbc-handler-avatar" aria-hidden="true">{handler[0]}</span><button className="nbc-handler-toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${handler}`} onClick={() => setOpen(flip(open, handler))}><span>{handler}</span>{expanded ? <ChevronDown size={14} aria-hidden="true"/> : <ChevronRight size={14} aria-hidden="true"/>}</button>{complete && <span className="nbc-pill" data-status="Complete">Complete</span>}</div></td>
+          <td hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">This week</span>{complete ? cell(now_, current, 'Missing') : <Link to={`/projects-progress/${projectId}/update?handler=${handler}`}><span className="sr-only">{handler} this week update · </span>{cell(now_, current, 'Missing')}</Link>}</td>
+          <td hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">Last week</span>{prev ? <button className="nbc-linkish" onClick={() => setPeek(prev)}><span className="sr-only">{handler} last week update · </span>{cell(prev, last, 'Missing')}</button> : complete ? cell(undefined, last, 'Missing') : <span className="small muted">Missing</span>}</td>
           <td className="nbc-num" hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">Changed</span>{now_ ? changedEntries(now_.entries).length : '—'}</td>
           <td className="nbc-handler-contribution" data-empty={contribution === 0}><span className="nbc-progress-value">{percent(contribution)}</span><progress max={1} value={contribution} aria-label={`${handler} contribution`}/></td></tr>]
         if (expanded) rows.push(<tr key={`${handler}-weeks`} className="nbc-weeks"><td colSpan={5}><ul>
-          {weekRow(handler, current, 'This week')}{weekRow(handler, last, 'Last week')}
+          {weekRow(handler, current, 'This week', complete)}{weekRow(handler, last, 'Last week', complete)}
           <li><button className="nbc-linkish" aria-expanded={older.has(handler)} onClick={() => setOlder(flip(older, handler))}>Older weeks</button>
-            {older.has(handler) && <ul>{submissions.filter((s) => s.handler === handler && s.weekStart < last).sort((a, b) => b.weekStart.localeCompare(a.weekStart)).map((s) => weekRow(handler, s.weekStart, weekLabel(s.weekStart)))}</ul>}</li>
+            {older.has(handler) && <ul>{submissions.filter((s) => s.handler === handler && s.weekStart < last).sort((a, b) => b.weekStart.localeCompare(a.weekStart)).map((s) => weekRow(handler, s.weekStart, weekLabel(s.weekStart), false))}</ul>}</li>
         </ul></td></tr>)
         return rows
       })}</tbody></table></div>

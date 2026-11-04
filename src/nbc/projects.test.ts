@@ -42,12 +42,16 @@ test('BP04 plan is independent and uses only the approved report dates/projected
 })
 
 test.skipIf(!existsSync('.private/nbc-bp04/initial.json'))('private BP04 BOQ reconciles every parent, weights and export totals', () => {
-  const { activities, reconciliation } = JSON.parse(readFileSync('.private/nbc-bp04/initial.json', 'utf8')) as { activities: NbcActivity[]; reconciliation: { boqValue: number; workbookOverall: number } }
+  const source = JSON.parse(readFileSync('.private/nbc-bp04/initial.json', 'utf8')) as { activities: NbcActivity[]; reconciliation: { boqValue: number; workbookOverall: number } }
+  const { reconciliation } = source, general = source.activities.find(a => a.wbs === 'GR&P')!
+  // Same transformation as the nbc_remove_general_requirements migration: drop item 1 and rescale the rest to 100%.
+  const scale = 1 / (1 - general.globalWeight)
+  const activities = source.activities.filter(a => a !== general).map(a => ({ ...a, globalWeight: a.globalWeight * scale, relativeWeight: a.parentId ? a.relativeWeight : a.relativeWeight * scale }))
   const c = calculate(activities)
-  expect(activities).toHaveLength(382); expect(c.leaves).toHaveLength(284)
-  expect(c.overall).toBe(reconciliation.workbookOverall)
+  expect(activities).toHaveLength(381); expect(c.leaves).toHaveLength(283)
+  expect(c.overall).toBeCloseTo(reconciliation.workbookOverall * scale, 12)
   expect(c.leaves.reduce((s, a) => s + a.globalWeight, 0)).toBeCloseTo(1, 12)
-  expect(activities.filter(a => !a.parentId).reduce((s, a) => s + (a.boqValue ?? 0), 0)).toBe(reconciliation.boqValue)
+  expect(activities.filter(a => !a.parentId).reduce((s, a) => s + (a.boqValue ?? 0), 0)).toBeCloseTo(reconciliation.boqValue - (general.boqValue ?? 0), 6)
   for (const a of activities) expect(c.progress.get(a.id)).toBeCloseTo(a.progress, 12)
   const template = new Uint8Array(readFileSync('.private/nbc-bp04/template.xlsx'))
   const output = unzipSync(weeklyWorkbook(template, activities, [], '2026-10-26').bytes)

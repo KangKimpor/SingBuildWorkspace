@@ -54,9 +54,9 @@ test('search matches WBS or name, and a group name brings its whole subtree', ()
   expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.1', '1.6.1.2'])
 })
 
-test('shared GR&P is listed once under Unassigned', () => {
+test('the Unassigned filter is empty when every activity has a handler', () => {
   setup('?handler=Unassigned')
-  expect(wbsOrder()).toEqual(['GR&P'])
+  expect(wbsOrder()).toEqual([])
 })
 
 test('the expand editor sits in the search row and the issues switcher is gone', () => {

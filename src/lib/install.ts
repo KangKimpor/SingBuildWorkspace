@@ -4,9 +4,14 @@ interface InstallPrompt extends Event {
   prompt(): Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
 }
+export type UpdateStatus = 'pending' | 'installing' | 'failed'
+export interface AppUpdate {
+  status: UpdateStatus
+  apply: () => Promise<void>
+}
 export const useInstall = create<{
   prompt: InstallPrompt | null
-  update: (() => Promise<void>) | null
+  update: AppUpdate | null
   installed: boolean
 }>(() => ({
   prompt: null,

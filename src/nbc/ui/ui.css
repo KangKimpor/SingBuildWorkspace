@@ -128,6 +128,7 @@
 
 .nbc-pill { display: inline-flex; align-items: center; gap: var(--space-6); padding: var(--space-2) var(--space-6); border-radius: var(--radius-control); font-size: var(--fs-caption); white-space: nowrap; background: var(--status-neutral-bg); color: var(--text-primary); }
 .nbc-pill[data-status=Updated] { background: var(--status-success-bg); }
+.nbc-pill[data-status=Complete] { background: var(--status-success-bg); }
 .nbc-pill[data-status='Updated late'], .nbc-pill[data-status='Needs review'] { background: var(--status-warning-bg); }
 .nbc-pill[data-status=Overdue] { background: var(--status-danger-bg); }
 .nbc-pill-time { color: var(--text-secondary); }

@@ -12,7 +12,7 @@ test('live progress and remarks require confirmation; reassignment remains audit
   expect(() => updateActivity('nbc:1.6.1.2', { progress: .5 })).toThrow('handler draft')
   expect(() => updateActivity('nbc:1.6.1.2', { remark: 'Draft only' })).toThrow('handler draft')
   updateActivity('nbc:1.6.1.2', { handler: 'Sitha' })
-  expect(useWorkspace.getState().nbc_activities![3]!.history.at(-1)!.handler).toBe('Sitha')
+  expect(useWorkspace.getState().nbc_activities![2]!.history.at(-1)!.handler).toBe('Sitha')
 })
 
 test('percentage entry accepts decimals and percent signs, clamps bounds and rejects invalid text', () => {
@@ -25,29 +25,29 @@ test('percentage entry accepts decimals and percent signs, clamps bounds and rej
 test('bulk handler reassignment preserves percentages and records each changed assignment', () => {
   assignActivities(['nbc:1.6.1.1','nbc:1.6.1.2'], 'Kheng')
   const activities = useWorkspace.getState().nbc_activities!
+  expect(activities[1]?.handler).toBe('Kheng')
   expect(activities[2]?.handler).toBe('Kheng')
-  expect(activities[3]?.handler).toBe('Kheng')
-  expect(activities[2]?.progress).toBe(1)
-  expect(activities[3]?.progress).toBe(0.25)
-  expect(activities[3]?.history[0]?.handler).toBe('Kheng')
+  expect(activities[1]?.progress).toBe(1)
+  expect(activities[2]?.progress).toBe(0.25)
+  expect(activities[2]?.history[0]?.handler).toBe('Kheng')
   expect(() => assignActivities(['nbc:1.6.1'], 'Tola')).toThrow('editable')
 })
 
-test('weighted hierarchy counts only leaves and GR&P once; fractions retain precision', () => {
+test('weighted hierarchy counts only leaves; fractions retain precision', () => {
   const activities = fixtureActivities(), c = calculate(activities)
-  expect(c.overall).toBeCloseTo(0.35, 14)
+  expect(c.overall).toBeCloseTo(0.4375, 14)
   expect(c.progress.get('nbc:1.6.1')).toBeCloseTo(0.4375, 14)
-  activities[0]!.progress = 0.375
-  expect(calculate(activities).overall).toBeCloseTo(0.425, 14)
-  expect(summarize(activities.filter((a) => a.handler === 'Tola')).contribution).toBeCloseTo(0.15, 14)
+  activities[2]!.progress = 0.375
+  expect(calculate(activities).overall).toBeCloseTo(0.53125, 14)
+  expect(summarize(activities.filter((a) => a.handler === 'Tola')).contribution).toBeCloseTo(0.28125, 14)
 })
 test('zero weights, downward corrections and propagation; invalid input is rejected', () => {
   const activities = fixtureActivities()
-  activities[3]!.progress = 0.123456789
-  expect(calculate(activities).overall).toBeCloseTo(0.2 + 0.6 * 0.123456789, 14)
-  activities[3]!.globalWeight = 0; activities[3]!.relativeWeight = 0
+  activities[2]!.progress = 0.123456789
+  expect(calculate(activities).overall).toBeCloseTo(0.25 + 0.75 * 0.123456789, 14)
+  activities[2]!.globalWeight = 0; activities[2]!.relativeWeight = 0
   expect(calculate(activities).progress.get('nbc:1.6.1')).toBe(1)
-  activities[2]!.relativeWeight = 0
+  activities[1]!.relativeWeight = 0
   expect(calculate(activities).progress.get('nbc:1.6.1')).toBe(0)
   for (const value of [-1, 1.01, NaN, Infinity]) expect(() => percentage(value)).toThrow()
   activities[0]!.globalWeight = NaN
@@ -56,15 +56,15 @@ test('zero weights, downward corrections and propagation; invalid input is rejec
 test('invalid relationships, duplicate nodes and cycles are rejected', () => {
   const a = fixtureActivities()
   expect(() => calculate([...a, a[0]!])).toThrow('Duplicate')
-  a[3]!.parentId = 'missing'; expect(() => calculate(a)).toThrow('Missing parent')
-  a[3]!.parentId = a[1]!.id; a[1]!.parentId = a[1]!.id
+  a[2]!.parentId = 'missing'; expect(() => calculate(a)).toThrow('Missing parent')
+  a[2]!.parentId = a[0]!.id; a[0]!.parentId = a[0]!.id
   expect(() => calculate(a)).toThrow('Cyclic')
 })
 test('filters preserve ancestors, collapse works, and sorting preserves grouping', () => {
   const a = fixtureActivities(), p = calculate(a).progress
-  expect(visibleHierarchy(a, () => true, new Set([a[1]!.id]), 'wbs', p)).toHaveLength(2)
+  expect(visibleHierarchy(a, () => true, new Set([a[0]!.id]), 'wbs', p)).toHaveLength(1)
   expect(visibleHierarchy(a, (n) => n.handler === 'Tola', new Set(), 'progress', p).map((r) => r.activity.wbs)).toEqual(['1.6.1', '1.6.1.2'])
-  expect(visibleHierarchy(a, (n) => n.handler === 'Tola', new Set([a[1]!.id]), 'wbs', p).map((r) => r.activity.wbs)).toEqual(['1.6.1'])
+  expect(visibleHierarchy(a, (n) => n.handler === 'Tola', new Set([a[0]!.id]), 'wbs', p).map((r) => r.activity.wbs)).toEqual(['1.6.1'])
 })
 test('task WBS links remain in their project and clear when a task moves', () => {
   const state = useWorkspace.getState()
