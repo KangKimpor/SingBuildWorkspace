@@ -28,7 +28,7 @@ export function attentionItems({ projectId, activities, submissions, today, now 
   const missing = projectHandlers(projectId).filter((h) => !handlerComplete(activities, h) && activities.some((a) => a.editable && a.handler === h) && !submissions.some((s) => s.handler === h && s.weekStart === current && s.status === 'confirmed'))
   if (missing.length) {
     const overdue = now >= weekDeadline(current)
-    items.push({ id: 'missing', tone: overdue ? 'red' : 'amber', title: `${missing.join(', ')} ${missing.length === 1 ? 'has' : 'have'} not updated`, detail: overdue ? 'Deadline passed Saturday 12:00 PM' : deadlineNote(current, now).text, impact: overdue ? 'overdue' : `${missing.length} to go`, to: `${base}/update` })
+    items.push({ id: 'missing', tone: overdue ? 'red' : 'amber', title: `${missing.join(', ')} ${missing.length === 1 ? 'has' : 'have'} not updated`, detail: overdue ? 'Deadline passed Friday 11:59 PM' : deadlineNote(current, now).text, impact: overdue ? 'overdue' : `${missing.length} to go`, to: `${base}/update` })
   }
   const byId = new Map(activities.map((a) => [a.id, a]))
   const lowered = submissions.filter((s) => s.status === 'confirmed' && (s.weekStart === current || s.weekStart === addDays(current, -7)))

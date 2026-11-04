@@ -15,7 +15,7 @@
 }
 .shell[data-bp='expanded'][data-sidebar='closed'],
 .shell[data-bp='large'][data-sidebar='closed'] {
-  --sidebar-col: 0px;
+  --sidebar-col: 70px;
 }
 .shell[data-inspector='open'][data-bp='expanded'],
 .shell[data-inspector='open'][data-bp='large'] {
@@ -463,6 +463,13 @@
 .shell[data-bp='large'] .main {
   grid-column: 2;
   grid-row: 1;
+}
+.shell[data-bp='expanded'] .topbar .sidebar-toggle,
+.shell[data-bp='large'] .topbar .sidebar-toggle {
+  display: none;
+}
+.sidebar[data-collapsed='true'] .sidebar-resizer {
+  display: none;
 }
 .shell[data-bp='expanded'] .inspector-slot,
 .shell[data-bp='large'] .inspector-slot {

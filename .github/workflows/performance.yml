@@ -27,11 +27,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           for attempt in $(seq 1 60); do
-            state=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/status" --jq '[.statuses[] | select(.context == "Vercel")][0].state // "pending"')
-            if [ "$state" = success ]; then exit 0; fi
-            if [ "$state" = failure ] || [ "$state" = error ]; then
-              echo "Vercel deployment failed for $GITHUB_SHA"
-              exit 1
+            if state=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_SHA/status" --jq '[.statuses[] | select(.context == "Vercel")][0].state // "pending"' 2>/dev/null); then
+              if [ "$state" = success ]; then exit 0; fi
+              if [ "$state" = failure ] || [ "$state" = error ]; then
+                echo "Vercel deployment failed for $GITHUB_SHA"
+                exit 1
+              fi
+            else
+              echo "GitHub status API request failed ($attempt/60); retrying" >&2
             fi
             sleep 5
           done
@@ -39,7 +42,7 @@ jobs:
           exit 1
       - name: Measure deployed guest workspace
         run: |
-          for sample in 1 2 3; do
+          for sample in 1 2 3 4 5; do
             corepack pnpm dlx lighthouse@13.5.0 https://singbuildworkspace.vercel.app --chrome-flags="--headless=new --no-sandbox" --only-categories=performance,accessibility,best-practices --output=json --output-path="lighthouse-mobile-$sample.json" --quiet
           done
           corepack pnpm dlx lighthouse@13.5.0 https://singbuildworkspace.vercel.app --preset=desktop --chrome-flags="--headless=new --no-sandbox" --only-categories=performance,accessibility,best-practices --output=json --output-path=lighthouse-desktop.json --quiet
@@ -51,7 +54,7 @@ jobs:
           const median = values => values.sort((a, b) => a - b)[Math.floor(values.length / 2)];
           assert.equal(median([100, 3, 20]), 20);
           for (const device of ['mobile', 'desktop']) {
-            const files = device === 'mobile' ? [1, 2, 3].map(sample => `lighthouse-mobile-${sample}.json`) : ['lighthouse-desktop.json'];
+            const files = device === 'mobile' ? [1, 2, 3, 4, 5].map(sample => `lighthouse-mobile-${sample}.json`) : ['lighthouse-desktop.json'];
             const reports = files.map(file => JSON.parse(readFileSync(file, 'utf8')));
             for (const report of reports) {
               assert(!report.runtimeError, 'Lighthouse runtime error');

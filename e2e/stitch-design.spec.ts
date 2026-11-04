@@ -2,6 +2,8 @@ import { expect, test } from './workspace-test'
 import AxeBuilder from '@axe-core/playwright'
 import { fixtureActivities, fixtureProject } from '../src/nbc/test-fixture'
 
+test.use({ hasTouch: true })
+
 for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
   test(`Stitch screens retain navigation, data and accessible layouts at ${width} ${theme}`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 1000 })
@@ -18,16 +20,36 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
     page.on('pageerror', error => errors.push(error.message))
     await page.goto('/projects-progress/nbc-bp03/overview')
     await expect(page.locator('.nbc-project')).toBeVisible()
-    expect(await page.evaluate(() => {
-      const style = getComputedStyle(document.documentElement)
-      return { sidebar: style.getPropertyValue('--surface-sidebar').trim(), accent: style.getPropertyValue('--accent-blue').trim() }
-    })).toEqual({ sidebar: theme === 'light' ? '#f7f7f5' : '#202020', accent: '#2563eb' })
     if (width >= 1024) {
+      const sidebar = page.getByTestId('sidebar')
+      expect(await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(250, 250, 249)')
+      await expect(sidebar).toHaveCSS('width', '270px')
+      const group = page.getByRole('button', { name: `Collapse ${fixtureProject.name}` })
+      await expect(group).toHaveAttribute('aria-expanded', 'true')
+      await expect(sidebar.getByText('44%', { exact: true })).toBeVisible()
       const children = page.getByRole('list', { name: `${fixtureProject.name} views`, exact: true })
       await expect(children.getByRole('link')).toHaveCount(2)
-      const parent = children.locator('..')
-      await expect(parent.getByRole('link', { name: new RegExp(fixtureProject.name) }).first()).toBeVisible()
-      expect((await children.boundingBox())!.x).toBeGreaterThan((await parent.boundingBox())!.x)
+      const projectProgress = children.getByRole('link', { name: 'Project Progress', exact: true })
+      await projectProgress.click()
+      await expect(projectProgress).toHaveAttribute('aria-current', 'page')
+      await page.getByRole('button', { name: 'Collapse sidebar' }).click()
+      await expect(sidebar).toHaveCSS('width', '70px')
+      await page.getByRole('button', { name: 'Expand sidebar' }).click()
+      await expect(sidebar).toHaveCSS('width', '270px')
+      await page.getByRole('button', { name: `Collapse ${fixtureProject.name}` }).click()
+      await expect(page.getByRole('button', { name: `Expand ${fixtureProject.name}` })).toHaveAttribute('aria-expanded', 'false')
+      await page.getByRole('button', { name: `Expand ${fixtureProject.name}` }).click()
+    } else {
+      await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
+      const drawer = page.getByRole('dialog', { name: 'Sidebar', exact: true })
+      await expect(drawer).toBeVisible()
+      await expect(drawer).toHaveCSS('background-color', 'rgb(250, 250, 249)')
+      await expect(drawer.getByText('44%', { exact: true })).toBeVisible()
+      const children = drawer.getByRole('list', { name: `${fixtureProject.name} views`, exact: true })
+      await expect(children.getByRole('link')).toHaveCount(2)
+      await children.getByRole('link', { name: 'Project Progress', exact: true }).click()
+      await expect(drawer).not.toBeVisible()
+      await expect(page.locator('.nbc-tabs a[aria-current=page]')).toHaveText('Project Progress')
     }
     for (const [view, label] of [['overview', 'Overview'], ['activities', 'Project Progress'], ['update', 'Update Progress']] as const) {
       await page.locator('.nbc-tabs').getByRole('link', { name: label, exact: true }).click()

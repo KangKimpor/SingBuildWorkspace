@@ -10,9 +10,9 @@ export function breakpointFor(width: number): Breakpoint {
   return 'large'
 }
 
-export const SIDEBAR_MIN = 220
+export const SIDEBAR_MIN = 270
 export const SIDEBAR_MAX = 380
-export const SIDEBAR_DEFAULT = 260
+export const SIDEBAR_DEFAULT = 270
 const WIDTH_KEY = 'kw-sidebar-w'
 
 function readWidth(): number {

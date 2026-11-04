@@ -4,11 +4,12 @@ import { Glass } from '@/components/glass/Glass'
 import { SidebarContent } from './SidebarContent'
 import { SIDEBAR_MAX, SIDEBAR_MIN, useShell } from './store'
 
-/** Persistent flat sidebar (expanded and large). Resizable 220 to 380 px (§5). */
+/** Persistent sidebar for expanded and large layouts. */
 export function Sidebar() {
   const width = useShell((s) => s.sidebarWidth)
   const setWidth = useShell((s) => s.setSidebarWidth)
   const open = useShell((s) => s.sidebarOpen)
+  const collapsed = !open
   const [dragging, setDragging] = useState(false)
   const slot = useRef<HTMLDivElement>(null)
 
@@ -32,9 +33,9 @@ export function Sidebar() {
   }
 
   return (
-    <div className="sidebar-slot" ref={slot} hidden={!open}>
-      <Glass as="aside" material="regular" className="sidebar" aria-label="Sidebar" data-testid="sidebar">
-        <SidebarContent />
+    <div className="sidebar-slot" ref={slot} data-collapsed={collapsed}>
+      <Glass as="aside" material="regular" className="sidebar" aria-label="Sidebar" data-testid="sidebar" data-collapsed={collapsed}>
+        <SidebarContent collapsed={collapsed} onToggleCollapsed={() => useShell.getState().setSidebarOpen(collapsed)} />
         <div
           className="sidebar-resizer"
           role="separator"

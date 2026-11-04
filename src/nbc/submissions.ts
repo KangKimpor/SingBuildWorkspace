@@ -3,9 +3,9 @@ import { projectHandlers } from './types'
 import type { Handler, NbcActivity, NbcSubmission, NbcWeekSummary, SubmissionEntry } from './types'
 
 export const REPORTING_TIMEZONE = 'Asia/Phnom_Penh'
-// Updates are due Saturday 12:00 in Phnom Penh while the week itself still runs Monday to Sunday.
-// Exclusive boundary: exactly noon is already late.
-export const WEEK_DEADLINE = 'T12:00:00+07:00'
+// Updates are due Friday 11:59 PM in Phnom Penh while the week itself still runs Monday to Sunday.
+// Exclusive boundary: Saturday 00:00 is already late.
+export const WEEK_DEADLINE = 'T00:00:00+07:00'
 export const DEADLINE_DAY = 5
 export const UNDO_SECONDS = 10
 export function reportingDate(now = new Date()) {

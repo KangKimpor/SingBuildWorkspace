@@ -6,6 +6,7 @@ import { TaskTable, columns } from '@/components/TaskTable'
 import { SidebarContent } from '@/shell/SidebarContent'
 import { TaskRow } from '@/components/TaskRow'
 import { rebaseWrite } from '@/data/sync-merge'
+import { fixtureProject } from '@/nbc/test-fixture'
 const initial = useWorkspace.getState()
 afterEach(() => { useWorkspace.setState(initial); localStorage.clear() })
 test('projects default to Personal, retain assignment and appear in only their group', () => {
@@ -63,4 +64,18 @@ test('opening screen defaults to Projects Progress and remembers a progress proj
   rememberWorkspace('account-a', { workspace: 'team', projectId: 'nbc-bp03' })
   expect(workspaceStart('account-a', [...initial.projects, progressProject])).toBe('/projects-progress/nbc-bp03/overview')
   expect(workspaceStart('account-b', [])).toBe('/projects-progress')
+})
+
+test('sidebar shows live project progress and remembers collapsible groups', () => {
+  const project = { ...fixtureProject, id: 'nbc-bp02', name: 'NBC BP02 – Pan Pacific Hotel', progress: 0.81 }
+  useWorkspace.setState({ ...initial, projects: [project] })
+  render(<MemoryRouter initialEntries={['/projects-progress/nbc-bp02/activities']}><SidebarContent /></MemoryRouter>)
+  expect(screen.getByText('81%')).toBeInTheDocument()
+  expect(screen.getByRole('link', { name: 'Project Progress' })).toHaveAttribute('aria-current', 'page')
+  const toggle = screen.getByRole('button', { name: 'Collapse NBC BP02 – Pan Pacific Hotel' })
+  fireEvent.click(toggle)
+  expect(toggle).toHaveAttribute('aria-expanded', 'false')
+  expect(JSON.parse(localStorage.getItem('kw-sidebar-expanded-projects')!)).toEqual([])
+  fireEvent.click(toggle)
+  expect(toggle).toHaveAttribute('aria-expanded', 'true')
 })

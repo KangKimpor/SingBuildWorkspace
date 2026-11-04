@@ -117,9 +117,9 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
       {
         <button
           type="button"
-          className="ibtn"
+          className="ibtn sidebar-toggle"
           aria-label={
-            persistent && sidebarOpen ? 'Collapse sidebar' : 'Open sidebar'
+            persistent ? (sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar') : 'Open sidebar'
           }
           aria-pressed={persistent ? sidebarOpen : undefined}
           title={`Sidebar (${modKey()} \\)`}

@@ -1,108 +1,166 @@
-/* oxlint-disable jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- Delegated link clicks include keyboard activation. */
 import {
-  FileText,
+  BarChart3,
+  Building2,
+  ChevronDown,
+  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings,
+  SquarePen,
   Trash2,
 } from 'lucide-react'
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useProjects } from '@/data'
 import { modKey } from './store'
 import { useWorkspaceUI } from './workspace'
-/** Lucide at 1.75 px stroke, currentColor (§9). */
-const ic = { size: 18, strokeWidth: 1.75 } as const
 
-function Item({
-  to,
-  icon,
-  label,
-  meta,
-  end,
-  children,
-}: {
-  to: string
-  icon: React.ReactNode
-  label: string
-  meta?: React.ReactNode
-  end?: boolean
-  children?: React.ReactNode
-}) {
-  const { search } = useLocation()
+const ic = { size: 18, strokeWidth: 1.75 } as const
+const expandedKey = 'kw-sidebar-expanded-projects'
+
+function Item({ to, icon, label, onNavigate }: { to: string; icon: React.ReactNode; label: string; onNavigate?: () => void }) {
   return (
     <li>
-      <NavLink to={to} end={end} className="nav-item" aria-current={to.includes('?') && search !== `?${to.split('?')[1]}` ? false : undefined}>
+      <NavLink to={to} end className="nav-item" onClick={onNavigate}>
         <span className="nav-icon">{icon}</span>
         <span className="nav-label">{label}</span>
-        {meta ? <span className="nav-meta">{meta}</span> : null}
       </NavLink>
-      {children}
     </li>
   )
 }
 
 /** Sidebar contents, shared by the persistent sidebar and the overlay drawer. */
-export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
-  const projects = useProjects(), { pathname } = useLocation()
+export function SidebarContent({
+  onNavigate,
+  collapsed = false,
+  onToggleCollapsed,
+}: {
+  onNavigate?: () => void
+  collapsed?: boolean
+  onToggleCollapsed?: () => void
+}) {
+  const projects = useProjects()
+  const { pathname } = useLocation()
+  const [expanded, setExpanded] = useState<Set<string>>(() => {
+    try {
+      const stored: unknown = JSON.parse(localStorage.getItem(expandedKey) ?? 'null')
+      if (Array.isArray(stored)) {
+        return new Set(stored.filter((id): id is string => typeof id === 'string' && projects.some((p) => p.id === id)))
+      }
+    } catch {
+      // Ignore an unavailable or stale preference.
+    }
+    const active = projects.find((p) => pathname.startsWith(`/projects-progress/${p.id}/`))?.id
+    const first = active ?? projects[0]?.id
+    return new Set(first ? [first] : [])
+  })
+
+  const toggleProject = (id: string) => setExpanded((current) => {
+    const next = new Set(current)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    try {
+      localStorage.setItem(expandedKey, JSON.stringify([...next]))
+    } catch {
+      // Keep the in-memory state when storage is unavailable.
+    }
+    return next
+  })
 
   return (
     <>
-      <div className="nav-item workspace-btn" style={{ cursor: 'default' }}>
+      <div className="sidebar-header">
         <img className="brand-logo" src="/brand/favicon.svg" alt="" width={28} height={28} />
-        <span className="nav-label">SingBuild Workspace</span>
+        <span className="sidebar-brand">SingBuild Workspace</span>
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            className="sidebar-collapse"
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-pressed={!collapsed}
+            onClick={onToggleCollapsed}
+          >
+            {collapsed ? <PanelLeftOpen {...ic} /> : <PanelLeftClose {...ic} />}
+          </button>
+        )}
       </div>
 
-      <nav
-        className="sidebar-body"
-        aria-label="Primary"
-        onClick={(e) =>
-          (e.target as HTMLElement).closest('a') && onNavigate?.()
-        }
-      >
-        <ul className="nav-list" style={{ marginTop: 'var(--space-8)' }}>
+      <nav className="sidebar-body" aria-label="Primary">
+        <ul className="nav-list sidebar-tools">
           <li>
             <button
+              type="button"
               className="nav-item sidebar-search"
+              aria-label="Search workspace"
+              title="Search workspace"
               onClick={() => {
                 onNavigate?.()
                 useWorkspaceUI.getState().setCommandOpen(true)
               }}
             >
-              <Search size={15} />
+              <span className="nav-icon"><Search size={17} /></span>
               <span className="nav-label">Search workspace…</span>
               <span className="kbd">{modKey()} K</span>
             </button>
           </li>
-
         </ul>
 
-        {/* Personal Workspace is hidden for now; its routes remain available by URL. */}
         <div className="nav-section">
-          <div className="t-caption"><NavLink to="/projects-progress" end>Projects Progress</NavLink></div>
+          <div className="t-caption"><NavLink to="/projects-progress" end onClick={onNavigate}>Projects Progress</NavLink></div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">
-            {projects.filter((p) => p.nbcBp03).map((p) => <li key={p.id} data-current={pathname.startsWith(`/projects-progress/${p.id}/`)}>
-              <NavLink to={`/projects-progress/${p.id}/overview`} className="nav-item"><span className="nav-label">{p.name}</span><span className="nav-meta">{Math.round(p.progress * 100)}%</span></NavLink>
-              <ul className="nav-list nav-project-views" aria-label={`${p.name} views`}>
-                <li><NavLink to={`/projects-progress/${p.id}/activities`} className="nav-item"><span className="nav-label">Project Progress</span></NavLink></li>
-                <li><NavLink to={`/projects-progress/${p.id}/update`} className="nav-item" aria-label={`${p.name} Update Progress`}><span className="nav-label">Update Progress</span></NavLink></li>
-              </ul>
-            </li>)}
+            {projects.filter((p) => p.nbcBp03).map((project) => {
+              const isExpanded = expanded.has(project.id)
+              const isCurrent = pathname.startsWith(`/projects-progress/${project.id}/`)
+              const [name, subtitle] = project.name.split(' – ')
+              const viewsId = `sidebar-views-${project.id}`
+              return (
+                <li key={project.id} data-current={isCurrent}>
+                  <button
+                    type="button"
+                    className="nav-item nav-project-toggle"
+                    aria-expanded={isExpanded}
+                    aria-controls={viewsId}
+                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${project.name}`}
+                    title={project.name}
+                    onClick={() => toggleProject(project.id)}
+                  >
+                    <span className="nav-icon project-chevron" aria-hidden="true">
+                      {isExpanded ? <ChevronDown {...ic} /> : <ChevronRight {...ic} />}
+                    </span>
+                    <span className="nav-icon project-symbol" aria-hidden="true"><Building2 {...ic} /></span>
+                    <span className="project-heading">
+                      <span className="project-name">{name}</span>
+                      {subtitle ? <span className="project-subtitle">{subtitle}</span> : null}
+                    </span>
+                    <span className="nav-meta">{Math.round(project.progress * 100)}%</span>
+                  </button>
+                  <div
+                    id={viewsId}
+                    className="nav-project-views-wrap"
+                    data-expanded={isExpanded}
+                    aria-hidden={!isExpanded}
+                    inert={!isExpanded}
+                  >
+                    <ul className="nav-list nav-project-views" aria-label={`${project.name} views`}>
+                      <Item to={`/projects-progress/${project.id}/activities`} icon={<BarChart3 {...ic} />} label="Project Progress" onNavigate={onNavigate} />
+                      <Item to={`/projects-progress/${project.id}/update`} icon={<SquarePen {...ic} />} label="Update Progress" onNavigate={onNavigate} />
+                    </ul>
+                  </div>
+                </li>
+              )
+            })}
           </ul>
         </div>
       </nav>
 
       <div className="sidebar-foot">
         <ul className="nav-list">
-          <Item to="/trash" icon={<Trash2 {...ic} />} label="Trash" />
-          <Item
-            to="/settings/appearance"
-            icon={<Settings {...ic} />}
-            label="Settings"
-          />
+          <Item to="/trash" icon={<Trash2 {...ic} />} label="Trash" onNavigate={onNavigate} />
+          <Item to="/settings/appearance" icon={<Settings {...ic} />} label="Settings" onNavigate={onNavigate} />
         </ul>
-
       </div>
     </>
   )
 }
-
-export const PageIcon = FileText

@@ -18,12 +18,12 @@ test('pace averages the last four confirmed weeks and forecasts a finish date on
   expect(forecastDate(1, .1, '2026-10-28')).toBeNull()
 })
 
-test('handlers who have not confirmed this week are listed, and turn red once Saturday noon has passed', () => {
+test('handlers who have not confirmed this week are listed, and turn red at Saturday midnight', () => {
   const activities = fixtureActivities()
   const soon = attentionItems({ ...input, activities, submissions: [] })
   expect(soon[0]).toMatchObject({ id: 'missing', tone: 'amber' })
   expect(soon[0]!.title).toBe('Tola has not updated')
-  const late = attentionItems({ ...input, now: Date.parse('2026-10-31T06:00:00Z'), activities, submissions: [] })
+  const late = attentionItems({ ...input, now: Date.parse('2026-10-30T17:00:00Z'), activities, submissions: [] })
   expect(late[0]).toMatchObject({ tone: 'red', title: 'Tola has not updated', impact: 'overdue' })
 })
 

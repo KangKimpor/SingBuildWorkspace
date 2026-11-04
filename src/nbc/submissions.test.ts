@@ -10,20 +10,21 @@ function draft(handler: Handler, date = week, progress = .5): NbcSubmission {
   return { id: submissionId('nbc-bp03', date, handler), projectId: 'nbc-bp03', weekStart: date, handler, status: 'draft', confirmedAt: null, confirmedBy: null, late: false, note: '', updatedAt: now.toISOString(), entries: [{ activityId: a.id, previous: a.progress, progress, remark: 'Site update' }] }
 }
 const initial = (): SubmissionState => ({ activities: fixtureActivities(), submissions: [draft('Tola')], summaries: [] })
-test('Monday weeks, year boundaries, Phnom Penh midnight and Saturday noon deadline', () => {
+test('Monday weeks, year boundaries, Phnom Penh midnight and Friday deadline', () => {
   expect(weekStart('2027-01-01')).toBe('2026-12-28')
   expect(weekStart('2026-11-01')).toBe(week)
   expect(weekStart('2026-11-02')).toBe('2026-11-02')
-  expect(weekDeadline(week)).toBe(Date.parse('2026-10-31T05:00:00Z'))
+  expect(weekDeadline(week)).toBe(Date.parse('2026-10-30T17:00:00Z'))
+  expect(weekDeadline('2026-11-02')).toBe(Date.parse('2026-11-06T17:00:00Z'))
   expect(() => weekStart('2026-02-30')).toThrow()
   expect(() => assertEditableWeek(addDays(week, -14), now)).toThrow('Only this week')
   expect(() => assertEditableWeek(addDays(week, 7), now)).toThrow()
   assertEditableWeek(addDays(week, -7), now)
 })
-test('confirming before Saturday noon is on time, at noon or after is late, and Sunday is still this week', () => {
+test('confirming before Saturday midnight is on time, at the boundary or after is late, and Sunday is still this week', () => {
   const at = (iso: string) => transitionSubmission(initial(), initial().submissions[0]!.id, 'confirm', 'actor', new Date(iso)).submissions[0]!.late
-  expect(at('2026-10-31T04:59:59Z')).toBe(false)
-  expect(at('2026-10-31T05:00:00Z')).toBe(true)
+  expect(at('2026-10-30T16:59:59.999Z')).toBe(false)
+  expect(at('2026-10-30T17:00:00Z')).toBe(true)
   expect(at('2026-11-01T10:00:00Z')).toBe(true)
   expect(weekStart('2026-11-01')).toBe(week)
 })
@@ -109,14 +110,14 @@ test('a re-chained draft is the same intent, but changed values are not', () => 
   expect(sameDraftIntent(local, { ...rechained, status: 'confirmed' })).toBe(false)
 })
 
-test('unconfirmed current drafts are re-chained and the late flag flips at Saturday noon', () => {
+test('unconfirmed current drafts are re-chained and the late flag flips at Saturday midnight', () => {
   let s = initial(), last = draft('Tola', addDays(week, -7), .4)
   s.submissions.push(last)
   s = transitionSubmission(s, last.id, 'confirm', 'actor', now)
   expect(s.submissions[0]!.entries[0]!.previous).toBe(.4)
   let onTime = initial()
-  onTime = transitionSubmission(onTime, onTime.submissions[0]!.id, 'confirm', 'actor', new Date('2026-10-31T04:59:59.999Z'))
+  onTime = transitionSubmission(onTime, onTime.submissions[0]!.id, 'confirm', 'actor', new Date('2026-10-30T16:59:59.999Z'))
   expect(onTime.submissions[0]!.late).toBe(false)
-  const late = transitionSubmission(initial(), initial().submissions[0]!.id, 'confirm', 'actor', new Date('2026-10-31T05:00:00Z'))
+  const late = transitionSubmission(initial(), initial().submissions[0]!.id, 'confirm', 'actor', new Date('2026-10-30T17:00:00Z'))
   expect(late.submissions[0]!.late).toBe(true)
 })

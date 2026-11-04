@@ -116,9 +116,9 @@ test('asks who is updating first and only opens the editor after Continue', () =
   expect(screen.getByRole('heading', { name: 'Who is updating?' })).toBeTruthy()
 })
 
-test('the search row shows the Saturday 12 PM deadline while the week stays Monday to Sunday', () => {
+test('the search row shows the Friday 11:59 PM deadline while the week stays Monday to Sunday', () => {
   render(<Screen/>)
-  expect(screen.getByText('Due Saturday 12:00 PM · 3 days left')).toBeTruthy()
+  expect(screen.getByText('Due Friday 11:59 PM · 3 days left')).toBeTruthy()
   expect(screen.queryByRole('heading', { name: 'Update Progress' })).toBeNull()
   expect(screen.queryByText(/^Tola · 26 Oct – 1 Nov/)).toBeNull()
 })
@@ -126,7 +126,7 @@ test('the search row shows the Saturday 12 PM deadline while the week stays Mond
 test('after the deadline the header does not show the late banner and the sheet repeats it', () => {
   vi.setSystemTime(new Date('2026-10-31T07:00:00Z'))
   render(<Screen/>)
-  expect(screen.queryByText(/Deadline passed Saturday 12:00 PM/)).toBeNull()
+  expect(screen.queryByText(/Deadline passed Friday 11:59 PM/)).toBeNull()
   fireEvent.change(value('1.6.1.2'), { target: { value: '65' } })
   fireEvent.click(screen.getByRole('button', { name: 'Confirm update' }))
   expect(within(screen.getByRole('dialog', { name: 'Confirm update' })).getByText('Late')).toBeTruthy()

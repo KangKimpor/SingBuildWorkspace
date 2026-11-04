@@ -52,7 +52,7 @@ test('first install is offline-ready and later updates apply automatically', asy
       const reloaded = page.waitForEvent('domcontentloaded')
       // Returning to an open desktop app or reconnecting must discover deployments.
       await page.evaluate((event) => window.dispatchEvent(new Event(event)), attempt === 0 ? 'focus' : 'online')
-      await expect(page.getByText('Updating to the latest version…', { exact: true })).toBeVisible()
+      await expect(page.getByText('Update ready. Reloading automatically…', { exact: true })).toBeVisible()
       expect(loads).toBe(attempt)
       // The notice is visible while the new worker activates, then the tab reloads itself.
       await reloaded
