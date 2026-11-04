@@ -116,13 +116,13 @@ for (const mobile of [false, true]) test(`weekly XLSX exports confirmed snapshot
   expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([])
   const file = await exportFile(page), xml = strFromU8(unzipSync(file.bytes)['xl/worksheets/sheet1.xml']!)
   expect(file.name).toBe('NBC-BP03-Progress Tracking by BOQ-(25 October to 31 October).xlsx')
-  expect(value(xml, 'N9')).toBe(.8); expect(value(xml, 'L9')).toBe(.4); expect(value(xml, 'M9')).toBe(.4)
+  expect(value(xml, 'N8')).toBe(.8); expect(value(xml, 'L8')).toBe(.4); expect(value(xml, 'M8')).toBe(.4)
   await page.reload(); await page.getByRole('button', { name: 'Export XLSX', exact: true }).click()
   await expect(page.getByText('Saved template: NBC-template.xlsx')).toBeVisible()
   await page.getByRole('combobox', { name: 'Reporting week', exact: true }).click()
   await page.getByRole('option', { name: /18 October/ }).click()
   const earlier = await exportFile(page), old = strFromU8(unzipSync(earlier.bytes)['xl/worksheets/sheet1.xml']!)
-  expect(earlier.name).toBe('NBC-BP03-Progress Tracking by BOQ-(18 October to 24 October).xlsx'); expect(value(old, 'N9')).toBe(.4); expect(value(old, 'L9')).toBe(.25)
+  expect(earlier.name).toBe('NBC-BP03-Progress Tracking by BOQ-(18 October to 24 October).xlsx'); expect(value(old, 'N8')).toBe(.4); expect(value(old, 'L8')).toBe(.25)
 })
 
 test('actual private client template exports all BOQ rows in the browser', async ({ page }) => {

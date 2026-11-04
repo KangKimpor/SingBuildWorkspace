@@ -1,5 +1,5 @@
 import type { NbcActivity } from './types'
-export const fixtureProject = { id: 'nbc-bp03', name: 'NBC BP03 – Pan Pacific Hotel', workspace: 'team' as const, nbcBp03: true, color: 'blue' as const, description: 'Synthetic test project', target: '', progress: 0.35, status: 'Active' as const }
+export const fixtureProject = { id: 'nbc-bp03', name: 'NBC BP03 – Pan Pacific Hotel', workspace: 'team' as const, nbcBp03: true, color: 'blue' as const, description: 'Synthetic test project', target: '', progress: 0.4375, status: 'Active' as const }
 export function fixtureActivities(): NbcActivity[] {
   const base = { projectId: 'nbc-bp03', description: 'Synthetic test activity', area: 'Test area', location: 'GF', trade: 'Test trade', handler: '', remark: '', history: [], duration: 1, boqValue: null, schedule: null, sourcePrevious: 0, sourceWeekly: 0 }
   return [

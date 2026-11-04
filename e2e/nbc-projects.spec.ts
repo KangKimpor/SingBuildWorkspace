@@ -1,5 +1,7 @@
 import { expect, test } from './workspace-test'
 import { existsSync, readFileSync } from 'node:fs'
+import { handlerComplete } from '../src/nbc/handlers'
+import { projectHandlers } from '../src/nbc/types'
 import { calculate } from '../src/nbc/progress'
 import type { NbcActivity } from '../src/nbc/types'
 import { fixtureActivities, fixtureProject } from '../src/nbc/test-fixture'
@@ -34,7 +36,8 @@ for (const real of [false, true]) test(`both projects persist isolated drafts, c
     const activities = after.nbc_activities.filter((a: NbcActivity) => a.projectId === data.project.id)
     expect(after.nbc_summaries.find((s: { projectId: string; weekStart: string }) => s.projectId === data.project.id && s.weekStart === '2026-10-26').overall).toBeCloseTo(calculate(activities).overall, 12)
     await page.goto(`/projects-progress/${data.project.id}/overview`)
-    await expect(page.getByText('1 of 7 handlers updated this week')).toBeVisible()
+    const active = projectHandlers(data.project.id).filter((h) => !handlerComplete(activities, h)).length
+    await expect(page.getByText(`1 of ${active} handlers updated this week`)).toBeVisible()
     await page.getByRole('button', { name: 'Expand Tola', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Actions for Tola This week', exact: true })).toBeVisible()
     if (real && data.project.id === 'nbc-bp04') {

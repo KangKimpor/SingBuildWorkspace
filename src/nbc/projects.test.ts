@@ -12,7 +12,7 @@ import type { NbcActivity } from './types'
 beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-30T03:00:00Z')); localStorage.clear() })
 afterEach(() => vi.useRealTimers())
 
-test('both projects isolate drafts, confirm/reopen/delete, shared GR&P, summaries and audit history', async () => {
+test('both projects isolate drafts, confirm/reopen/delete, summaries and audit history', async () => {
   const bp04 = fixtureActivities().map(a => ({ ...a, id: a.id.replace('nbc:', 'nbc-bp04:'), parentId: a.parentId?.replace('nbc:', 'nbc-bp04:') ?? null, projectId: 'nbc-bp04' }))
   useWorkspace.setState({ ...structuredClone(emptyContent), scope: 'guest', projects: [fixtureProject, { ...fixtureProject, id: 'nbc-bp04' }], nbc_activities: [...fixtureActivities(), ...bp04] })
   const snapshot = (id: string) => JSON.stringify({ activities: useWorkspace.getState().nbc_activities?.filter(a => a.projectId === id), submissions: useWorkspace.getState().nbc_submissions?.filter(a => a.projectId === id), summaries: useWorkspace.getState().nbc_summaries?.filter(a => a.projectId === id) })

@@ -34,7 +34,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       await expect(page.locator('.nbc-tabs a[aria-current=page]')).toHaveText(label)
       await expect(page.getByRole('heading', { name: fixtureProject.name, exact: true })).toBeVisible()
       if (view === 'overview') {
-        await expect(page.locator('.nbc-kpi').filter({ hasText: 'Overall progress' }).locator('strong')).toHaveText('35.0%')
+        await expect(page.locator('.nbc-kpi').filter({ hasText: 'Overall progress' }).locator('strong')).toHaveText('43.8%')
         await expect(page.getByRole('region', { name: 'Project snapshot' })).toContainText('Versus plan')
         await page.getByRole('button', { name: 'Work area', exact: true }).click()
         await expect(page.getByRole('region', { name: 'Work area', exact: true })).toBeVisible()
@@ -44,7 +44,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       if (view === 'activities') await expect(page.locator('.nbc-wbs')).toBeVisible()
       if (view === 'update') {
         await expect(page.getByRole('heading', { name: 'Who is updating?' })).toBeVisible()
-        await page.locator('.nbc-gate-list button').first().click(); await page.getByRole('button', { name: /^Continue as/ }).click()
+        await page.locator('.nbc-gate-list').getByRole('button', { name: /^Tola/ }).click(); await page.getByRole('button', { name: /^Continue as/ }).click()
         await expect(page.getByRole('button', { name: 'Confirm, no changes', exact: true })).toBeInViewport()
       }
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)

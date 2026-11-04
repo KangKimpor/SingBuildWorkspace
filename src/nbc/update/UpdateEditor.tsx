@@ -113,7 +113,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}</p>}
     {rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
-      : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}. GR&P is shared by all handlers.`} collapsed={openGroups} onToggle={toggle}
+      : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle}
           previous={(a) => previous.get(a.id) ?? a.progress}
           rowAttrs={(row) => ({ 'data-activity-id': row.activity.id, 'data-changed': changedIds.has(row.activity.id) ? 'true' : undefined, 'data-problem': problems.has(row.activity.id) ? 'true' : undefined })}
           current={({ activity: a }) => {
