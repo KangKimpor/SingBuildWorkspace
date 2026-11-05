@@ -18,11 +18,19 @@ import shutil
 import sys
 
 import openpyxl
+from openpyxl.utils import column_index_from_string as column_index
 
 PREFIX = 'nbc-bp02:'
 HANDLERS = ['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Tola']
 ROMAN = re.compile(r'^[IVX]+$')
 LINK = re.compile(r"^=\s*'?(\w+)'?!\$?([A-Z]+)\$?(\d+)$")
+# The MEP rows read the Tola tab as =IF(Tola!D69="","",Tola!D69), so a blank cell stays blank instead of reading 0.
+IF_LINK = re.compile(r'^=\s*IF\(\s*(\w+)!\$?([A-Z]+)\$?(\d+)\s*=\s*""\s*,\s*""\s*,\s*\1!\$?\2\$?\3\s*\)$')
+
+
+def link(value):
+    text = str(value or '')
+    return LINK.match(text) or IF_LINK.match(text)
 
 
 def number(value):
@@ -84,7 +92,7 @@ def extract(source):
                 continue
             item = '' if a is None else str(a).strip()
             name = str(b).strip()
-            links = {col: LINK.match(str(ws.cell(r, col).value or '')) for col in rooms}
+            links = {col: link(ws.cell(r, col).value) for col in rooms}
             links = {col: m for col, m in links.items() if m}
             if item in ('A', 'B', 'C') and not links:
                 section = child(floor, name, item, section_weight[item], 'section')
@@ -104,11 +112,14 @@ def extract(source):
                 assert len(handlers) == 1 and next(iter(handlers)) in HANDLERS, (sheet, r, handlers)
                 handler = next(iter(handlers))
                 cells = {}
+                limit = parent.get('_avg', {}).get(r)
+                if limit:
+                    links = {col: m for col, m in links.items() if col <= limit}
                 if letter == 'C':
                     # MEP reads the handler tab's "Floor avg", which averages only the cells that hold a number.
                     rows_used = {m.group(3) for m in links.values()}
                     assert len(rows_used) == 1, (sheet, r, rows_used)
-                    for col in rooms:
+                    for col in (col for col in rooms if not limit or col <= limit):
                         v = formulas[handler].cell(int(next(iter(rows_used))), col).value
                         if isinstance(v, (int, float)):
                             cells[col] = (float(v), int(next(iter(rows_used))))
@@ -135,6 +146,8 @@ def extract(source):
             rel = number(c) if letter != 'C' and depth == 2 else None
             group = child(parent, name, item, rel if rel is not None else 1, 'group')
             group['_raw'] = rel
+            # The floor-level MEP figure averages each task row over its own column range, which can stop short of the CRD column.
+            group['_avg'] = {int(row): column_index(last) for row, last in re.findall(r'AVERAGE\(D(\d+):([A-Z]+)\d+\)', str(c or ''))}
             group['_mode'] = 'AVERAGE' if str(ws.cell(r, 4).value or '').upper().startswith('=AVERAGE') else 'SUMPRODUCT'
             if letter != 'C':
                 group['trade'] = name
@@ -177,7 +190,7 @@ def extract(source):
     # The workbook scores guestrooms room by room (a task a room lacks counts as 0, averaged groups skip it), so leaf weights follow that.
     for root in kids[None]:
         for sec in kids[root['id']]:
-            if sec.get('item') != 'A':
+            if sec.get('item') not in ('A', 'B'):
                 continue
             n_rooms = len(sec['_rooms'])
             for group in kids[sec['id']]:

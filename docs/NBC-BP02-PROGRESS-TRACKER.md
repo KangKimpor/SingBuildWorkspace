@@ -1,5 +1,11 @@
 # NBC BP02 progress tracker
 
+## 5 November 2026 — 1–7 November room workbook baseline
+
+`NBC-BP02-Progress Tracking by BOQ-(1 November to 7 November).xlsx` is the BP02 baseline for percentages and formulas (Overall Progress → Floor 13–23 → six handler tabs; section weights 50/5/45, floors 1/11 each). `scripts/nbc-bp02-rooms-extract.py` now reads this layout: the corridor section (CRD column), the `=IF(Tola!x="","",Tola!x)` MEP links, and the per-row `AVERAGE(D:last)` ranges that can stop short of the CRD column. The extract reproduces the workbook exactly: overall 84.3175% (15,366 editable leaves, 16,664 nodes) and all 11 floors within 2e-16.
+
+Apply with `python scripts/nbc-area-baseline-sql.py nbc-bp02 <private dir>`, then run the stage files and `apply.sql` with psql. It records the figures as the confirmed `2026-10-26` block and leaves `2026-11-02` open, as for the earlier BP02 baseline. The database step is not run from this repository.
+
 ## 3 November 2026 — new baseline workbook
 
 `NBC_BP02_Progress_Tracking_by_BOQ_01_November_07_November_updated.xlsx` (SHA-256 `ceaa97da10c3b015929dca51f6c45d44360464a4420736565fd09b084b918c81`) is now the BP02 baseline for percentages, handlers, weights and the stored Excel template. The previous BP02 activities, submissions, summaries and template were replaced; the file's weekly block label was ignored and its values are recorded as the confirmed `2026-10-26` block (six handlers, previous = current, so no weekly change). Week `2026-11-02` is open with no submissions or drafts. BP03 and BP04 were not touched.

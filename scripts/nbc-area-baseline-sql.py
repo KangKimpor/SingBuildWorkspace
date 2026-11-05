@@ -1,7 +1,7 @@
-"""Local-only: turns the private BP03 / BP04 area extract into staged-upload SQL and a guarded baseline-replacement transaction.
+"""Local-only: turns the private BP02 room / BP03 / BP04 area extract into staged-upload SQL and a guarded baseline-replacement transaction.
 
-Usage: python scripts/nbc-area-baseline-sql.py nbc-bp03|nbc-bp04 [PRIVATE_DIRECTORY]
-Reads initial.json and template.xlsx (written by scripts/nbc-bp03-rooms-extract.py); writes sql/stage-NN.sql and sql/apply.sql.
+Usage: python scripts/nbc-area-baseline-sql.py nbc-bp02|nbc-bp03|nbc-bp04 [PRIVATE_DIRECTORY]
+Reads initial.json and template.xlsx (written by scripts/nbc-bp02-rooms-extract.py or scripts/nbc-bp03-rooms-extract.py); writes sql/stage-NN.sql and sql/apply.sql.
 Never connects to a database. Run the stage files first, then apply.sql, with psql.
 
 apply.sql, in one transaction: checks the owner and the project, checks the staged rows against the counts and the workbook's
@@ -19,18 +19,24 @@ OWNER = '186f3ec0-587e-44a7-970f-29a92e70fe73'
 WEEK = '2026-10-26'      # the workbook's reporting week (25-31 October 2026)
 CURRENT_WEEK = '2026-11-02'  # the week the app is in now; its summary starts from the imported figure
 HANDLERS = ['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Vuth', 'Tola']
+BP02_HANDLERS = [h for h in HANDLERS if h != 'Vuth']  # BP02 keeps its original six-handler workbook
 
 project = sys.argv[1] if len(sys.argv) > 1 else ''
-if project not in ('nbc-bp03', 'nbc-bp04'):
-    raise SystemExit('Usage: python scripts/nbc-area-baseline-sql.py nbc-bp03|nbc-bp04 [PRIVATE_DIRECTORY]')
+if project not in ('nbc-bp02', 'nbc-bp03', 'nbc-bp04'):
+    raise SystemExit('Usage: python scripts/nbc-area-baseline-sql.py nbc-bp02|nbc-bp03|nbc-bp04 [PRIVATE_DIRECTORY]')
+if project == 'nbc-bp02':
+    HANDLERS = BP02_HANDLERS
 short = project.replace('-', '_')  # nbc_bp03
 root = Path(sys.argv[2] if len(sys.argv) > 2 else f'.private/{project}-rooms')
 dataset = json.loads((root / 'initial.json').read_text(encoding='utf-8'))
 acts, rec = dataset['activities'], dataset['reconciliation']
+for a in acts:
+    a.pop('projectId', None)  # apply.sql adds it
 template = (root / 'template.xlsx').read_bytes()
 (root / 'sql').mkdir(exist_ok=True)
 stage = f'kw_private.{short}_stage'
 number = project[-2:]
+SOURCE = '1-7 November 2026' if project == 'nbc-bp02' else '25-31 October 2026'
 name = f'NBC-BP{number}-Progress Tracking by BOQ.xlsx'
 
 leaves = [a for a in acts if a['editable']]
@@ -109,7 +115,7 @@ begin
     if jsonb_array_length(entries)=0 then raise exception 'Handler % has no activities',h; end if;
     insert into public.kw_nbc_submissions(user_id,id,data,updated_at) values(owner,'{project}:{WEEK}:'||h,jsonb_build_object(
       'id','{project}:{WEEK}:'||h,'projectId','{project}','weekStart','{WEEK}','handler',h,'status','confirmed','entries',entries,
-      'late',false,'note','Imported from the 25-31 October 2026 workbook.','updatedAt',to_jsonb(at),'confirmedAt',to_jsonb(at),'confirmedBy',owner,'undoUntil',to_jsonb(at+interval '10 seconds')),at);
+      'late',false,'note','Imported from the {SOURCE} workbook.','updatedAt',to_jsonb(at),'confirmedAt',to_jsonb(at),'confirmedBy',owner,'undoUntil',to_jsonb(at+interval '10 seconds')),at);
     contributions=contributions||jsonb_build_object(h,(select sum((data->>'globalWeight')::numeric*(data->>'progress')::numeric) from public.kw_nbc_activities where user_id=owner and project_id='{project}' and (data->>'editable')::boolean and data->>'handler'=h));
   end loop;
   insert into public.kw_nbc_summaries(user_id,id,data,updated_at) values
