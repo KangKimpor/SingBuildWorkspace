@@ -93,7 +93,7 @@ begin
   delete from public.kw_nbc_templates where project_id='{project}';
   delete from public.kw_nbc_activities where user_id=owner and project_id='{project}';
   insert into public.kw_nbc_activities(user_id,id,data,created_at,updated_at)
-    select owner,a->>'id',a||jsonb_build_object('projectId','{project}'),at,at from jsonb_array_elements(payload) a;
+    select owner,a->>'id',jsonb_build_object('baseline',a->'progress','history','[]'::jsonb,'remark','','handler','','area','','trade','','location','')||a||jsonb_build_object('projectId','{project}'),at,at from jsonb_array_elements(payload) a;
   select count(*),count(*) filter (where (data->>'editable')::boolean) into total,leaves from public.kw_nbc_activities where user_id=owner and project_id='{project}';
   if total<>{nodes} or leaves<>{len(leaves)} then raise exception 'Unexpected activity counts'; end if;
   if exists(select 1 from public.kw_nbc_activities a where a.user_id=owner and a.project_id='{project}' and
