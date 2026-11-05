@@ -82,4 +82,18 @@ export interface NbcActivity {
   roomList?: string[]
   /** Group scored as the plain average of the tasks a room has, instead of a weighted sum. */
   average?: boolean
+  /** BP03/BP04 area layout. A panel root ("ID" or "MEP") lists its area columns in `roomList` (a leaf's `room` is one of them). */
+  panel?: 'ID' | 'MEP'
+  /** Column headings when they differ from the short area codes ("ID-33
+Lift Lobby + Corridor L11"), aligned with `roomList`. */
+  roomLabels?: string[]
+  /** ID panel only: BOQ zone weight of each area (aligned with `roomList`) and the MEP areas that feed each ID area. */
+  zone?: number[]
+  links?: Record<string, string[]>
+  /** Tasks the workbook lists but that apply to no area at all (they have no cell to edit), kept so the export still prints them. */
+  naTasks?: { name: string; weight: number; at: number }[]
+  /** MEP system whose areas read 0 rather than N/A when nothing in them applies (the workbook's IFERROR(...,0)). */
+  emptyZero?: string[]
+  /** MEP sub-system the workbook lists but leaves out of its system average. */
+  uncounted?: boolean
 }

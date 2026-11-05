@@ -29,3 +29,10 @@ test('one column per room, rooms keep their own percentage and missing rooms are
   fireEvent.click(screen.getByRole('button', { name: 'Collapse Section' }))
   expect(toggle).toHaveBeenCalledWith('n:1.1')
 })
+
+test('area panels show the full area label in each column heading', () => {
+  const labelled = activities.map((a) => a.wbs === '1' ? { ...a, name: 'ID', panel: 'ID' as const, roomList: ['R1', 'R2'], roomLabels: ['R1\nLobby', 'R2\nSuite'] } : a)
+  const floor = roomFloors(labelled)[0]!, { progress } = calculate(labelled)
+  render(<RoomMatrix floor={floor} caption="ID" collapsed={new Set()} onToggle={() => {}} progress={progress} previous={progress} show={() => true} cell={(leaf) => <span>{leaf.room}</span>}/>)
+  expect(screen.getAllByRole('columnheader').slice(4).map((h) => h.textContent)).toEqual(['R1\nLobby', 'R2\nSuite'])
+})

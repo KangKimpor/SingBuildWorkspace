@@ -29,12 +29,12 @@ export interface RoomMatrixProps {
 export function RoomMatrix({ floor, caption, collapsed, onToggle, progress, previous, show, cell, cellAttrs, extra = [], onRowClick, rowAttrs }: RoomMatrixProps) {
   const rows = visibleRoomRows(floor, show, collapsed)
   const span = floor.rooms.length
-  return <div className="nbc-wbs-scroll nbc-rooms-scroll"><table className="nbc-wbs nbc-rooms"><caption className="sr-only">{caption}</caption>
+  return <div className="nbc-wbs-scroll nbc-rooms-scroll"><table className="nbc-wbs nbc-rooms" data-area={floor.labels.some((l) => l.includes('\n')) || undefined}><caption className="sr-only">{caption}</caption>
     <thead><tr>
       <th scope="col" className="nbc-room-sticky-1">Item</th><th scope="col" className="nbc-room-sticky-2">Description</th>
       <th scope="col" className="nbc-num">Prev %</th><th scope="col" className="nbc-num">Now %</th>
       {extra.map((c) => <th scope="col" key={c.header}>{c.header}</th>)}
-      {floor.rooms.map((room) => <th scope="col" key={room} className="nbc-room-head" title={room}>{room}</th>)}
+      {floor.rooms.map((room, i) => <th scope="col" key={room} className="nbc-room-head" title={floor.labels[i]}>{floor.labels[i]}</th>)}
     </tr></thead>
     <tbody>{rows.map((row) => {
       const a = row.activity, open = !collapsed.has(a.id)

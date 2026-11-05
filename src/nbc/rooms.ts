@@ -11,7 +11,13 @@ export interface RoomRow {
   task: boolean
   cells: ReadonlyMap<string, NbcActivity>
 }
-export interface RoomFloor { root: NbcActivity; rooms: string[]; rows: RoomRow[] }
+export interface RoomFloor { root: NbcActivity; rooms: string[]; /** Column headings, aligned with `rooms`. */ labels: string[]; rows: RoomRow[] }
+
+/** BP03/BP04 keep ID and MEP panels (one set of area columns each) where BP02 keeps floors. */
+export const isAreaProject = (activities: readonly NbcActivity[]) => activities.some((a) => a.panel)
+/** Name of the picker above the matrix and the text on each of its buttons. */
+export const floorPickerLabel = (floors: readonly RoomFloor[]) => floors.some((f) => f.root.panel) ? 'Panel' : 'Floor'
+export const floorTabName = (root: NbcActivity) => root.panel ? root.name : root.name.replace('Floor ', '')
 
 /** Floors (in workbook order) with their room columns and the matrix rows under each. */
 export function roomFloors(activities: readonly NbcActivity[]): RoomFloor[] {
@@ -35,7 +41,7 @@ export function roomFloors(activities: readonly NbcActivity[]): RoomFloor[] {
       }
     }
     walk(root, 0)
-    return { root, rooms, rows }
+    return { root, rooms, labels: root.roomLabels ?? rooms, rows }
   })
 }
 

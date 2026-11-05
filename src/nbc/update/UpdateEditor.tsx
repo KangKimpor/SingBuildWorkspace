@@ -5,7 +5,7 @@ import { GlassSelect } from '@/components/glass/GlassSelect'
 import { MoreMenu } from '../ui/MoreMenu'
 import { WbsTable } from '../ui/WbsTable'
 import { RoomMatrix } from '../ui/RoomMatrix'
-import { isRoomProject, roomFloors, visibleRoomRows } from '../rooms'
+import { floorPickerLabel, floorTabName, isRoomProject, roomFloors, visibleRoomRows } from '../rooms'
 import { buildWbsRows } from '../wbs-table'
 import { calculate } from '../progress'
 import { canUpdate, weekLabel } from '../submissions'
@@ -129,7 +129,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
 
   return <>
     <div className="nbc-filters">
-      {roomMode && floor && floors.length > 1 && <div className="nbc-seg" role="group" aria-label="Floor">{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{f.root.name.replace('Floor ', '')}</button>)}</div>}
+      {roomMode && floor && floors.length > 1 && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       {areas.length > 1 && <GlassSelect aria-label="Work area" value={area} onChange={(e) => setArea(e.target.value)}><option value="">All areas</option>{areas.map((a) => <option key={a}>{a}</option>)}</GlassSelect>}
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>

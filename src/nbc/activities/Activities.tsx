@@ -16,7 +16,7 @@ import { issuesEnabled } from '../features'
 import { calculate } from '../progress'
 import { assignActivities, updateActivity } from '../actions'
 import { RoomMatrix } from '../ui/RoomMatrix'
-import { isRoomProject, roomFloors } from '../rooms'
+import { floorPickerLabel, floorTabName, isRoomProject, roomFloors } from '../rooms'
 import { money, percent } from '../format'
 import { projectHandlers } from '../types'
 import { activityHandlers } from '../handlers'
@@ -37,9 +37,9 @@ function HandlerPicker({ a, activities }: { a: NbcActivity; activities: NbcActiv
 }
 
 /** Room-level tasks share one handler, so one picker reassigns the whole row. */
-function RoomHandlerPicker({ ids, label }: { ids: string[]; label: string }) {
+function RoomHandlerPicker({ ids, label, projectId }: { ids: string[]; label: string; projectId: string }) {
   return <GlassPopover label={`Assign ${label}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${label}`}>{label}</button>}>
-    <GlassSelect aria-label={`Handler for ${label}`} value="" onChange={(e) => { try { void Promise.resolve(assignActivities(ids, e.target.value)).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}><option value="" disabled>Choose handler</option>{projectHandlers('nbc-bp02').map((h) => <option key={h}>{h}</option>)}</GlassSelect>
+    <GlassSelect aria-label={`Handler for ${label}`} value="" onChange={(e) => { try { void Promise.resolve(assignActivities(ids, e.target.value)).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}><option value="" disabled>Choose handler</option>{projectHandlers(projectId).map((h) => <option key={h}>{h}</option>)}</GlassSelect>
   </GlassPopover>
 }
 
@@ -80,7 +80,7 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
 
   return <section className="nbc-activities">
     <div className="nbc-filters">
-      {floor && <div className="nbc-seg" role="group" aria-label="Floor">{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{f.root.name.replace('Floor ', '')}</button>)}</div>}
+      {floor && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...projectHandlers(projectId), ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
       <GlassSelect aria-label="Work area" value={area} onChange={(e) => filter('area', e.target.value)}><option value="">All areas</option>{[...new Set(activities.map((a) => a.area))].map((a) => <option key={a}>{a}</option>)}</GlassSelect>
@@ -102,7 +102,7 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
           cell={(l) => percent(l.progress, 0)}
           cellAttrs={(l) => ({ 'data-changed': Math.abs((live.progress.get(l.id) ?? 0) - (before.progress.get(l.id) ?? 0)) > 1e-12 ? 'true' : undefined, 'data-done': l.progress === 1 ? 'true' : undefined })}
           onRowClick={(row) => setDetail(row.activity.id)}
-          extra={[{ header: 'Handler', cell: (row) => { const leaves = [...row.cells.values()]; return <RoomHandlerPicker ids={leaves.map((l) => l.id)} label={[...new Set(leaves.map((l) => l.handler || 'Unassigned'))].join(', ')}/> } }]}/>
+          extra={[{ header: 'Handler', cell: (row) => { const leaves = [...row.cells.values()]; return <RoomHandlerPicker projectId={projectId} ids={leaves.map((l) => l.id)} label={[...new Set(leaves.map((l) => l.handler || 'Unassigned'))].join(', ')}/> } }]}/>
       : rows.length === 0
       ? <div className="quiet-empty">No activities match these filters.<button className="text-link" onClick={clear}>Clear filters</button></div>
       : <WbsTable virtual rows={rows} caption="Activities by WBS" collapsed={collapsed} onToggle={toggle}

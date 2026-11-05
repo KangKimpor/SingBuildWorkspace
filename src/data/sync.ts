@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { normalizeActivity } from '@/nbc/normalize'
 import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { supabase, initializeSupabase, hasStoredSession } from '@/lib/supabase'
 import { useWorkspaceUI } from '@/shell/workspace'
@@ -448,7 +449,7 @@ function laterStamp(a: string | undefined, b: string | undefined): string | unde
   return a > b ? a : b
 }
 function rowEntity(collection: CloudCollection, row: Row): Data {
-  return { ...row.data, ...(collection === 'projects' ? { workspace: row.data.workspace === 'team' ? 'team' : 'personal' } : {}), id: row.id, updatedAt: row.updated_at }
+  return { ...(collection === 'nbc_activities' ? normalizeActivity(row.data) : row.data), ...(collection === 'projects' ? { workspace: row.data.workspace === 'team' ? 'team' : 'personal' } : {}), id: row.id, updatedAt: row.updated_at }
 }
 /**
  * Apply one Realtime row without re-reading its collection. A pending local write
