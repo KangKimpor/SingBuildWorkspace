@@ -121,7 +121,9 @@ def extract(source):
         if name is None:
             continue
         item = wid.cell(r, 1).value
-        if num(wid.cell(r, 4).value) is not None and wid.cell(r, 5).value is None:
+        leaf_cell = wid.cell(r, 5).value
+        # A section row carries its weight in D; the reworked BP04 workbook also puts =SUM(...) of its task weights in E.
+        if num(wid.cell(r, 4).value) is not None and (leaf_cell is None or str(leaf_cell).upper().startswith('=SUM(')):
             sections.append(dict(item=str(item).strip(), name=str(name).strip(), weight=num(wid.cell(r, 4).value), row=r, tasks=[]))
         else:
             weight = num(wid.cell(r, 5).value)
@@ -186,7 +188,8 @@ def extract(source):
     id_block_row, mep_block_row = block_rows
     assert mep_block_row == mep_row
     id_weight, mep_weight = num(wall.cell(id_block_row, 3).value), num(wall.cell(mep_block_row, 3).value)
-    overall_cols = [c for c in range(5, wall.max_column + 1) if wall.cell(4, c).value]
+    # Columns the Overall sheet leaves as '-' (the AV zone) carry no area values and take no part in the figure.
+    overall_cols = [c for c in range(5, wall.max_column + 1) if wall.cell(4, c).value and str(wall.cell(7, c).value or '').startswith('=')]
     overall_ids = []
     for c in overall_cols:
         m = LINK.match(str(wall.cell(5, c).value))
@@ -207,9 +210,10 @@ def extract(source):
     av_weight = None
     if av_codes:
         av_weight = zone[id_codes.index('AV System')]
-        assert 'AV System' in str(wall.cell(find_row('AV System weight (BOQ R06)'), 2).value) or True
     # BP03 evaluates D7 with the AV zone outside the ID/MEP areas; BP04 simply adds the two blocks.
     simple_overall = re.match(r'^=D\d+\*\$C\$\d+\+D\d+\*\$C\$\d+$', str(wall['D7'].value)) is not None
+    # Reworked BP03 workbook: every area counts equally, D7 = AVERAGE of the per-area overall figures (AV zone excluded).
+    area_average = str(wall['D7'].value).upper().startswith('=IFERROR(AVERAGE(')
 
     # ---- leaves ---------------------------------------------------------------------------------------------------------
     def read_handler(link, sheet_title, task_label):
@@ -297,7 +301,7 @@ def extract(source):
 
     # Overall sheet
     overall_letter = {a: get_column_letter(c) for a, c in zip(overall_ids, overall_cols)}
-    zone_of = {a: zone[id_codes.index(a)] for a in overall_ids}
+    zone_of = {a: 1.0 if area_average else zone[id_codes.index(a)] for a in overall_ids}
     guest, mep_sys = {}, {}
     for a in overall_ids:
         guest[a] = area_total[a]
@@ -317,7 +321,11 @@ def extract(source):
     reg('Overall Progress', f'D{mep_block_row}', d_mep)
     for yi, system in enumerate(systems):
         reg('Overall Progress', f'D{first_system_row + yi}', wavg([(zone_of[a], mean([system_value[(yi, m)] for m in links[a]])) for a in overall_ids]))
-    if simple_overall:
+    if area_average:
+        overall = mean([guest[a] * id_weight + mep_sys[a] * mep_weight if mep_sys[a] is not None else guest[a] for a in overall_ids])
+        for a in overall_ids:
+            reg('Overall Progress', f'{overall_letter[a]}7', guest[a] * id_weight + mep_sys[a] * mep_weight if mep_sys[a] is not None else guest[a])
+    elif simple_overall:
         overall = d_id * id_weight + d_mep * mep_weight
         for a in overall_ids:
             reg('Overall Progress', f'{overall_letter[a]}7', guest[a] * id_weight + mep_sys[a] * mep_weight)

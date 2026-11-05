@@ -36,7 +36,7 @@ template = (root / 'template.xlsx').read_bytes()
 (root / 'sql').mkdir(exist_ok=True)
 stage = f'kw_private.{short}_stage'
 number = project[-2:]
-SOURCE = '1-7 November 2026' if project == 'nbc-bp02' else '25-31 October 2026'
+SOURCE = '1-7 November 2026' if project in ('nbc-bp02', 'nbc-bp03', 'nbc-bp04') else '25-31 October 2026'
 name = f'NBC-BP{number}-Progress Tracking by BOQ.xlsx'
 
 leaves = [a for a in acts if a['editable']]

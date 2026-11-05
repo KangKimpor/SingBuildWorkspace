@@ -98,6 +98,8 @@ def extract(source):
                 section = child(floor, name, item, section_weight[item], 'section')
                 section['area'] = name
                 section['_rooms'] = [col for col in rooms if str(ws.cell(r, col).value or '').startswith('=')]
+                # Newer workbooks average a guestroom floor only over the groups and tasks that are filled in (blank = N/A).
+                section['_renorm'] = 'ISNUMBER(AVERAGE' in str(ws.cell(r, 3).value or '')
                 stack = {1: section}
                 continue
             if section is None:
@@ -127,6 +129,8 @@ def extract(source):
                     for col, m in links.items():
                         v = formulas[handler][f'{m.group(2)}{m.group(3)}'].value
                         assert v is None or isinstance(v, (int, float)), (sheet, r, col, v)
+                        if v is None and IF_LINK.match(str(ws.cell(r, col).value)):
+                            continue  # =IF(Sheet!x="","",Sheet!x): a blank handler cell is N/A, not 0
                         cells[col] = (0.0 if v is None else float(v), int(m.group(3)))
                 for col, (value, src_row) in cells.items():
                     assert 0 <= value <= 1, (sheet, r, col, value)
@@ -193,6 +197,35 @@ def extract(source):
             if sec.get('item') not in ('A', 'B'):
                 continue
             n_rooms = len(sec['_rooms'])
+            if sec['_renorm']:
+                # Blank cells drop out: a group averages over the rooms where it has a value, each room renormalises the task
+                # weights over its filled tasks, and the section renormalises over the groups that have any value.
+                groups = kids[sec['id']]
+                total_groups = sum(g['_raw'] or 0 for g in groups)
+                for group in groups:
+                    tasks = kids[group['id']]
+                    weight_of = lambda t: 1 if t['_raw'] is None else t['_raw']
+                    room_sum, room_set = {}, set()
+                    for t in tasks:
+                        for leaf in kids[t['id']]:
+                            room_sum[leaf['_col']] = room_sum.get(leaf['_col'], 0) + weight_of(t)
+                            room_set.add(leaf['_col'])
+                    for t in tasks:
+                        for leaf in kids[t['id']]:
+                            coefficient = (group['_raw'] or 0) / total_groups / len(room_set) * weight_of(t) / room_sum[leaf['_col']]
+                            leaf['globalWeight'] = root['relativeWeight'] * sec['relativeWeight'] * coefficient
+                # Keep the group rollups the app recomputes in step with these weights: relative weight = share of the parent.
+                def reroll(a):
+                    cs = kids.get(a['id'], [])
+                    if not cs:
+                        return a['globalWeight']
+                    a['globalWeight'] = sum(reroll(c) for c in cs)
+                    for c in cs:
+                        c['relativeWeight'] = c['globalWeight'] / a['globalWeight'] if a['globalWeight'] else 1 / len(cs)
+                    a['progress'] = a['baseline'] = a['sourcePrevious'] = sum(c['relativeWeight'] * c['progress'] for c in cs)
+                    return a['globalWeight']
+                reroll(sec)
+                continue
             for group in kids[sec['id']]:
                 tasks = kids[group['id']]
                 raw = group['_raw'] or 0
@@ -205,6 +238,13 @@ def extract(source):
                     for leaf in kids[t['id']]:
                         coefficient = raw / n_rooms * ((t['_raw'] or 0) if group['_mode'] == 'SUMPRODUCT' else 1 / present[leaf['_col']])
                         leaf['globalWeight'] = root['relativeWeight'] * sec['relativeWeight'] * coefficient
+    def rollup(a):
+        cs = kids.get(a['id'], [])
+        if cs:
+            a['progress'] = a['baseline'] = a['sourcePrevious'] = sum(c['relativeWeight'] * rollup(c) for c in cs)
+        return a['progress']
+    for root in kids[None]:
+        rollup(root)
     for a in activities:
         if not a['item']:
             del a['item']
@@ -220,7 +260,7 @@ def extract(source):
     # Reconcile with the workbook's own cached figures.
     deltas = []
     for root in kids[None]:
-        cached = values[root['name']]['C4'].value
+        cached = values['Overall Progress'].cell(6, 5 + len(deltas)).value  # the floor's own figure in the workbook's Overall sheet
         deltas.append(dict(floor=root['name'], app=root['progress'], workbook=cached, delta=root['progress'] - cached))
     workbook_overall = values['Overall Progress']['D6'].value
     for a in activities:
