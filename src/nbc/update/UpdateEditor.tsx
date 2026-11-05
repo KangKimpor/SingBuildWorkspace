@@ -1,9 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CheckCircle2, ChevronsDown, ChevronsUp, CircleAlert, CloudUpload, LoaderCircle, Search } from 'lucide-react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { MoreMenu } from '../ui/MoreMenu'
 import { WbsTable } from '../ui/WbsTable'
+import { RoomMatrix } from '../ui/RoomMatrix'
+import { isRoomProject, roomFloors, visibleRoomRows } from '../rooms'
 import { buildWbsRows } from '../wbs-table'
 import { calculate } from '../progress'
 import { canUpdate, weekLabel } from '../submissions'
@@ -33,7 +35,10 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set()), [filter, setFilter] = useState<Filter>(confirmed ? 'chg' : 'need')
   const [focusId, setFocusId] = useState(''), [sheet, setSheet] = useState(false), [tried, setTried] = useState(false)
   const [remarkOpen, setRemarkOpen] = useState<ReadonlySet<string>>(new Set()), [jump, setJump] = useState<{ id: string; kind: 'value' | 'remark' } | null>(null)
-  const [query, setQuery] = useState(''), [area, setArea] = useState('')
+  const [query, setQuery] = useState(''), [area, setArea] = useState(''), [floorId, setFloorId] = useState(''), [remarkFor, setRemarkFor] = useState('')
+  const roomMode = useMemo(() => isRoomProject(activities), [activities])
+  // Floors that hold work for this handler; the matrix shows one floor at a time with a column per room.
+  const floors = useMemo(() => roomMode ? roomFloors(activities).filter((f) => f.rows.some((r) => r.task && [...r.cells.values()].some((l) => canUpdate(l, handler)))) : [], [activities, handler, roomMode])
   const search = useRef<HTMLInputElement>(null)
   const values = useRef(new Map<string, HTMLInputElement>()), remarks = useRef(new Map<string, HTMLInputElement>()), beforeFocus = useRef('')
   const byId = new Map(activities.map((a) => [a.id, a])), shownById = new Map(draft.shown.map((e) => [e.activityId, e]))
@@ -57,9 +62,13 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   for (const id of problems) { let parent = byId.get(id)?.parentId; while (parent) { forced.add(parent); parent = byId.get(parent)?.parentId } }
   const openGroups = new Set([...collapsed].filter((id) => !forced.has(id)))
   const progressOf = new Map(draft.shown.map((e) => [e.activityId, e.progress]))
-  const rows = buildWbsRows(activities, { leaf: (a) => canUpdate(a, handler) && visible(a), collapsed: openGroups, values: progressOf })
+  const rows = roomMode ? [] : buildWbsRows(activities, { leaf: (a) => canUpdate(a, handler) && visible(a), collapsed: openGroups, values: progressOf })
   const previous = calculate(activities, new Map(draft.shown.map((e) => [e.activityId, e.previous]))).progress
+  const floor = floors.find((f) => f.root.id === floorId) ?? floors.find((f) => f.rows.some((r) => r.task && [...r.cells.values()].some((l) => canUpdate(l, handler) && l.progress < 1))) ?? floors[0]
+  const nowProgress = roomMode ? calculate(activities, progressOf).progress : previous
+  const showRow = (row: { cells: ReadonlyMap<string, NbcActivity> }) => [...row.cells.values()].some((l) => canUpdate(l, handler) && visible(l))
   const leaves = rows.filter((r) => !r.group)
+  const rootOf = (id: string) => { let node = byId.get(id); while (node?.parentId) node = byId.get(node.parentId); return node?.id ?? '' }
   const counts: Record<Filter, number> = { need: draft.shown.filter((e) => e.previous < 1).length, chg: draft.changed.length, all: draft.shown.length }
 
   useEffect(() => {
@@ -91,17 +100,36 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     if (next) setJump({ id: next, kind: 'value' })
     else values.current.get(id)?.blur()
   }
+  /** Enter in the matrix moves down to the same room on the next listed task. */
+  function advanceRoom(id: string) {
+    const room = byId.get(id)?.room, list = floor ? visibleRoomRows(floor, showRow, openGroups).filter((r) => r.task) : []
+    const i = list.findIndex((r) => [...r.cells.values()].some((l) => l.id === id))
+    const next = list.slice(i + 1).map((r) => r.cells.get(room ?? '')).find((l) => l && canUpdate(l, handler))
+    if (next) setJump({ id: next.id, kind: 'value' })
+    else values.current.get(id)?.blur()
+  }
   function focusFirstProblem() {
     const id = draft.rows.find((e) => problems.has(e.activityId))?.activityId
-    if (id) setJump({ id, kind: 'value' })
+    if (id) { if (roomMode) setFloorId(rootOf(id)); setJump({ id, kind: 'value' }) }
   }
   function start() { setTried(true); if (problems.size) focusFirstProblem(); else setSheet(true) }
 
-  const sheetItems = draft.changed.map((e) => ({ id: e.activityId, wbs: byId.get(e.activityId)?.wbs ?? e.activityId, name: byId.get(e.activityId)?.name ?? '', previous: e.previous, progress: e.progress, remark: e.remark }))
+  const sheetItems = draft.changed.map((e) => ({ id: e.activityId, wbs: byId.get(e.activityId)?.wbs ?? e.activityId, name: (() => { const l = byId.get(e.activityId); return l?.room && l.parentId ? `${byId.get(l.parentId)?.name ?? ''} — ${l.name}` : l?.name ?? '' })(), previous: e.previous, progress: e.progress, remark: e.remark }))
   const emptyText = filter === 'chg' ? confirmed ? 'No changes in this update.' : 'No changes yet. Type a new percentage on a row in Needs update or All.' : filter === 'need' ? 'Nothing needs an update — everything assigned to you is complete.' : 'No activities to update.'
+
+  const roomCell = (a: NbcActivity) => {
+    const e = shownById.get(a.id), diff = e ? e.progress - e.previous : 0
+    if (confirmed) return <span title={Math.abs(diff) > 1e-12 ? `${points(diff)} pts` : undefined}>{Number(((e?.progress ?? a.progress) * 100).toFixed(1))}</span>
+    return <input ref={(el) => { if (el) values.current.set(a.id, el); else values.current.delete(a.id) }} disabled={busy} title={a.room && a.parentId ? `${byId.get(a.parentId)?.name ?? ''} — ${a.name}` : a.name} aria-label={`This week % for ${a.wbs}`} aria-invalid={draft.invalid.has(a.id) || undefined} inputMode="decimal" value={draft.text(a.id)}
+      onFocus={(event) => { beforeFocus.current = event.target.value; setFocusId(a.id); setRemarkFor(a.id); event.target.select() }} onBlur={() => setFocusId((old) => old === a.id ? '' : old)}
+      onChange={(event) => draft.setText(a.id, event.target.value)}
+      onKeyDown={(event) => { if (event.key === 'Escape') draft.setText(a.id, beforeFocus.current); if (event.key === 'Enter') advanceRoom(a.id) }}/>
+  }
+  const remarkTarget = remarkFor ? byId.get(remarkFor) : undefined
 
   return <>
     <div className="nbc-filters">
+      {roomMode && floor && floors.length > 1 && <div className="nbc-seg" role="group" aria-label="Floor">{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{f.root.name.replace('Floor ', '')}</button>)}</div>}
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       {areas.length > 1 && <GlassSelect aria-label="Work area" value={area} onChange={(e) => setArea(e.target.value)}><option value="">All areas</option>{areas.map((a) => <option key={a}>{a}</option>)}</GlassSelect>}
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
@@ -113,7 +141,11 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
       </div>
     </div>
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}</p>}
-    {rows.length === 0
+    {roomMode && floor && visibleRoomRows(floor, showRow, openGroups).length > 0
+      ? <RoomMatrix floor={floor} caption={`${handler} activities by room · ${floor.root.name} · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle} progress={nowProgress} previous={previous}
+          show={showRow} cell={(l) => roomCell(l)}
+          cellAttrs={(l) => ({ 'data-changed': changedIds.has(l.id) ? 'true' : undefined, 'data-problem': problems.has(l.id) ? 'true' : undefined, 'data-done': (shownById.get(l.id)?.progress ?? l.progress) === 1 ? 'true' : undefined })}/>
+      : rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
       : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle}
           previous={(a) => previous.get(a.id) ?? a.progress}
@@ -141,6 +173,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
               )}
             </div>
           }}/>}
+    {roomMode && !confirmed && remarkTarget && <div className="nbc-room-bar"><span className="nbc-room-bar-label" title={remarkTarget.name}>{(remarkTarget.parentId && byId.get(remarkTarget.parentId)?.name) || ''} — {remarkTarget.name}</span><input className="nbc-remark" disabled={busy} aria-label={`Remark for ${remarkTarget.wbs}`} placeholder="Add remark for this room…" maxLength={4000} value={draft.remark(remarkTarget.id)} onChange={(event) => draft.setRemark(remarkTarget.id, event.target.value)}/></div>}
     {confirmed && submission?.note && <p className="nbc-note small">{submission.note}</p>}
     <div className="nbc-update-bar" role="group" aria-label="Update actions">{confirmed
       ? <><span role="status" className="nbc-status" data-status="saved"><CheckCircle2 size={18} aria-hidden="true" />Confirmed {confirmationTime(submission!.confirmedAt!)} · {draft.changed.length} changed</span>

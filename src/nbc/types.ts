@@ -74,4 +74,12 @@ export interface NbcActivity {
   history: ProgressChange[]
   sourceRow?: number
   sourceFormulas?: Record<string, string>
+  /** BP02 room layout: a leaf with `room` is one cell of the floor matrix (task × room). */
+  room?: string
+  /** The workbook's Item label ("A", "III", "1.2") for matrix and export rows. */
+  item?: string
+  /** Floor roots list their room columns in workbook order (the last one is usually the corridor, CRD). */
+  roomList?: string[]
+  /** Group scored as the plain average of the tasks a room has, instead of a weighted sum. */
+  average?: boolean
 }

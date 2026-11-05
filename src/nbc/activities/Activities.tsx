@@ -14,7 +14,9 @@ import { WbsTable } from '../ui/WbsTable'
 import { buildWbsRows } from '../wbs-table'
 import { issuesEnabled } from '../features'
 import { calculate } from '../progress'
-import { updateActivity } from '../actions'
+import { assignActivities, updateActivity } from '../actions'
+import { RoomMatrix } from '../ui/RoomMatrix'
+import { isRoomProject, roomFloors } from '../rooms'
 import { money, percent } from '../format'
 import { projectHandlers } from '../types'
 import { activityHandlers } from '../handlers'
@@ -34,10 +36,21 @@ function HandlerPicker({ a, activities }: { a: NbcActivity; activities: NbcActiv
   </GlassPopover>
 }
 
+/** Room-level tasks share one handler, so one picker reassigns the whole row. */
+function RoomHandlerPicker({ ids, label }: { ids: string[]; label: string }) {
+  return <GlassPopover label={`Assign ${label}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${label}`}>{label}</button>}>
+    <GlassSelect aria-label={`Handler for ${label}`} value="" onChange={(e) => { try { void Promise.resolve(assignActivities(ids, e.target.value)).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}><option value="" disabled>Choose handler</option>{projectHandlers('nbc-bp02').map((h) => <option key={h}>{h}</option>)}</GlassSelect>
+  </GlassPopover>
+}
+
 function ActivityTable({ projectId, activities, baseline, controls }: { projectId: string; activities: NbcActivity[]; baseline: Map<string, number>; controls?: ReactNode }) {
   const [params, setParams] = useSearchParams(), [query, setQuery] = useState(''), [range, setRange] = useState('all'), [changed, setChanged] = useState(false)
   const [optional, setOptional] = useState<string[]>([]), [detail, setDetail] = useState<string | null>(null), [reassign, setReassign] = useState(false)
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => params.toString() ? new Set() : new Set(activities.filter((a) => !a.editable && a.parentId).map((a) => a.id)))
+  const roomMode = useMemo(() => isRoomProject(activities), [activities])
+  const floors = useMemo(() => roomMode ? roomFloors(activities) : [], [activities, roomMode])
+  const [floorId, setFloorId] = useState('')
+  const floor = floors.find((f) => f.root.id === floorId) ?? floors[0]
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => params.toString() || isRoomProject(activities) ? new Set() : new Set(activities.filter((a) => !a.editable && a.parentId).map((a) => a.id)))
   const search = useRef<HTMLInputElement>(null)
   const sync = useWorkspace((s) => s.sync), tasks = useWorkspace((s) => s.tasks), pending = pendingCollectionIds('nbc_activities')
   const handler = params.get('handler') ?? '', area = params.get('area') ?? '', location = params.get('location') ?? '', trade = params.get('trade') ?? '', wbs = params.get('wbs') ?? ''
@@ -57,7 +70,7 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
     return (!q || textMatch(a)) && (!handler || (a.handler || 'Unassigned') === handler) && (!area || a.area === area) && (!location || a.location === location) && (!trade || a.trade === trade)
       && (!wbs || a.wbs === wbs || a.wbs.startsWith(`${wbs}.`)) && (!changed || Math.abs(p - b) > 1e-12) && (range === 'all' || (range === 'zero' ? p === 0 : range === 'done' ? p === 1 : p > 0 && p < 1))
   }
-  const rows = buildWbsRows(activities, { leaf, collapsed })
+  const rows = roomMode ? [] : buildWbsRows(activities, { leaf, collapsed })
   const active = !!(q || handler || area || location || trade || wbs || range !== 'all' || changed)
   function filter(key: string, value: string) { setCollapsed(new Set()); const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next) }
   function clear() { setParams({}); setQuery(''); setRange('all'); setChanged(false) }
@@ -67,6 +80,7 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
 
   return <section className="nbc-activities">
     <div className="nbc-filters">
+      {floor && <div className="nbc-seg" role="group" aria-label="Floor">{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{f.root.name.replace('Floor ', '')}</button>)}</div>}
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...projectHandlers(projectId), ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
       <GlassSelect aria-label="Work area" value={area} onChange={(e) => filter('area', e.target.value)}><option value="">All areas</option>{[...new Set(activities.map((a) => a.area))].map((a) => <option key={a}>{a}</option>)}</GlassSelect>
@@ -82,7 +96,14 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
       <MoreMenu label="Activity tools"><button onClick={() => setReassign(true)}>Reassign group…</button></MoreMenu>
     </div>
     {sync.kind !== 'saved' && pending.size > 0 && <p className="small muted" role="status">{sync.kind === 'error' ? <>Save failed · <button className="text-link" onClick={() => void syncWorkspace(false)}>Retry</button></> : `Pending sync · ${pending.size}`}</p>}
-    {rows.length === 0
+    {roomMode && floor
+      ? <RoomMatrix floor={floor} caption={`${floor.root.name} activities by room`} collapsed={collapsed} onToggle={toggle} progress={live.progress} previous={before.progress}
+          show={(row) => [...row.cells.values()].some(leaf)}
+          cell={(l) => percent(l.progress, 0)}
+          cellAttrs={(l) => ({ 'data-changed': Math.abs((live.progress.get(l.id) ?? 0) - (before.progress.get(l.id) ?? 0)) > 1e-12 ? 'true' : undefined, 'data-done': l.progress === 1 ? 'true' : undefined })}
+          onRowClick={(row) => setDetail(row.activity.id)}
+          extra={[{ header: 'Handler', cell: (row) => { const leaves = [...row.cells.values()]; return <RoomHandlerPicker ids={leaves.map((l) => l.id)} label={[...new Set(leaves.map((l) => l.handler || 'Unassigned'))].join(', ')}/> } }]}/>
+      : rows.length === 0
       ? <div className="quiet-empty">No activities match these filters.<button className="text-link" onClick={clear}>Clear filters</button></div>
       : <WbsTable virtual rows={rows} caption="Activities by WBS" collapsed={collapsed} onToggle={toggle}
           previous={(a) => before.progress.get(a.id) ?? 0}
