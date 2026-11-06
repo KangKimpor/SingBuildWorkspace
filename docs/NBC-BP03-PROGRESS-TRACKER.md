@@ -1,5 +1,9 @@
 # NBC BP03 progress tracker
 
+## 6 November 2026 - weekly report 26 (1-7 November) applied
+
+`3. & 5. BP-03 Weekly 26 - 01 Nov - 07 Nov 2026.xlsx` has the same ID and MEP rows and weights as the app. ID progress was kept as the handlers entered it. MEP progress was taken from the report: 24 cells changed, 22 up and 2 down (ACMV *Installation Supports and Chiller Pipe* in GF Lobby 10 % to 8 %, and *Installation FCU and Ducting* in GF WC 10 % to 4 %). The report's second GF "Lobby" MEP column repeats the first and feeds nothing, so it was ignored. Applied in place with a history entry per cell, Tola's confirmed 2 November update changed to match, group progress recomputed and the week's summary refreshed (overall 48.25 %). Backups: `kw_private.nbc_bp03_bk_*_report`. The Excel export now averages the report areas equally (lift car and AV excluded), as the report does.
+
 ## 3 November 2026 — Vuth added as the seventh handler
 
 The supplied BP03 and BP04 workbooks are now the current progress baseline. Their handler tabs read **Sitha · Lychhinh · Chhorvaon · Srun · Kheng · Vuth · Tola**, and **Vuth** is available throughout the app, API and database. Week `2026-11-02` stays open with no submissions or drafts; the files' weekly block labels were ignored because their values are the `2026-10-26` block already recorded in production.

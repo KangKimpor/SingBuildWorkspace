@@ -235,14 +235,20 @@ export function areaWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
   overall.merges.push(`E3:${columnName(lastOverall)}3`)
   ;['Item', 'Description', 'Weight', 'Overall', ...gridAreas.map((i) => idFloor.labels[i]!)].forEach((label, i) => overall.set(4, i + 1, label, dark))
   overall.heights.set(4, 43.5)
-  const zoneK = gridAreas.map((i) => zone[i]!), zoneRow = `$${eFirst}$5:$${eLast}$5`, zoneSumK = zoneK.reduce((s, z) => s + z, 0)
+  const zoneK = gridAreas.map((i) => zone[i]!), zoneRow = `$${eFirst}$5:$${eLast}$5`
   const band = (r: number) => { for (let c = 1; c <= lastOverall; c++) overall.set(r, c, null, st({ fill: BLUE, border: true })) }
   band(5); if (avIndex >= 0) band(6)
   overall.set(5, 2, cfg.zoneLabel, st({ bold: true, fill: BLUE, border: true }))
   gridAreas.forEach((a, k) => overall.set(5, 5 + k, zone[a]!, st({ fill: BLUE, border: true, format: '0.00%', h: 'center' }), `${idRef}!${idLetters(a)}5`))
   const avWeight = avIndex >= 0 ? zone[avIndex]! : 0
   if (avIndex >= 0) { overall.set(6, 2, 'AV System weight (BOQ R06)', st({ bold: true, fill: BLUE, border: true })); overall.set(6, 4, avWeight, st({ fill: BLUE, border: true, format: '0.00%', h: 'center' }), `${idRef}!${idLetters(avIndex)}5`) }
-  const weightedD = (r: number, values: Num[]) => ({ v: wavg(zoneK.map((z, k) => [z, values[k]!])), f: `IFERROR(SUMPRODUCT(--ISNUMBER(${eFirst}${r}:${eLast}${r}),${zoneRow},${eFirst}${r}:${eLast}${r})/SUMPRODUCT(--ISNUMBER(${eFirst}${r}:${eLast}${r}),${zoneRow}),"N/A")` })
+  // BP03's weekly report counts every report area equally (E7 = AVERAGE of the area figures); areas with zero weight (the lift car) and the
+  // AV zone stay on the sheet but are not part of any average.
+  const reportK = gridAreas.map((_, k) => k).filter((k) => zone[gridAreas[k]!]! > 0), equalAreas = !!cfg.avArea
+  const reportSpan = (r: number) => reportK.map((k) => `${ec(k)}${r}`).join(',')
+  const weightedD = (r: number, values: Num[]) => equalAreas
+    ? { v: mean(reportK.map((k) => values[k]!)), f: `IFERROR(AVERAGE(${reportSpan(r)}),"N/A")` }
+    : { v: wavg(zoneK.map((z, k) => [z, values[k]!])), f: `IFERROR(SUMPRODUCT(--ISNUMBER(${eFirst}${r}:${eLast}${r}),${zoneRow},${eFirst}${r}:${eLast}${r})/SUMPRODUCT(--ISNUMBER(${eFirst}${r}:${eLast}${r}),${zoneRow}),"N/A")` }
   const label = (r: number, fill: string, item: string, name: string) => { const s = st({ bold: true, fill, border: true }); overall.set(r, 1, item, s); overall.set(r, 2, name, s) }
   const numberCell = (r: number, c: number, v: Num, fill: string, f: string | undefined, extra: Style = {}) => overall.set(r, c, cell(v), st({ bold: true, border: true, format: '0.0%', h: 'center', fill: v === null ? GREY : fill, ...extra }), f)
   const idWeight = idFloor.root.relativeWeight, mepWeight = mepFloor.root.relativeWeight
@@ -253,13 +259,14 @@ export function areaWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
   const mepK = gridAreas.map((_, k) => mean(sysList.map((_, y) => sysFor[y]![k]!)))
   const dGuest = weightedD(blockRow, guest), dMep = weightedD(mepBlock, mepK)
   const avValue = avSec ? secArea[secs.indexOf(avSec)]![avIndex]! ?? 0 : 0
+  const areaOverall = (k: number) => { const g = guest[k]!, m = mepK[k] ?? null; return cfg.avArea ? (m !== null ? g * idWeight + m * mepWeight : g) : g * idWeight + (m ?? 0) * mepWeight }
   const total = cfg.avArea
-    ? ((zoneSumK * ((dGuest.v ?? 0) * idWeight + (dMep.v ?? dGuest.v ?? 0) * mepWeight)) + avWeight * avValue) / (zoneSumK + avWeight)
+    ? mean(reportK.map(areaOverall)) ?? 0
     : (dGuest.v ?? 0) * idWeight + (dMep.v ?? 0) * mepWeight
   for (let c = 1; c <= lastOverall; c++) overall.set(7, c, null, st({ fill: YELLOW, border: true }))
   overall.set(7, 2, 'Overall Progress', st({ bold: true, fill: YELLOW, border: true }))
   overall.set(7, 4, total, st({ bold: true, fill: YELLOW, border: true, format: '0.0%', h: 'center', color: RED }),
-    cfg.avArea ? `IFERROR((SUM(${zoneRow})*(D${blockRow}*$C$${blockRow}+IF(ISNUMBER(D${mepBlock}),D${mepBlock},D${blockRow})*$C$${mepBlock})+$D$6*D${firstSys + sysList.length})/(SUM(${zoneRow})+$D$6),0)` : `D${blockRow}*$C$${blockRow}+D${mepBlock}*$C$${mepBlock}`)
+    cfg.avArea ? `IFERROR(AVERAGE(${reportSpan(7)}),"N/A")` : `D${blockRow}*$C$${blockRow}+D${mepBlock}*$C$${mepBlock}`)
   gridAreas.forEach((_, k) => {
     const g = guest[k]!, m = mepK[k] ?? null, v = cfg.avArea ? (m !== null ? g * idWeight + m * mepWeight : g) : g * idWeight + (m ?? 0) * mepWeight
     overall.set(7, 5 + k, v, st({ bold: true, fill: YELLOW, border: true, format: '0.0%', h: 'center' }),
@@ -280,7 +287,10 @@ export function areaWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
   sysList.forEach((sy, y) => {
     const r = firstSys + y
     label(r, BLUE, sy.item, sy.name); overall.set(r, 3, null, st({ fill: BLUE, border: true }))
-    const d = weightedD(r, sysFor[y]!); numberCell(r, 4, d.v, BLUE, d.f)
+    // The weekly report's progress summary weighs a system over every area, so an area where the system is N/A (Fire Protection in
+    // ID-62 / ID-70) counts as 0 there instead of dropping out of the average.
+    const sum = zoneK.reduce((s, z) => s + z, 0), v = zoneK.reduce((s, z, k) => s + z * (sysFor[y]![k] ?? 0), 0) / sum
+    numberCell(r, 4, v, BLUE, `IFERROR(SUMPRODUCT(${zoneRow},${eFirst}${r}:${eLast}${r})/SUM(${zoneRow}),"N/A")`)
     gridAreas.forEach((a, k) => {
       const m = linkOf(a), refs = m.map((i) => `${mepRef}!${mepLetters(i)}${sy.row}`)
       const span = m.length > 1 ? `${mepRef}!${mepLetters(m[0]!)}${sy.row}:${mepLetters(m.at(-1)!)}${sy.row}` : ''

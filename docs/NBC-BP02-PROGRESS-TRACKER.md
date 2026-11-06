@@ -1,5 +1,9 @@
 # NBC BP02 progress tracker
 
+## 6 November 2026 - weekly report 60 (1-7 November) applied
+
+ID progress was kept as entered in the app. From `2. & 5. BP-02 Weekly 60 - 01 Nov - 07 Nov 2026.xlsx`: 192 MEP room cells changed (134 up, 58 down; Tola's confirmed 2 November update changed to match, history entry per cell); guestroom *Door Installation* tasks now weigh 25 % each (Glass Sliding Door was 1/13 of the group); floor 23 corridor (CRD) gains the five Guest Room Management System tasks (+5 leaves, 15,159 editable); groups, weights, the week's summary and the project figure follow. All 11 floors' MEP figures equal the report's to 5 decimals; overall is 84.60 %. Backups: `kw_private.nbc_bp02_bk_*_report`. HC(T)-1301 and HC(K)-1401 exist in the app but not in the report's ID sheets; they were left as they are.
+
 ## Glass Sliding Door in CSK1A / SK1A rooms (6 November 2026)
 
 The BOQ workbook now scores Install Glass Sliding Door for the CSK1A rooms (`CSK1A-2114`, `CSK1A-2214`) and the SK1A rooms on Floors 13–20: each Floor sheet links that room's cell to a new 0% input on the Chhorvaon tab. The workbook's figures do not move (the Door Installation roll-up already counted the blank cell as 0 at its fixed weight). The extractor adds 10 editable leaves (one per room, 16,442 → 16,452 nodes). They are numbered after the room's existing leaves (`LATE_SCOPE`), so no existing activity id changes and drafts stay attached to the right rooms; overall progress is unchanged (84.2261%) and Floor 22/21 move by 0.0125 points or less. **Not applied to the database:** run the stage files and `apply.sql` from `scripts/nbc-area-baseline-sql.py nbc-bp02`, which also replaces the week's submissions.

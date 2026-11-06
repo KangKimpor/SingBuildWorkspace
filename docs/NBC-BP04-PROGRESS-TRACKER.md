@@ -1,5 +1,13 @@
 # NBC BP04 progress tracker
 
+## 6 November 2026 — weekly report 26 (1–7 November) applied
+
+`3. & 6. BP-04 - Weekly 26 - 01 Nov - 07 Nov 2026.xlsx` maps row for row onto the workbook the app was built from (same ID and MEP rows, same weights). Differences found and applied: the ID zone weights (ID-69 24.2999 %, ID-62 35.7973 %, ID-71 9.9 %), Fire Protection is **N/A** (not 0) for ID-62 and ID-70, the Overall progress summary weighs a system over every zone (an N/A zone counts as 0), and 13 MEP cells moved up (all increases, none down). Overall progress is 45.47 % (the report's 45.23 % plus the handlers' own ID updates this week).
+
+ID progress was left exactly as the handlers entered it in the app; MEP progress is the report's. Twelve of the 13 MEP cells already matched what Tola confirmed this week; the one that did not was AV *Pulling Cable* in ID-70 (0 % → 25 %), applied with an audit entry and in Tola's confirmed 2 November update.
+
+Applied to production in one guarded transaction (backups `kw_private.nbc_bp04_bk_*_<timestamp>_report`): 374 activity rows had their weights, zone and group progress rewritten; handlers, remarks, history, submissions and the 26 October block were not touched. The export (`areaWorkbook.ts`) follows the report's system-row formula. A reworked tracker file was regenerated from the report with `.private/rework/` scripts (not committed).
+
 ## 3 November 2026 — Vuth added as the seventh handler
 
 The supplied BP04 workbook is the current progress baseline. Its handler tabs now read **Sitha · Lychhinh · Chhorvaon · Srun · Kheng · Vuth · Tola**, and **Vuth** is available throughout the app, API and database. Week `2026-11-02` stays open with no submissions or drafts; the file's weekly block label was ignored because its values are the `2026-10-26` block already recorded in production.
