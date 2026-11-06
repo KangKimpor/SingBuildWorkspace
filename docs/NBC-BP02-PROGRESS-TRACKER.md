@@ -1,5 +1,9 @@
 # NBC BP02 progress tracker
 
+## Updating the client's weekly report from the app (6 November 2026)
+
+**Export XLSX → Update my weekly report** takes the weekly report workbook you choose on your computer (nothing is uploaded or stored) and writes the app's percentages into the constant percentage cells of its ID and MEP sheets (BP02: every `F<n> (ID)` and `<n>F(MEP)` sheet). Formulas, labels, weights, styles and all other sheets are copied unchanged and the file is flagged to recalculate when Excel opens it. Rows are matched in order and the export refuses a report whose task rows do not line up with the project. `src/nbc/export/reportPatch.ts`; the tracker workbook is still available in the same dialog.
+
 ## 6 November 2026 - weekly report 60 (1-7 November) applied
 
 ID progress was kept as entered in the app. From `2. & 5. BP-02 Weekly 60 - 01 Nov - 07 Nov 2026.xlsx`: 192 MEP room cells changed (134 up, 58 down; Tola's confirmed 2 November update changed to match, history entry per cell); guestroom *Door Installation* tasks now weigh 25 % each (Glass Sliding Door was 1/13 of the group); floor 23 corridor (CRD) gains the five Guest Room Management System tasks (+5 leaves, 15,159 editable); groups, weights, the week's summary and the project figure follow. All 11 floors' MEP figures equal the report's to 5 decimals; overall is 84.60 %. Backups: `kw_private.nbc_bp02_bk_*_report`. HC(T)-1301 and HC(K)-1401 exist in the app but not in the report's ID sheets; they were left as they are.

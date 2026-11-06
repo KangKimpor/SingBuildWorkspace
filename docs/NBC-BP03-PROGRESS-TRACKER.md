@@ -1,5 +1,9 @@
 # NBC BP03 progress tracker
 
+## Updating the client's weekly report from the app (6 November 2026)
+
+**Export XLSX → Update my weekly report** takes the weekly report workbook you choose on your computer (nothing is uploaded or stored) and writes the app's percentages into the constant percentage cells of its ID and MEP sheets (BP02: every `F<n> (ID)` and `<n>F(MEP)` sheet). Formulas, labels, weights, styles and all other sheets are copied unchanged and the file is flagged to recalculate when Excel opens it. Rows are matched in order and the export refuses a report whose task rows do not line up with the project. `src/nbc/export/reportPatch.ts`; the tracker workbook is still available in the same dialog.
+
 ## 6 November 2026 - weekly report 26 (1-7 November) applied
 
 `3. & 5. BP-03 Weekly 26 - 01 Nov - 07 Nov 2026.xlsx` has the same ID and MEP rows and weights as the app. ID progress was kept as the handlers entered it. MEP progress was taken from the report: 24 cells changed, 22 up and 2 down (ACMV *Installation Supports and Chiller Pipe* in GF Lobby 10 % to 8 %, and *Installation FCU and Ducting* in GF WC 10 % to 4 %). The report's second GF "Lobby" MEP column repeats the first and feeds nothing, so it was ignored. Applied in place with a history entry per cell, Tola's confirmed 2 November update changed to match, group progress recomputed and the week's summary refreshed (overall 48.25 %). Backups: `kw_private.nbc_bp03_bk_*_report`. The Excel export now averages the report areas equally (lift car and AV excluded), as the report does.

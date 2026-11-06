@@ -1,5 +1,9 @@
 # NBC BP04 progress tracker
 
+## Updating the client's weekly report from the app (6 November 2026)
+
+**Export XLSX → Update my weekly report** takes the weekly report workbook you choose on your computer (nothing is uploaded or stored) and writes the app's percentages into the constant percentage cells of its ID and MEP sheets (BP02: every `F<n> (ID)` and `<n>F(MEP)` sheet). Formulas, labels, weights, styles and all other sheets are copied unchanged and the file is flagged to recalculate when Excel opens it. Rows are matched in order and the export refuses a report whose task rows do not line up with the project. `src/nbc/export/reportPatch.ts`; the tracker workbook is still available in the same dialog.
+
 ## 6 November 2026 — weekly report 26 (1–7 November) applied
 
 `3. & 6. BP-04 - Weekly 26 - 01 Nov - 07 Nov 2026.xlsx` maps row for row onto the workbook the app was built from (same ID and MEP rows, same weights). Differences found and applied: the ID zone weights (ID-69 24.2999 %, ID-62 35.7973 %, ID-71 9.9 %), Fire Protection is **N/A** (not 0) for ID-62 and ID-70, the Overall progress summary weighs a system over every zone (an N/A zone counts as 0), and 13 MEP cells moved up (all increases, none down). Overall progress is 45.47 % (the report's 45.23 % plus the handlers' own ID updates this week).
