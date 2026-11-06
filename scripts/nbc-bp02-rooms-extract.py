@@ -43,6 +43,43 @@ def number(value):
     return None
 
 
+# Fields the app restores when it reads a row (src/nbc/normalize.ts), so they are not stored while they hold their default.
+# The activity table itself requires progress, baseline, relativeWeight, globalWeight, editable, history, handler, remark,
+# projectId, wbs, parentId, order, name, area, trade and location; apply.sql adds the ones left out here.
+DEFAULTS = dict(description='', sourceWeekly=0, duration=None, boqValue=None, schedule=None, remark='', history=[], handler='', trade='', location='', area='')
+
+
+def tidy(value):
+    if isinstance(value, float):
+        return float(f'{value:.12g}')
+    if isinstance(value, list):
+        return [tidy(v) for v in value]
+    return value
+
+
+def compact_rows(activities):
+    """Smaller stored rows. normalizeActivity must give back the original row (checked here), so nothing the app reads is lost."""
+    rows = []
+    for original in activities:
+        row = {k: tidy(v) for k, v in original.items() if k != 'projectId'}
+        for key, default in DEFAULTS.items():
+            if key in row and row[key] == default:
+                del row[key]
+        # baseline and sourcePrevious equal progress on every imported row; apply.sql stores baseline for the table's key check.
+        assert abs(row['baseline'] - row['progress']) < 1e-12 and abs(row['sourcePrevious'] - row['progress']) < 1e-12, row['id']
+        del row['baseline'], row['sourcePrevious']
+        restored = dict(DEFAULTS, **row)
+        restored['history'] = []
+        restored['baseline'] = restored['sourcePrevious'] = row['progress']
+        for key, value in original.items():
+            if key == 'projectId':
+                continue
+            back = restored[key]
+            assert back == value or (isinstance(value, float) and abs(back - value) < 1e-11), (original['id'], key, back, value)
+        rows.append(row)
+    return rows
+
+
 def extract(source):
     formulas = openpyxl.load_workbook(source, data_only=False)
     values = openpyxl.load_workbook(source, data_only=True)
@@ -271,7 +308,10 @@ def extract(source):
                    description='Guestrooms L13–L23 · NBC BP02', target='', status='Active', progress=overall_progress, nbcBp03=True)
     reconciliation = dict(nodes=len(activities), leaves=len(leaves), handlers=handler_counts, overall=overall_progress,
                           workbookOverall=workbook_overall, overallDelta=overall_progress - workbook_overall, floors=deltas)
-    return dict(project=project, activities=activities, reconciliation=reconciliation)
+    compact = compact_rows(activities)
+    reconciliation['bytesBefore'] = len(json.dumps(activities, separators=(',', ':')))
+    reconciliation['bytesAfter'] = len(json.dumps(compact, separators=(',', ':')))
+    return dict(project=project, activities=compact, reconciliation=reconciliation)
 
 
 if __name__ == '__main__':

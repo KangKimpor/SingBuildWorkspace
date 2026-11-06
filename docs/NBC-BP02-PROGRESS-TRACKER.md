@@ -1,5 +1,9 @@
 # NBC BP02 progress tracker
 
+## Stored row size (6 November 2026)
+
+`scripts/nbc-bp02-rooms-extract.py` now writes BP02 rows the way BP03/BP04 are stored: fields that hold their default (`description`, `sourceWeekly`, `duration`, `boqValue`, `schedule`, `sourcePrevious`) are left out and `src/nbc/normalize.ts` restores them when the app reads a row. The extractor checks that every row round-trips exactly. The table's required keys are still added by `apply.sql`. Estimated stored size falls from about 8.9 MB to 6.8 MB (about 23%), which is what a first-time or reset device downloads from Supabase. **Not applied to the database yet:** it changes every row's `updated_at`, so every device would download BP02 once more. Apply it with the next baseline import.
+
 ## 5 November 2026 — 1–7 November room workbook baseline
 
 `NBC-BP02-Progress Tracking by BOQ-(1 November to 7 November).xlsx` is the BP02 baseline for percentages and formulas (Overall Progress → Floor 13–23 → six handler tabs; section weights 50/5/45, floors 1/11 each). `scripts/nbc-bp02-rooms-extract.py` now reads this layout: the corridor section (CRD column), the `=IF(Tola!x="","",Tola!x)` MEP links, and the per-row `AVERAGE(D:last)` ranges that can stop short of the CRD column. The extract reproduces the workbook exactly: overall 84.3175% (15,366 editable leaves, 16,664 nodes) and all 11 floors within 2e-16.
