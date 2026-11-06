@@ -64,7 +64,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       await expect(page.locator('.nbc-tabs a[aria-current=page]')).toHaveText(label)
       await expect(page.getByRole('heading', { name: fixtureProject.name, exact: true })).toBeVisible()
       if (view === 'overview') {
-        await expect(page.locator('.nbc-kpi').filter({ hasText: 'Overall progress' }).locator('strong')).toHaveText('43.8%')
+        await expect(page.locator('.nbc-kpi').filter({ hasText: 'Overall progress' }).locator('strong')).toHaveText('43.75%')
         await expect(page.getByRole('region', { name: 'Project snapshot' })).toContainText('Versus plan')
         await page.getByRole('button', { name: 'Work area', exact: true }).click()
         await expect(page.getByRole('region', { name: 'Work area', exact: true })).toBeVisible()

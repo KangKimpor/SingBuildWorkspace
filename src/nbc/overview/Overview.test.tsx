@@ -15,7 +15,7 @@ test('headline numbers compare actual progress with the contract plan and deadli
   expect(kpis.getByText('20 Jun 2026')).toBeTruthy()
   expect(kpis.getByText('130 days overdue')).toBeTruthy()
   expect(kpis.getByText(/behind/)).toBeTruthy()
-  expect(kpis.getByText('Plan: 100.0% by now')).toBeTruthy()
+  expect(kpis.getByText('Plan: 100.00% by now')).toBeTruthy()
   expect(kpis.getByText('0 of 6 handlers updated this week')).toBeTruthy()
   expect(kpis.getByText('2d left')).toBeTruthy()
 })

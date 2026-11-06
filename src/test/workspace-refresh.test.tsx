@@ -66,6 +66,15 @@ test('opening screen defaults to Projects Progress and remembers a progress proj
   expect(workspaceStart('account-b', [])).toBe('/projects-progress')
 })
 
+test('sidebar lists progress projects by BP number, lowest first', () => {
+  const projects = ['04', '02', '03'].map((n) => ({ ...fixtureProject, id: `nbc-bp${n}`, name: `NBC BP${n} – Pan Pacific Hotel`, progress: 0.5 }))
+  useWorkspace.setState({ ...initial, projects })
+  render(<MemoryRouter><SidebarContent /></MemoryRouter>)
+  const names = screen.getAllByRole('button', { name: /NBC BP0/ }).map((button) => button.querySelector('.project-name')?.textContent)
+  expect(names).toEqual(['NBC BP02', 'NBC BP03', 'NBC BP04'])
+  expect(screen.getByRole('button', { name: 'Collapse NBC BP02 – Pan Pacific Hotel' })).toHaveAttribute('aria-expanded', 'true')
+})
+
 test('sidebar shows live project progress and remembers collapsible groups', () => {
   const project = { ...fixtureProject, id: 'nbc-bp02', name: 'NBC BP02 – Pan Pacific Hotel', progress: 0.81 }
   useWorkspace.setState({ ...initial, projects: [project] })

@@ -18,7 +18,7 @@ import { HandlerTable } from './HandlerTable'
 import { attentionItems, forecastDate, weeklyPace } from './insights'
 
 const GROUPS = [['location', 'Floor'], ['area', 'Work area'], ['trade', 'Trade'], ['heatmap', 'Heatmap']] as const
-const pts = (n: number) => `${Math.abs(n * 100).toFixed(1)} pts`
+const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
 
 export default function Overview({ project, activities, submissions, summaries, baseline }: { project: ProjectSummary; activities: NbcActivity[]; submissions: NbcSubmission[]; summaries: NbcWeekSummary[]; baseline: Map<string, number> }) {
   const [now, setNow] = useState(Date.now), [breakdown, setBreakdown] = useState(true), [digest, setDigest] = useState(false)
@@ -38,10 +38,10 @@ export default function Overview({ project, activities, submissions, summaries, 
   const pace = weeklyPace(summaries), finish = forecastDate(overall, pace, today), deadline = deadlineNote(current, now)
   const attention = attentionItems({ projectId: project.id, activities, submissions, today, now })
   const forecast = !plan ? 'No contract completion date is loaded for this project, so there is no deadline forecast.' : finish
-    ? `At the current pace of ${(pace! * 100).toFixed(1)}% a week, progress reaches 100% around ${planDate(finish)}, ${Math.abs(Math.round(daysBetween(plan.completion, finish) / 7))} weeks ${finish > plan.completion ? 'after' : 'before'} the deadline.`
+    ? `At the current pace of ${(pace! * 100).toFixed(2)}% a week, progress reaches 100% around ${planDate(finish)}, ${Math.abs(Math.round(daysBetween(plan.completion, finish) / 7))} weeks ${finish > plan.completion ? 'after' : 'before'} the deadline.`
     : pace === null ? 'The forecast appears after the first confirmed week.' : 'There was no forward progress in the recent weeks, so there is no forecast yet.'
   const digestLines = [
-    planned === null || gap === null ? `Overall progress ${percent(overall, 1)}. No planned curve is loaded for this project.` : `Overall progress ${percent(overall, 1)}, ${percent(Math.abs(gap), 1)} ${gap < 0 ? 'behind' : 'ahead of'} the plan (${percent(planned, 1)} planned by now).`,
+    planned === null || gap === null ? `Overall progress ${percent(overall)}. No planned curve is loaded for this project.` : `Overall progress ${percent(overall)}, ${percent(Math.abs(gap))} ${gap < 0 ? 'behind' : 'ahead of'} the plan (${percent(planned)} planned by now).`,
     plan && days !== null ? `Completion deadline ${planDate(plan.completion)}: ${days < 0 ? `${-days} days overdue` : `${days} days left`}.` : 'Completion deadline: not provided.',
     forecast,
     `${reporting}`,
@@ -51,8 +51,8 @@ export default function Overview({ project, activities, submissions, summaries, 
   return <div className="nbc-overview">
     <header className="nbc-ov-head"><div><h2>Overview</h2><p className="small muted">{weekLabel(current)}</p></div><button className="btn-secondary" onClick={() => setDigest(true)}>Weekly digest</button></header>
     <section className="nbc-kpis" aria-label="Project snapshot">
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Overall progress</span><strong className="nbc-kpi-value">{percent(overall, 1)}</strong><span className="small muted">{thisWeek ? `${thisWeek.overall >= thisWeek.previous ? '+' : '−'}${pts(thisWeek.overall - thisWeek.previous)} this week` : lastWeek ? `Last week ${percent(lastWeek.overall, 1)}` : 'No confirmed week yet'}</span></div>
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Versus plan</span>{gap === null || planned === null ? <><strong className="nbc-kpi-value">No plan</strong><span className="small muted">No planned curve supplied</span></> : <><strong className="nbc-kpi-value" data-tone={gap < -0.04 ? 'bad' : gap < -0.01 ? 'warn' : 'ok'}>{percent(Math.abs(gap), 1)} {gap < 0 ? 'behind' : 'ahead'}</strong><span className="small muted">Plan: {percent(planned, 1)} by now</span></>}</div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Overall progress</span><strong className="nbc-kpi-value">{percent(overall)}</strong><span className="small muted">{thisWeek ? `${thisWeek.overall >= thisWeek.previous ? '+' : '−'}${pts(thisWeek.overall - thisWeek.previous)} this week` : lastWeek ? `Last week ${percent(lastWeek.overall)}` : 'No confirmed week yet'}</span></div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Versus plan</span>{gap === null || planned === null ? <><strong className="nbc-kpi-value">No plan</strong><span className="small muted">No planned curve supplied</span></> : <><strong className="nbc-kpi-value" data-tone={gap < -0.04 ? 'bad' : gap < -0.01 ? 'warn' : 'ok'}>{percent(Math.abs(gap))} {gap < 0 ? 'behind' : 'ahead'}</strong><span className="small muted">Plan: {percent(planned)} by now</span></>}</div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Completion deadline</span>{plan && days !== null ? <><strong className="nbc-kpi-value">{planDate(plan.completion)}</strong><span className="small" data-tone={days < 0 ? 'bad' : undefined}>{days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `${days} days left`}</span></> : <><strong className="nbc-kpi-value">Not set</strong><span className="small muted">No contract dates supplied</span></>}</div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < active.length ? 'bad' : undefined}>{deadline.late ? 'Deadline passed' : deadline.text.split(' · ')[1]}</strong><span className="small muted">{active.length ? `${updated.length} of ${active.length} handlers updated this week` : 'All handler work is complete'}</span></div>
     </section>

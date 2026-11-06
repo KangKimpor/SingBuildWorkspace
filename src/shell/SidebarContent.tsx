@@ -15,6 +15,7 @@ import { useProjects } from '@/data'
 
 const ic = { size: 18, strokeWidth: 1.75 } as const
 const expandedKey = 'kw-sidebar-expanded-projects'
+const bpNumber = (name: string) => Number(/BP\s*0*(\d+)/i.exec(name)?.[1] ?? Number.MAX_SAFE_INTEGER)
 
 function Item({ to, icon, label, onNavigate }: { to: string; icon: React.ReactNode; label: string; onNavigate?: () => void }) {
   return (
@@ -38,6 +39,7 @@ export function SidebarContent({
   onToggleCollapsed?: () => void
 }) {
   const projects = useProjects()
+  const progressProjects = projects.filter((p) => p.nbcBp03).sort((a, b) => bpNumber(a.name) - bpNumber(b.name))
   const { pathname } = useLocation()
   const [expanded, setExpanded] = useState<Set<string>>(() => {
     try {
@@ -49,7 +51,7 @@ export function SidebarContent({
       // Ignore an unavailable or stale preference.
     }
     const active = projects.find((p) => pathname.startsWith(`/projects-progress/${p.id}/`))?.id
-    const first = active ?? projects[0]?.id
+    const first = active ?? progressProjects[0]?.id
     return new Set(first ? [first] : [])
   })
 
@@ -88,7 +90,7 @@ export function SidebarContent({
         <div className="nav-section">
           <div className="t-caption"><NavLink to="/projects-progress" end onClick={onNavigate}>Projects Progress</NavLink></div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">
-            {projects.filter((p) => p.nbcBp03).map((project) => {
+            {progressProjects.map((project) => {
               const isExpanded = expanded.has(project.id)
               const isCurrent = pathname.startsWith(`/projects-progress/${project.id}/`)
               const [name, subtitle] = project.name.split(' – ')
