@@ -28,6 +28,10 @@ LINK = re.compile(r"^=\s*'?(\w+)'?!\$?([A-Z]+)\$?(\d+)$")
 IF_LINK = re.compile(r'^=\s*IF\(\s*(\w+)!\$?([A-Z]+)\$?(\d+)\s*=\s*""\s*,\s*""\s*,\s*\1!\$?\2\$?\3\s*\)$')
 
 
+# Rooms whose Glass Sliding Door row was added to the workbook after the first import.
+LATE_SCOPE = re.compile(r'^C?SK1A-')
+
+
 def link(value):
     text = str(value or '')
     return LINK.match(text) or IF_LINK.match(text)
@@ -169,6 +173,10 @@ def extract(source):
                         if v is None and IF_LINK.match(str(ws.cell(r, col).value)):
                             continue  # =IF(Sheet!x="","",Sheet!x): a blank handler cell is N/A, not 0
                         cells[col] = (0.0 if v is None else float(v), int(m.group(3)))
+                # Scope added after the baseline (Glass Sliding Door in CSK1A/SK1A rooms) is numbered last, so the ids of the rooms
+                # that were already tracked stay put. Display order does not depend on it: the matrix keys cells by room.
+                if letter == 'A' and name == 'Install Glass Sliding Door':
+                    cells = dict(sorted(cells.items(), key=lambda kv: bool(LATE_SCOPE.match(rooms[kv[0]]))))
                 for col, (value, src_row) in cells.items():
                     assert 0 <= value <= 1, (sheet, r, col, value)
                     counters[task['wbs']] = counters.get(task['wbs'], 0) + 1

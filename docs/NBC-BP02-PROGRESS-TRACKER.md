@@ -1,5 +1,9 @@
 # NBC BP02 progress tracker
 
+## Glass Sliding Door in CSK1A / SK1A rooms (6 November 2026)
+
+The BOQ workbook now scores Install Glass Sliding Door for the CSK1A rooms (`CSK1A-2114`, `CSK1A-2214`) and the SK1A rooms on Floors 13–20: each Floor sheet links that room's cell to a new 0% input on the Chhorvaon tab. The workbook's figures do not move (the Door Installation roll-up already counted the blank cell as 0 at its fixed weight). The extractor adds 10 editable leaves (one per room, 16,442 → 16,452 nodes). They are numbered after the room's existing leaves (`LATE_SCOPE`), so no existing activity id changes and drafts stay attached to the right rooms; overall progress is unchanged (84.2261%) and Floor 22/21 move by 0.0125 points or less. **Not applied to the database:** run the stage files and `apply.sql` from `scripts/nbc-area-baseline-sql.py nbc-bp02`, which also replaces the week's submissions.
+
 ## Stored row size (6 November 2026)
 
 `scripts/nbc-bp02-rooms-extract.py` now writes BP02 rows the way BP03/BP04 are stored: fields that hold their default (`description`, `sourceWeekly`, `duration`, `boqValue`, `schedule`, `sourcePrevious`) are left out and `src/nbc/normalize.ts` restores them when the app reads a row. The extractor checks that every row round-trips exactly. The table's required keys are still added by `apply.sql`. Estimated stored size falls from about 8.9 MB to 6.8 MB (about 23%), which is what a first-time or reset device downloads from Supabase. **Not applied to the database yet:** it changes every row's `updated_at`, so every device would download BP02 once more. Apply it with the next baseline import.
