@@ -51,6 +51,12 @@ function advanceWatermark(collection: CloudCollection, stamp: string | undefined
 }
 let lastFullPull = 0
 let cloudInitialization: Promise<void> | undefined
+/**
+ * Set while an account switch reads its IndexedDB snapshot. A sync started in that window (a
+ * TOKEN_REFRESHED emitted during getSession after an idle hour, for example) would see no
+ * watermarks and an empty store and pull every row cold, so it waits for the restore instead.
+ */
+let restoring: Promise<void> | undefined
 const tabId = (() => {
   if (typeof navigator !== 'undefined' && navigator.locks) return crypto.randomUUID()
   try {
@@ -324,6 +330,9 @@ async function switchAccount(session: Session | null) {
   // Clear the previous account synchronously, before any asynchronous initialization.
   applyRemotePatch({ ...structuredClone(emptyContent) })
   useWorkspace.setState({ scope, sync: scope === 'guest' ? { kind: 'saved' } : { kind: 'saving' }, storageError: false })
+  let restored!: () => void
+  const restore = new Promise<void>((resolve) => { restored = resolve })
+  restoring = restore
   try {
     if (scope === 'guest') {
       const raw = localStorage.getItem('kw-workspace-v1')
@@ -355,7 +364,10 @@ async function switchAccount(session: Session | null) {
       const writes: Write[] = JSON.parse(localStorage.getItem(recoveryKey(scope)) || '[]')
       for (const write of writes) if (write.scope === scope) { pending.set(write.key, write); applyRow(write.collection, write.remove ? null : { id: write.id, data: write.data, updated_at: String(write.data.updatedAt || '') }, write.id) }
     }
-  } catch { /* An invalid cache cannot replace cloud content. */ }
+  } catch { /* An invalid cache cannot replace cloud content. */ } finally {
+    if (restoring === restore) restoring = undefined
+    restored()
+  }
   if (current !== generation) return
   if (!session || !supabase) return
   await supabase.realtime.setAuth(session.access_token)
@@ -725,6 +737,7 @@ function recoverConflict(write: Write) {
 /** No routine workspace polling: fetch on subscribe/reconnect, change events, and explicit retry. */
 export function syncWorkspace(refresh = true): Promise<void> {
   if (!supabase || !useAccount.getState().session || useWorkspace.getState().scope === 'guest') return Promise.resolve()
+  if (restoring) return restoring.then(() => syncWorkspace(refresh))
   refreshRequested ||= refresh
   if (activeRun) return activeRun
   if (!navigator.onLine) { useWorkspace.setState({ sync: { kind: 'offline', pending: pending.size } }); return Promise.resolve() }
