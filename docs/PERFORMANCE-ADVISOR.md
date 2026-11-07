@@ -126,10 +126,42 @@ and the performance advisor no longer reports `multiple_permissive_policies` or
 `unused_index` INFOs for the new indexes, which reset their statistics when created and will be
 used by normal syncs and account deletion.
 
+## Security Advisor follow-up — November 7, 2026
+
+`20261107140000_security_advisor_fixes.sql` clears the remaining SECURITY DEFINER warnings
+without removing the RPCs the app uses:
+
+- The 14 legacy definer RPCs from the old app (`apply_calendar_changes`,
+  `compact_page_document`, `connected_account_list`, `delete_my_cloud_data`,
+  `export_cloud_data`, `export_owner_data`, `health_check`, `notify_workspace`,
+  `pull_changes`, `purge_entities`, `push_changes`, `register_attachment`,
+  `server_storage_usage`, `storage_usage`) are no longer executable by `anon` or
+  `authenticated`. The current client never calls them; `service_role` keeps access for
+  maintenance. Each revoke is guarded with `to_regprocedure`, so a fresh database built only
+  from `supabase/migrations` still applies.
+- `kw_nbc_owner()` and `kw_nbc_reassign_activities()` stay callable by `authenticated`, but
+  their `SECURITY DEFINER` bodies moved to `kw_private`. Public `SECURITY INVOKER` wrappers
+  keep the same names, signatures and server-side checks, matching the existing
+  `kw_nbc_submission_write()` pattern. RLS policies keep working because PostgreSQL stores
+  the function OID, not the schema-qualified name.
+
+Post-apply verification: all 28 SECURITY DEFINER warnings are gone, the isolation test passes
+(owner isolation, stale-write rejection, shared-NBC read, cross-user write denial,
+service-table denial), and the ACL matrix shows `anon=false`, `authenticated=false`,
+`service_role=true` on the legacy functions and `anon=false`, `authenticated=true`,
+`definer=false` on the public wrappers.
+
+### Leaked-password protection is plan-gated
+
+The only remaining Security Advisor WARN is `auth_leaked_password_protection`. Enabling it
+against HaveIBeenPwned is an Auth setting, not SQL. The Management API
+(`PATCH /v1/projects/nlcpjdokfvawlpzyfytx/config/auth` with `password_hibp_enabled=true`)
+returns **402 Payment Required**, and the organization entitlement `auth.password_hibp`
+reports `hasAccess=false`. The project is on the Free plan. Enable it from Authentication
+settings after upgrading the plan; no repo change can bypass the entitlement.
+
 ## Not changed here
 
-The security advisor also reports SECURITY DEFINER functions from the old app
-(`apply_calendar_changes`, `pull_changes`, `push_changes`, `export_cloud_data`, and others) and
-leaked-password protection. Revoking execute on those functions is not a blanket fix: some are
-still used by the current workspace RPCs. That cleanup needs its own pass, together with the
-decision to remove the legacy tables and update `delete_my_cloud_data()` / `export_cloud_data()`.
+The 47 snapshot tables and the staging tables are untouched; see the archive/removal options
+above. Removing the legacy tables also requires updating `delete_my_cloud_data()` and
+`export_cloud_data()`, which still name them.
