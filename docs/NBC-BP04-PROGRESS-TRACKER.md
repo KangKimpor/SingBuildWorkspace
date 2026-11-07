@@ -1,5 +1,9 @@
 # NBC BP04 progress tracker
 
+## 7 November 2026 - MEP sheet formulas (column C) applied
+
+The report's `BP-04(MEP)` column C ("BP-04 MEP Progress") changed from a zone-weighted figure to: task = AVERAGE of its areas x the task weight written in the formula, sub-system = SUM of its tasks, system = AVERAGE of its sub-systems, MEP = AVERAGE of the systems. The task weights in those formulas are 40 / 40 / 10 / 5 / 5 (sprinkler 80 / 10 / 5 / 5, DB and cable tray 45 / 45 / 5 / 5), where column D and the area columns still carry 30 / 30 / 30 / 5 / 5. The app now uses the column C weights for 37 MEP tasks: every system, sub-system and the MEP total equals the report's column C (MEP 50.02 %, was 41.52 %). No leaf percentage changed. Overall progress is 47.95 % (was 45.47 %); the report's own Overall (P.sum) still uses the column D weights, so it will read lower until column D is changed to match. Backups: `kw_private.nbc_bp04_bk_*_cweights`.
+
 ## Updating the client's weekly report from the app (6 November 2026)
 
 **Export XLSX → Update my weekly report** takes the weekly report workbook you choose on your computer (nothing is uploaded or stored) and writes the app's percentages into the constant percentage cells of its ID and MEP sheets (BP02: every `F<n> (ID)` and `<n>F(MEP)` sheet). Formulas, labels, weights, styles and all other sheets are copied unchanged and the file is flagged to recalculate when Excel opens it. Rows are matched in order and the export refuses a report whose task rows do not line up with the project. `src/nbc/export/reportPatch.ts`; the tracker workbook is still available in the same dialog.
