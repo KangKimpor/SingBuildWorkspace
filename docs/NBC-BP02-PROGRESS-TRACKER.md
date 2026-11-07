@@ -1,5 +1,9 @@
 # NBC BP02 progress tracker
 
+## 7 November 2026 - report formulas applied to the ID weights
+
+The updated report scores each guestroom room on its own (tasks that are N/A in the room drop out and the rest are re-weighted), averages the rooms equally per section, then weighs the sections; the corridor uses its own section weights (5 / 15 / 20 / 20 / 25 / 15 %, tasks 50/50, 25 x 4, 60/20/20, 20 x 5). The app now uses those weights: 187 section and 429 task weights set per floor from the report and the weights of all 5,209 ID leaves recomputed with the same rule. No percentage changed. Overall progress is 84.4539 %, equal to the report's Overall evaluated on the same percentages (was 84.66 %; the corridor sections used to weigh 1/6 each, which accounted for the 0.21-point gap). Group rows in the Activities tree still roll up task by task, so a floor's guestroom row can differ slightly from the report's floor figure; the Overall is exact. Backups: `kw_private.nbc_bp02_bk_*_weights`.
+
 ## Updating the client's weekly report from the app (6 November 2026)
 
 **Export XLSX → Update my weekly report** takes the weekly report workbook you choose on your computer (nothing is uploaded or stored) and writes the app's percentages into the constant percentage cells of its ID and MEP sheets (BP02: every `F<n> (ID)` and `<n>F(MEP)` sheet). Formulas, labels, weights, styles and all other sheets are copied unchanged and the file is flagged to recalculate when Excel opens it. Rows are matched in order and the export refuses a report whose task rows do not line up with the project. `src/nbc/export/reportPatch.ts`; the tracker workbook is still available in the same dialog.
