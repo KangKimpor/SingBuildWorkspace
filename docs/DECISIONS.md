@@ -114,3 +114,12 @@ The old app's 14 legacy `SECURITY DEFINER` RPCs were executable by `anon` and `a
 Leaked-password protection is not enabled: the organization entitlement `auth.password_hibp` is `hasAccess=false` on the Free plan and the Management API returns 402. Document it as a plan-gated setting rather than a code defect.
 
 Dependabot's remaining open alerts are transitive dev dependencies of `vite-plugin-pwa@2.0.0 → workbox-build@7.4.1`. Pin patched `fast-uri@3.1.9`, `serialize-javascript@7.1.3`, and `glob@14.0.4` (which brings patched `minimatch@11.0.5`) in `pnpm-workspace.yaml`; pnpm 12 ignores `pnpm.overrides` in `package.json`. Override `glob`, not `minimatch`: forcing `minimatch@11` into `glob@11.1.0` makes `globSync` return zero matches and silently empties the PWA precache. `deepmerge@4.3.1` has no patched release and remains open; it is build-time only and never shipped to the browser.
+
+## D-24 Supabase free plan log query limit optimization in agent instructions · November 8, 2026
+
+To avoid exhausting the Supabase Free Plan log query and egress allowances during agentic debugging and maintenance, document explicit log query optimization rules in `AGENTS.md` and `CLAUDE.md`. Agents must:
+- Narrow time ranges to the smallest window that could contain the answer (e.g. 1-day vs 7-day scans ~7x less data).
+- Filter server-side in the query (by source, service, status code, project) before pulling data.
+- Use the Logs Explorer for ad-hoc digging only, never for scripted polling schedules.
+- Use Log Drains for continuous feeds or ongoing monitoring stacks.
+- Evaluate query usage trends over multi-day spans rather than single-day spikes.
