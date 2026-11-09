@@ -2,22 +2,10 @@ import { addDays, weekDeadline, weekStart } from '../submissions'
 import { percent } from '../format'
 import { handlerComplete } from '../handlers'
 import { projectHandlers } from '../types'
-import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
+import type { NbcActivity, NbcSubmission } from '../types'
 import { deadlineNote } from '../update/deadline'
 
 const WEEK_MS = 7 * 86400000, STALLED_DAYS = 14
-
-/** Average weekly progress over the last four confirmed weeks, or null before any week is confirmed. */
-export function weeklyPace(summaries: NbcWeekSummary[]) {
-  const window = [...summaries].sort((a, b) => a.weekStart.localeCompare(b.weekStart)).slice(-4)
-  return window.length ? (window.at(-1)!.overall - window[0]!.previous) / window.length : null
-}
-
-/** The date progress reaches 100% if the recent pace holds, or null when there is no forward pace. */
-export function forecastDate(overall: number, pace: number | null, today: string) {
-  if (overall >= 1 || !pace || pace <= 0) return null
-  return addDays(today, Math.ceil(((1 - overall) / pace) * 7))
-}
 
 export interface AttentionItem { id: string; tone: 'red' | 'amber'; title: string; detail: string; impact?: string; to: string }
 interface AttentionInput { projectId: string; activities: NbcActivity[]; submissions: NbcSubmission[]; today: string; now: number }

@@ -20,9 +20,9 @@ test('headline numbers compare actual progress with the contract plan and deadli
   expect(kpis.getByText('2d left')).toBeTruthy()
 })
 
-test('forecast waits for a confirmed week, and attention lists handlers who have not updated', () => {
+test('attention lists handlers who have not updated', () => {
   show()
-  expect(screen.getByText(/forecast appears after the first confirmed week/i)).toBeTruthy()
+  expect(screen.queryByText('Forecast')).toBeNull()
   const attention = within(screen.getByRole('region', { name: 'Needs attention' }))
   expect(attention.getByText('Tola has not updated')).toBeTruthy()
   expect(attention.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('/projects-progress/nbc-bp03/update')

@@ -5,7 +5,7 @@ import { calculate } from '../progress'
 import { handlerComplete } from '../handlers'
 import { addDays, weekLabel, weekStart } from '../submissions'
 import { percent } from '../format'
-import { daysBetween, daysToCompletion, projectPlan, planDate, plannedProgress } from '../plan'
+import { daysToCompletion, projectPlan, planDate, plannedProgress } from '../plan'
 import { projectHandlers } from '../types'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
 import { deadlineNote } from '../update/deadline'
@@ -15,7 +15,7 @@ import { Breakdown, Heatmap } from './Breakdown'
 import type { BreakdownField } from './Breakdown'
 import { Digest } from './Digest'
 import { HandlerTable } from './HandlerTable'
-import { attentionItems, forecastDate, weeklyPace } from './insights'
+import { attentionItems } from './insights'
 
 const GROUPS = [['location', 'Floor'], ['area', 'Work area'], ['trade', 'Trade'], ['heatmap', 'Heatmap']] as const
 const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
@@ -35,15 +35,11 @@ export default function Overview({ project, activities, submissions, summaries, 
   const thisWeek = summaries.find((s) => s.weekStart === current), lastWeek = summaries.find((s) => s.weekStart === addDays(current, -7))
   const plan = projectPlan(project.id)
   const planned = plan ? plannedProgress(today, plan.points) : null, gap = planned === null ? null : overall - planned, days = plan ? daysToCompletion(today, plan.completion) : null
-  const pace = weeklyPace(summaries), finish = forecastDate(overall, pace, today), deadline = deadlineNote(current, now)
+  const deadline = deadlineNote(current, now)
   const attention = attentionItems({ projectId: project.id, activities, submissions, today, now })
-  const forecast = !plan ? 'No contract completion date is loaded for this project, so there is no deadline forecast.' : finish
-    ? `At the current pace of ${(pace! * 100).toFixed(2)}% a week, progress reaches 100% around ${planDate(finish)}, ${Math.abs(Math.round(daysBetween(plan.completion, finish) / 7))} weeks ${finish > plan.completion ? 'after' : 'before'} the deadline.`
-    : pace === null ? 'The forecast appears after the first confirmed week.' : 'There was no forward progress in the recent weeks, so there is no forecast yet.'
   const digestLines = [
     planned === null || gap === null ? `Overall progress ${percent(overall)}. No planned curve is loaded for this project.` : `Overall progress ${percent(overall)}, ${percent(Math.abs(gap))} ${gap < 0 ? 'behind' : 'ahead of'} the plan (${percent(planned)} planned by now).`,
     plan && days !== null ? `Completion deadline ${planDate(plan.completion)}: ${days < 0 ? `${-days} days overdue` : `${days} days left`}.` : 'Completion deadline: not provided.',
-    forecast,
     `${reporting}`,
     ...attention.map((i) => `Attention: ${i.title} (${i.detail}).`),
   ]
@@ -56,7 +52,6 @@ export default function Overview({ project, activities, submissions, summaries, 
       <div className="nbc-kpi"><span className="nbc-kpi-label">Completion deadline</span>{plan && days !== null ? <><strong className="nbc-kpi-value">{planDate(plan.completion)}</strong><span className="small" data-tone={days < 0 ? 'bad' : undefined}>{days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `${days} days left`}</span></> : <><strong className="nbc-kpi-value">Not set</strong><span className="small muted">No contract dates supplied</span></>}</div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < active.length ? 'bad' : undefined}>{deadline.late ? 'Deadline passed' : deadline.text.split(' · ')[1]}</strong><span className="small muted">{active.length ? `${updated.length} of ${active.length} handlers updated this week` : 'All handler work is complete'}</span></div>
     </section>
-    <p className="nbc-forecast small" role="status"><span className="nbc-pill">Forecast</span>{forecast}</p>
     <Attention items={attention}/>
     <Trend summaries={summaries} today={today} plan={plan}/>
     <div className="nbc-progress-panels"><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/>

@@ -1,22 +1,12 @@
 import { expect, test } from 'vitest'
 import { fixtureActivities } from '../test-fixture'
 import { submissionId } from '../submissions'
-import type { NbcSubmission, NbcWeekSummary } from '../types'
-import { attentionItems, forecastDate, weeklyPace } from './insights'
+import type { NbcSubmission } from '../types'
+import { attentionItems } from './insights'
 
-const summary = (weekStart: string, previous: number, overall: number): NbcWeekSummary => ({ id: weekStart, projectId: 'nbc-bp03', weekStart, previous, overall, contributions: {}, updatedAt: '' })
 const sub = (handler: 'Tola' | 'Sitha', week: string, entries: NbcSubmission['entries'], status: NbcSubmission['status'] = 'confirmed'): NbcSubmission =>
   ({ id: submissionId('nbc-bp03', week, handler), projectId: 'nbc-bp03', weekStart: week, handler, status, confirmedAt: status === 'confirmed' ? `${week}T08:00:00Z` : null, confirmedBy: 'a', late: false, note: '', entries, updatedAt: '' })
 const input = { projectId: 'nbc-bp03', today: '2026-10-28', now: Date.parse('2026-10-28T03:00:00Z') }
-
-test('pace averages the last four confirmed weeks and forecasts a finish date only with forward movement', () => {
-  expect(weeklyPace([])).toBeNull()
-  expect(weeklyPace([summary('2026-10-19', .2, .3), summary('2026-10-26', .3, .4)])).toBeCloseTo(.1, 10)
-  expect(forecastDate(.4, .1, '2026-10-28')).toBe('2026-12-09')
-  expect(forecastDate(.4, 0, '2026-10-28')).toBeNull()
-  expect(forecastDate(.4, null, '2026-10-28')).toBeNull()
-  expect(forecastDate(1, .1, '2026-10-28')).toBeNull()
-})
 
 test('handlers who have not confirmed this week are listed, and turn red at Saturday midnight', () => {
   const activities = fixtureActivities()

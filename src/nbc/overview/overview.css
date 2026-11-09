@@ -82,8 +82,6 @@
 .nbc-kpi [data-tone=bad], .nbc-kpi [data-tone=bad] + span { color: var(--danger-text); }
 .nbc-kpi [data-tone=warn] { color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
 .nbc-kpi [data-tone=ok] { color: var(--success-text); }
-.nbc-forecast { display: flex; align-items: center; gap: var(--space-12); flex-wrap: wrap; margin: 0; padding: 12px 18px; border-radius: 16px; background: var(--bg-raised); box-shadow: 0 0 0 .5px var(--border-subtle); }
-.nbc-forecast .nbc-pill { background: var(--status-warning-bg); font-weight: 600; }
 .nbc-attention, .nbc-trend, .nbc-execution { padding: 20px 22px; border-radius: 20px; background: var(--bg-raised); box-shadow: 0 0 0 .5px var(--border-subtle), 0 2px 12px rgb(0 0 0 / .05); min-width: 0; }
 .nbc-attention h2, .nbc-trend h2, .nbc-execution h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
 .nbc-attention header { margin-bottom: var(--space-8); }
