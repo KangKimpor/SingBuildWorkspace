@@ -123,3 +123,27 @@ To avoid exhausting the Supabase Free Plan log query and egress allowances durin
 - Use the Logs Explorer for ad-hoc digging only, never for scripted polling schedules.
 - Use Log Drains for continuous feeds or ongoing monitoring stacks.
 - Evaluate query usage trends over multi-day spans rather than single-day spikes.
+
+## D-25 Snapshot archive and database size reduction — November 8, 2026
+
+The Free Plan database reached 148 MB of a 500 MB quota, 95 MB of it in 47 dated copies of
+`nbc_bp02/03/04` activities, submissions, templates and summaries under `kw_private`. Nothing in
+the schema referenced them (no view, function, trigger, policy or foreign key) and the app never
+reads them, so they were archived and dropped instead of keeping point-in-time copies inside the
+same database.
+
+The archive is a full export — one CSV per table (`COPY ... WITH (FORMAT csv, HEADER true)`),
+`schema.sql`, `manifest.json` with per-table rows/size/sha256, and `restore.py` — stored at
+`SingBuild's Document/SingBuild Workspace/Supabase DB Archive/2026-11-08/kw-private-snapshots-20261108.zip`
+in Google Drive. Every CSV was re-parsed and its row count compared with the source `count(*)`
+before anything was dropped.
+
+Also cleared: `cron.job_run_details` (1.7 MB of job history) and the 7 MB of bloat in
+`public.kw_nbc_activities` reclaimed with `VACUUM FULL` (28 MB to 18 MB). The staging tables
+(`nbc_bp02/03/04_stage`) are kept. Result: 42 MB, down from 148 MB. Rejected: adding primary keys
+to the copies (no app benefit) and keeping only the newest snapshot per series (each is
+reproducible from the source xlsx and the archive already holds every copy).
+
+## D-26 Pooler egress spike on 8 November 2026 - November 9, 2026
+
+The Supabase usage chart for 8 November showed 106.164 MB of Shared Pooler Egress (99.4% of the day), against 483 KB for PostgREST and 47 KB for Realtime. The app code never connects through the pooler. The spike is the D-25 archive: the 47 `kw_private` snapshot tables (95 MB) were exported with `COPY ... WITH (FORMAT csv)` over the CLI connection, and the database shrank from 148 MB to 42 MB, which matches the egress figure. It was a one-time maintenance cost, not a leak. Add a "Supabase Pooler Egress" section to `AGENTS.md` and `CLAUDE.md`: verify with server-side counts and hashes instead of downloading rows, select named columns only, drop regenerable data instead of exporting it, and ask before any read above about 10 MB.
