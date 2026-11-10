@@ -1,4 +1,4 @@
-/** Motion tokens: SPEC.md §11. Mirrors the CSS custom properties in tokens.css. */
+/** Motion tokens. Mirrors the CSS custom properties in tokens.css. */
 
 export const DURATION = {
   instant: 0.08,

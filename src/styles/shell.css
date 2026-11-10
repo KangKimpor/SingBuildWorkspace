@@ -1,4 +1,4 @@
-/* App shell: SPEC.md §5 and §12. Layout is driven by data-bp (compact / medium / expanded / large),
+/* App shell. Layout is driven by data-bp (compact / medium / expanded / large),
    which AppShell derives from its own width with a ResizeObserver (container-based, never the UA). */
 
 .shell {

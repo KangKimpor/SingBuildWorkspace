@@ -1,6 +1,6 @@
 # NBC BP03 weekly progress UX
 
-The full design rationale is in `docs/superpowers/specs/2026-10-27-nbc-progress-redesign-design.md`; this page is the short reference for what the app does.
+This page is the short reference for what the app does.
 
 ## Structure
 
