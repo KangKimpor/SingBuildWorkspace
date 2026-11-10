@@ -21,3 +21,15 @@ supabase/.temp/
 # Local development and browser-test files; never commit private datasets or profiles.
 .private/
 *.xlsx
+
+# Local agent tooling (installed per machine)
+.agents/
+.claude/skills/
+.claude/settings.local.json
+.mcp.json
+.claude/agents/
+graphify-out/cache/
+graphify-out/.graphify_*
+graphify-out/graph.html
+graphify-out/manifest.json
+.claude/settings.json

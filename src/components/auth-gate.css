@@ -1,10 +1,87 @@
-.auth-page { min-height:100dvh; display:grid; grid-template-rows:auto 1fr auto; background:var(--bg-canvas); }
-.auth-header { display:flex; align-items:center; justify-content:space-between; padding:24px 32px; }
-.auth-brand { display:flex; align-items:center; gap:10px; font-weight:650; }
-.auth-main { display:grid; place-items:center; padding:32px 24px; min-width:0; }
-.auth-main .account-auth-layout { display:block; width:min(372px,100%); padding:0; }
-.auth-main .account-auth-card { padding:0; border:0; background:transparent; box-shadow:none; }
-.auth-main h1 { margin:0 0 8px; font-size:30px; font-weight:650; line-height:1.25; letter-spacing:-.025em; }
-.auth-main .account-form-heading { margin-bottom:28px; text-align:center; }
-.auth-footer { text-align:center; padding:24px; color:var(--text-secondary); font-size:12px; }
-@media(max-width:480px) { .auth-header { padding:20px 24px; } }
+.auth-page {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  background-color: var(--bg-canvas);
+  background-image: radial-gradient(rgb(55 53 47 / 0.07) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.auth-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px 36px;
+}
+
+.auth-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 650;
+  font-size: 16px;
+  color: var(--text-primary);
+  letter-spacing: -0.015em;
+}
+
+.auth-brand img {
+  border-radius: 6px;
+}
+
+.auth-main {
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  min-width: 0;
+}
+
+.auth-main .account-auth-layout {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0;
+}
+
+.auth-main .account-auth-card {
+  width: min(400px, 100%);
+  padding: 36px 32px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  background: var(--bg-raised);
+  box-shadow: 0 1px 2px rgb(15 15 15 / 0.04), 0 14px 34px -4px rgb(15 15 15 / 0.08);
+}
+
+.auth-main h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  font-weight: 650;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  text-align: center;
+  color: var(--text-primary);
+}
+
+.auth-main .account-form-heading {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.auth-footer {
+  text-align: center;
+  padding: 24px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .auth-header {
+    padding: 20px 20px;
+  }
+  .auth-main {
+    padding: 24px 16px;
+  }
+  .auth-main .account-auth-card {
+    padding: 28px 22px;
+  }
+}

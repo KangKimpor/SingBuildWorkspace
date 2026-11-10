@@ -112,6 +112,15 @@ order by pg_total_relation_size(c.oid) desc;
 Do not drop `kw_private.nbc_bp02_stage`, `nbc_bp03_stage`, or `nbc_bp04_stage` — those are
 staging tables, not dated snapshots, and they already have primary keys.
 
+### Status — November 8, 2026
+
+The snapshots were archived and dropped. `kw_private` now holds only the three staging tables.
+The archive (47 CSVs, `schema.sql`, `manifest.json`, `restore.py`) lives in Google Drive at
+`SingBuild's Document/SingBuild Workspace/Supabase DB Archive/2026-11-08/kw-private-snapshots-20261108.zip`;
+see D-25 in [DECISIONS.md](DECISIONS.md). `cron.job_run_details` was truncated and
+`public.kw_nbc_activities` was rewritten with `VACUUM FULL`, taking the database from 148 MB to
+42 MB. The advisor's 47 `no_primary_key` entries are gone.
+
 ## Applying and verifying
 
 ```sh

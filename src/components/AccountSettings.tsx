@@ -7,9 +7,12 @@ import './account-settings.css'
 
 function GoogleMark() {
   return (
-    <span className="google-mark" aria-hidden="true">
-      G
-    </span>
+    <svg className="google-mark-svg" width={18} height={18} viewBox="0 0 48 48" aria-hidden="true">
+      <path fill="#4285f4" d="M43.6 20.5H42V20H24v8h11.3A12 12 0 0 1 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8.1 3.1l5.7-5.7A20 20 0 0 0 4 24a20 20 0 0 0 40 0c0-1.2-.1-2.4-.4-3.5Z"/>
+      <path fill="#34a853" d="m6.3 33.8 6.6-5.1A12 12 0 0 0 24 36c3.1 0 5.9-1.2 8-3l6.2 5.2A20 20 0 0 1 6.3 33.8Z"/>
+      <path fill="#fbbc05" d="m4 24 2.3 9.8 6.6-5.1A12 12 0 0 1 12 24c0-1.8.4-3.5 1.1-5L6.5 14A20 20 0 0 0 4 24Z"/>
+      <path fill="#ea4335" d="M24 4A20 20 0 0 0 6.5 14l6.6 5A12 12 0 0 1 24 12c3.1 0 5.9 1.2 8.1 3.1l5.7-5.7A20 20 0 0 0 24 4Z"/>
+    </svg>
   )
 }
 function backupWorkspace() {
@@ -146,6 +149,9 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
       >
         <header className="account-form-heading">
           <Heading>Welcome</Heading>
+          <p className="account-form-sub">
+            Sign in to sync your projects, tasks, and workbooks across devices.
+          </p>
         </header>
         {notice}
         <button
@@ -156,12 +162,17 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
           <GoogleMark />
           {busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
         </button>
-        {loading && <p className="small muted" role="status">Connecting to your account…</p>}
+        {loading && (
+          <div className="account-connecting-pill" role="status">
+            <span className="account-spinner" aria-hidden="true" />
+            <span>Connecting to your account…</span>
+          </div>
+        )}
         {!loading && !supabase && <p className="account-notice account-error" role="alert">Account services are unavailable. Please try again shortly.</p>}
-        {!standalone && <footer className="account-form-footer">
+        <footer className="account-form-footer">
           <LockKeyhole size={14} />
           <span>Your work is private to your account and syncs across your devices.</span>
-        </footer>}
+        </footer>
       </section>
     </div>
   )

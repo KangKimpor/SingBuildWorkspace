@@ -12,6 +12,10 @@
     "test:e2e": "playwright test",
     "test:a11y": "playwright test e2e/a11y.spec.ts",
     "icons": "node scripts/icons.mjs",
+    "figma:screens": "node scripts/figma-screens.mjs",
+    "figma:prep": "node scripts/figma-prep.mjs",
+    "figma:plugin": "node scripts/figma-plugin-build.mjs",
+    "figma:serve": "node scripts/figma-serve.mjs",
     "lint": "oxlint src --react-plugin --jsx-a11y-plugin -D correctness -A react/purity -A react/set-state-in-effect -A jsx-a11y/prefer-tag-over-role -A jsx-a11y/no-autofocus"
   },
   "dependencies": {

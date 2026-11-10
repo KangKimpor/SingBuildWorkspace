@@ -68,25 +68,57 @@
   margin: 0 0 var(--space-8);
   letter-spacing: -0.025em;
 }
+.account-form-sub {
+  margin: var(--space-4) 0 0;
+  font-size: var(--fs-small);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
 .account-google {
   width: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-12);
-  min-height: var(--space-48);
+  min-height: 46px;
   background: var(--bg-canvas);
   color: var(--text-primary);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   font-weight: 600;
   font-size: var(--fs-label);
+  box-shadow: 0 1px 2px rgb(15 15 15 / 0.04);
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.google-mark {
-  font-size: var(--fs-h3);
-  font-weight: 750;
+.google-mark-svg {
+  display: block;
+  flex-shrink: 0;
+}
+.account-connecting-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  width: 100%;
+  margin-top: var(--space-12);
+  padding: var(--space-8) var(--space-16);
+  background: var(--chip-blue);
   color: var(--accent-text);
-  line-height: 1;
+  border-radius: var(--radius-control);
+  font-size: var(--fs-small);
+  font-weight: 500;
+}
+.account-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  animation: account-spin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+@keyframes account-spin {
+  to { transform: rotate(360deg); }
 }
 .account-form-footer {
   display: flex;
