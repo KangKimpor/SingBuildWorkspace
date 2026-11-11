@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "graphify": {
+      "command": "graphify-mcp",
+      "args": [
+        "graphify-out/graph.json"
+      ]
+    },
+    "agent-desktop": {
+      "command": "agent-desktop",
+      "args": [
+        "mcp"
+      ]
+    },
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase",
+        "--access-token=${SUPABASE_ACCESS_TOKEN}",
+        "--project-ref=nlcpjdokfvawlpzyfytx"
+      ]
+    },
+    "vercel": {
+      "type": "http",
+      "url": "https://mcp.vercel.com",
+      "headers": {
+        "Authorization": "Bearer ${VERCEL_TOKEN}"
+      }
+    }
+  }
+}

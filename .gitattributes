@@ -1,0 +1,4 @@
+# Keep the launcher scripts LF so they run on macOS and Linux
+.claude/skills/impeccable/scripts/impeccable text eol=lf
+.agents/skills/impeccable/scripts/impeccable text eol=lf
+*.sh text eol=lf
