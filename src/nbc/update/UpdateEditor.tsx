@@ -38,7 +38,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const [query, setQuery] = useState(''), [area, setArea] = useState(''), [floorId, setFloorId] = useState(''), [remarkFor, setRemarkFor] = useState('')
   const roomMode = useMemo(() => isRoomProject(activities), [activities])
   // Floors that hold work for this handler; the matrix shows one floor at a time with a column per room.
-  const floors = useMemo(() => roomMode ? roomFloors(activities).filter((f) => f.rows.some((r) => r.task && [...r.cells.values()].some((l) => canUpdate(l, handler)))) : [], [activities, handler, roomMode])
+  const floors = useMemo(() => roomMode ? roomFloors(activities).filter((f) => f.rows.some((r) => r.task && r.leaves.some((l) => canUpdate(l, handler)))) : [], [activities, handler, roomMode])
   const search = useRef<HTMLInputElement>(null)
   const values = useRef(new Map<string, HTMLInputElement>()), remarks = useRef(new Map<string, HTMLInputElement>()), beforeFocus = useRef('')
   const byId = new Map(activities.map((a) => [a.id, a])), shownById = new Map(draft.shown.map((e) => [e.activityId, e]))
@@ -64,9 +64,11 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const progressOf = new Map(draft.shown.map((e) => [e.activityId, e.progress]))
   const rows = roomMode ? [] : buildWbsRows(activities, { leaf: (a) => canUpdate(a, handler) && visible(a), collapsed: openGroups, values: progressOf })
   const previous = calculate(activities, new Map(draft.shown.map((e) => [e.activityId, e.previous]))).progress
-  const floor = floors.find((f) => f.root.id === floorId) ?? floors.find((f) => f.rows.some((r) => r.task && [...r.cells.values()].some((l) => canUpdate(l, handler) && l.progress < 1))) ?? floors[0]
+  const floor = floors.find((f) => f.root.id === floorId) ?? floors.find((f) => f.rows.some((r) => r.task && r.leaves.some((l) => canUpdate(l, handler) && l.progress < 1))) ?? floors[0]
   const nowProgress = roomMode ? calculate(activities, progressOf).progress : previous
-  const showRow = (row: { cells: ReadonlyMap<string, NbcActivity> }) => [...row.cells.values()].some((l) => canUpdate(l, handler) && visible(l))
+  const showRow = (row: { leaves: readonly NbcActivity[] }) => row.leaves.some((l) => canUpdate(l, handler) && visible(l))
+  /** The half of a cell shared by two handlers that this handler edits (the cell's only leaf otherwise). */
+  const mine = (l: NbcActivity, co?: NbcActivity) => co && canUpdate(co, handler) && !canUpdate(l, handler) ? co : l
   const leaves = rows.filter((r) => !r.group)
   const rootOf = (id: string) => { let node = byId.get(id); while (node?.parentId) node = byId.get(node.parentId); return node?.id ?? '' }
   const counts: Record<Filter, number> = { need: draft.shown.filter((e) => e.previous < 1).length, chg: draft.changed.length, all: draft.shown.length }
@@ -103,8 +105,8 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   /** Enter in the matrix moves down to the same room on the next listed task. */
   function advanceRoom(id: string) {
     const room = byId.get(id)?.room, list = floor ? visibleRoomRows(floor, showRow, openGroups).filter((r) => r.task) : []
-    const i = list.findIndex((r) => [...r.cells.values()].some((l) => l.id === id))
-    const next = list.slice(i + 1).map((r) => r.cells.get(room ?? '')).find((l) => l && canUpdate(l, handler))
+    const i = list.findIndex((r) => r.leaves.some((l) => l.id === id))
+    const next = list.slice(i + 1).map((r) => r.leaves.find((l) => l.room === room && canUpdate(l, handler))).find(Boolean)
     if (next) setJump({ id: next.id, kind: 'value' })
     else values.current.get(id)?.blur()
   }
@@ -143,8 +145,8 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}</p>}
     {roomMode && floor && visibleRoomRows(floor, showRow, openGroups).length > 0
       ? <RoomMatrix floor={floor} caption={`${handler} activities by room · ${floor.root.name} · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle} progress={nowProgress} previous={previous}
-          show={showRow} cell={(l) => roomCell(l)}
-          cellAttrs={(l) => ({ 'data-changed': changedIds.has(l.id) ? 'true' : undefined, 'data-problem': problems.has(l.id) ? 'true' : undefined, 'data-done': (shownById.get(l.id)?.progress ?? l.progress) === 1 ? 'true' : undefined })}/>
+          show={showRow} cell={(l, _row, co) => roomCell(mine(l, co))}
+          cellAttrs={(first, co) => { const l = mine(first, co); return { 'data-changed': changedIds.has(l.id) ? 'true' : undefined, 'data-problem': problems.has(l.id) ? 'true' : undefined, 'data-done': (shownById.get(l.id)?.progress ?? l.progress) === 1 ? 'true' : undefined } }}/>
       : rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
       : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle}

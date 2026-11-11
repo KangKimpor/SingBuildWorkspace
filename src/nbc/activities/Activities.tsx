@@ -98,11 +98,18 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
     {sync.kind !== 'saved' && pending.size > 0 && <p className="small muted" role="status">{sync.kind === 'error' ? <>Save failed · <button className="text-link" onClick={() => void syncWorkspace(false)}>Retry</button></> : `Pending sync · ${pending.size}`}</p>}
     {roomMode && floor
       ? <RoomMatrix floor={floor} caption={`${floor.root.name} activities by room`} collapsed={collapsed} onToggle={toggle} progress={live.progress} previous={before.progress}
-          show={(row) => [...row.cells.values()].some(leaf)}
-          cell={(l) => percent(l.progress, 0)}
-          cellAttrs={(l) => ({ 'data-changed': Math.abs((live.progress.get(l.id) ?? 0) - (before.progress.get(l.id) ?? 0)) > 1e-12 ? 'true' : undefined, 'data-done': l.progress === 1 ? 'true' : undefined })}
+          show={(row) => row.leaves.some(leaf)}
+          cell={(l, _row, co) => percent(co ? (l.progress + co.progress) / 2 : l.progress, 0)}
+          cellAttrs={(l, co) => {
+            const halves = co ? [l, co] : [l], moved = halves.some((h) => Math.abs((live.progress.get(h.id) ?? 0) - (before.progress.get(h.id) ?? 0)) > 1e-12)
+            return { 'data-changed': moved ? 'true' : undefined, 'data-done': halves.every((h) => h.progress === 1) ? 'true' : undefined }
+          }}
           onRowClick={(row) => setDetail(row.activity.id)}
-          extra={[{ header: 'Handler', cell: (row) => { const leaves = [...row.cells.values()]; return <RoomHandlerPicker projectId={projectId} ids={leaves.map((l) => l.id)} label={[...new Set(leaves.map((l) => l.handler || 'Unassigned'))].join(', ')}/> } }]}/>
+          extra={[{ header: 'Handler', cell: (row) => {
+            const label = [...new Set(row.leaves.map((l) => l.handler || 'Unassigned'))].join(', ')
+            // A task shared 50/50 by two handlers keeps both of them, so it is not reassigned from here.
+            return row.co.size ? <span title="Shared 50/50">{label} · 50/50</span> : <RoomHandlerPicker projectId={projectId} ids={row.leaves.map((l) => l.id)} label={label}/>
+          } }]}/>
       : rows.length === 0
       ? <div className="quiet-empty">No activities match these filters.<button className="text-link" onClick={clear}>Clear filters</button></div>
       : <WbsTable virtual rows={rows} caption="Activities by WBS" collapsed={collapsed} onToggle={toggle}

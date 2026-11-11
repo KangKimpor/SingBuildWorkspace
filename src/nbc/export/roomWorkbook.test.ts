@@ -64,6 +64,35 @@ describe('room workbook', () => {
   })
 })
 
+/** Splits a room leaf into two halves of 50% weight each, like the Water Closet / Lavatory / Shower rooms. */
+function share(activities: NbcActivity[], id: string, second: string, progress: number): NbcActivity[] {
+  return activities.flatMap((a) => a.id !== id ? [a] : [
+    { ...a, relativeWeight: a.relativeWeight / 2, globalWeight: a.globalWeight / 2 },
+    { ...a, id: `${a.id}.2`, wbs: `${a.wbs}.2`, coOf: a.id, handler: second, progress, baseline: progress, history: [], relativeWeight: a.relativeWeight / 2, globalWeight: a.globalWeight / 2 },
+  ])
+}
+
+describe('cells shared by two handlers', () => {
+  const split = () => share(fixture(), 'nbc-bp02:1.8.1.23.2.1.1.1.1', 'Chhorvaon', 0.25)
+  test('the matrix keeps one cell per room with both halves', () => {
+    const task = roomFloors(split())[0]!.rows.find((r) => r.activity.name === 'Installation EMT Conduit')!
+    expect(task.cells.get('R1')!.handler).toBe('Tola')
+    expect(task.co.get('R1')!.handler).toBe('Chhorvaon')
+    expect(task.co.has('R2')).toBe(false)
+    expect(task.leaves).toHaveLength(4)
+  })
+  test('the overall progress does not change', () => {
+    expect(calculate(split()).overall).toBeCloseTo(calculate(fixture()).overall, 12)
+    expect(roomWorkbook(split(), [], '2026-10-26').overall).toBeCloseTo(roomWorkbook(fixture(), [], '2026-10-26').overall, 12)
+  })
+  test('the workbook shows the cell as one activity and each handler their own half', () => {
+    const files = unzipSync(roomWorkbook(split(), [], '2026-10-26').bytes), text = (name: string) => strFromU8(files[name]!)
+    expect(text('xl/worksheets/sheet2.xml')).toMatch(/<f>AVERAGE\(Tola!D\d+,Chhorvaon!D\d+\)<\/f>/)
+    expect(text('xl/worksheets/sheet6.xml')).toContain('Installation EMT Conduit')
+    expect(text('xl/worksheets/sheet9.xml')).toContain('Installation EMT Conduit')
+  })
+})
+
 // Full-size check against the client's workbook; runs only where the private extract exists.
 const source = '.private/nbc-bp02-rooms/initial.json'
 describe.skipIf(!existsSync(source))('BP02 dataset', () => {

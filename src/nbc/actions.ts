@@ -4,10 +4,14 @@ import { projectHandlers } from './types'
 import type { Handler, NbcActivity } from './types'
 export { saveDraft, confirmUpdate, undoConfirm, reopenUpdate, deleteUpdate } from './submission-actions'
 
+export const sharedHalfIds = (activities: readonly NbcActivity[]) => new Set(activities.flatMap((a) => a.coOf ? [a.id, a.coOf] : []))
+const isSharedHalf = (activities: readonly NbcActivity[], ids: string[]) => { const shared = sharedHalfIds(activities); return ids.some((id) => shared.has(id)) }
+
 export function assignActivities(ids: string[], handler: string) {
   const state = useWorkspace.getState(), activities = state.nbc_activities ?? [], selected = new Set(ids)
   const target = activities.find((a) => selected.has(a.id))
   if (!target || !projectHandlers(target.projectId).includes(handler as Handler) || ids.some((id) => !activities.some((a) => a.id === id && a.editable))) throw new Error('Choose editable activities and a valid handler.')
+  if (isSharedHalf(activities, ids)) throw new Error('This activity is shared 50/50 by two handlers, so its handlers are fixed.')
   const at = new Date().toISOString()
   const updated = activities.map((a) => selected.has(a.id) && a.handler !== handler ? {
     ...a, handler, updatedAt: at, history: [...a.history, { id: crypto.randomUUID(), at, editor: state.scope, previous: a.progress, progress: a.progress, remark: a.remark, handler }],

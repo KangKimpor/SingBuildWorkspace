@@ -146,7 +146,10 @@ export function patchWeeklyReport(template: Uint8Array, activities: NbcActivity[
   }
   const projectId = activities[0]?.projectId ?? ''
   const { current } = reportValues(activities, submissions, week)
-  const value = (a: NbcActivity) => Math.round((current.progress.get(a.id) ?? a.progress) * 1e12) / 1e12
+  // A room cell shared by two handlers prints as the single activity it was: the average of its halves.
+  const second = new Map(activities.flatMap(a => a.coOf ? [[a.coOf, a] as const] : []))
+  const own = (a: NbcActivity) => current.progress.get(a.id) ?? a.progress
+  const value = (a: NbcActivity) => Math.round((second.has(a.id) ? (own(a) + own(second.get(a.id)!)) / 2 : own(a)) * 1e12) / 1e12
   const plans: Plan[] = []
 
   if (isAreaProject(activities)) {

@@ -1,4 +1,4 @@
-import { roomFloors } from '../rooms'
+import { cellHalves, cellProgress, roomFloors } from '../rooms'
 import type { RoomFloor, RoomRow } from '../rooms'
 import { bp02Handlers } from '../types'
 import type { NbcActivity, NbcSubmission } from '../types'
@@ -44,7 +44,7 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
     sheet.freeze = 'D3'
     let row = 4
     for (const floor of floors) {
-      const last = 3 + floor.rooms.length, owned = (r: RoomRow) => [...r.cells.values()].some((l) => l.handler === handler)
+      const last = 3 + floor.rooms.length, owned = (r: RoomRow) => r.leaves.some((l) => l.handler === handler)
       const index = new Map(floor.rows.map((r) => [r.activity.id, r]))
       const wanted = new Set<string>()
       for (const r of floor.rows) if (r.task && owned(r)) for (let p: RoomRow | undefined = r; p; p = p.activity.parentId ? index.get(p.activity.parentId) : undefined) wanted.add(p.activity.id)
@@ -65,7 +65,8 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
           for (let c = 3; c <= last; c++) sheet.set(row, c, null, s)
         } else {
           sheet.set(row, 1, a.item || '', st({ border: true })); sheet.set(row, 2, (a.item ? a.name : `    ${a.name}`), st({ border: true }))
-          const mine = floor.rooms.map((room) => r.cells.get(room)).map((l) => l && l.handler === handler ? l : undefined)
+          // A cell shared by two handlers shows each of them their own half here; the floor sheet averages the halves back into one value.
+          const mine = floor.rooms.map((room) => cellHalves(r, room).find((l) => l.handler === handler))
           const values = mine.map((l) => l ? value(l) : '' as const)
           sheet.set(row, 3, mean(values), st({ border: true, format: '0%' }), `IFERROR(AVERAGE(D${row}:${columnName(last)}${row}),"")`)
           mine.forEach((l, i) => {
@@ -132,11 +133,12 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
       node.cols = floor.rooms.map(() => '' as Num)
       if (node.row.task) {
         floor.rooms.forEach((room, i) => {
-          const l = node.row.cells.get(room), style = st({ border: true, format: '0%', h: 'center' })
-          if (!l) { sheet.set(r, 4 + i, null, style); return }
-          node.cols[i] = value(l)
-          const at = place.get(l.id)
-          sheet.set(r, 4 + i, value(l), style, at ? `${at.sheet}!${col(i)}${at.row}` : undefined)
+          const halves = cellHalves(node.row, room), style = st({ border: true, format: '0%', h: 'center' })
+          if (!halves.length) { sheet.set(r, 4 + i, null, style); return }
+          const v = cellProgress(halves, value)
+          node.cols[i] = v
+          const refs = halves.map((l) => place.get(l.id)).map((at) => at ? `${at.sheet}!${col(i)}${at.row}` : '')
+          sheet.set(r, 4 + i, v, style, refs.every(Boolean) ? refs.length > 1 ? `AVERAGE(${refs.join(',')})` : refs[0] : undefined)
         })
         node.c = mean(node.cols)
         sheet.set(r, 1, a.item || '', st({})); sheet.set(r, 2, (a.item ? a.name : `    ${a.name}`), st({})); sheet.set(r, 3, weight(node), st({ format: '0.00%' }))

@@ -17,9 +17,9 @@ export interface RoomMatrixProps {
   previous: ReadonlyMap<string, number>
   /** Which task rows to list. Groups appear when one of their tasks does. */
   show: (row: RoomRow) => boolean
-  /** Content of one room cell. */
-  cell: (leaf: NbcActivity, row: RoomRow) => ReactNode
-  cellAttrs?: (leaf: NbcActivity) => Record<string, string | boolean | undefined>
+  /** Content of one room cell; `co` is the second half when two handlers share the cell. */
+  cell: (leaf: NbcActivity, row: RoomRow, co?: NbcActivity) => ReactNode
+  cellAttrs?: (leaf: NbcActivity, co?: NbcActivity) => Record<string, string | boolean | undefined>
   extra?: { header: string; cell: (row: RoomRow) => ReactNode }[]
   onRowClick?: (row: RoomRow) => void
   rowAttrs?: (row: RoomRow) => Record<string, string | boolean | undefined>
@@ -49,8 +49,8 @@ export function RoomMatrix({ floor, caption, collapsed, onToggle, progress, prev
         {extra.map((c) => <td key={c.header} data-label={c.header}>{row.task ? c.cell(row) : null}</td>)}
         {row.task
           ? floor.rooms.map((room) => {
-            const leaf = row.cells.get(room)
-            return leaf ? <td key={room} className="nbc-room-cell" data-label={room} {...cellAttrs?.(leaf)}>{cell(leaf, row)}</td> : <td key={room} className="nbc-room-na" aria-label={`${room}: not applicable`}/>
+            const leaf = row.cells.get(room), co = row.co.get(room)
+            return leaf ? <td key={room} className="nbc-room-cell" data-label={room} {...cellAttrs?.(leaf, co)}>{cell(leaf, row, co)}</td> : <td key={room} className="nbc-room-na" aria-label={`${room}: not applicable`}/>
           })
           : span > 0 && <td colSpan={span} className="nbc-room-fill" aria-hidden="true"/>}
       </tr>

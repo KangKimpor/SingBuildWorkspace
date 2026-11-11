@@ -76,6 +76,8 @@ export interface NbcActivity {
   sourceFormulas?: Record<string, string>
   /** BP02 room layout: a leaf with `room` is one cell of the floor matrix (task × room). */
   room?: string
+  /** Second handler's half of a room cell shared 50/50: the id of the cell's first half. Both halves carry half the weight and the cell reads as their average. */
+  coOf?: string
   /** The workbook's Item label ("A", "III", "1.2") for matrix and export rows. */
   item?: string
   /** Floor roots list their room columns in workbook order (the last one is usually the corridor, CRD). */

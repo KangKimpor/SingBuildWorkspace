@@ -9,8 +9,18 @@ export interface RoomRow {
   level: number
   depth: number
   task: boolean
+  /** The leaf of each room cell; for a cell shared by two handlers this is the first half. */
   cells: ReadonlyMap<string, NbcActivity>
+  /** The second half of the cells shared by two handlers (50% each), by room. */
+  co: ReadonlyMap<string, NbcActivity>
+  /** Every leaf of the row, second halves included. */
+  leaves: readonly NbcActivity[]
 }
+
+/** What a room cell shows as one activity: the average of its halves. */
+export const cellProgress = (halves: readonly NbcActivity[], value: (a: NbcActivity) => number) => halves.length ? halves.reduce((sum, a) => sum + value(a), 0) / halves.length : 0
+/** The halves of one room cell, first half first. */
+export const cellHalves = (row: Pick<RoomRow, 'cells' | 'co'>, room: string): NbcActivity[] => [row.cells.get(room), row.co.get(room)].filter((a): a is NbcActivity => !!a)
 export interface RoomFloor { root: NbcActivity; rooms: string[]; /** Column headings, aligned with `rooms`. */ labels: string[]; rows: RoomRow[] }
 
 /** BP03/BP04 keep ID and MEP panels (one set of area columns each) where BP02 keeps floors. */
@@ -36,7 +46,11 @@ export function roomFloors(activities: readonly NbcActivity[]): RoomFloor[] {
         if (a.room) continue
         const kids = children.get(a.id) ?? []
         const task = kids.length > 0 && kids.every((k) => k.room)
-        rows.push({ activity: a, level: task ? 4 : depth === 0 ? 2 : 3, depth, task, cells: task ? new Map(kids.map((k) => [k.room!, k])) : new Map() })
+        const first = kids.filter((k) => !k.coOf), second = kids.filter((k) => k.coOf)
+        rows.push({ activity: a, level: task ? 4 : depth === 0 ? 2 : 3, depth, task,
+          cells: task ? new Map(first.map((k) => [k.room!, k])) : new Map(),
+          co: task ? new Map(second.flatMap((k) => { const own = first.find((f) => f.id === k.coOf); return own ? [[own.room!, k] as const] : [] })) : new Map(),
+          leaves: task ? kids : [] })
         if (!task) walk(a, depth + 1)
       }
     }
