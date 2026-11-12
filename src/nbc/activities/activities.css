@@ -6,11 +6,19 @@
 .nbc-hint { margin: 0; }
 .nbc-spacer { flex: 1; }
 .nbc-columns { display: grid; gap: var(--space-8); padding: var(--space-8); }
-.nbc-handler-button { display: inline-flex; align-items: center; gap: 7px; max-width: 128px; height: 26px; padding: 0 6px 0 3px; border: 1px solid transparent; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: var(--pp-ink); cursor: pointer; }
-.nbc-handler-button:hover { border-color: var(--pp-line-strong); background: var(--pp-l3); }
-.nbc-handler-name { min-width: 0; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nbc-wbs td span[title='Shared 50/50'] { display: block; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nbc-handler-button { display: inline-flex; align-items: center; gap: 7px; max-width: 96px; height: 26px; padding: 0 6px 0 3px; border: 1px solid transparent; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: var(--row-ink, var(--pp-ink)); cursor: pointer; }
+.nbc-handler-button:hover { border-color: var(--pp-line-strong); background: var(--pp-l3); color: var(--pp-ink); }
+.nbc-handler-name { min-width: 0; max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nbc-wbs td span[title='Shared 50/50'] { display: block; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nbc-activities > .nbc-wbs-scroll { max-height: calc(100dvh - 18.5rem); }
+/* Wider than a phone, Project Progress is one screen: the table takes the height that is left and the counter and legend sit at the bottom, as on Update Progress. */
+@media (min-width: 768px) {
+  .nbc-project:has(.nbc-activities > .nbc-wbs-scroll) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); }
+  .canvas:has(.nbc-activities > .nbc-wbs-scroll) { padding-bottom: 0; }
+  .nbc-project:has(.nbc-activities > .nbc-wbs-scroll) .nbc-activities-page, .nbc-project:has(.nbc-activities > .nbc-wbs-scroll) .nbc-activities { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+  .nbc-activities > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 8rem; }
+  .nbc-activities > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
+}
 .nbc-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-block: var(--space-8); }
 .nbc-pill[data-status=Issue] { background: var(--pp-warn-bg); color: var(--pp-warn-ink); text-decoration: none; }
 .nbc-activity-band { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 3px 5px; border-radius: 8px; background: var(--bg-sidebar); }
@@ -47,7 +55,7 @@
   .nbc-issue-filters .glass-select { flex: 1; min-width: 0; max-width: 100%; }
   .nbc-issues > .project-table-toolbar > .btn-accent { margin-left: auto; }
 }
-.nbc-group-handlers { display:block; max-width:128px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nbc-group-handlers { display:block; max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nbc-group-handlers { color: var(--row-ink-2); }
 
 @media (max-width: 767px) {

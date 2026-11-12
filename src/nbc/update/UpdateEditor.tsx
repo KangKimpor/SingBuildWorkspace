@@ -36,7 +36,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set()), [filter, setFilter] = useState<Filter>(confirmed ? 'chg' : 'need')
   const [focusId, setFocusId] = useState(''), [sheet, setSheet] = useState(false), [tried, setTried] = useState(false)
   const [remarkOpen, setRemarkOpen] = useState<ReadonlySet<string>>(new Set()), [jump, setJump] = useState<{ id: string; kind: 'value' | 'remark' } | null>(null)
-  const [query, setQuery] = useState(''), [area, setArea] = useState(''), [floorId, setFloorId] = useState(''), [remarkFor, setRemarkFor] = useState('')
+  const [query, setQuery] = useState(''), [area, setArea] = useState(''), [floorId, setFloorId] = useState('')
   const roomMode = useMemo(() => isRoomProject(activities), [activities])
   // Floors that hold work for this handler; the matrix shows one floor at a time with a column per room.
   const floors = useMemo(() => roomMode ? roomFloors(activities).filter((f) => f.rows.some((r) => r.task && r.leaves.some((l) => canUpdate(l, handler)))) : [], [activities, handler, roomMode])
@@ -124,11 +124,10 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     const e = shownById.get(a.id), diff = e ? e.progress - e.previous : 0
     if (confirmed) return <span title={Math.abs(diff) > 1e-12 ? `${points(diff)} pts` : undefined}>{Number(((e?.progress ?? a.progress) * 100).toFixed(1))}</span>
     return <input ref={(el) => { if (el) values.current.set(a.id, el); else values.current.delete(a.id) }} disabled={busy} title={a.room && a.parentId ? `${byId.get(a.parentId)?.name ?? ''} — ${a.name}` : a.name} aria-label={`This week % for ${a.wbs}`} aria-invalid={draft.invalid.has(a.id) || undefined} inputMode="decimal" value={draft.text(a.id)}
-      onFocus={(event) => { beforeFocus.current = event.target.value; setFocusId(a.id); setRemarkFor(a.id); event.target.select() }} onBlur={() => setFocusId((old) => old === a.id ? '' : old)}
+      onFocus={(event) => { beforeFocus.current = event.target.value; setFocusId(a.id); event.target.select() }} onBlur={() => setFocusId((old) => old === a.id ? '' : old)}
       onChange={(event) => draft.setText(a.id, event.target.value)}
       onKeyDown={(event) => { if (event.key === 'Escape') draft.setText(a.id, beforeFocus.current); if (event.key === 'Enter') advanceRoom(a.id) }}/>
   }
-  const remarkTarget = remarkFor ? byId.get(remarkFor) : undefined
 
   return <>
     <div className="nbc-filters">
@@ -176,8 +175,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
               )}
             </div>
           }}/>}
-    {(roomMode ? !!floor && visibleRoomRows(floor, showRow, openGroups).length > 0 : rows.length > 0) && <TableFooter count={roomMode && floor ? floor.rows.filter((r) => r.task && showRow(r)).length : rows.filter((r) => !r.group).length} legend={roomMode ? ['changed', 'problem', 'na'] : ['changed', 'problem']}/>}
-    {roomMode && !confirmed && remarkTarget && <div className="nbc-room-bar"><span className="nbc-room-bar-label" title={remarkTarget.name}>{(remarkTarget.parentId && byId.get(remarkTarget.parentId)?.name) || ''} — {remarkTarget.name}</span><input className="nbc-remark" disabled={busy} aria-label={`Remark for ${remarkTarget.wbs}`} placeholder="Add remark for this room…" maxLength={4000} value={draft.remark(remarkTarget.id)} onChange={(event) => draft.setRemark(remarkTarget.id, event.target.value)}/></div>}
+    {(roomMode ? !!floor && visibleRoomRows(floor, showRow, openGroups).length > 0 : rows.length > 0) && <TableFooter triangle={roomMode} count={roomMode && floor ? floor.rows.filter((r) => r.task && showRow(r)).length : rows.filter((r) => !r.group).length} legend={roomMode ? ['changed', 'problem', 'na'] : ['changed', 'problem']}/>}
     {confirmed && submission?.note && <p className="nbc-note small">{submission.note}</p>}
     <div className="nbc-update-bar" role="group" aria-label="Update actions">{confirmed
       ? <><span role="status" className="nbc-status" data-status="saved"><CheckCircle2 size={18} aria-hidden="true" />Confirmed {confirmationTime(submission!.confirmedAt!)} · {draft.changed.length} changed</span>
