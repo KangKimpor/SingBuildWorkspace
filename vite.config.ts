@@ -13,9 +13,6 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'prompt',
-      // TEMPORARY recovery build: ships a worker that clears every cache and unregisters itself, so browsers stuck on a broken
-      // offline cache heal without manual steps. Remove this line in the next deploy to bring offline support back.
-      selfDestroying: true,
       includeAssets: ['brand/favicon.svg', 'brand/apple-touch-icon.png'],
       manifest: {
         name: 'SingBuild Workspace',
