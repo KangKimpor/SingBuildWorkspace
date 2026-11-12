@@ -20,6 +20,8 @@ const chunks: (() => Promise<unknown>)[] = [
   () => import('@/pages/Trash'),
 ]
 
+const START_DELAY = 6000
+
 const idle = (callback: () => void) =>
   typeof requestIdleCallback === 'function'
     ? requestIdleCallback(callback, { timeout: 5000 })
@@ -40,6 +42,8 @@ export function prefetchRoutes(): () => void {
       void chunks[index]!().catch(() => {}).finally(() => next(index + 1))
     })
   }
-  next(0)
-  return () => { cancelled = true }
+  // Wait out the largest contentful paint: first paint is not the end of the page's critical path,
+  // and these requests would otherwise compete with it on slow connections.
+  const start = window.setTimeout(() => next(0), START_DELAY)
+  return () => { cancelled = true; clearTimeout(start) }
 }
