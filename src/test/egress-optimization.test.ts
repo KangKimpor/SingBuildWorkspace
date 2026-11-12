@@ -199,3 +199,20 @@ test('changedAppliedActivityIds only retains appliedEntries that actually change
   ])
   expect([...ids]).toEqual(['a-progress-changed', 'a-remark-changed'])
 })
+
+test('an edit writes only the rows it changed, even when other rows are rebuilt with identical content', async () => {
+  const { useWorkspace } = await import('@/data')
+  const { applyRemotePatch, flushPending, pendingCollectionIds } = await import('@/data/sync')
+  const activity = (id: string) => ({ id, projectId: 'nbc-bp03', wbs: id, parentId: null, order: 0, name: id, editable: true, relativeWeight: 1, globalWeight: 1, progress: 0, history: [], updatedAt: '2026-01-01T00:00:00.000Z' })
+  applyRemotePatch({ nbc_activities: [activity('a-1'), activity('a-2'), activity('a-3')] as never })
+  cloud.client.rpc.mockClear()
+  const state = useWorkspace.getState(), [same, edited, rebuilt] = state.nbc_activities!
+  // a-1 keeps its object, a-2 changes and a-3 is a fresh copy with the same content.
+  state.commitNbc({ nbc_activities: [same!, { ...edited!, progress: 0.5 }, { ...rebuilt! }], nbc_submissions: state.nbc_submissions, nbc_summaries: state.nbc_summaries })
+  expect([...pendingCollectionIds('nbc_activities')]).toEqual(['a-2'])
+  await flushPending(() => pendingCollectionIds('nbc_activities').size > 0)
+  const writes = cloud.client.rpc.mock.calls
+    .filter(([name]) => name === 'kw_workspace_write')
+    .map(([, args]) => `${args.collection}:${args.record_id}`)
+  expect(writes).toEqual(['nbc_activities:a-2'])
+})

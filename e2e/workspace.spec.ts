@@ -253,7 +253,7 @@ for (const width of [1920, 1180, 820, 393, 320]) {
       '/tasks',
       '/p/weekly-plan',
       '/calendar/week/today',
-      '/settings/appearance',
+      '/settings/account',
     ]) {
       await page.goto(route)
       await expect(
@@ -275,7 +275,7 @@ for (const scheme of ['light'] as const) {
     '/tasks',
     '/p/weekly-plan',
     '/calendar/week/today',
-    '/settings/appearance',
+    '/settings/account',
     '/search',
   ]) {
     test(`accessibility ${route} ${scheme}`, async ({ page }) => {

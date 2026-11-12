@@ -2,12 +2,9 @@ import { expect, test } from './workspace-test'
 
 test.use({ viewport: { width: 393, height: 852 }, hasTouch: true, isMobile: true })
 
-for (const preference of ['system', 'os-reduced', 'app-reduced']) {
+for (const preference of ['system', 'os-reduced']) {
   test(`press and save feedback respects ${preference} motion`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: preference === 'os-reduced' ? 'reduce' : 'no-preference' })
-    await page.addInitScript((value) => {
-      localStorage.setItem('kw-motion', value === 'app-reduced' ? 'reduced' : 'system')
-    }, preference)
     await page.goto('/')
     const button = page.getByRole('button', { name: 'Open sidebar', exact: true })
     await expect(button).toBeVisible()

@@ -173,7 +173,7 @@ function CommandPalette() {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState(0)
   const navigate = useNavigate()
-  const { addTask } = useWorkspace()
+  const addTask = useWorkspace((s) => s.addTask)
   useEffect(() => {
     if (commandOpen) {
       setQuery('')
@@ -283,7 +283,7 @@ function CommandPalette() {
 function EventEditor() {
   const { eventId, eventOccurrence, eventPatch, openEvent, notify } =
     useWorkspaceUI()
-  const { saveEvent, deleteEvent } = useWorkspace()
+  const saveEvent = useWorkspace((s) => s.saveEvent), deleteEvent = useWorkspace((s) => s.deleteEvent)
   const [draft, setDraft] = useState<CalendarEvent | null>(null)
   const [original, setOriginal] = useState<CalendarEvent | null>(null)
   const [scope, setScope] = useState<RecurrenceScope>('this')

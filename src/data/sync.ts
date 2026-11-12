@@ -154,7 +154,9 @@ function saveRecovery(): boolean {
 function snapshotPayload(scope: string) {
   return {
     scope,
-    content: structuredClone(contentOf(useWorkspace.getState())),
+    // IndexedDB structured-clones the value itself when it is written, and store rows are never
+    // mutated in place, so a second full clone of the workspace only doubled the main-thread stall.
+    content: contentOf(useWorkspace.getState()),
     watermarks: Object.fromEntries(watermarks) as Record<string, string>,
     lastFullPull: lastFullPull ? new Date(lastFullPull).toISOString() : undefined,
   }
@@ -176,7 +178,12 @@ function cacheSnapshot(scope: string) {
   if (scope !== useWorkspace.getState().scope || scope === 'guest') return
   saveRecovery()
   clearTimeout(snapshotTimer)
-  snapshotTimer = setTimeout(() => { snapshotTimer = undefined; void writeSnapshot(scope) }, SNAPSHOT_DELAY_MS)
+  snapshotTimer = setTimeout(() => { snapshotTimer = undefined; whenIdle(() => void writeSnapshot(scope)) }, SNAPSHOT_DELAY_MS)
+}
+/** Run the large snapshot write between interactions instead of in the middle of typing or scrolling. */
+function whenIdle(callback: () => void) {
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(callback, { timeout: 2000 })
+  else callback()
 }
 function queueRow(scope: string, collection: CloudCollection, id: string, before: Data, after: Data) {
   const key = keyFor(scope, collection, id), previous = pending.get(key)
@@ -189,7 +196,9 @@ function queueChanges(next: Content, previous: Content) {
     const old = new Map((previous[collection] ?? []).map((row) => [row.id, row]))
     for (const row of next[collection] ?? []) {
       const before = old.get(row.id)
-      if (JSON.stringify(row) !== JSON.stringify(before)) queueRow(scope, collection, row.id, (before ?? {}) as unknown as Data, row as unknown as Data)
+      // Store updates replace only the rows they change, so an identical object is unchanged.
+      // Skipping it avoids serialising every row of a 17k-activity BOQ twice per edit.
+      if (row !== before && JSON.stringify(row) !== JSON.stringify(before)) queueRow(scope, collection, row.id, (before ?? {}) as unknown as Data, row as unknown as Data)
     }
     if (collection === 'pages' || collection === 'tasks') {
       for (const row of purgedRows(collection, previous, next)) {

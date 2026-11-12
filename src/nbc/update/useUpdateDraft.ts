@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useWorkspace } from '@/data'
 import { useWorkspaceUI } from '@/shell/workspace'
 import { confirmUpdate, deleteUpdate, reopenUpdate, saveDraft } from '../actions'
@@ -32,7 +32,10 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
   const [dirty, setDirty] = useState(() => !!saved), [error, setError] = useState(''), [busy, setBusy] = useState(false)
   const [touched, setTouched] = useState<ReadonlySet<string>>(new Set())
   const confirmed = submission?.status === 'confirmed'
-  const rows = draftEntries(week, handler, projectId)
+  // draftEntries scans every activity in the store; recompute it only when its inputs change, not per keystroke.
+  const storeActivities = useWorkspace((s) => s.nbc_activities), storeSubmissions = useWorkspace((s) => s.nbc_submissions), storeProjects = useWorkspace((s) => s.projects)
+  // oxlint-disable-next-line react-hooks/exhaustive-deps -- draftEntries reads these store slices through getState().
+  const rows = useMemo(() => draftEntries(week, handler, projectId), [week, handler, projectId, storeActivities, storeSubmissions, storeProjects])
 
   function parseEntry(entry: SubmissionEntry, formValue: HandlerDraft): SubmissionEntry {
     const value = formValue.values[entry.activityId], parsed = parseProgress(value?.text ?? formatPercent(entry.progress))
@@ -41,13 +44,12 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
   }
   const parse = (formValue = form) => rows.map((entry) => parseEntry(entry, formValue))
   // Display copy: an unparseable row keeps its saved value, so one typo never hides the other edits.
-  const parsed = rows.map((entry) => { try { return parseEntry(entry, form) } catch { return entry } })
+  const invalid = new Set<string>()
+  const parsed = rows.map((entry) => { try { return parseEntry(entry, form) } catch { invalid.add(entry.activityId); return entry } })
   const shown = confirmed ? submission.entries : parsed, changed = changedEntries(shown)
   const lowered = changed.filter((e) => e.progress < e.previous)
-  const byId = new Map(activities.map((a) => [a.id, a]))
+  const byId = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities])
   const contribution = shown.reduce((sum, e) => sum + (e.progress - e.previous) * (byId.get(e.activityId)?.globalWeight ?? 0), 0)
-  const invalid = new Set<string>()
-  for (const e of rows) { try { if (parseProgress(form.values[e.activityId]?.text ?? formatPercent(e.progress)).message) invalid.add(e.activityId) } catch { invalid.add(e.activityId) } }
 
   function change(next: HandlerDraft) {
     setForm(next); setDirty(true)

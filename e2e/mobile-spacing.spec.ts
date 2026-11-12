@@ -27,7 +27,7 @@ test('mobile safe area is absorbed by a flush header above the page content', as
 for (const width of [320, 393, 639]) {
   test(`mobile screens use the available width at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 852 })
-    for (const route of ['/', '/projects', '/projects/website/table', '/projects/website/board', '/tasks', '/calendar/day/today', '/settings/appearance', '/p/weekly-plan', '/search', '/trash']) {
+    for (const route of ['/', '/projects', '/projects/website/table', '/projects/website/board', '/tasks', '/calendar/day/today', '/settings/account', '/p/weekly-plan', '/search', '/trash']) {
       await page.goto(route)
       const surface = page.locator('main > .page, main > .workspace-surface')
       await expect(surface).toBeVisible()

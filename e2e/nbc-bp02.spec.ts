@@ -5,7 +5,9 @@ import type { NbcActivity } from '../src/nbc/types'
 import { fixtureActivities, fixtureProject } from '../src/nbc/test-fixture'
 
 test.skip(!existsSync('.private/nbc-bp02/initial.json'), 'Prepare private BP02 source first')
-test('BP02 persists drafts, confirmation, history and export without touching another project', async ({ page }) => {
+test('BP02 persists drafts, confirmation, history and export without touching another project', async ({ page, browserName }) => {
+  // The ~4.4M-character seed goes through localStorage, which WebKit rejects with QuotaExceededError.
+  test.skip(browserName === 'webkit', 'BP02 seed exceeds the WebKit localStorage quota')
   test.setTimeout(240_000)
   const bp02 = JSON.parse(readFileSync('.private/nbc-bp02/initial.json', 'utf8')), bp03 = { project: fixtureProject, activities: fixtureActivities() }
   await page.clock.install({ time: new Date('2026-10-30T03:00:00Z') })

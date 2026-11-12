@@ -1,5 +1,5 @@
 import './nbc.css'
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Download, X } from 'lucide-react'
 import type { ProjectSummary } from '@/data'
@@ -24,6 +24,13 @@ const aliases: Record<string, string> = { boq: 'activities', progress: 'activiti
 export default function NbcProject({ project, view }: { project: ProjectSummary; view: string }) {
   const scope = useWorkspace((s) => s.scope), [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  // Page-wide NBC styling keys off html[data-nbc]. A document-level :has(.nbc-project) selector made the
+  // browser re-check the whole page on DOM changes; layout effects keep it in place before the first paint.
+  useLayoutEffect(() => {
+    const root = document.documentElement
+    root.dataset.nbc = ''
+    return () => { delete root.dataset.nbc }
+  }, [])
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
   const allActivities = useWorkspace((s) => s.nbc_activities ?? EMPTY_ACTIVITIES), allSubmissions = useWorkspace((s) => s.nbc_submissions ?? EMPTY_SUBMISSIONS), allSummaries = useWorkspace((s) => s.nbc_summaries ?? EMPTY_SUMMARIES)
   const activities = useMemo(() => allActivities.filter((a) => a.projectId === project.id), [allActivities, project.id])
