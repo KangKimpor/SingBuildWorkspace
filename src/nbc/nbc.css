@@ -113,7 +113,7 @@ html:has(.nbc-project) .canvas { padding-top: 0; }
 /* Chips: one shape and one height across both progress screens. */
 .nbc-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid transparent; background: var(--bg-sidebar); color: var(--pp-ink); border-radius: 6px; padding: 0 11px; min-height: var(--h-button); font-size: 12px; font-weight: 500; white-space: nowrap; }
 .nbc-chip:hover { background: var(--pp-wash); }
-.nbc-chip[aria-pressed=true] { background: var(--pp-selected); color: var(--pp-accent-ink); border-color: color-mix(in srgb, var(--pp-accent) 40%, transparent); }
+.nbc-chip[aria-pressed=true] { background: var(--pp-selected); color: var(--pp-accent-ink); }
 
 /* Expanded editors keep their mounted content and use the whole workspace. */
 .nbc-expand-editor { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-subtle); background: var(--bg-raised); border-radius: 8px; min-height: 32px; padding: 0 11px; font-size: 12px; font-weight: 500; }

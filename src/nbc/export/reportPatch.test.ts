@@ -43,7 +43,7 @@ describe('weekly report update', () => {
   test('writes the app percentages into the constant cells and nothing else', () => {
     const activities = fixture({ '1.1.1.1': 0.9, '1.1.1.2': 0.8, '1.1.2.1': 0.7, '2.1.1.1.1': 0.4, '2.1.1.1.2': 0.3, '2.1.1.2.1': 0.2, '2.1.1.2.2': 0.1 })
     expect(hasReportPatch(activities)).toBe(true)
-    const result = patchWeeklyReport(report(), activities, [], '2026-11-02'), file = read(result.bytes)
+    const result = patchWeeklyReport(report(), activities, [], '2026-11-01'), file = read(result.bytes)
     const id = file('xl/worksheets/sheet1.xml'), mep = file('xl/worksheets/sheet2.xml')
     expect(id).toContain('<c r="F11"><v>0.9</v></c>'); expect(id).toContain('<c r="G11"><v>0.8</v></c>'); expect(id).toContain('<c r="F12"><v>0.7</v></c>')
     expect(id).toContain('<t>N/A</t>') // Task B is N/A in the second area
@@ -55,7 +55,7 @@ describe('weekly report update', () => {
     expect(result).toMatchObject({ updated: 6, unchanged: 0, notInReport: 1, sheets: ['BP-04 (ID)', 'BP-04(MEP)'] })
   })
   test('cells that already hold the value are left alone', () => {
-    const result = patchWeeklyReport(report(), fixture({ '1.1.1.1': 0.1, '1.1.1.2': 0.2, '1.1.2.1': 0.3, '2.1.1.1.1': 0.5, '2.1.1.1.2': 0.5, '2.1.1.2.1': 0.5 }), [], '2026-11-02')
+    const result = patchWeeklyReport(report(), fixture({ '1.1.1.1': 0.1, '1.1.1.2': 0.2, '1.1.2.1': 0.3, '2.1.1.1.1': 0.5, '2.1.1.1.2': 0.5, '2.1.1.2.1': 0.5 }), [], '2026-11-01')
     expect(result.updated).toBe(0); expect(result.sheets).toEqual([])
   })
   test('a BP02 room renamed on the ID sheet only is found on the MEP sheet by its unit number', () => {
@@ -79,17 +79,17 @@ describe('weekly report update', () => {
     const book = '<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="F21 (ID)" sheetId="1" r:id="rId1"/><sheet name="21F(MEP)" sheetId="2" r:id="rId2"/></sheets><calcPr calcId="191029"/></workbook>'
     const rels = '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="x" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="x" Target="worksheets/sheet2.xml"/></Relationships>'
     const template = zipSync({ 'xl/workbook.xml': strToU8(book), 'xl/_rels/workbook.xml.rels': strToU8(rels), 'xl/worksheets/sheet1.xml': strToU8(idSheet), 'xl/worksheets/sheet2.xml': strToU8(mepSheet) })
-    const result = patchWeeklyReport(template, out, [], '2026-11-09'), file = read(result.bytes)
+    const result = patchWeeklyReport(template, out, [], '2026-11-08'), file = read(result.bytes)
     expect(file('xl/worksheets/sheet1.xml')).toContain('<c r="G10"><v>0.8</v></c>')
     expect(file('xl/worksheets/sheet2.xml')).toContain('<c r="F12"><v>0.3</v></c>')
     expect(file('xl/worksheets/sheet1.xml')).toContain('<c r="G11"><v>0.7</v></c>')
     expect(file('xl/worksheets/sheet1.xml')).toContain('<t>Install Swing Door (D4)</t>')
     expect(file('xl/worksheets/sheet1.xml')).not.toContain('Install Single Leaf')
     expect(result).toMatchObject({ updated: 6, notInReport: 0, relabeled: 1 })
-    expect(patchWeeklyReport(result.bytes, out, [], '2026-11-09')).toMatchObject({ updated: 0, relabeled: 0 }) // a patched report is left as it is
+    expect(patchWeeklyReport(result.bytes, out, [], '2026-11-08')).toMatchObject({ updated: 0, relabeled: 0 }) // a patched report is left as it is
   })
   test('a report with a different structure is refused', () => {
-    expect(() => patchWeeklyReport(report({ 16: text('A16', '1.3') + text('B16', 'Extra task') }), fixture(), [], '2026-11-02')).toThrow(/task rows/)
-    expect(() => patchWeeklyReport(new Uint8Array([1, 2, 3]), fixture(), [], '2026-11-02')).toThrow(/Excel workbook/)
+    expect(() => patchWeeklyReport(report({ 16: text('A16', '1.3') + text('B16', 'Extra task') }), fixture(), [], '2026-11-01')).toThrow(/task rows/)
+    expect(() => patchWeeklyReport(new Uint8Array([1, 2, 3]), fixture(), [], '2026-11-01')).toThrow(/Excel workbook/)
   })
 })

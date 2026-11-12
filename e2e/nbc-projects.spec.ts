@@ -34,7 +34,7 @@ for (const real of [false, true]) test(`both projects persist isolated drafts, c
     expect(after.nbc_activities.find((a: NbcActivity) => a.id === leaf.id).progress).toBe(value)
     for (const collection of ['nbc_activities', 'nbc_submissions', 'nbc_summaries']) expect(after[collection].filter((a: NbcActivity) => a.projectId === other.project.id)).toEqual(before[collection].filter((a: NbcActivity) => a.projectId === other.project.id))
     const activities = after.nbc_activities.filter((a: NbcActivity) => a.projectId === data.project.id)
-    expect(after.nbc_summaries.find((s: { projectId: string; weekStart: string }) => s.projectId === data.project.id && s.weekStart === '2026-10-26').overall).toBeCloseTo(calculate(activities).overall, 12)
+    expect(after.nbc_summaries.find((s: { projectId: string; weekStart: string }) => s.projectId === data.project.id && s.weekStart === '2026-10-25').overall).toBeCloseTo(calculate(activities).overall, 12)
     await page.goto(`/projects-progress/${data.project.id}/overview`)
     const active = projectHandlers(data.project.id).filter((h) => !handlerComplete(activities, h)).length
     await expect(page.getByText(`1 of ${active} handlers updated this week`)).toBeVisible()

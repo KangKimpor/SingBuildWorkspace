@@ -6,8 +6,11 @@
 .nbc-hint { margin: 0; }
 .nbc-spacer { flex: 1; }
 .nbc-columns { display: grid; gap: var(--space-8); padding: var(--space-8); }
-.nbc-handler-button { border: 0; background: transparent; padding: 0; font: inherit; color: inherit; text-decoration: underline dotted; cursor: pointer; }
-.nbc-activities > .nbc-wbs-scroll { max-height: calc(100dvh - 16rem); }
+.nbc-handler-button { display: inline-flex; align-items: center; gap: 7px; max-width: 128px; height: 26px; padding: 0 6px 0 3px; border: 1px solid transparent; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: var(--pp-ink); cursor: pointer; }
+.nbc-handler-button:hover { border-color: var(--pp-line-strong); background: var(--pp-l3); }
+.nbc-handler-name { min-width: 0; max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nbc-wbs td span[title='Shared 50/50'] { display: block; max-width: 128px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nbc-activities > .nbc-wbs-scroll { max-height: calc(100dvh - 18.5rem); }
 .nbc-toolbar { display: flex; flex-wrap: wrap; gap: var(--space-8); margin-block: var(--space-8); }
 .nbc-pill[data-status=Issue] { background: var(--pp-warn-bg); color: var(--pp-warn-ink); text-decoration: none; }
 .nbc-activity-band { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 3px 5px; border-radius: 8px; background: var(--bg-sidebar); }
@@ -44,7 +47,7 @@
   .nbc-issue-filters .glass-select { flex: 1; min-width: 0; max-width: 100%; }
   .nbc-issues > .project-table-toolbar > .btn-accent { margin-left: auto; }
 }
-.nbc-group-handlers { display:block; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.nbc-group-handlers { display:block; max-width:128px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nbc-group-handlers { color: var(--row-ink-2); }
 
 @media (max-width: 767px) {
@@ -72,7 +75,7 @@
   .nbc-activities .nbc-wbs tr[data-group=true][data-wbs] td { background: transparent; }
   .nbc-activities .nbc-wbs tr[data-group=true] td:nth-child(n+3) { display: none; }
   .nbc-activities .nbc-wbs-no { overflow-wrap: anywhere; }
-  .nbc-activities .nbc-handler-button { min-height: 44px; }
+  .nbc-activities .nbc-handler-button { min-height: 44px; max-width: none; }
   .nbc-activities .nbc-toggle { width: 44px; height: 44px; }
   .nbc-activity-band .nbc-view { display: inline-flex; align-items: center; min-height: 44px; }
   .nbc-activity-band .nbc-expand-editor { min-height: 44px; }

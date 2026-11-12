@@ -36,12 +36,3 @@ test('the breakdown can switch to a floor by trade heatmap whose cells open filt
   expect(cell.getAttribute('href')).toContain('trade=Test+trade')
 })
 
-test('the weekly digest opens as a dialog with a copyable summary and closes on Escape', () => {
-  show()
-  fireEvent.click(screen.getByRole('button', { name: 'Weekly digest' }))
-  const dialog = screen.getByRole('dialog', { name: 'Weekly digest' })
-  expect(within(dialog).getByText(/Completion deadline 20 Jun 2026: 130 days overdue/)).toBeTruthy()
-  expect(within(dialog).getByRole('button', { name: 'Copy summary' })).toBeTruthy()
-  fireEvent.keyDown(window, { key: 'Escape' })
-  expect(screen.queryByRole('dialog')).toBeNull()
-})

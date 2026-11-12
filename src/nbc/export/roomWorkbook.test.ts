@@ -52,7 +52,7 @@ describe('room matrix model', () => {
 
 describe('room workbook', () => {
   test('writes Overall, floor and handler sheets with formulas and cached values', () => {
-    const { bytes } = roomWorkbook(fixture(), [], '2026-10-26')
+    const { bytes } = roomWorkbook(fixture(), [], '2026-10-25')
     const files = unzipSync(bytes), text = (name: string) => strFromU8(files[name]!)
     expect([...text('xl/workbook.xml').matchAll(/<sheet name="([^"]+)"/g)].map((m) => m[1])).toEqual(['Overall Progress', 'Floor 23', 'Floor 22', 'Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Tola'])
     expect(text('xl/worksheets/sheet1.xml')).toContain('Reporting week: 25 October to 31 October 2026')
@@ -83,10 +83,10 @@ describe('cells shared by two handlers', () => {
   })
   test('the overall progress does not change', () => {
     expect(calculate(split()).overall).toBeCloseTo(calculate(fixture()).overall, 12)
-    expect(roomWorkbook(split(), [], '2026-10-26').overall).toBeCloseTo(roomWorkbook(fixture(), [], '2026-10-26').overall, 12)
+    expect(roomWorkbook(split(), [], '2026-10-25').overall).toBeCloseTo(roomWorkbook(fixture(), [], '2026-10-25').overall, 12)
   })
   test('the workbook shows the cell as one activity and each handler their own half', () => {
-    const files = unzipSync(roomWorkbook(split(), [], '2026-10-26').bytes), text = (name: string) => strFromU8(files[name]!)
+    const files = unzipSync(roomWorkbook(split(), [], '2026-10-25').bytes), text = (name: string) => strFromU8(files[name]!)
     expect(text('xl/worksheets/sheet2.xml')).toMatch(/<f>AVERAGE\(Tola!D\d+,Chhorvaon!D\d+\)<\/f>/)
     expect(text('xl/worksheets/sheet6.xml')).toContain('Installation EMT Conduit')
     expect(text('xl/worksheets/sheet9.xml')).toContain('Installation EMT Conduit')
@@ -128,17 +128,17 @@ describe('the report formulas', () => {
     // Guestroom: floor X rooms score 0.5 (a: T1 and T2 equally) and 0.5 (b: T1 only), floor Y 0.5; MEP 0.75 and 0.25 -> 0.6 x 0.5 + 0.4 x (2 x 0.75 + 0.25) / 3.
     const expected = 0.6 * 0.5 + 0.4 * ((2 * 0.75 + 0.25) / 3)
     expect(calculate(activities).overall).toBeCloseTo(expected, 12)
-    expect(roomWorkbook(activities, [], '2026-11-09').overall).toBeCloseTo(expected, 12)
+    expect(roomWorkbook(activities, [], '2026-11-08').overall).toBeCloseTo(expected, 12)
   })
   test('the Overall sheet reads the room counts and weighs the sections 60 / 40', () => {
-    const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-09').bytes), overall = strFromU8(files['xl/worksheets/sheet1.xml']!)
+    const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-08').bytes), overall = strFromU8(files['xl/worksheets/sheet1.xml']!)
     expect(overall).toContain('Guestrooms (floor weight of Guestroom and MEP)')
     expect(overall).toContain('<c r="E5"')
     expect(overall).toMatch(/<f>SUMPRODUCT\(\$E\$5:\$F\$5,E\d+:F\d+\)\/SUM\(\$E\$5:\$F\$5\)<\/f>/)
     expect(overall).toMatch(/<c r="D6"[^>]*><f>\$C\$\d+\*D\d+\+\$C\$\d+\*D\d+<\/f>/)
   })
   test('a room scores the tasks it has: the floor sheet re-weights over the cells that hold a number', () => {
-    const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-09').bytes), floor = strFromU8(files['xl/worksheets/sheet2.xml']!)
+    const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-08').bytes), floor = strFromU8(files['xl/worksheets/sheet2.xml']!)
     expect(floor).toContain('SUMPRODUCT((')
     const plain = floor.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&quot;', '"')
     expect(plain).toMatch(/IFERROR\(\(\$C\d+\*N\(D\d+\)\)\/\(\$C\d+\*\(D\d+<>""\)\),""\)/)
@@ -152,7 +152,7 @@ describe.skipIf(!existsSync(source))('BP02 dataset', () => {
   test('overall matches the report and the export covers every room', () => {
     const data = JSON.parse(readFileSync(source, 'utf8')) as { activities: NbcActivity[]; reconciliation: { workbookOverall: number } }
     expect(Math.abs(calculate(data.activities).overall - data.reconciliation.workbookOverall)).toBeLessThan(1e-9)
-    const { bytes, overall } = roomWorkbook(data.activities, [], '2026-11-09')
+    const { bytes, overall } = roomWorkbook(data.activities, [], '2026-11-08')
     expect(Math.abs(overall - data.reconciliation.workbookOverall)).toBeLessThan(1e-9)
     if (process.env.ROOM_EXPORT_OUT) writeFileSync(process.env.ROOM_EXPORT_OUT, bytes)
     expect(bytes.byteLength).toBeGreaterThan(100_000)

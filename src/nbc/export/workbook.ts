@@ -10,11 +10,11 @@ const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships
 export const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 export const MAX_TEMPLATE_BYTES = 10 * 1024 * 1024
 
-// Client reports cover Sunday–Saturday; submission keys remain Monday-based.
+// Client reports and submission keys both cover Sunday–Saturday.
 export function reportingBlock(week: string) {
   if (weekStart(week) !== week) throw new Error('Choose a valid reporting week.')
   const format = (date: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
-  return `${format(addDays(week, -1))} to ${format(addDays(week, 5))}`
+  return `${format(week)} to ${format(addDays(week, 6))}`
 }
 export const reportFilename = (week: string, projectId = 'nbc-bp03') => `${projectId.toUpperCase()}-Progress Tracking by BOQ-(${reportingBlock(week)}).xlsx`
 

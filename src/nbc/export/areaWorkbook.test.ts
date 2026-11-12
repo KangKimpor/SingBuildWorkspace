@@ -51,7 +51,7 @@ describe('area workbook', () => {
   test('writes Overall, ID, MEP and all seven handler sheets with formulas and cached values', () => {
     const activities = fixture()
     expect(Math.abs(calculate(activities).overall - expectedOverall)).toBeLessThan(1e-12)
-    const { bytes, overall } = areaWorkbook(activities, [], '2026-10-26')
+    const { bytes, overall } = areaWorkbook(activities, [], '2026-10-25')
     expect(Math.abs(overall - expectedOverall)).toBeLessThan(1e-12)
     const text = read(bytes), book = text('xl/workbook.xml')
     expect([...book.matchAll(/<sheet name="([^"]+)"/g)].map((m) => m[1])).toEqual(['Overall Progress', 'BP-04 (ID)', 'BP-04 (MEP)', 'Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Vuth', 'Tola'])
@@ -65,7 +65,7 @@ describe('area workbook', () => {
   })
   test('an edited percentage moves the overall by its leaf weight', () => {
     const edited = fixture().map((a) => a.wbs === '1.1.1.2' ? { ...a, progress: 1 } : a)
-    expect(areaWorkbook(edited, [], '2026-10-26').overall - areaWorkbook(fixture(), [], '2026-10-26').overall).toBeCloseTo(0.28 * 0.5, 12)
+    expect(areaWorkbook(edited, [], '2026-10-25').overall - areaWorkbook(fixture(), [], '2026-10-25').overall).toBeCloseTo(0.28 * 0.5, 12)
   })
 })
 
@@ -93,12 +93,12 @@ for (const id of ['nbc-bp03', 'nbc-bp04']) {
       expect(Math.abs(calculate(activities).overall - data!.reconciliation.workbookOverall)).toBeLessThan(1e-9)
     })
     test('the export reproduces the workbook and follows edits', () => {
-      const { bytes, overall } = areaWorkbook(activities, [], '2026-10-26')
+      const { bytes, overall } = areaWorkbook(activities, [], '2026-10-25')
       // Every leaf moved to an arbitrary percentage.
       const moved = activities.map((a, i) => a.editable ? { ...a, progress: ((i * 37) % 101) / 100 } : a)
       if (process.env.AREA_EXPORT_OUT) writeFileSync(process.env.AREA_EXPORT_OUT.replace('{id}', id), bytes)
       if (id === 'nbc-bp03') {
-        const edited = areaWorkbook(moved, [], '2026-10-26')
+        const edited = areaWorkbook(moved, [], '2026-10-25')
         for (const [file, figure] of [[bytes, overall], [edited.bytes, edited.overall]] as const) {
           const average = reportAverage(file)
           expect(average.areas).toBeGreaterThan(1)
@@ -109,7 +109,7 @@ for (const id of ['nbc-bp03', 'nbc-bp04']) {
       } else {
         // BP04 weighs its zones, which is what the app's leaf weights do: the export equals the reference and the app's weighted sum.
         expect(Math.abs(overall - data!.reconciliation.workbookOverall)).toBeLessThan(1e-9)
-        expect(Math.abs(areaWorkbook(moved, [], '2026-10-26').overall - calculate(moved).overall)).toBeLessThan(1e-9)
+        expect(Math.abs(areaWorkbook(moved, [], '2026-10-25').overall - calculate(moved).overall)).toBeLessThan(1e-9)
       }
     })
   })

@@ -16,6 +16,7 @@ import { issuesEnabled } from '../features'
 import { calculate } from '../progress'
 import { assignActivities, updateActivity } from '../actions'
 import { RoomMatrix } from '../ui/RoomMatrix'
+import { TableFooter } from '../ui/TableFooter'
 import { floorPickerLabel, floorTabName, isRoomProject, roomFloors } from '../rooms'
 import { money, percent } from '../format'
 import { projectHandlers } from '../types'
@@ -28,17 +29,22 @@ import { ReassignSheet } from './ReassignSheet'
 const optionalColumns = ['Area', 'Trade', 'BOQ value', 'Schedule %', 'Status'] as const
 const optionalValue = (a: NbcActivity, c: string) => c === 'Area' ? a.area : c === 'Trade' ? a.trade : c === 'BOQ value' ? a.boqValue === null ? '—' : money(a.boqValue) : c === 'Schedule %' ? a.schedule === null ? '—' : percent(a.schedule) : a.progress === 1 ? 'Done' : a.progress === 0 ? 'Not started' : 'In progress'
 
+/** Two-letter initials of the first handler in a label such as "Kheng, Sitha". */
+function Avatar({ name }: { name: string }) {
+  return <span className="nbc-av" aria-hidden="true" data-initials={name.split(',')[0]!.trim().slice(0, 2).toUpperCase()}/>
+}
+
 function HandlerPicker({ a, activities }: { a: NbcActivity; activities: NbcActivity[] }) {
   const label = activityHandlers(a, activities)
   if (!a.editable) return <span className="nbc-group-handlers" title={label}>{label}</span>
-  return <GlassPopover label={`Assign ${a.wbs}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${a.wbs}: ${label}`}>{label}</button>}>
+  return <GlassPopover label={`Assign ${a.wbs}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${a.wbs}: ${label}`} title={label}><Avatar name={label}/><span className="nbc-handler-name">{label}</span></button>}>
     <GlassSelect aria-label={`Handler for ${a.wbs}`} value={a.handler} onChange={(e) => { try { void Promise.resolve(updateActivity(a.id, { handler: e.target.value })).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}>{!a.handler && <option value="" disabled>Unassigned</option>}{[...new Set([...projectHandlers(a.projectId), a.handler].filter(Boolean))].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
   </GlassPopover>
 }
 
 /** Room-level tasks share one handler, so one picker reassigns the whole row. */
 function RoomHandlerPicker({ ids, label, projectId }: { ids: string[]; label: string; projectId: string }) {
-  return <GlassPopover label={`Assign ${label}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${label}`}>{label}</button>}>
+  return <GlassPopover label={`Assign ${label}`} trigger={<button className="nbc-handler-button" aria-label={`Assign handler for ${label}`} title={label}><Avatar name={label}/><span className="nbc-handler-name">{label}</span></button>}>
     <GlassSelect aria-label={`Handler for ${label}`} value="" onChange={(e) => { try { void Promise.resolve(assignActivities(ids, e.target.value)).catch((error) => useWorkspaceUI.getState().notify(error.message)) } catch (error) { useWorkspaceUI.getState().notify((error as Error).message) } }}><option value="" disabled>Choose handler</option>{projectHandlers(projectId).map((h) => <option key={h}>{h}</option>)}</GlassSelect>
   </GlassPopover>
 }
@@ -51,7 +57,10 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
   const [floorId, setFloorId] = useState('')
   // Phones fold the three select filters behind a button; a filter already in the URL keeps them open.
   const [filtersOpen, setFiltersOpen] = useState(() => !!(params.get('handler') || params.get('area')))
-  const floor = floors.find((f) => f.root.id === floorId) ?? floors[0]
+  // A link to one activity (?wbs=…) opens the floor or panel that holds it, unless a floor was picked since.
+  const wbsParam = params.get('wbs') ?? ''
+  const wbsFloor = wbsParam ? floors.find((f) => f.rows.some((r) => r.leaves.some((l) => l.wbs === wbsParam))) : undefined
+  const floor = floors.find((f) => f.root.id === floorId) ?? wbsFloor ?? floors[0]
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => params.toString() || isRoomProject(activities) ? new Set() : new Set(activities.filter((a) => !a.editable && a.parentId).map((a) => a.id)))
   const search = useRef<HTMLInputElement>(null)
   const sync = useWorkspace((s) => s.sync), tasks = useWorkspace((s) => s.tasks), pending = pendingCollectionIds('nbc_activities')
@@ -126,6 +135,7 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
           rowAttrs={({ activity: a }) => ({ 'data-changed': a.editable && Math.abs((live.progress.get(a.id) ?? 0) - (before.progress.get(a.id) ?? 0)) > 1e-12 ? 'true' : undefined })}
           nameSuffix={({ activity: a }) => { const open = tasks.filter((t) => t.nbcActivityId === a.id && !t.deletedAt && t.status !== 'Done'); if (!open.length) return null; const label = `${open.length} issue${open.length > 1 ? 's' : ''}`; return issuesEnabled ? <Link className="nbc-pill" data-status="Issue" to={`/projects-progress/${projectId}/issues?wbs=${encodeURIComponent(a.wbs)}`} aria-label={`${open.length} open issues for ${a.wbs}`}>{label}</Link> : <span className="nbc-pill" data-status="Issue">{label}</span> }}
           extra={[{ header: 'Handler', cell: ({ activity: a }) => <><HandlerPicker a={a} activities={activities}/>{pending.has(a.id) && <span className="small muted"> · pending</span>}</> }, ...optional.map((c) => ({ header: c, cell: ({ activity: a }: { activity: NbcActivity }) => <span className="muted">{optionalValue(a, c)}</span> }))]}/>}
+    {(roomMode ? !!floor && floor.rows.some((r) => r.task && r.leaves.some(leaf)) : rows.length > 0) && <TableFooter triangle={roomMode} count={roomMode && floor ? floor.rows.filter((r) => r.task && r.leaves.some(leaf)).length : rows.filter((r) => !r.group).length} legend={roomMode ? ['changed', 'na'] : ['changed']}/>}
     <SidePeek open={!!selected} onOpenChange={(open) => { if (!open) setDetail(null) }} title="Activity details">{selected && <ActivityDetail activity={selected} handler={activityHandlers(selected, activities)}/>}</SidePeek>
     <ReassignSheet activities={activities} open={reassign} onOpenChange={setReassign}/>
   </section>

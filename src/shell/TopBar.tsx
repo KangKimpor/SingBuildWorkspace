@@ -98,6 +98,8 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
   const [moreLoaded,setMoreLoaded]=useState(false),[moreOpen,setMoreOpen]=useState(false)
   const moreTrigger=<button type="button" className="ibtn" aria-label="More options" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={()=>{setMoreLoaded(true);setMoreOpen(true)}}><MoreHorizontal {...ic}/></button>
   const online = useOnline()
+  // Project Progress keeps its top bar to the breadcrumb and save status; search stays on the keyboard shortcut and appearance on the Settings page.
+  const progressScreen = crumb.parent === 'Projects Progress'
   const sync = useSyncStatus()
   const compact = bp === 'compact'
   const scrolled = useScrolled(48)
@@ -171,6 +173,7 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
               : 'Error'}</span>
           {sync.kind === 'error' && online && <button className="text-link small" onClick={()=>void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false))}>Retry</button>}
         </span>
+        {!progressScreen && <>
         <button
           type="button"
           className="ibtn"
@@ -180,6 +183,7 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
           <Search {...ic} />
         </button>
         {moreLoaded ? <Suspense fallback={moreTrigger}><GlassPopover label="Appearance and view options" open={moreOpen} onOpenChange={setMoreOpen} trigger={moreTrigger}><Appearance/></GlassPopover></Suspense> : moreTrigger}
+        </>}
       </div>
     </Glass>
   )

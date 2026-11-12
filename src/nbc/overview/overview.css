@@ -74,7 +74,7 @@
 .nbc-ov-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-16); flex-wrap: wrap; }
 .nbc-ov-head h2 { margin: 0; font-size: 40px; line-height: 46px; font-weight: 700; letter-spacing: -.03em; }
 .nbc-ov-head p { margin: 2px 0 0; }
-.nbc-ov-head .btn-secondary, .nbc-digest .btn-secondary { border: 0; background: var(--status-neutral-bg); border-radius: var(--radius-pill); padding: 9px 18px; font-weight: 500; }
+.nbc-ov-head .btn-secondary { border: 0; background: var(--status-neutral-bg); border-radius: var(--radius-pill); padding: 9px 18px; font-weight: 500; }
 .nbc-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .nbc-kpi { display: grid; gap: 2px; align-content: start; padding: 16px 18px; border-radius: 20px; background: var(--bg-raised); box-shadow: 0 0 0 .5px var(--border-subtle), 0 2px 12px rgb(0 0 0 / .05); min-width: 0; }
 .nbc-kpi-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
@@ -113,13 +113,6 @@
 .nbc-heat-cell { display: grid; place-items: center; padding: 12px 6px; border-radius: 10px; font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none; color: var(--text-primary); background: color-mix(in srgb, var(--accent) var(--heat, 0%), var(--status-neutral-bg)); }
 .nbc-heat-cell[data-empty=true] { background: transparent; color: var(--text-secondary); font-weight: 400; }
 a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
-.nbc-digest-scrim { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: var(--space-16); background: var(--scrim); }
-.nbc-digest { width: min(560px, 100%); max-height: 90dvh; overflow: auto; padding: 24px; border-radius: 24px; background: color-mix(in srgb, var(--bg-raised) 90%, transparent); backdrop-filter: blur(30px) saturate(180%); box-shadow: 0 20px 50px rgb(0 0 0 / .25), 0 0 0 .5px var(--border-strong); }
-.nbc-digest h3 { margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -.02em; }
-.nbc-digest p { margin: var(--space-4) 0 0; }
-.nbc-digest ul { margin: var(--space-12) 0 var(--space-16); padding-inline-start: 18px; display: grid; gap: var(--space-8); font-size: 14px; }
-.nbc-digest-actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--space-12); }
-.nbc-digest .btn-accent { border-radius: var(--radius-pill); padding: 9px 20px; font-weight: 600; }
 @media (max-width: 767px) {
   .nbc-ov-head h2 { font-size: 28px; line-height: 34px; }
   .nbc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -128,8 +121,6 @@ a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
   .nbc-attention li { grid-template-columns: 10px minmax(0, 1fr); }
   .nbc-attention li .nbc-impact, .nbc-attention li .text-link { grid-column: 2; }
 }
-.nbc-digest-backdrop { position: absolute; inset: 0; border: 0; background: transparent; cursor: default; }
-.nbc-digest { position: relative; }
 
 /* The approved progress cards stack before their content becomes cramped. */
 .nbc-progress-panels .nbc-execution { padding: 24px; border: 1px solid var(--border-subtle); border-radius: 22px; box-shadow: 0 2px 6px rgb(0 0 0 / .02), 0 12px 32px rgb(0 0 0 / .02); }
@@ -150,3 +141,9 @@ a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
 }
 
 .nbc-handler-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; text-align: start; }
+
+/* Progress curve: drawn at its real width, quiet grid, soft area under the actual line. */
+.nbc-trend-plot { width: 100%; min-width: 0; }
+.nbc-trend svg { max-width: 100%; margin-top: 8px; color: var(--text-primary); }
+.nbc-trend-axis { font: 11px var(--font-sans); fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.nbc-trend-chip { font: 600 11px var(--font-sans); font-variant-numeric: tabular-nums; }

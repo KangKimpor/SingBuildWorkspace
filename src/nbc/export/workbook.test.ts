@@ -8,10 +8,10 @@ import { confirmedCount, reportFilename, reportingBlock, reportValues, weeklyWor
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main'
 
 test('report filenames use full Sunday–Saturday dates, including month and year boundaries', () => {
-  expect(reportFilename('2026-10-19')).toBe('NBC-BP03-Progress Tracking by BOQ-(18 October to 24 October).xlsx')
-  expect(reportingBlock('2026-11-02')).toBe('1 November to 7 November')
-  expect(reportingBlock('2026-12-28')).toBe('27 December to 2 January')
-  expect(() => reportingBlock('2026-10-18')).toThrow('reporting week')
+  expect(reportFilename('2026-10-18')).toBe('NBC-BP03-Progress Tracking by BOQ-(18 October to 24 October).xlsx')
+  expect(reportingBlock('2026-11-01')).toBe('1 November to 7 November')
+  expect(reportingBlock('2026-12-27')).toBe('27 December to 2 January')
+  expect(() => reportingBlock('2026-10-19')).toThrow('reporting week')
 })
 
 function cell(files: Record<string, Uint8Array>, sheet: number, address: string) {
@@ -22,17 +22,17 @@ const submission = (week: string, previous: number, progress: number): NbcSubmis
 
 test('weekly snapshots roll back later weeks and exclude reopened draft edits', () => {
   const activities = fixtureActivities().map(a => a.id === 'nbc:1.6.1.2' ? { ...a, progress: .5 } : a)
-  const last = submission('2026-10-19', .1, .25), current = submission('2026-10-26', .25, .5)
-  const earlier = reportValues(activities, [last, current], '2026-10-19')
+  const last = submission('2026-10-18', .1, .25), current = submission('2026-10-25', .25, .5)
+  const earlier = reportValues(activities, [last, current], '2026-10-18')
   expect(earlier.current.progress.get('nbc:1.6.1.2')).toBe(.25)
   expect(earlier.previous.progress.get('nbc:1.6.1.2')).toBe(.1)
   const reopened: NbcSubmission = { ...current, status: 'draft', appliedEntries: current.entries, entries: [{ ...current.entries[0]!, progress: .9 }] }
-  expect(reportValues(activities, [last, reopened], '2026-10-26').current.progress.get('nbc:1.6.1.2')).toBe(.5)
+  expect(reportValues(activities, [last, reopened], '2026-10-25').current.progress.get('nbc:1.6.1.2')).toBe(.5)
 })
 
 test('export keeps unrelated parts, numeric percentages, template layout and live formulas', () => {
   const template = fixtureTemplate(), source = unzipSync(template)
-  const output = unzipSync(weeklyWorkbook(template, fixtureActivities(), [], '2026-10-26').bytes)
+  const output = unzipSync(weeklyWorkbook(template, fixtureActivities(), [], '2026-10-25').bytes)
   expect(output['xl/styles.xml']).toEqual(source['xl/styles.xml'])
   expect(output['xl/comments1.xml']).toEqual(source['xl/comments1.xml'])
   expect(output['xl/calcChain.xml']).toBeUndefined()
@@ -51,7 +51,7 @@ test('reassignment moves the handler row and rewires the master progress formula
   const sheet = new DOMParser().parseFromString(strFromU8(template['xl/worksheets/sheet6.xml']!), 'application/xml')
   Array.from(sheet.getElementsByTagNameNS(NS, 'row')).filter(row => Number(row.getAttribute('r')) >= 5).forEach(row => row.remove())
   template['xl/worksheets/sheet6.xml'] = strToU8(new XMLSerializer().serializeToString(sheet))
-  const output = unzipSync(weeklyWorkbook(zipSync(template), activities, [], '2026-10-26').bytes)
+  const output = unzipSync(weeklyWorkbook(zipSync(template), activities, [], '2026-10-25').bytes)
   expect(cell(output, 1, 'N8').querySelector('f')?.textContent).toBe("'Kheng'!M6")
   expect(strFromU8(output['xl/worksheets/sheet8.xml']!)).not.toContain('Install board')
 })
@@ -66,7 +66,7 @@ test('unchanged handler assignments keep original rows, formatting and trailing 
   const footer = doc.createElementNS(NS, 'row'); footer.setAttribute('r', '20')
   doc.getElementsByTagNameNS(NS, 'sheetData')[0]!.append(footer)
   files['xl/worksheets/sheet8.xml'] = strToU8(new XMLSerializer().serializeToString(doc))
-  const output = unzipSync(weeklyWorkbook(zipSync(files), fixtureActivities(), [], '2026-10-26').bytes)
+  const output = unzipSync(weeklyWorkbook(zipSync(files), fixtureActivities(), [], '2026-10-25').bytes)
   const saved = new DOMParser().parseFromString(strFromU8(output['xl/worksheets/sheet8.xml']!), 'application/xml')
   expect([...saved.getElementsByTagNameNS(NS, 'row')].find(r => r.getAttribute('r') === '7')?.getAttribute('ht')).toBe('37')
   expect([...saved.getElementsByTagNameNS(NS, 'row')].some(r => r.getAttribute('r') === '20')).toBe(true)
@@ -74,19 +74,19 @@ test('unchanged handler assignments keep original rows, formatting and trailing 
 })
 
 test('rejects mismatched WBS data and changed template weights', () => {
-  expect(() => weeklyWorkbook(fixtureTemplate(), fixtureActivities().slice(1), [], '2026-10-26')).toThrow('do not match')
+  expect(() => weeklyWorkbook(fixtureTemplate(), fixtureActivities().slice(1), [], '2026-10-25')).toThrow('do not match')
   const activities = fixtureActivities().map(a => ({ ...a, globalWeight: .9 }))
-  expect(() => weeklyWorkbook(fixtureTemplate(), activities, [], '2026-10-26')).toThrow('weighting does not match')
+  expect(() => weeklyWorkbook(fixtureTemplate(), activities, [], '2026-10-25')).toThrow('weighting does not match')
   expect(() => weeklyWorkbook(fixtureTemplate(), fixtureActivities(), [], '2026-10-27')).toThrow('reporting week')
-  expect(() => weeklyWorkbook(new Uint8Array(10 * 1024 * 1024 + 1), fixtureActivities(), [], '2026-10-26')).toThrow('10 MB')
-  expect(() => weeklyWorkbook(new Uint8Array(), fixtureActivities(), [], '2026-10-26')).toThrow()
+  expect(() => weeklyWorkbook(new Uint8Array(10 * 1024 * 1024 + 1), fixtureActivities(), [], '2026-10-25')).toThrow('10 MB')
+  expect(() => weeklyWorkbook(new Uint8Array(), fixtureActivities(), [], '2026-10-25')).toThrow()
   const unassigned = fixtureActivities().map(a => a.handler === 'Tola' ? { ...a, handler: '' } : a)
-  expect(() => weeklyWorkbook(fixtureTemplate(), unassigned, [], '2026-10-26')).toThrow('one of the 7 handlers')
+  expect(() => weeklyWorkbook(fixtureTemplate(), unassigned, [], '2026-10-25')).toThrow('one of the 7 handlers')
 })
 
 test('reassignment requiring review does not count as a completed weekly report', () => {
-  const update = submission('2026-10-26', .25, .5)
-  expect(confirmedCount(fixtureActivities(), [update], '2026-10-26')).toBe(1)
+  const update = submission('2026-10-25', .25, .5)
+  expect(confirmedCount(fixtureActivities(), [update], '2026-10-25')).toBe(1)
   const reassigned = fixtureActivities().map(a => a.handler === 'Sitha' ? { ...a, handler: 'Tola' } : a)
-  expect(confirmedCount(reassigned, [update], '2026-10-26')).toBe(0)
+  expect(confirmedCount(reassigned, [update], '2026-10-25')).toBe(0)
 })

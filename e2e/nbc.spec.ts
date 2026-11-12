@@ -7,7 +7,7 @@ import { submissionId, transitionSubmission } from '../src/nbc/submissions'
 import type { SubmissionState } from '../src/nbc/submissions'
 import type { NbcSubmission } from '../src/nbc/types'
 
-const now = new Date('2026-10-27T07:05:00Z'), current = '2026-10-26', last = '2026-10-19'
+const now = new Date('2026-10-27T07:05:00Z'), current = '2026-10-25', last = '2026-10-18'
 async function setup(page: Page, data: SubmissionState = { activities: fixtureActivities(), submissions: [], summaries: [] }) {
   await page.clock.install({ time: now })
   await page.addInitScript(({ data, project }) => { if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], events: [], projects: [project], nbc_activities: data.activities, nbc_submissions: data.submissions, nbc_summaries: data.summaries, scratchpad: '', taskViews: [] })) }, { data, project: fixtureProject })
@@ -25,8 +25,8 @@ function historical(): SubmissionState {
     const s: NbcSubmission = { id: submissionId('nbc-bp03', week, 'Tola'), projectId: 'nbc-bp03', weekStart: week, handler: 'Tola', status: 'draft', confirmedAt: null, confirmedBy: null, late: false, note: '', entries: [{ activityId: 'nbc:1.6.1.2', previous: .25, progress, remark: '' }], updatedAt: now.toISOString() }
     state.submissions.push(s); state = transitionSubmission(state, s.id, 'confirm', 'guest', now)
   }
-  state.summaries.push({ id: 'old', projectId: 'nbc-bp03', weekStart: '2026-01-05', overall: .2, previous: .1, contributions: { Tola: .1 }, updatedAt: now.toISOString() })
-  state.submissions.push({ ...state.submissions[0]!, id: 'old-update', weekStart: '2026-01-05' })
+  state.summaries.push({ id: 'old', projectId: 'nbc-bp03', weekStart: '2026-01-04', overall: .2, previous: .1, contributions: { Tola: .1 }, updatedAt: now.toISOString() })
+  state.submissions.push({ ...state.submissions[0]!, id: 'old-update', weekStart: '2026-01-04' })
   return state
 }
 test('autosaved draft survives reload without changing live progress, then confirms in one click', async ({ page }) => {
@@ -73,8 +73,8 @@ test('Overview keeps last week and older history read-only', async ({ page }) =>
   await page.keyboard.press('Escape')
   await expect(lastWeekDialog).toBeHidden()
   await page.getByRole('button', { name: 'Older weeks', exact: true }).click()
-  await page.getByRole('button', { name: /^Actions for Tola 5 Jan/ }).click()
-  const olderDialog = page.getByRole('dialog', { name: /^Actions for Tola 5 Jan/ })
+  await page.getByRole('button', { name: /^Actions for Tola 4 Jan/ }).click()
+  const olderDialog = page.getByRole('dialog', { name: /^Actions for Tola 4 Jan/ })
   await expect(olderDialog.getByRole('button', { name: 'Open', exact: true })).toBeVisible()
   await expect(olderDialog.getByRole('button', { name: 'Export CSV', exact: true })).toBeVisible()
   await expect(olderDialog.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0)
@@ -83,7 +83,7 @@ test('Overview keeps last week and older history read-only', async ({ page }) =>
   await page.getByRole('button', { name: 'View as table', exact: true }).click()
   await expect(page.locator('.nbc-trend tbody tr')).toHaveCount(3)
   await page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Update Progress', exact: true }).click()
-  await expect(page.getByText(/26 Oct – 1 Nov/).first()).toBeVisible()
+  await expect(page.getByText(/25 Oct – 31 Oct/).first()).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Who is updating?' })).toBeVisible()
   await page.locator('.nbc-gate-list').getByRole('button', { name: /^Lychhinh/ }).click()
   await page.getByRole('button', { name: 'Continue as Lychhinh', exact: true }).click()

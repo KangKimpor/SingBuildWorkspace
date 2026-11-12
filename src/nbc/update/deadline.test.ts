@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import { deadlineNote } from './deadline'
 
-const week = '2026-10-26'
+const week = '2026-10-25'
 test('counts days, then hours, then flips to late at Saturday midnight in Phnom Penh', () => {
   expect(deadlineNote(week, Date.parse('2026-10-27T07:05:00Z'))).toMatchObject({ text: 'Due Fri 11:59 PM · 3d left', tone: 'calm', late: false })
   expect(deadlineNote(week, Date.parse('2026-10-30T09:00:00Z'))).toMatchObject({ text: 'Due Fri 11:59 PM · 8h left', tone: 'soon' })

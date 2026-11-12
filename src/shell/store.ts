@@ -10,7 +10,7 @@ export function breakpointFor(width: number): Breakpoint {
   return 'large'
 }
 
-export const SIDEBAR_WIDTH = 270
+export const SIDEBAR_WIDTH = 264
 
 export type SheetKind = 'quick-add' | null
 

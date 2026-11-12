@@ -4,29 +4,29 @@ import { addDays, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, 
 import type { SubmissionState } from './submissions'
 import type { Handler, NbcSubmission } from './types'
 
-const now = new Date('2026-10-27T07:05:00Z'), week = '2026-10-26'
+const now = new Date('2026-10-27T07:05:00Z'), week = '2026-10-25'
 function draft(handler: Handler, date = week, progress = .5): NbcSubmission {
   const a = fixtureActivities().find((a) => a.handler === handler)!
   return { id: submissionId('nbc-bp03', date, handler), projectId: 'nbc-bp03', weekStart: date, handler, status: 'draft', confirmedAt: null, confirmedBy: null, late: false, note: '', updatedAt: now.toISOString(), entries: [{ activityId: a.id, previous: a.progress, progress, remark: 'Site update' }] }
 }
 const initial = (): SubmissionState => ({ activities: fixtureActivities(), submissions: [draft('Tola')], summaries: [] })
-test('Monday weeks, year boundaries, Phnom Penh midnight and Friday deadline', () => {
-  expect(weekStart('2027-01-01')).toBe('2026-12-28')
-  expect(weekStart('2026-11-01')).toBe(week)
-  expect(weekStart('2026-11-02')).toBe('2026-11-02')
+test('Sunday weeks, year boundaries, Phnom Penh midnight and Friday deadline', () => {
+  expect(weekStart('2027-01-01')).toBe('2026-12-27')
+  expect(weekStart('2026-10-31')).toBe(week)
+  expect(weekStart('2026-11-01')).toBe('2026-11-01')
   expect(weekDeadline(week)).toBe(Date.parse('2026-10-30T17:00:00Z'))
-  expect(weekDeadline('2026-11-02')).toBe(Date.parse('2026-11-06T17:00:00Z'))
+  expect(weekDeadline('2026-11-01')).toBe(Date.parse('2026-11-06T17:00:00Z'))
   expect(() => weekStart('2026-02-30')).toThrow()
   expect(() => assertEditableWeek(addDays(week, -14), now)).toThrow('Only this week')
   expect(() => assertEditableWeek(addDays(week, 7), now)).toThrow()
   assertEditableWeek(addDays(week, -7), now)
 })
-test('confirming before Saturday midnight is on time, at the boundary or after is late, and Sunday is still this week', () => {
+test('confirming before Saturday midnight is on time, at the boundary or after is late, and Sunday starts the next week', () => {
   const at = (iso: string) => transitionSubmission(initial(), initial().submissions[0]!.id, 'confirm', 'actor', new Date(iso)).submissions[0]!.late
   expect(at('2026-10-30T16:59:59.999Z')).toBe(false)
   expect(at('2026-10-30T17:00:00Z')).toBe(true)
   expect(at('2026-11-01T10:00:00Z')).toBe(true)
-  expect(weekStart('2026-11-01')).toBe(week)
+  expect(weekStart('2026-10-31')).toBe(week)
 })
 test('drafts stay separate; confirm, reopen, reconfirm, delete and audit are consistent', () => {
   const start = initial(), id = start.submissions[0]!.id
@@ -62,7 +62,7 @@ test('editing/deleting last week rechains this week and freezes older summaries'
   s.submissions.push(draft('Tola', week, .8))
   const currentId = s.submissions[1]!.id
   s = transitionSubmission(s, currentId, 'confirm', 'actor', now)
-  s.summaries.push({ id: 'frozen', projectId: 'nbc-bp03', weekStart: '2026-01-05', overall: .3, previous: .2, contributions: {}, updatedAt: 'unchanged' })
+  s.summaries.push({ id: 'frozen', projectId: 'nbc-bp03', weekStart: '2026-01-04', overall: .3, previous: .2, contributions: {}, updatedAt: 'unchanged' })
   s = transitionSubmission(s, last.id, 'reopen', 'actor', now)
   s.submissions[0]!.entries[0]!.progress = .6
   s = transitionSubmission(s, last.id, 'confirm', 'actor', now)
@@ -72,7 +72,7 @@ test('editing/deleting last week rechains this week and freezes older summaries'
   s = transitionSubmission(s, last.id, 'delete', 'actor', now)
   expect(s.submissions[0]!.entries[0]!.previous).toBe(.25)
   expect(s.summaries.find((r) => r.id === 'frozen')!.updatedAt).toBe('unchanged')
-  s.submissions[0]!.weekStart = '2026-01-05'
+  s.submissions[0]!.weekStart = '2026-01-04'
   for (const operation of ['confirm','reopen','delete','undo'] as const) expect(() => transitionSubmission(s, currentId, operation, 'actor', now)).toThrow('Only this week')
 })
 test('handlers may edit only their own activities; foreign activities are rejected', () => {

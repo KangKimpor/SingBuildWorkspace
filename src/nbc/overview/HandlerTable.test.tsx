@@ -6,7 +6,7 @@ import { submissionId } from '../submissions'
 import { HandlerTable } from './HandlerTable'
 import type { NbcSubmission } from '../types'
 
-const now = Date.parse('2026-10-27T07:05:00Z'), current = '2026-10-26', old = '2026-01-05'
+const now = Date.parse('2026-10-27T07:05:00Z'), current = '2026-10-25', old = '2026-01-04'
 const confirmed = (week: string, progress: number): NbcSubmission => ({ id: submissionId(fixtureProject.id, week, 'Tola'), projectId: fixtureProject.id, weekStart: week, handler: 'Tola', status: 'confirmed', confirmedAt: `${week}T08:00:00Z`, confirmedBy: 'guest', late: false, note: 'Site note', entries: [{ activityId: 'nbc:1.6.1.2', previous: 0.25, progress, remark: '' }], updatedAt: `${week}T08:00:00Z` })
 function setup(submissions: NbcSubmission[] = []) {
   render(<MemoryRouter><HandlerTable projectId={fixtureProject.id} activities={fixtureActivities()} submissions={submissions} now={now}/></MemoryRouter>)

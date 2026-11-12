@@ -1,20 +1,23 @@
 /* One column per room. Reuses the .nbc-wbs grid and its row tiers (ui.css); only the frozen columns and the narrow room cells are new.
-   Frozen on the left: Item and Description, and wider than 900px also Prev % and Now %. Sticky cells keep an opaque background. */
-.nbc-rooms { width: max-content; min-width: 100%; --left-desc: var(--pp-w-item); --left-prev: calc(var(--pp-w-item) + var(--pp-w-desc)); --left-now: calc(var(--pp-w-item) + var(--pp-w-desc) + var(--pp-w-prev)); }
-.nbc-rooms .nbc-room-sticky-1, .nbc-rooms .nbc-room-sticky-2 { position: sticky; z-index: 2; }
-.nbc-rooms .nbc-room-sticky-1 { left: 0; width: var(--pp-w-item); min-width: var(--pp-w-item); max-width: var(--pp-w-item); }
-.nbc-rooms .nbc-room-sticky-2 { left: var(--left-desc); width: var(--pp-w-desc); min-width: var(--pp-w-desc); max-width: var(--pp-w-desc); border-right: 1px solid var(--pp-line-strong); }
-.nbc-rooms thead th.nbc-room-sticky-1, .nbc-rooms thead th.nbc-room-sticky-2 { z-index: 6; }
+   Frozen on the left: Description (item code, name and count), and wider than 900px also Prev % and Now %. Sticky cells keep an opaque background. */
+.nbc-rooms { width: max-content; min-width: 100%; --left-prev: var(--pp-w-desc); --left-now: calc(var(--pp-w-desc) + var(--pp-w-prev)); }
+.nbc-rooms .nbc-room-sticky { position: sticky; z-index: 2; }
+.nbc-rooms .nbc-room-sticky { left: 0; width: var(--pp-w-desc); min-width: var(--pp-w-desc); max-width: var(--pp-w-desc); border-right: 1px solid var(--pp-line-strong); }
+.nbc-rooms thead th.nbc-room-sticky { z-index: 6; }
 .nbc-rooms .nbc-desc { min-width: 0; }
-.nbc-rooms :is(th, td).nbc-num[data-label='Prev %'], .nbc-rooms th.nbc-num:nth-child(3) { width: var(--pp-w-prev); min-width: var(--pp-w-prev); max-width: var(--pp-w-prev); }
-.nbc-rooms :is(th, td).nbc-num[data-label='Now %'], .nbc-rooms th.nbc-num:nth-child(4) { width: var(--pp-w-now); min-width: var(--pp-w-now); max-width: var(--pp-w-now); }
+.nbc-rooms :is(th, td).nbc-num[data-label='Prev %'], .nbc-rooms th.nbc-num:nth-child(2) { width: var(--pp-w-prev); min-width: var(--pp-w-prev); max-width: var(--pp-w-prev); }
+.nbc-rooms :is(th, td).nbc-num[data-label='Now %'], .nbc-rooms th.nbc-num:nth-child(3) { width: var(--pp-w-now); min-width: var(--pp-w-now); max-width: var(--pp-w-now); }
 @media (min-width: 901px) {
-  .nbc-rooms :is(th, td):is(:nth-child(3), :nth-child(4)) { position: sticky; z-index: 2; }
-  .nbc-rooms thead th:is(:nth-child(3), :nth-child(4)) { z-index: 6; }
-  .nbc-rooms :is(th, td):nth-child(3) { left: var(--left-prev); }
-  .nbc-rooms :is(th, td):nth-child(4) { left: var(--left-now); border-right: 1px solid var(--pp-line-strong); }
-  .nbc-rooms .nbc-room-sticky-2 { border-right: 0; }
+  .nbc-rooms :is(th, td):is(:nth-child(2), :nth-child(3)) { position: sticky; z-index: 2; }
+  .nbc-rooms thead th:is(:nth-child(2), :nth-child(3)) { z-index: 6; }
+  .nbc-rooms :is(th, td):nth-child(2) { left: var(--left-prev); }
+  .nbc-rooms :is(th, td):nth-child(3) { left: var(--left-now); border-right: 1px solid var(--pp-line-strong); }
+  .nbc-rooms .nbc-room-sticky { border-right: 0; }
 }
+
+/* Handler column stays narrow; the full list is in its title. */
+.nbc-rooms td[data-label=Handler] { max-width: 144px; }
+.nbc-rooms th:nth-child(4):not(.nbc-room-head) { width: 144px; }
 
 /* Room columns: type above, number below (see RoomMatrix.tsx). Area panels keep a code and a place name on two lines, so their columns are wider. */
 .nbc-rooms thead th.nbc-room-head { min-width: var(--pp-w-room); max-width: 86px; text-align: center; white-space: pre-line; overflow-wrap: anywhere; font-family: var(--font-mono); letter-spacing: 0; line-height: 1.2; padding: 4px 2px; border-right: 1px solid var(--pp-line-cell); text-transform: none; }
@@ -48,7 +51,7 @@
 @media (max-width: 767px) {
   .nbc-activities .nbc-rooms.nbc-wbs td[data-label]:not([data-label=WBS]):not([data-label=Description])::before { content: none; }
 }
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] :is(.nbc-name, .nbc-name-button, .nbc-wbs-no) { color: var(--row-ink); }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] :is(.nbc-name, .nbc-name-button) { color: var(--row-ink); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] .nbc-toggle { color: var(--row-ink-2); }
 @media (max-width: 720px) {
   .nbc-rooms { --pp-w-desc: 180px; }
@@ -62,10 +65,10 @@
 
 /* Soft shadow on the last frozen column once the matrix has been scrolled sideways (scroll-driven; the 1px divider remains without it). */
 @supports (animation-timeline: scroll()) {
-  .nbc-rooms .nbc-room-sticky-2 { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
+  .nbc-rooms .nbc-room-sticky { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
   @media (min-width: 901px) {
-    .nbc-rooms .nbc-room-sticky-2 { animation: none; box-shadow: none; }
-    .nbc-rooms :is(th, td):nth-child(4) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
+    .nbc-rooms .nbc-room-sticky { animation: none; box-shadow: none; }
+    .nbc-rooms :is(th, td):nth-child(3) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
   }
 }
 
@@ -78,11 +81,11 @@
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs th { display: table-cell !important; height: 44px; max-height: none; min-height: 0; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs thead th { width: auto !important; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs :is(th, td).nbc-num { width: var(--pp-w-prev) !important; min-width: var(--pp-w-prev); padding: 0 10px; }
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs :is(th, td).nbc-num:nth-child(4) { width: var(--pp-w-now) !important; min-width: var(--pp-w-now); }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-num { padding: 0 10px 5px 8px; }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs :is(th, td).nbc-num:nth-child(3) { width: var(--pp-w-now) !important; min-width: var(--pp-w-now); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs :is(td, th)[data-label]:not([data-delta])::before { content: none; }
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky-1, :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs th.nbc-room-sticky-1 { width: var(--pp-w-item); min-width: var(--pp-w-item); }
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky-2, :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs th.nbc-room-sticky-2 { width: var(--pp-w-desc); min-width: var(--pp-w-desc); }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky, :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs th.nbc-room-sticky { width: var(--pp-w-desc); min-width: var(--pp-w-desc); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td { padding: 0 8px; background-clip: padding-box; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-cell { padding: 0 3px; width: var(--pp-w-room); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td[data-label=Description] .nbc-desc { overflow: hidden; }
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky-2 { padding-inline-end: 6px; }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky { padding-inline-end: 6px; }

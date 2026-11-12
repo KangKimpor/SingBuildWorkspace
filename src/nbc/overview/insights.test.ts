@@ -19,7 +19,7 @@ test('handlers who have not confirmed this week are listed, and turn red at Satu
 
 test('a confirmed update that lowers progress is flagged with its remark and weighted impact', () => {
   const a = fixtureActivities().find((x) => x.wbs === '1.6.1.2')!
-  const items = attentionItems({ ...input, activities: fixtureActivities(), submissions: [sub('Tola', '2026-10-26', [{ activityId: a.id, previous: .25, progress: .1, remark: 'Rework after inspection' }])] })
+  const items = attentionItems({ ...input, activities: fixtureActivities(), submissions: [sub('Tola', '2026-10-25', [{ activityId: a.id, previous: .25, progress: .1, remark: 'Rework after inspection' }])] })
   const lowered = items.find((i) => i.id.startsWith('lowered'))!
   expect(lowered.title).toBe('1.6.1.2 Install board lowered 25% → 10%')
   expect(lowered.detail).toBe('Tola · Rework after inspection')

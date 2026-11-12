@@ -10,7 +10,7 @@ import { canUpdate, submissionId, transitionSubmission } from '../src/nbc/submis
 import { handlers } from '../src/nbc/types'
 import type { SubmissionState } from '../src/nbc/submissions'
 
-const current = '2026-10-26', last = '2026-10-19'
+const current = '2026-10-25', last = '2026-10-18'
 async function setup(page: Page, state: SubmissionState = { activities: fixtureActivities(), submissions: [], summaries: [] }) {
   await page.clock.install({ time: new Date('2026-10-27T07:05:00Z') })
   await page.addInitScript(({ state, project }) => {

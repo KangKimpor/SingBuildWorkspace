@@ -3,10 +3,10 @@ import { projectHandlers } from './types'
 import type { Handler, NbcActivity, NbcSubmission, NbcWeekSummary, SubmissionEntry } from './types'
 
 export const REPORTING_TIMEZONE = 'Asia/Phnom_Penh'
-// Updates are due Friday 11:59 PM in Phnom Penh while the week itself still runs Monday to Sunday.
-// Exclusive boundary: Saturday 00:00 is already late.
+// Reporting weeks run Sunday to Saturday. Updates are due Friday 11:59 PM in Phnom Penh.
+// Exclusive boundary: Saturday 00:00 (the week's sixth day after its Sunday key) is already late.
 export const WEEK_DEADLINE = 'T00:00:00+07:00'
-export const DEADLINE_DAY = 5
+export const DEADLINE_DAY = 6
 export const UNDO_SECONDS = 10
 export function reportingDate(now = new Date()) {
   const formatted = now.toLocaleDateString('en-CA', { timeZone: REPORTING_TIMEZONE })
@@ -15,7 +15,7 @@ export function reportingDate(now = new Date()) {
 export function weekStart(date = reportingDate()) {
   const day = new Date(`${date}T00:00:00Z`)
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(+day) || day.toISOString().slice(0, 10) !== date) throw new Error('Invalid reporting date.')
-  day.setUTCDate(day.getUTCDate() - (day.getUTCDay() + 6) % 7)
+  day.setUTCDate(day.getUTCDate() - day.getUTCDay())
   return day.toISOString().slice(0, 10)
 }
 export function addDays(date: string, days: number) { return new Date(Date.parse(`${date}T00:00:00Z`) + days * 86400000).toISOString().slice(0, 10) }

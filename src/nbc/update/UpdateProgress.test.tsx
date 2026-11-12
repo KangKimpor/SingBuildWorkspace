@@ -168,8 +168,8 @@ test('the sheet can list every updated task with its old and new percentage, the
 
 test('past-week links always open the current week', () => {
   const activities = useWorkspace.getState().nbc_activities!
-  render(<MemoryRouter initialEntries={['/update?handler=Tola&week=2026-10-19']}><UpdateProgress projectId={fixtureProject.id} activities={activities} submissions={[]}/></MemoryRouter>)
+  render(<MemoryRouter initialEntries={['/update?handler=Tola&week=2026-10-18']}><UpdateProgress projectId={fixtureProject.id} activities={activities} submissions={[]}/></MemoryRouter>)
   expect(screen.queryByText(/editing last week/)).toBeNull()
-  expect(screen.getAllByText(/26 Oct – 1 Nov/)).toBeTruthy()
+  expect(screen.getAllByText(/25 Oct – 31 Oct/)).toBeTruthy()
   expect(value('1.6.1.2')).toBeTruthy()
 })

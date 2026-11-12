@@ -5,6 +5,7 @@ import { GlassSelect } from '@/components/glass/GlassSelect'
 import { MoreMenu } from '../ui/MoreMenu'
 import { WbsTable } from '../ui/WbsTable'
 import { RoomMatrix } from '../ui/RoomMatrix'
+import { TableFooter } from '../ui/TableFooter'
 import { floorPickerLabel, floorTabName, isRoomProject, roomFloors, visibleRoomRows } from '../rooms'
 import { buildWbsRows } from '../wbs-table'
 import { calculate } from '../progress'
@@ -175,6 +176,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
               )}
             </div>
           }}/>}
+    {(roomMode ? !!floor && visibleRoomRows(floor, showRow, openGroups).length > 0 : rows.length > 0) && <TableFooter count={roomMode && floor ? floor.rows.filter((r) => r.task && showRow(r)).length : rows.filter((r) => !r.group).length} legend={roomMode ? ['changed', 'problem', 'na'] : ['changed', 'problem']}/>}
     {roomMode && !confirmed && remarkTarget && <div className="nbc-room-bar"><span className="nbc-room-bar-label" title={remarkTarget.name}>{(remarkTarget.parentId && byId.get(remarkTarget.parentId)?.name) || ''} — {remarkTarget.name}</span><input className="nbc-remark" disabled={busy} aria-label={`Remark for ${remarkTarget.wbs}`} placeholder="Add remark for this room…" maxLength={4000} value={draft.remark(remarkTarget.id)} onChange={(event) => draft.setRemark(remarkTarget.id, event.target.value)}/></div>}
     {confirmed && submission?.note && <p className="nbc-note small">{submission.note}</p>}
     <div className="nbc-update-bar" role="group" aria-label="Update actions">{confirmed

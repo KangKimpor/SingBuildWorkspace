@@ -1,6 +1,6 @@
 /* Shared chrome from the SingBuild sidebar reference. */
 .sidebar {
-  --bg-sidebar: #fafaf9;
+  --bg-sidebar: #f7f7f5;
   --bg-hover: #f3f4f6;
   --bg-pressed: #eff6ff;
   --border-subtle: #eae9e6;
@@ -16,15 +16,15 @@
   transition: width 180ms ease, border-radius 180ms ease;
 }
 .drawer {
-  --bg-sidebar: #fafaf9;
+  --bg-sidebar: #f7f7f5;
   --border-subtle: #eae9e6;
   --text-primary: #292824;
   --text-secondary: #85837e;
-  background: #fafaf9;
+  background: #f7f7f5;
 }
-html:has(.nbc-project) .sidebar { --surface-sidebar: #fafaf9; background-color: #fafaf9; border-color: #eae9e6; }
-html:has(.nbc-project) .drawer { background-color: #fafaf9; }
-html:has(.nbc-project) .glass.drawer { background-color: #fafaf9; }
+html:has(.nbc-project) .sidebar { --surface-sidebar: #f7f7f5; background-color: #f7f7f5; border-color: #eae9e6; }
+html:has(.nbc-project) .drawer { background-color: #f7f7f5; }
+html:has(.nbc-project) .glass.drawer { background-color: #f7f7f5; }
 .sidebar-header {
   display: flex;
   align-items: center;

@@ -3,6 +3,7 @@ import { useShallow } from 'zustand/react/shallow'
 import { eventSeed, pageSeed, projectSeed, taskSeed } from './seed'
 import { canParentTask } from './task-tree'
 import { contentText } from './text'
+import { sundayWeekSubmission, sundayWeekSummary } from '@/nbc/normalize'
 import { useWorkspaceUI } from '@/shell/workspace'
 import type { Content } from './persistence'
 import type {
@@ -511,8 +512,8 @@ export const useWorkspace = create<Workspace>((set, get) => {
 export function contentOf(s: Content): Content {
   return {
     nbc_activities: s.nbc_activities ?? [],
-    nbc_submissions: s.nbc_submissions ?? [],
-    nbc_summaries: s.nbc_summaries ?? [],
+    nbc_submissions: (s.nbc_submissions ?? []).map(sundayWeekSubmission),
+    nbc_summaries: (s.nbc_summaries ?? []).map(sundayWeekSummary),
     pages: s.pages,
     projects: s.projects,
     tasks: s.tasks,

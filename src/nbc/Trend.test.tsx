@@ -6,16 +6,16 @@ const summary = { projectId: 'nbc-bp03', previous: .1, contributions: {}, update
 
 test('actual points come only from confirmed summaries in week order, drawn against the plan, with a table view', () => {
   render(<Trend today="2026-10-28" summaries={[
-    { ...summary, id: 'later', weekStart: '2026-10-26', overall: .4 },
-    { ...summary, id: 'earlier', weekStart: '2026-10-19', overall: .2 },
+    { ...summary, id: 'later', weekStart: '2026-10-25', overall: .4 },
+    { ...summary, id: 'earlier', weekStart: '2026-10-18', overall: .2 },
   ]}/>)
   const chart = screen.getByRole('img')
-  expect(chart.querySelector('[data-series=plan]')?.getAttribute('points')?.split(' ')).toHaveLength(15)
-  expect(chart.querySelector('[data-series=actual]')?.getAttribute('points')?.split(' ')).toHaveLength(2)
+  expect(chart.querySelector('[data-series=plan]')?.getAttribute('data-points')?.split(' ')).toHaveLength(15)
+  expect(chart.querySelector('[data-series=actual]')?.getAttribute('data-points')?.split(' ')).toHaveLength(2)
   expect(chart.querySelectorAll('circle')).toHaveLength(2)
   expect(chart.textContent).toContain('Deadline 20 Jun 2026')
   fireEvent.click(screen.getByRole('button', { name: 'View as table' }))
-  expect(screen.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['19 Oct – 25 Oct100.00%20.00%▲ +10.00%', '26 Oct – 1 Nov100.00%40.00%▲ +30.00%'])
+  expect(screen.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['18 Oct – 24 Oct100.00%20.00%▲ +10.00%', '25 Oct – 31 Oct100.00%40.00%▲ +30.00%'])
 })
 
 test('empty history still shows the plan and says there are no confirmed weeks', () => {

@@ -396,7 +396,7 @@
   .nbc-update .nbc-seg { max-width: 100%; overflow-x: auto; }
   .nbc-update .nbc-seg button { padding-inline: 8px; }
 }
-.nbc-chip.nbc-change-handler { background:#ffdbb5; border-color:#c76a0c; color:#803900; }
+.nbc-chip.nbc-change-handler { background:#ffdbb5; color:#803900; }
 .nbc-chip.nbc-change-handler:hover { background:#ffcc96; }
 
 /* -- Smooth animations for Update Progress ------------------------------- */

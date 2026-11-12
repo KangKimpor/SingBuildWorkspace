@@ -18,16 +18,16 @@ test('both projects isolate drafts, confirm/reopen/delete, summaries and audit h
   const snapshot = (id: string) => JSON.stringify({ activities: useWorkspace.getState().nbc_activities?.filter(a => a.projectId === id), submissions: useWorkspace.getState().nbc_submissions?.filter(a => a.projectId === id), summaries: useWorkspace.getState().nbc_summaries?.filter(a => a.projectId === id) })
   for (const [id, other] of [['nbc-bp04', 'nbc-bp03'], ['nbc-bp03', 'nbc-bp04']]) {
     const untouched = snapshot(other!)
-    const entries = draftEntries('2026-10-26', 'Tola', id).map(e => ({ ...e, progress: .6 }))
-    saveDraft('2026-10-26', 'Tola', entries, '', id)
-    await confirmUpdate('2026-10-26', 'Tola', id)
+    const entries = draftEntries('2026-10-25', 'Tola', id).map(e => ({ ...e, progress: .6 }))
+    saveDraft('2026-10-25', 'Tola', entries, '', id)
+    await confirmUpdate('2026-10-25', 'Tola', id)
     expect(snapshot(other!)).toBe(untouched)
-    await reopenUpdate('2026-10-26', 'Tola', id)
-    await deleteUpdate('2026-10-26', 'Tola', id)
+    await reopenUpdate('2026-10-25', 'Tola', id)
+    await deleteUpdate('2026-10-25', 'Tola', id)
     expect(snapshot(other!)).toBe(untouched)
   }
-  expect(() => draftEntries('2026-10-26', 'Tola', 'missing')).toThrow('not initialized')
-  expect(() => saveDraft('2026-10-26', 'Tola', draftEntries('2026-10-26', 'Tola', 'nbc-bp03'), '', 'nbc-bp04')).toThrow('only your')
+  expect(() => draftEntries('2026-10-25', 'Tola', 'missing')).toThrow('not initialized')
+  expect(() => saveDraft('2026-10-25', 'Tola', draftEntries('2026-10-25', 'Tola', 'nbc-bp03'), '', 'nbc-bp04')).toThrow('only your')
 })
 
 test('BP04 plan is independent and uses only the approved report dates/projected ratios', () => {
@@ -38,7 +38,7 @@ test('BP04 plan is independent and uses only the approved report dates/projected
   expect(BP04_PLAN.points).toHaveLength(33)
   expect(plannedProgress('2026-04-05', BP04_PLAN.points)).toBe(.09)
   expect(plannedProgress('2026-04-05', NBC_PLAN.points)).toBe(.3)
-  expect(reportFilename('2026-10-26', 'nbc-bp04')).toContain('NBC-BP04-')
+  expect(reportFilename('2026-10-25', 'nbc-bp04')).toContain('NBC-BP04-')
 })
 
 test.skipIf(!existsSync('.private/nbc-bp04/initial.json'))('private BP04 BOQ reconciles every parent, weights and export totals', () => {
@@ -54,21 +54,21 @@ test.skipIf(!existsSync('.private/nbc-bp04/initial.json'))('private BP04 BOQ rec
   expect(activities.filter(a => !a.parentId).reduce((s, a) => s + (a.boqValue ?? 0), 0)).toBeCloseTo(reconciliation.boqValue - (general.boqValue ?? 0), 6)
   for (const a of activities) expect(c.progress.get(a.id)).toBeCloseTo(a.progress, 12)
   const template = new Uint8Array(readFileSync('.private/nbc-bp04/template.xlsx'))
-  const output = unzipSync(weeklyWorkbook(template, activities, [], '2026-10-26').bytes)
+  const output = unzipSync(weeklyWorkbook(template, activities, [], '2026-10-25').bytes)
   const doc = new DOMParser().parseFromString(strFromU8(output['xl/worksheets/sheet1.xml']!), 'application/xml')
   expect(doc.querySelector('c[r="N5"] v')?.textContent).toBe('0')
   const leaf = c.leaves.find(a => a.handler === 'Tola')!
   const edited = activities.map(a => a.id === leaf.id ? { ...a, progress: .5 } : a)
   expect(calculate(edited).overall).toBeCloseTo(leaf.globalWeight * .5, 14)
-  const editedFiles = unzipSync(weeklyWorkbook(template, edited, [], '2026-10-26').bytes)
+  const editedFiles = unzipSync(weeklyWorkbook(template, edited, [], '2026-10-25').bytes)
   const editedDoc = new DOMParser().parseFromString(strFromU8(editedFiles['xl/worksheets/sheet1.xml']!), 'application/xml')
   expect(Number(editedDoc.querySelector('c[r="N5"] v')?.textContent)).toBeCloseTo(leaf.globalWeight * .5, 14)
-  expect(() => weeklyWorkbook(template, fixtureActivities(), [], '2026-10-26')).toThrow('do not match')
+  expect(() => weeklyWorkbook(template, fixtureActivities(), [], '2026-10-25')).toThrow('do not match')
 })
 
 test('BP02 uses its own report plan and exports a distinct report name', () => {
   expect(projectPlan('nbc-bp02').commencement).toBe('2025-09-01')
-  expect(reportFilename('2026-10-26', 'nbc-bp02')).toContain('NBC-BP02-')
+  expect(reportFilename('2026-10-25', 'nbc-bp02')).toContain('NBC-BP02-')
 })
 
 test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('private BP02 BOQ reconciles every parent, weights and export totals', () => {
@@ -82,22 +82,22 @@ test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('private BP02 BOQ rec
   for (const a of activities) expect(c.progress.get(a.id)).toBeCloseTo(a.progress, 10)
   const template = new Uint8Array(readFileSync('.private/nbc-bp02/template.xlsx'))
   const doc = (bytes: Uint8Array) => new DOMParser().parseFromString(strFromU8(unzipSync(bytes)['xl/worksheets/sheet1.xml']!), 'application/xml')
-  expect(Number(doc(weeklyWorkbook(template, activities, [], '2026-10-26').bytes).querySelector('c[r="P5"] v')?.textContent)).toBeCloseTo(c.overall, 12)
+  expect(Number(doc(weeklyWorkbook(template, activities, [], '2026-10-25').bytes).querySelector('c[r="P5"] v')?.textContent)).toBeCloseTo(c.overall, 12)
   // Excel's shared formulas must not be orphaned: every formula is written out and repeated MEP rows still link to Tola's floor row.
-  const sheet = new DOMParser().parseFromString(strFromU8(unzipSync(weeklyWorkbook(template, activities, [], '2026-10-26').bytes)['xl/worksheets/sheet1.xml']!), 'application/xml')
+  const sheet = new DOMParser().parseFromString(strFromU8(unzipSync(weeklyWorkbook(template, activities, [], '2026-10-25').bytes)['xl/worksheets/sheet1.xml']!), 'application/xml')
   expect(sheet.querySelectorAll('f[t="shared"]')).toHaveLength(0)
   const tolaLinks = [...sheet.querySelectorAll('c f')].filter(f => /^'Tola'!M\d+$/.test(f.textContent ?? '') && /^N\d+$/.test(f.parentElement!.getAttribute('r')!))
   expect(tolaLinks.length).toBeGreaterThan(5000)
   const leaf = c.leaves.find(a => a.handler === 'Tola' && a.progress < 1)!
   const edited = activities.map(a => a.id === leaf.id ? { ...a, progress: 1 } : a)
-  expect(Number(doc(weeklyWorkbook(template, edited, [], '2026-10-26').bytes).querySelector('c[r="P5"] v')?.textContent)).toBeCloseTo(c.overall + leaf.globalWeight * (1 - leaf.progress), 12)
+  expect(Number(doc(weeklyWorkbook(template, edited, [], '2026-10-25').bytes).querySelector('c[r="P5"] v')?.textContent)).toBeCloseTo(c.overall + leaf.globalWeight * (1 - leaf.progress), 12)
 }, 120000)
 
 test.skipIf(!existsSync('.private/nbc-bp02/initial.json'))('BP02 export keeps its hierarchy column and floor code when a handler is reassigned', () => {
   const { activities } = JSON.parse(readFileSync('.private/nbc-bp02/initial.json', 'utf8')) as { activities: NbcActivity[] }
   const template = new Uint8Array(readFileSync('.private/nbc-bp02/template.xlsx'))
   const leaf = activities.find(a => a.editable && a.handler === 'Sitha' && a.wbs === '1.8.1.3.1.1.1')!
-  const files = unzipSync(weeklyWorkbook(template, activities.map(a => a.id === leaf.id ? { ...a, handler: 'Kheng' } : a), [], '2026-10-26').bytes)
+  const files = unzipSync(weeklyWorkbook(template, activities.map(a => a.id === leaf.id ? { ...a, handler: 'Kheng' } : a), [], '2026-10-25').bytes)
   const text = strFromU8(files['xl/worksheets/sheet6.xml']!)
   const row = [...new DOMParser().parseFromString(text, 'application/xml').querySelectorAll('row')].find(r => r.querySelector('c[r^="A"]')?.textContent?.includes(leaf.wbs) || r.textContent?.includes(leaf.wbs))
   expect(row?.querySelector('c[r^="N"]')?.textContent).toBe('L18')
