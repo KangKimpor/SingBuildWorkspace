@@ -72,7 +72,7 @@ html:has(.nbc-project) .glass.drawer { background-color: #f7f7f5; }
 .nav-project-views .nav-item[aria-current='page'] { background: #eff6ff; color: #2563eb; }
 .nav-project-views .nav-item[aria-current='page'] .nav-icon { color: #2563eb; }
 html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: #eff6ff; color: #2563eb; }
-.sidebar-foot { padding-top: 12px; border-top: 1px solid var(--border-subtle); gap: 4px; }
+.sidebar-foot { padding-top: 12px; border-top: 0; gap: 4px; }
 .sidebar-foot .nav-list { gap: 2px; }
 .sidebar[data-collapsed='true'] { width: 70px !important; padding: 10px 7px; border-radius: 14px; }
 .sidebar[data-collapsed='true'] .sidebar-header { justify-content: center; gap: 3px; padding-inline: 0; }
@@ -125,5 +125,5 @@ html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='
 .nav-project-views .nav-item, .sidebar-foot .nav-item { min-height: 32px; border-radius: 6px; color: var(--pp-ink-2); }
 .nav-project-views .nav-item[aria-current='page'], html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: var(--pp-selected); color: var(--pp-accent-ink); font-weight: 600; }
 .nav-project-views .nav-item[aria-current='page'] .nav-icon { color: var(--pp-accent-ink); }
-.sidebar-foot { border-top: 1px solid var(--pp-line); }
+.sidebar-foot { border-top: 0; }
 @media (pointer: coarse) { .nav-project-views .nav-item, .sidebar-foot .nav-item { min-height: 44px; } }

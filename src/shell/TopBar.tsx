@@ -1,11 +1,7 @@
-import { Check, MoreHorizontal, PanelLeft, Search, WifiOff } from 'lucide-react'
-import { useEffect, useState, lazy, Suspense } from 'react'
-import type { MouseEvent } from 'react'
+import { Check, PanelLeft, Search, WifiOff } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import {Glass} from '@/components/glass/Glass'
-const GlassPopover=lazy(()=>import('@/components/glass/GlassPopover').then(module=>({default:module.GlassPopover})))
 import { useSyncStatus, useWorkspace } from '@/data'
-import { useGlass } from '@/lib/glass'
-import type { MotionPref } from '@/lib/glass'
 import { modKey, useShell } from './store'
 import type { Breakpoint } from './store'
 import { useWorkspaceUI } from './workspace'
@@ -39,66 +35,14 @@ function useScrolled(threshold: number) {
   return scrolled
 }
 
-function Group<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string
-  value: T
-  options: { value: T; label: string }[]
-  onChange: (v: T, e: MouseEvent) => void
-}) {
-  return (
-    <div role="radiogroup" aria-label={label}>
-      <div className="menu-label t-caption">{label}</div>
-      {options.map((o) => (
-        <button
-          key={o.value}
-          type="button"
-          role="radio"
-          aria-checked={value === o.value}
-          className="menu-option"
-          onClick={(e) => onChange(o.value, e)}
-        >
-          {o.label}
-          {value === o.value ? (
-            <Check size={16} strokeWidth={1.75} aria-hidden="true" />
-          ) : null}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-export function Appearance() {
-  const glass = useGlass()
-  return (
-    <>
-      <Group<MotionPref>
-        label="Motion"
-        value={glass.motion}
-        options={[
-          { value: 'system', label: 'Follow system' },
-          { value: 'reduced', label: 'Reduced' },
-        ]}
-        onChange={(v) => glass.setMotion(v)}
-      />
-    </>
-  )
-}
-
 export interface Crumb {
   label: string
   parent?: string
 }
 
 export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
-  const [moreLoaded,setMoreLoaded]=useState(false),[moreOpen,setMoreOpen]=useState(false)
-  const moreTrigger=<button type="button" className="ibtn" aria-label="More options" aria-haspopup="dialog" aria-expanded={moreOpen} onClick={()=>{setMoreLoaded(true);setMoreOpen(true)}}><MoreHorizontal {...ic}/></button>
   const online = useOnline()
-  // Project Progress keeps its top bar to the breadcrumb and save status; search stays on the keyboard shortcut and appearance on the Settings page.
+  // Project Progress keeps its top bar to the breadcrumb and save status; search stays on the keyboard shortcut.
   const progressScreen = crumb.parent === 'Projects Progress'
   const sync = useSyncStatus()
   const compact = bp === 'compact'
@@ -173,17 +117,16 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
               : 'Error'}</span>
           {sync.kind === 'error' && online && <button className="text-link small" onClick={()=>void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false))}>Retry</button>}
         </span>
-        {!progressScreen && <>
-        <button
-          type="button"
-          className="ibtn"
-          aria-label="Open command palette"
-          onClick={() => useWorkspaceUI.getState().setCommandOpen(true)}
-        >
-          <Search {...ic} />
-        </button>
-        {moreLoaded ? <Suspense fallback={moreTrigger}><GlassPopover label="Appearance and view options" open={moreOpen} onOpenChange={setMoreOpen} trigger={moreTrigger}><Appearance/></GlassPopover></Suspense> : moreTrigger}
-        </>}
+        {!progressScreen && (
+          <button
+            type="button"
+            className="ibtn"
+            aria-label="Open command palette"
+            onClick={() => useWorkspaceUI.getState().setCommandOpen(true)}
+          >
+            <Search {...ic} />
+          </button>
+        )}
       </div>
     </Glass>
   )

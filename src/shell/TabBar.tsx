@@ -30,7 +30,7 @@ export function TabBar() {
       <Tab to="/search" label="Search">
         <Search {...ic} />
       </Tab>
-      <Tab to="/settings/appearance" label="Settings"><Settings {...ic} /></Tab>
+      <Tab to="/settings/account" label="Settings"><Settings {...ic} /></Tab>
     </Glass>
   )
 }

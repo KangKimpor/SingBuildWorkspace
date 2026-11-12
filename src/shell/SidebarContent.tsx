@@ -117,7 +117,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="sidebar-foot">
         <ul className="nav-list">
-          <Item to="/settings/appearance" icon={<Settings {...ic} />} label="Settings" onNavigate={onNavigate} />
+          <Item to="/settings/account" icon={<Settings {...ic} />} label="Settings" onNavigate={onNavigate} />
         </ul>
       </div>
     </>

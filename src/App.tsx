@@ -42,6 +42,7 @@ function WorkspaceApp() {
           <Route path="tasks" element={<Tasks />} />
           <Route path="p/:id" element={<PageEditor />} />
           <Route path="calendar/:view/:date" element={<Calendar />} />
+          <Route path="settings" element={<Settings />} />
           <Route path="settings/:section" element={<Settings />} />
           <Route path="trash" element={<Trash />} />
           <Route path="search" element={<SearchPage />} />

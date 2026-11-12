@@ -2,10 +2,8 @@ import { create } from 'zustand'
 
 export type GlassPref = 'auto' | 'full' | 'reduced' | 'off'
 export type GlassLevel = 'full' | 'reduced' | 'off'
-export type MotionPref = 'system' | 'reduced'
 
 const GLASS_KEY = 'kw-glass'
-const MOTION_KEY = 'kw-motion'
 
 function read<T extends string>(key: string, allowed: readonly T[], fallback: T): T {
   try {
@@ -28,10 +26,8 @@ interface GlassState {
   pref: GlassPref
   /** What Auto currently resolves to; Auto starts at Full (§10). */
   auto: GlassLevel
-  motion: MotionPref
   setPref: (pref: GlassPref) => void
   setAuto: (level: GlassLevel) => void
-  setMotion: (motion: MotionPref) => void
 }
 
 export const effectiveLevel = (s: Pick<GlassState, 'pref' | 'auto'>): GlassLevel =>
@@ -40,14 +36,12 @@ export const effectiveLevel = (s: Pick<GlassState, 'pref' | 'auto'>): GlassLevel
 function apply(s: GlassState) {
   const root = document.documentElement
   root.dataset.glass = effectiveLevel(s)
-  if (s.motion === 'reduced') root.dataset.motion = 'reduced'
-  else delete root.dataset.motion
+  delete root.dataset.motion
 }
 
 export const useGlass = create<GlassState>((set, get) => ({
   pref: read<GlassPref>(GLASS_KEY, ['auto', 'full', 'reduced', 'off'], 'auto'),
   auto: 'full',
-  motion: read<MotionPref>(MOTION_KEY, ['system', 'reduced'], 'system'),
   setPref: (pref) => {
     write(GLASS_KEY, pref)
     set({ pref, auto: 'full' })
@@ -55,11 +49,6 @@ export const useGlass = create<GlassState>((set, get) => ({
   },
   setAuto: (auto) => {
     set({ auto })
-    apply(get())
-  },
-  setMotion: (motion) => {
-    write(MOTION_KEY, motion)
-    set({ motion })
     apply(get())
   },
 }))
