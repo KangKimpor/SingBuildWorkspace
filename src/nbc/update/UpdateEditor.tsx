@@ -42,12 +42,12 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const floors = useMemo(() => roomMode ? roomFloors(activities).filter((f) => f.rows.some((r) => r.task && r.leaves.some((l) => canUpdate(l, handler)))) : [], [activities, handler, roomMode])
   const search = useRef<HTMLInputElement>(null)
   const values = useRef(new Map<string, HTMLInputElement>()), remarks = useRef(new Map<string, HTMLInputElement>()), beforeFocus = useRef('')
-  const byId = new Map(activities.map((a) => [a.id, a])), shownById = new Map(draft.shown.map((e) => [e.activityId, e]))
+  const byId = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities]), shownById = new Map(draft.shown.map((e) => [e.activityId, e]))
   const changedIds = new Set(draft.changed.map((e) => e.activityId))
   const problems = new Set(draft.invalid)
   const q = query.trim().toLowerCase()
   const textMatch = (a: NbcActivity) => { for (let n: NbcActivity | undefined = a; n; n = n.parentId ? byId.get(n.parentId) : undefined) if (`${n.wbs} ${n.name} ${n.description}`.toLowerCase().includes(q)) return true; return false }
-  const areas = [...new Set(activities.filter((a) => canUpdate(a, handler)).map((a) => a.area).filter(Boolean))]
+  const areas = useMemo(() => [...new Set(activities.filter((a) => canUpdate(a, handler)).map((a) => a.area).filter(Boolean))], [activities, handler])
 
   const visible = (a: NbcActivity) => {
     const e = shownById.get(a.id)
@@ -64,7 +64,9 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const openGroups = new Set([...collapsed].filter((id) => !forced.has(id)))
   const progressOf = new Map(draft.shown.map((e) => [e.activityId, e.progress]))
   const rows = roomMode ? [] : buildWbsRows(activities, { leaf: (a) => canUpdate(a, handler) && visible(a), collapsed: openGroups, values: progressOf })
-  const previous = calculate(activities, new Map(draft.shown.map((e) => [e.activityId, e.previous]))).progress
+  // Previous-week values come from the saved entries, not the form, so typing never needs this full-BOQ pass.
+  const previousEntries = confirmed ? submission!.entries : draft.rows
+  const previous = useMemo(() => calculate(activities, new Map(previousEntries.map((e) => [e.activityId, e.previous]))).progress, [activities, previousEntries])
   const floor = floors.find((f) => f.root.id === floorId) ?? floors.find((f) => f.rows.some((r) => r.task && r.leaves.some((l) => canUpdate(l, handler) && l.progress < 1))) ?? floors[0]
   const nowProgress = roomMode ? calculate(activities, progressOf).progress : previous
   const showRow = (row: { leaves: readonly NbcActivity[] }) => row.leaves.some((l) => canUpdate(l, handler) && visible(l))

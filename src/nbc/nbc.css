@@ -1,5 +1,5 @@
 /* NBC project: Notion-style tokens and app chrome (moved from precision.css), then the project frame. */
-html:has(.nbc-project) {
+html[data-nbc] {
   --surface-canvas: #ffffff; --surface-sidebar: #f7f7f5; --surface-raised: #ffffff;
   --surface-hover: #f3f3f1; --surface-selected: #ebeae7;
   --border-subtle: #e8e7e5; --border-strong: #d6d5d2;
@@ -17,42 +17,42 @@ html:has(.nbc-project) {
   --w-sidebar: 260px; --h-topbar: 44px; --w-nbc-wbs: 160px; --h-button: 32px; --h-input: 32px;
   --scrim: rgb(0 0 0 / 40%);
 }
-html:has(.nbc-project) :is(.glass,.btn-accent,.btn-secondary,.glass-select,.search-field,.nbc-panel,.nbc-grid-scroll,.icon-tile) { box-shadow: none; background-image: none; backdrop-filter: none; }
-html:has(.nbc-project) :is(button,.pill,.status-badge,.view-tab,.glass-select,kbd) { white-space: nowrap; flex-shrink: 0; }
-html:has(.nbc-project) :is(.btn-accent,.btn-secondary,.glass-select) { border-radius: 6px; min-height: 32px; font-size: 12px; }
-html:has(.nbc-project) .btn-accent { background: var(--accent-blue); color: #ffffff; }
-html:has(.nbc-project) .btn-accent:hover { background: var(--accent-blue-hover); }
-html:has(.nbc-project) :is(button,.btn-accent,.btn-secondary) { transition: transform var(--dur-fast) var(--ease-standard); }
-html:has(.nbc-project) button:active { transform: scale(.98); transition-duration: var(--dur-instant); }
-html:has(.nbc-project) .glass { background-color: var(--surface-raised); }
-html:has(.nbc-project) .sidebar { background-color: var(--surface-sidebar); }
-html:has(.nbc-project) .topbar { background: var(--surface-canvas); border-bottom: 0; }
-html:has(.nbc-project) .topbar [data-testid=sync-pill] { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 20px; padding: 0 8px; font-size: 11px; border-radius: 6px; border: 0; background: var(--status-neutral-bg); color: var(--text-primary); }
-html:has(.nbc-project) .topbar [data-tone=success] { background: var(--status-success-bg); color: var(--text-primary); }
-html:has(.nbc-project) .topbar [data-tone=warn] { background: var(--status-warning-bg); color: var(--text-primary); }
-html:has(.nbc-project) .topbar [data-tone=error] { background: var(--status-danger-bg); color: var(--text-primary); }
-html:has(.nbc-project) .topbar [data-testid=sync-pill] > span:not(.dot) { animation: precision-fade var(--dur-fast) var(--ease-standard); }
-html:has(.nbc-project) .dot { animation: none; width: 6px; height: 6px; border-radius: 999px; background: var(--status-success); }
-html:has(.nbc-project) .sync-check path { stroke-dasharray: 24; animation: precision-check var(--dur-base) var(--ease-enter); }
-html:has(.nbc-project) .nav-projects .nav-item[aria-current=page] { background: var(--accent-selection); color: var(--accent-blue); border-radius: 8px; }
-html:has(.nbc-project) .scrim { background: var(--scrim); backdrop-filter: none; }
-html:has(.nbc-project) :is(.bsheet,.rsheet,.drawer,[role=dialog]) { box-shadow: 0 0 0 1px var(--border-subtle),0 6px 16px rgb(15 15 15 / 12%); }
+html[data-nbc] :is(.glass,.btn-accent,.btn-secondary,.glass-select,.search-field,.nbc-panel,.nbc-grid-scroll,.icon-tile) { box-shadow: none; background-image: none; backdrop-filter: none; }
+html[data-nbc] :is(button,.pill,.status-badge,.view-tab,.glass-select,kbd) { white-space: nowrap; flex-shrink: 0; }
+html[data-nbc] :is(.btn-accent,.btn-secondary,.glass-select) { border-radius: 6px; min-height: 32px; font-size: 12px; }
+html[data-nbc] .btn-accent { background: var(--accent-blue); color: #ffffff; }
+html[data-nbc] .btn-accent:hover { background: var(--accent-blue-hover); }
+html[data-nbc] :is(button,.btn-accent,.btn-secondary) { transition: transform var(--dur-fast) var(--ease-standard); }
+html[data-nbc] button:active { transform: scale(.98); transition-duration: var(--dur-instant); }
+html[data-nbc] .glass { background-color: var(--surface-raised); }
+html[data-nbc] .sidebar { background-color: var(--surface-sidebar); }
+html[data-nbc] .topbar { background: var(--surface-canvas); border-bottom: 0; }
+html[data-nbc] .topbar [data-testid=sync-pill] { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 20px; padding: 0 8px; font-size: 11px; border-radius: 6px; border: 0; background: var(--status-neutral-bg); color: var(--text-primary); }
+html[data-nbc] .topbar [data-tone=success] { background: var(--status-success-bg); color: var(--text-primary); }
+html[data-nbc] .topbar [data-tone=warn] { background: var(--status-warning-bg); color: var(--text-primary); }
+html[data-nbc] .topbar [data-tone=error] { background: var(--status-danger-bg); color: var(--text-primary); }
+html[data-nbc] .topbar [data-testid=sync-pill] > span:not(.dot) { animation: precision-fade var(--dur-fast) var(--ease-standard); }
+html[data-nbc] .dot { animation: none; width: 6px; height: 6px; border-radius: 999px; background: var(--status-success); }
+html[data-nbc] .sync-check path { stroke-dasharray: 24; animation: precision-check var(--dur-base) var(--ease-enter); }
+html[data-nbc] .nav-projects .nav-item[aria-current=page] { background: var(--accent-selection); color: var(--accent-blue); border-radius: 8px; }
+html[data-nbc] .scrim { background: var(--scrim); backdrop-filter: none; }
+html[data-nbc] :is(.bsheet,.rsheet,.drawer,[role=dialog]) { box-shadow: 0 0 0 1px var(--border-subtle),0 6px 16px rgb(15 15 15 / 12%); }
 @keyframes precision-row { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes precision-fade { from { opacity: 0; } to { opacity: 1; } }
 @keyframes precision-chip { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
 @keyframes precision-check { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
 @keyframes precision-nudge { 33% { transform: translateX(2px); } 66% { transform: translateX(-2px); } }
 @media(prefers-reduced-motion:reduce) {
-  html:has(.nbc-project) *,html:has(.nbc-project) *::before { transition: none !important; animation: none !important; }
-  html:has(.nbc-project) button:active { transform: none; }
+  html[data-nbc] *,html[data-nbc] *::before { transition: none !important; animation: none !important; }
+  html[data-nbc] button:active { transform: none; }
 }
-html:has(.nbc-project) .nav-list > li { min-width: 0; }
-html:has(.nbc-project) .nav-projects { width: 100%; }
-html[data-motion=reduced]:has(.nbc-project) *,html[data-motion=reduced]:has(.nbc-project) *::before { transition: none !important; animation: none !important; }
-html[data-motion=reduced]:has(.nbc-project) button:active { transform: none; }
+html[data-nbc] .nav-list > li { min-width: 0; }
+html[data-nbc] .nav-projects { width: 100%; }
+html[data-motion=reduced][data-nbc] *,html[data-motion=reduced][data-nbc] *::before { transition: none !important; animation: none !important; }
+html[data-motion=reduced][data-nbc] button:active { transform: none; }
 
 /* Project frame: flat page, quiet header, underlined text tabs. */
-html:has(.nbc-project) .canvas { padding-top: 0; }
+html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project.workspace-surface { margin: 0; padding: 16px 24px; border: 0; border-radius: 0; min-width: 0; max-width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .nbc-project h1 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.02em; margin: 0; }
 .nbc-project h2 { font-size: 16px; line-height: 24px; font-weight: 600; margin: 0; }
@@ -92,8 +92,8 @@ html:has(.nbc-project) .canvas { padding-top: 0; }
 }
 @media (pointer: coarse) {
   .nbc-project :is(.nbc-chip, .nbc-seg button) { min-height: 44px; }
-  html:has(.nbc-project) { --h-button: 44px; --h-input: 44px; }
-  html:has(.nbc-project) :is(.btn-accent,.btn-secondary,.glass-select) { min-height: 44px; }
+  html[data-nbc] { --h-button: 44px; --h-input: 44px; }
+  html[data-nbc] :is(.btn-accent,.btn-secondary,.glass-select) { min-height: 44px; }
 }
 .nbc-tabs { gap:3px; padding:3px; border-radius:9px; background:var(--bg-sidebar); width:fit-content; max-width:100%; }
 .nbc-tabs .view-tab { padding:4px 11px; font-size:13px; border:0; border-radius:6px; transition:background 160ms ease,color 160ms ease,box-shadow 160ms ease; }

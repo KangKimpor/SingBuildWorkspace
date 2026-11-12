@@ -92,13 +92,14 @@ function read(): Content {
 }
 export const useWorkspace = create<Workspace>((set, get) => {
   const commit = (patch: Partial<Content>) => {
-    const previous = contentOf(get())
-    const next = { ...previous, ...patch }
     const scope = get().scope
     if (scope !== 'guest') {
+      // Signed-in edits are diffed and queued by the sync subscriber; nothing below is needed.
       set({ ...patch, sync: { kind: 'saving' } })
       return
     }
+    const previous = contentOf(get())
+    const next = { ...previous, ...patch }
     const recoveryKey = scope === 'guest' ? KEY : `kw-recovery:${scope}`
     const serialized = JSON.stringify(next)
     try {

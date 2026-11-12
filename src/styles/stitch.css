@@ -22,9 +22,9 @@
   --text-secondary: #85837e;
   background: #f7f7f5;
 }
-html:has(.nbc-project) .sidebar { --surface-sidebar: #f7f7f5; background-color: #f7f7f5; border-color: #eae9e6; }
-html:has(.nbc-project) .drawer { background-color: #f7f7f5; }
-html:has(.nbc-project) .glass.drawer { background-color: #f7f7f5; }
+html[data-nbc] .sidebar { --surface-sidebar: #f7f7f5; background-color: #f7f7f5; border-color: #eae9e6; }
+html[data-nbc] .drawer { background-color: #f7f7f5; }
+html[data-nbc] .glass.drawer { background-color: #f7f7f5; }
 .sidebar-header {
   display: flex;
   align-items: center;
@@ -71,7 +71,7 @@ html:has(.nbc-project) .glass.drawer { background-color: #f7f7f5; }
 .nav-project-views .nav-icon { width: 18px; height: 18px; }
 .nav-project-views .nav-item[aria-current='page'] { background: #eff6ff; color: #2563eb; }
 .nav-project-views .nav-item[aria-current='page'] .nav-icon { color: #2563eb; }
-html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: #eff6ff; color: #2563eb; }
+html[data-nbc] .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: #eff6ff; color: #2563eb; }
 .sidebar-foot { padding-top: 12px; border-top: 0; gap: 4px; }
 .sidebar-foot .nav-list { gap: 2px; }
 .sidebar[data-collapsed='true'] { width: 70px !important; padding: 10px 7px; border-radius: 14px; }
@@ -123,7 +123,7 @@ html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='
 .sidebar-body .nav-project-views { gap: 1px; margin: 2px 0 8px 17px; padding: 0 0 0 8px; border-left: 1px solid var(--pp-line); }
 .sidebar-body .nav-item:hover, .sidebar-foot .nav-item:hover { background: var(--pp-wash); color: var(--pp-ink); }
 .nav-project-views .nav-item, .sidebar-foot .nav-item { min-height: 32px; border-radius: 6px; color: var(--pp-ink-2); }
-.nav-project-views .nav-item[aria-current='page'], html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: var(--pp-selected); color: var(--pp-accent-ink); font-weight: 600; }
+.nav-project-views .nav-item[aria-current='page'], html[data-nbc] .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: var(--pp-selected); color: var(--pp-accent-ink); font-weight: 600; }
 .nav-project-views .nav-item[aria-current='page'] .nav-icon { color: var(--pp-accent-ink); }
 .sidebar-foot { border-top: 0; }
 @media (pointer: coarse) { .nav-project-views .nav-item, .sidebar-foot .nav-item { min-height: 44px; } }

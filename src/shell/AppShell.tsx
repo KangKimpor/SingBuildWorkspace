@@ -11,6 +11,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { UpdateNotice } from './UpdateNotice'
 import { registerUpdates } from '@/lib/pwa'
 import { afterFirstPaint } from '@/lib/paint'
+import { prefetchRoutes } from '@/lib/prefetch'
 const BottomSheet = lazy(() =>
   import('./Overlays').then((module) => ({ default: module.BottomSheet })),
 )
@@ -44,6 +45,11 @@ const QuickAdd = lazy(() =>
 /** Flat sidebar navigation with an overlay drawer and bottom tabs on smaller screens. */
 export function AppShell() {
   useEffect(() => afterFirstPaint(registerUpdates), [])
+  useEffect(() => {
+    let stop = () => {}
+    const cancel = afterFirstPaint(() => { stop = prefetchRoutes() })
+    return () => { cancel(); stop() }
+  }, [])
   const hasOverlay = useWorkspaceUI(
     (state) =>
       !!(state.commandOpen || state.eventId || state.toast),

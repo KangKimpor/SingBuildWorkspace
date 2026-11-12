@@ -95,11 +95,12 @@ export function persist(scope: string, content: Content, previous: Content) {
           })
         }
         for (const collection of collections) {
-          const old = new Map(
-            (previous[collection] ?? []).map((row) => [row.id, JSON.stringify(row)]),
+          const old = new Map<string, unknown>(
+            (previous[collection] ?? []).map((row) => [row.id, row]),
           )
           for (const row of content[collection] ?? []) {
-            if (old.get(row.id) === JSON.stringify(row)) continue
+            const before = old.get(row.id)
+            if (before === row || (before !== undefined && JSON.stringify(before) === JSON.stringify(row))) continue
             const key = `${scope}:${collection}:${row.id}`
             const base = (await db.versions.get(key))?.value ?? null
             await db.outbox.put({
