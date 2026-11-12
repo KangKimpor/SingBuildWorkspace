@@ -93,14 +93,67 @@ describe('cells shared by two handlers', () => {
   })
 })
 
-// Full-size check against the client's workbook; runs only where the private extract exists.
-const source = '.private/nbc-bp02-rooms/initial.json'
+/**
+ * The report's formulas in miniature: 3 guestrooms (floor X has 2, floor Y has 1), a task one room does not have, and a MEP row.
+ * Leaf weights follow the report: guestroom and MEP weigh a floor by its rooms, a room scores the tasks it has.
+ */
+function weekly(): NbcActivity[] {
+  const out: NbcActivity[] = []
+  let order = 0
+  const base = { projectId: 'nbc-bp02', description: '', area: '', location: '', trade: '', handler: '', remark: '', history: [], duration: null, boqValue: null, schedule: null, sourcePrevious: 0, sourceWeekly: 0, baseline: 0, progress: 0 }
+  const node = (wbs: string, parent: string | null, name: string, extra: Partial<NbcActivity>) => out.push({ ...base, id: `nbc-bp02:${wbs}`, wbs, parentId: parent ? `nbc-bp02:${parent}` : null, order: ++order, name, editable: false, relativeWeight: 1, globalWeight: 0, ...extra } as NbcActivity)
+  const leaf = (wbs: string, parent: string, room: string, handler: string, progress: number, share: number, gw: number) => node(wbs, parent, room, { room, editable: true, handler, progress, baseline: progress, relativeWeight: share, globalWeight: gw })
+  node('x', null, 'Floor 23', { roomList: ['a', 'b'] })
+  node('x.1', 'x', 'GUESTROOM', { item: 'A', relativeWeight: 0.6 }); node('x.1.1', 'x.1', 'Group', { item: 'I' })
+  node('x.1.1.1', 'x.1.1', 'T1', { relativeWeight: 0.75 }); node('x.1.1.2', 'x.1.1', 'T2', { relativeWeight: 0.25 })
+  // Room a has both tasks; room b has no T2, so its T1 carries the whole room: 0.5 / (2 rooms x 0.5).
+  leaf('x.1.1.1.1', 'x.1.1.1', 'a', 'Sitha', 1, 0.25, 0.6 * (2 / 3) * 0.25); leaf('x.1.1.1.2', 'x.1.1.1', 'b', 'Sitha', 0.5, 0.5, 0.6 * (2 / 3) * 0.5)
+  leaf('x.1.1.2.1', 'x.1.1.2', 'a', 'Sitha', 0, 0.25, 0.6 * (2 / 3) * 0.25)
+  node('x.2', 'x', 'MEP WORKS', { item: 'C', relativeWeight: 0.4 }); node('x.2.1', 'x.2', 'SYSTEM', { item: 'I' }); node('x.2.1.1', 'x.2.1', 'Sub', { item: '1' })
+  node('x.2.1.1.1', 'x.2.1.1', 'Task', { item: '1.1' })
+  leaf('x.2.1.1.1.1', 'x.2.1.1.1', 'a', 'Tola', 0.5, 1, 0.4 * (2 / 3) / 2); leaf('x.2.1.1.1.2', 'x.2.1.1.1', 'b', 'Tola', 1, 1, 0.4 * (2 / 3) / 2)
+  node('y', null, 'Floor 22', { roomList: ['c'] })
+  node('y.1', 'y', 'GUESTROOM', { item: 'A', relativeWeight: 0.6 }); node('y.1.1', 'y.1', 'Group', { item: 'I' })
+  node('y.1.1.1', 'y.1.1', 'T1', { relativeWeight: 0.5 }); node('y.1.1.2', 'y.1.1', 'T2', { relativeWeight: 0.5 })
+  leaf('y.1.1.1.1', 'y.1.1.1', 'c', 'Sitha', 0.2, 0.5, 0.6 / 3 * 0.5); leaf('y.1.1.2.1', 'y.1.1.2', 'c', 'Sitha', 0.8, 0.5, 0.6 / 3 * 0.5)
+  node('y.2', 'y', 'MEP WORKS', { item: 'C', relativeWeight: 0.4 }); node('y.2.1', 'y.2', 'SYSTEM', { item: 'I' }); node('y.2.1.1', 'y.2.1', 'Sub', { item: '1' })
+  node('y.2.1.1.1', 'y.2.1.1', 'Task', { item: '1.1' })
+  leaf('y.2.1.1.1.1', 'y.2.1.1.1', 'c', 'Tola', 0.25, 1, 0.4 / 3)
+  return out
+}
+
+describe('the report formulas', () => {
+  test('the project figure weighs floors by their guestrooms and equals the weighted sum of the leaves', () => {
+    const activities = weekly()
+    // Guestroom: floor X rooms score 0.5 (a: T1 and T2 equally) and 0.5 (b: T1 only), floor Y 0.5; MEP 0.75 and 0.25 -> 0.6 x 0.5 + 0.4 x (2 x 0.75 + 0.25) / 3.
+    const expected = 0.6 * 0.5 + 0.4 * ((2 * 0.75 + 0.25) / 3)
+    expect(calculate(activities).overall).toBeCloseTo(expected, 12)
+    expect(roomWorkbook(activities, [], '2026-11-09').overall).toBeCloseTo(expected, 12)
+  })
+  test('the Overall sheet reads the room counts and weighs the sections 60 / 40', () => {
+    const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-09').bytes), overall = strFromU8(files['xl/worksheets/sheet1.xml']!)
+    expect(overall).toContain('Guestrooms (floor weight of Guestroom and MEP)')
+    expect(overall).toContain('<c r="E5"')
+    expect(overall).toMatch(/<f>SUMPRODUCT\(\$E\$5:\$F\$5,E\d+:F\d+\)\/SUM\(\$E\$5:\$F\$5\)<\/f>/)
+    expect(overall).toMatch(/<c r="D6"[^>]*><f>\$C\$\d+\*D\d+\+\$C\$\d+\*D\d+<\/f>/)
+  })
+  test('a room scores the tasks it has: the floor sheet re-weights over the cells that hold a number', () => {
+    const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-09').bytes), floor = strFromU8(files['xl/worksheets/sheet2.xml']!)
+    expect(floor).toContain('SUMPRODUCT((')
+    const plain = floor.replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&quot;', '"')
+    expect(plain).toMatch(/IFERROR\(\(\$C\d+\*N\(D\d+\)\)\/\(\$C\d+\*\(D\d+<>""\)\),""\)/)
+    expect(floor).toMatch(/IFERROR\(AVERAGE\(D\d+:E\d+\),0\)/)
+  })
+})
+
+// Full-size check against the client's weekly report (python scripts/nbc-bp02-report-extract.py REPORT.xlsx); runs only where the private extract exists.
+const source = '.private/nbc-bp02-weekly/initial.json'
 describe.skipIf(!existsSync(source))('BP02 dataset', () => {
-  test('overall matches the reference workbook and the export covers every room', () => {
+  test('overall matches the report and the export covers every room', () => {
     const data = JSON.parse(readFileSync(source, 'utf8')) as { activities: NbcActivity[]; reconciliation: { workbookOverall: number } }
-    expect(Math.abs(calculate(data.activities).overall - data.reconciliation.workbookOverall)).toBeLessThan(1e-5)
-    const { bytes, overall } = roomWorkbook(data.activities, [], '2026-10-26')
-    expect(Math.abs(overall - data.reconciliation.workbookOverall)).toBeLessThan(1e-5)
+    expect(Math.abs(calculate(data.activities).overall - data.reconciliation.workbookOverall)).toBeLessThan(1e-9)
+    const { bytes, overall } = roomWorkbook(data.activities, [], '2026-11-09')
+    expect(Math.abs(overall - data.reconciliation.workbookOverall)).toBeLessThan(1e-9)
     if (process.env.ROOM_EXPORT_OUT) writeFileSync(process.env.ROOM_EXPORT_OUT, bytes)
     expect(bytes.byteLength).toBeGreaterThan(100_000)
   })

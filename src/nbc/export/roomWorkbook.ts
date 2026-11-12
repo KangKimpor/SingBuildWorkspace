@@ -127,6 +127,21 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
     const weight = (n: Node) => n.row.activity.relativeWeight
     const progressC = (fill: string) => st({ bold: true, fill, border: true, format: '0.00%', color: RED })
     const tasksUnder = (n: Node): Node[] => n.row.task ? [n] : n.kids.flatMap(tasksUnder)
+    // A guestroom task row stores the sum of its room shares, not the weight the report prints (E): a room scores its tasks over the
+    // ones it has, so a leaf holds E / (rooms in the group x the room's task weights). The room with every task of the group has
+    // task weights of 1, so there the leaf's share times the room count is E. Data stored differently keeps its task weights.
+    const taskWeight = new Map<Node, number>()
+    const settle = (n: Node) => {
+      if (n.row.task) return
+      if (!n.kids.length || !n.kids.every((k) => k.row.task)) { n.kids.forEach(settle); return }
+      const rooms = new Set(n.kids.flatMap((k) => floor.rooms.filter((room) => k.row.cells.has(room))))
+      let fullest = '', most = 0
+      for (const room of floor.rooms) { const count = n.kids.filter((k) => k.row.cells.has(room)).length; if (count > most) { most = count; fullest = room } }
+      const derived = n.kids.map((k) => (k.row.cells.get(fullest)?.relativeWeight ?? NaN) * rooms.size)
+      const sound = derived.every(Number.isFinite) && Math.abs(derived.reduce((s, x) => s + x, 0) - 1) < 1e-6
+      n.kids.forEach((k, i) => taskWeight.set(k, sound ? derived[i]! : weight(k)))
+    }
+    const w = (n: Node) => taskWeight.get(n) ?? weight(n)
 
     const evaluate = (node: Node, mep: boolean, lo: number, hi: number) => {
       const a = node.row.activity, r = node.sheetRow
@@ -141,7 +156,7 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
           sheet.set(r, 4 + i, v, style, refs.every(Boolean) ? refs.length > 1 ? `AVERAGE(${refs.join(',')})` : refs[0] : undefined)
         })
         node.c = mean(node.cols)
-        sheet.set(r, 1, a.item || '', st({})); sheet.set(r, 2, (a.item ? a.name : `    ${a.name}`), st({})); sheet.set(r, 3, weight(node), st({ format: '0.00%' }))
+        sheet.set(r, 1, a.item || '', st({})); sheet.set(r, 2, (a.item ? a.name : `    ${a.name}`), st({})); sheet.set(r, 3, w(node), st({ format: '0.00%' }))
         return
       }
       node.kids.forEach((k) => evaluate(k, mep, lo, hi))
@@ -152,20 +167,27 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
       for (let i = lo; i <= hi; i++) {
         const present = kids.filter((k) => k.cols[i] !== ''), numbers = present.map((k) => k.cols[i] as number)
         let v: Num, f: string
-        if (leafGroup && mep) {
-          const w = present.reduce((s, k) => s + weight(k), 0)
-          v = w ? present.reduce((s, k) => s + weight(k) * (k.cols[i] as number), 0) / w : ''
+        // The report scores a room over the tasks (and groups) it has: what is blank drops out and the rest are re-weighted.
+        const total = present.reduce((s, k) => s + w(k), 0), weighted = present.reduce((s, k) => s + w(k) * (k.cols[i] as number), 0)
+        if (leafGroup && a.average && !mep) { v = mean(numbers); f = `AVERAGE(${span(kids, i)})` }
+        else if (leafGroup) {
+          v = total ? weighted / total : ''
           f = `IFERROR(SUMPRODUCT(${span(kids, i)},${weights(kids)})/SUMPRODUCT((${span(kids, i)}<>"")*${weights(kids)}),"")`
-        } else if (leafGroup && a.average) { v = mean(numbers); f = `AVERAGE(${span(kids, i)})` }
-        else if (leafGroup) { v = present.reduce((s, k) => s + weight(k) * (k.cols[i] as number), 0); f = `SUMPRODUCT(${span(kids, i)},${weights(kids)})` }
-        else if (mep) { v = numbers.length ? numbers.reduce((s, x) => s + x, 0) / numbers.length : ''; f = `IFERROR((${kids.map((k) => `N(${col(i)}${k.sheetRow})`).join('+')})/COUNT(${kids.map((k) => `${col(i)}${k.sheetRow}`).join(',')}),"")` }
-        else { v = kids.reduce((s, k) => s + weight(k) * (k.cols[i] === '' ? 0 : k.cols[i] as number), 0); f = kids.map((k) => `$C${k.sheetRow}*${col(i)}${k.sheetRow}`).join('+') }
+        } else if (mep) { v = numbers.length ? numbers.reduce((s, x) => s + x, 0) / numbers.length : ''; f = `IFERROR((${kids.map((k) => `N(${col(i)}${k.sheetRow})`).join('+')})/COUNT(${kids.map((k) => `${col(i)}${k.sheetRow}`).join(',')}),"")` }
+        else {
+          v = total ? weighted / total : ''
+          f = `IFERROR((${kids.map((k) => `$C${k.sheetRow}*N(${col(i)}${k.sheetRow})`).join('+')})/(${kids.map((k) => `$C${k.sheetRow}*(${col(i)}${k.sheetRow}<>"")`).join('+')}),"")`
+        }
         node.cols[i] = v
         sheet.set(r, 4 + i, v, st({ bold: true, fill, border: true, format: '0%', h: 'center' }), f)
       }
       if (section && !mep) {
-        node.c = mean(node.cols.slice(lo, hi + 1))
-        sheet.set(r, 3, node.c, progressC(fill), lo === hi ? `${col(lo)}${r}` : `AVERAGE(${col(lo)}${r}:${col(hi)}${r})`)
+        // Each group averages the rooms that have it; the section weighs those group figures, over the groups that have any room.
+        const groups = kids.map((k) => ({ weight: w(k), value: mean(k.cols.slice(lo, hi + 1)) })).filter((g) => g.value !== '')
+        const total = groups.reduce((s, g) => s + g.weight, 0)
+        node.c = total ? groups.reduce((s, g) => s + g.weight * (g.value as number), 0) / total : ''
+        const range = (k: Node) => `${col(lo)}${k.sheetRow}:${col(hi)}${k.sheetRow}`
+        sheet.set(r, 3, node.c, progressC(fill), `IFERROR((${kids.map((k) => `$C${k.sheetRow}*IFERROR(AVERAGE(${range(k)}),0)`).join('+')})/(${kids.map((k) => `$C${k.sheetRow}*(COUNT(${range(k)})>0)`).join('+')}),"")`)
       } else if (leafGroup && mep) {
         node.c = kids.reduce((s, k) => s + weight(k) * (k.c === '' ? 0 : k.c as number), 0)
         sheet.set(r, 3, node.c, progressC(fill), kids.map((k) => `$C${k.sheetRow}*AVERAGE(D${k.sheetRow}:${lastName}${k.sheetRow})`).join('+'))
@@ -175,6 +197,7 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
       } else sheet.set(r, 3, weight(node), st({ bold: true, fill, border: true, format: '0.00%' }))
     }
     const sectionItem = (n: Node) => n.row.activity.item ?? ''
+    top.filter((sec) => sectionItem(sec) !== 'C').forEach(settle)
     for (const sec of top) {
       const used = tasksUnder(sec).flatMap((t) => floor.rooms.map((room, i) => t.row.cells.has(room) ? i : -1)).filter((i) => i >= 0)
       evaluate(sec, sectionItem(sec) === 'C', Math.min(...used), Math.max(...used))
@@ -209,8 +232,17 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
   overall.merges.push(`E3:${lastLetter}3`)
   ;['Item', 'Description', 'Weight', 'Overall', ...floors.map((f) => f.root.name)].forEach((label, i) => overall.set(4, i + 1, label, dark))
   overall.heights.set(4, 24)
-  overall.set(5, 2, 'Floor weight')
-  floors.forEach((_, i) => overall.set(5, 5 + i, 1 / floors.length, st({ format: '0.00%', h: 'center', v: 'center' }), `1/COUNTA($E$4:$${lastLetter}$4)`))
+  // Guestroom and MEP weigh a floor by its guestrooms, as 'F<n> (ID)'!D6 does in the client's report; the corridor weighs floors equally.
+  const guestRooms = floors.map((floor) => {
+    const rows = new Map(floor.rows.map((r) => [r.activity.id, r]))
+    const inGuestroom = (row: RoomRow) => { for (let p: RoomRow | undefined = row; p; p = p.activity.parentId ? rows.get(p.activity.parentId) : undefined) if (p.level === 2) return p.activity.item === 'A'; return false }
+    const rooms = new Set<string>()
+    for (const row of floor.rows) if (row.task && inGuestroom(row)) for (const room of row.cells.keys()) rooms.add(room)
+    return rooms.size || floor.rooms.filter((room) => room !== 'CRD').length || 1
+  })
+  const totalRooms = guestRooms.reduce((s, n) => s + n, 0), roomsRow = `$E$5:$${lastLetter}$5`
+  overall.set(5, 2, 'Guestrooms (floor weight of Guestroom and MEP)')
+  floors.forEach((_, i) => overall.set(5, 5 + i, guestRooms[i]!, st({ h: 'center', v: 'center' })))
   const sectionRows = overallRows.filter((r) => r.section)
   const totalStyle = (extra: Style = {}) => st({ bold: true, fill: YELLOW, border: true, format: '0.00%', h: 'center', v: 'center', ...extra })
   const label = st({ bold: true, fill: YELLOW, border: true })
@@ -218,8 +250,9 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
   const weights = sectionRows.map((s) => ({ ...s, w: sectionsOf(firstFloor).find((x) => x.activity.item === s.item)!.activity.relativeWeight }))
   overall.set(6, 3, weights.reduce((s, x) => s + x.w, 0), totalStyle(), weights.map((s) => `C${s.row}`).join('+'))
   const floorTotals = floors.map((_, i) => overallValues.get(`${i}|T`) as number)
-  overall.set(6, 4, floorTotals.reduce((s, x) => s + x / floors.length, 0), totalStyle({ color: RED }), `SUMPRODUCT($E$5:$${lastLetter}$5,E6:${lastLetter}6)`)
   floors.forEach((_, i) => overall.set(6, 5 + i, floorTotals[i]!, totalStyle(), weights.map((s) => `$C$${s.row}*${columnName(5 + i)}${s.row}`).join('+')))
+  const isCorridor = (key: string) => key.split('|')[1] === 'B'
+  const rowOverall = new Map<number, number>()
   for (const item of overallRows) {
     const fill = item.section ? YELLOW : BLUE, text = st({ bold: true, fill, border: true })
     overall.set(item.row, 1, item.item, text); overall.set(item.row, 2, item.name, text)
@@ -230,8 +263,14 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
       const f = overallFormulas.get(`${i}|${item.key}`), v = perFloor[i]!
       overall.set(item.row, 5 + i, v === '' ? null : v, st({ bold: true, fill, border: true, format: '0.0%', h: 'center', v: 'center' }), v === '' ? undefined : f)
     })
-    const numeric = perFloor.map((x) => x === '' ? 0 : x)
-    overall.set(item.row, 4, numeric.reduce((s, x) => s + x / floors.length, 0), st({ bold: true, fill, border: true, format: '0.0%', h: 'center', v: 'center', color: RED }), `SUMPRODUCT($E$5:$${lastLetter}$5,E${item.row}:${lastLetter}${item.row})`)
+    const numeric = perFloor.map((x) => x === '' ? 0 : x), held = perFloor.filter((x): x is number => x !== '')
+    const value = isCorridor(item.key) ? (held.length ? held.reduce((s, x) => s + x, 0) / held.length : 0) : numeric.reduce((s, x, i) => s + x * guestRooms[i]!, 0) / totalRooms
+    rowOverall.set(item.row, value)
+    overall.set(item.row, 4, value, st({ bold: true, fill, border: true, format: '0.0%', h: 'center', v: 'center', color: RED }),
+      isCorridor(item.key) ? `IFERROR(AVERAGE(E${item.row}:${lastLetter}${item.row}),0)` : `SUMPRODUCT(${roomsRow},E${item.row}:${lastLetter}${item.row})/SUM(${roomsRow})`)
   }
-  return { bytes: writeWorkbook([overall, ...floorSheets, ...handlerSheets], styles), overall: floorTotals.reduce((s, x) => s + x / floors.length, 0) }
+  // The project figure weighs the three sections 50 / 5 / 45 %, as the report's overall does.
+  const projectOverall = weights.reduce((s, x) => s + x.w * (rowOverall.get(x.row) ?? 0), 0)
+  overall.set(6, 4, projectOverall, totalStyle({ color: RED }), weights.map((s) => `$C$${s.row}*D${s.row}`).join('+'))
+  return { bytes: writeWorkbook([overall, ...floorSheets, ...handlerSheets], styles), overall: projectOverall }
 }

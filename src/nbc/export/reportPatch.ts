@@ -9,7 +9,7 @@ import { reportValues } from './workbook'
  * every formula, label, weight, style and other sheet is copied through byte for byte, so the report keeps its structure and recalculates
  * itself when Excel opens it.
  */
-export interface PatchResult { bytes: Uint8Array; updated: number; unchanged: number; notInReport: number; sheets: string[] }
+export interface PatchResult { bytes: Uint8Array; updated: number; unchanged: number; notInReport: number; sheets: string[]; /** Task labels rewritten to the app's name. */ relabeled: number }
 
 const NS_REL = /<Relationship\b[^>]*>/g
 const CELL = /<c r="([A-Z]+)(\d+)"([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g
@@ -78,6 +78,24 @@ function headerColumns(grid: Grid, row: number, firstColumn: number, accept: (te
   }
   return columns
 }
+/**
+ * A room the report renamed on one sheet only keeps its unit number: BP02 Floor 21 merged PS-2119 and CST3-2120 into
+ * "PS-ST3-2119" on the ID sheet while the MEP sheet still prints "PS-2119". An app room missing from the header takes the
+ * column whose room has the same unit number, unless that column's room is an app room of its own.
+ */
+function withUnitAliases(columns: Map<string, string>, rooms: readonly string[]) {
+  const unit = (room: string) => /-(\d+)$/.exec(room)?.[1]
+  const own = new Set(rooms), byUnit = new Map<string, string | null>()
+  for (const [room, column] of columns) {
+    const u = unit(room)
+    if (u && !own.has(room)) byUnit.set(u, byUnit.has(u) ? null : column)
+  }
+  for (const room of rooms) {
+    const u = unit(room), column = u ? byUnit.get(u) : undefined
+    if (!columns.has(room) && column) columns.set(room, column)
+  }
+  return columns
+}
 const idCode = (text: string) => { const m = /^ID[\s-]*(\d+)/i.exec(text); return m ? `ID-${m[1]}` : undefined }
 const roomCode = (text: string) => /^[A-Za-z0-9()]+(?:-[A-Za-z0-9()]+)*-\d+$/.test(text) || text === 'CRD' ? text : undefined
 
@@ -107,12 +125,20 @@ function align(sheet: string, report: ReportTask[], app: AppTask[], columns: Rea
   return printed
 }
 
-interface Plan { sheet: string; writes: Map<string, number>; expected: number }
+/**
+ * Task names the report prints differently from the app on purpose. The report's label is replaced by the app's name; the rows still
+ * line up by position, so this only changes the text of the label cell.
+ */
+const RELABEL: Readonly<Record<string, string>> = { 'Install Single Leaf': 'Install Swing Door (D4)' }
+const escapeXml = (text: string) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+interface Plan { sheet: string; writes: Map<string, number>; labels: Map<string, string>; expected: number }
 
 function planPanel(sheet: string, grid: Grid, tasks: ReportTask[], columns: Map<string, string>, app: AppTask[], value: (a: NbcActivity) => number): Plan {
-  const printed = align(sheet, tasks, app, columns), writes = new Map<string, number>()
+  const printed = align(sheet, tasks, app, columns), writes = new Map<string, number>(), labels = new Map<string, string>()
   let expected = 0
   printed.forEach((task, i) => {
+    if (RELABEL[tasks[i]!.name] === task.name) labels.set(`B${tasks[i]!.row}`, task.name)
     for (const [room, activity] of task.cells) {
       const column = columns.get(room)
       if (!column) continue
@@ -121,7 +147,7 @@ function planPanel(sheet: string, grid: Grid, tasks: ReportTask[], columns: Map<
       if (grid.get(ref)?.numeric) writes.set(ref, value(activity))
     }
   })
-  return { sheet, writes, expected }
+  return { sheet, writes, labels, expected }
 }
 
 export const hasReportPatch = (activities: readonly NbcActivity[]) => /^nbc-bp0[2-4]$/.test(activities[0]?.projectId ?? '')
@@ -165,20 +191,28 @@ export function patchWeeklyReport(template: Uint8Array, activities: NbcActivity[
     for (const floor of roomFloors(activities)) {
       const n = floor.root.name.replace(/\D+/g, ''), idSheet = `F${n} (ID)`, mepSheet = `${n}F(MEP)`
       const id = grid(idSheet), mep = grid(mepSheet)
-      const idColumns = headerColumns(id, 6, 6, roomCode).set('CRD', 'F'), mepColumns = headerColumns(mep, 9, 5, roomCode)
+      const idColumns = withUnitAliases(headerColumns(id, 6, 6, roomCode), floor.rooms).set('CRD', 'F'), mepColumns = withUnitAliases(headerColumns(mep, 9, 5, roomCode), floor.rooms)
       const design = (a: NbcActivity) => a.area !== 'MEP WORKS'
       plans.push(planPanel(idSheet, id, idTasks(id, 7, maxRow(id)), idColumns, floorTasks(floor, design), value))
       plans.push(planPanel(mepSheet, mep, mepTasks(mep, 10, maxRow(mep)), mepColumns, floorTasks(floor, a => !design(a)), value))
     }
   }
 
-  let updated = 0, unchanged = 0, notInReport = 0
+  let updated = 0, unchanged = 0, notInReport = 0, relabeled = 0
   const sheets: string[] = []
   for (const plan of plans) {
     notInReport += plan.expected - plan.writes.size
     const xml = texts.get(plan.sheet)!
     let changed = false
     const next = xml.replace(CELL, (whole, column: string, row: string, attrs: string, inner: string | undefined) => {
+      const label = plan.labels.get(`${column}${row}`)
+      if (label !== undefined && inner !== undefined) {
+        const shown = decode([...inner.matchAll(/<t(?:\s[^>]*)?>([\s\S]*?)<\/t>/g)].map((x) => x[1]).join(''))
+        const current = attr(attrs, 't') === 's' ? strings[Number(/<v>([\s\S]*?)<\/v>/.exec(inner)?.[1])] ?? '' : shown
+        if (current === label) return whole
+        relabeled++; changed = true
+        return `<c r="${column}${row}"${attrs.replace(/\st="[^"]*"/, '')} t="inlineStr"><is><t>${escapeXml(label)}</t></is></c>`
+      }
       const target = plan.writes.get(`${column}${row}`)
       if (target === undefined || inner === undefined) return whole
       const old = /<v>([\s\S]*?)<\/v>/.exec(inner)?.[1]
@@ -191,5 +225,5 @@ export function patchWeeklyReport(template: Uint8Array, activities: NbcActivity[
   // The percentages changed under the report's formulas; ask Excel to recalculate them when the file opens.
   const workbook = strFromU8(files['xl/workbook.xml']!)
   files['xl/workbook.xml'] = strToU8(/<calcPr\b[^>]*>/.test(workbook) ? workbook.replace(/<calcPr\b([^>]*?)(\/?)>/, (_, a: string, end: string) => `<calcPr${a.replace(/\sfullCalcOnLoad="[^"]*"/, '')} fullCalcOnLoad="1"${end}>`): workbook)
-  return { bytes: zipSync(files), updated, unchanged, notInReport, sheets }
+  return { bytes: zipSync(files), updated, unchanged, notInReport, sheets, relabeled }
 }

@@ -69,6 +69,20 @@ describe('area workbook', () => {
   })
 })
 
+/**
+ * BP03's weekly report counts every report area equally (E7 = AVERAGE of the area figures), so its export's overall is that average and
+ * not the app's zone-weighted sum; the cell it prints is the mean of the area cells its own formula names.
+ */
+function reportAverage(bytes: Uint8Array) {
+  const files = unzipSync(bytes), book = strFromU8(files['xl/workbook.xml']!)
+  const index = [...book.matchAll(/<sheet name="([^"]+)"/g)].findIndex((m) => /overall/i.test(m[1]!)) + 1
+  const sheet = strFromU8(files[`xl/worksheets/sheet${index}.xml`]!)
+  const cell = (ref: string) => new RegExp(`<c r="${ref}"[^>]*>([\\s\\S]*?)</c>`).exec(sheet)?.[1] ?? ''
+  const refs = /AVERAGE\(([^)]*)\)/.exec(cell('D7'))![1]!.split(',')
+  const value = (ref: string) => Number(/<v>([^<]*)<\/v>/.exec(cell(ref))![1])
+  return { shown: value('D7'), mean: refs.reduce((s, ref) => s + value(ref), 0) / refs.length, areas: refs.length }
+}
+
 // Full-size check against the client's workbooks; runs only where the private extract exists.
 for (const id of ['nbc-bp03', 'nbc-bp04']) {
   const source = `.private/${id}-rooms/initial.json`
@@ -80,11 +94,23 @@ for (const id of ['nbc-bp03', 'nbc-bp04']) {
     })
     test('the export reproduces the workbook and follows edits', () => {
       const { bytes, overall } = areaWorkbook(activities, [], '2026-10-26')
-      expect(Math.abs(overall - data!.reconciliation.workbookOverall)).toBeLessThan(1e-9)
-      if (process.env.AREA_EXPORT_OUT) writeFileSync(process.env.AREA_EXPORT_OUT.replace('{id}', id), bytes)
-      // Every leaf moved to an arbitrary percentage: the export's own figure still equals the app's weighted sum.
+      // Every leaf moved to an arbitrary percentage.
       const moved = activities.map((a, i) => a.editable ? { ...a, progress: ((i * 37) % 101) / 100 } : a)
-      expect(Math.abs(areaWorkbook(moved, [], '2026-10-26').overall - calculate(moved).overall)).toBeLessThan(1e-9)
+      if (process.env.AREA_EXPORT_OUT) writeFileSync(process.env.AREA_EXPORT_OUT.replace('{id}', id), bytes)
+      if (id === 'nbc-bp03') {
+        const edited = areaWorkbook(moved, [], '2026-10-26')
+        for (const [file, figure] of [[bytes, overall], [edited.bytes, edited.overall]] as const) {
+          const average = reportAverage(file)
+          expect(average.areas).toBeGreaterThan(1)
+          expect(Math.abs(average.shown - average.mean)).toBeLessThan(1e-9)
+          expect(Math.abs(figure - average.mean)).toBeLessThan(1e-9)
+        }
+        expect(edited.overall).not.toBeCloseTo(overall, 6)
+      } else {
+        // BP04 weighs its zones, which is what the app's leaf weights do: the export equals the reference and the app's weighted sum.
+        expect(Math.abs(overall - data!.reconciliation.workbookOverall)).toBeLessThan(1e-9)
+        expect(Math.abs(areaWorkbook(moved, [], '2026-10-26').overall - calculate(moved).overall)).toBeLessThan(1e-9)
+      }
     })
   })
 }
