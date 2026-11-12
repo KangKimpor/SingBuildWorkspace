@@ -152,6 +152,52 @@
   --safe-left: env(safe-area-inset-left, 0px);
 }
 
+/* Project Progress tables and toolbar (NBC). Own `--pp-*` names on purpose: the shared text, border and accent tokens above also paint the sidebar and app shell, which must stay as they are. Light mode only. */
+:root {
+  --pp-ink: #2b2a26;
+  --pp-ink-2: #4d4b46;
+  --pp-ink-muted: #78756f; /* placeholder text only */
+  --pp-line: #d9d7d3; /* row divider */
+  --pp-line-strong: #bdbbb6; /* table frame, control borders */
+  --pp-line-cell: #dedcd8; /* vertical divider between room columns */
+  --pp-band: #e7e5e1; /* header and footer band */
+  --pp-accent: #2f7fe0; /* marks, bars */
+  --pp-accent-fill: #2563eb;
+  --pp-accent-hover: #1d4ed8;
+  --pp-accent-ink: #1b63c4;
+  --pp-selected: rgb(47 127 224 / 0.1);
+  --pp-wash: rgb(55 53 47 / 0.08);
+  --pp-hatch: rgb(120 117 111 / 0.24);
+  --pp-edge: rgb(15 15 15 / 0.12); /* shadow of the last frozen column */
+  --pp-bar-track: var(--pp-line);
+  --pp-bar-full: var(--success);
+
+  /* Row tiers: level 1 navy, level 2 light blue, activities white. */
+  --pp-l1: #1b3a6b;
+  --pp-l1-line: #10264a;
+  --pp-l1-ink: #ffffff;
+  --pp-l1-ink-2: rgb(255 255 255 / 0.88);
+  --pp-l1-chip: rgb(255 255 255 / 0.2);
+  --pp-l1-track: rgb(255 255 255 / 0.25);
+  --pp-l1-bar: #8fc0ff;
+  --pp-l1-bar-full: #7fe0a8;
+  --pp-l1-cell-line: rgb(255 255 255 / 0.18);
+  --pp-l2: #d2e0f2;
+  --pp-l2-line: #b3c8e4;
+  --pp-l2-link: #15508f; /* link text on level 2: --pp-accent-ink is only 4.3:1 on the light blue */
+  --pp-l3: #ffffff;
+  --pp-warn-bg: var(--chip-yellow); /* #fdecc8 */
+  --pp-warn-ink: #6f4300;
+
+  --pp-row: 40px;
+  --pp-w-item: 52px;
+  --pp-w-desc: 264px;
+  --pp-w-prev: 64px;
+  --pp-w-now: 132px;
+  --pp-w-room: 68px;
+  --pp-w-room-area: 112px;
+}
+
 @media (pointer: coarse) {
   :root {
     --h-sidebar-item: 44px;

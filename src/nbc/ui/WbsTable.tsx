@@ -8,6 +8,7 @@ import { ChevronDown, ChevronRight } from 'lucide-react'
 import { percent } from '../format'
 import type { WbsRow } from '../wbs-table'
 import type { NbcActivity } from '../types'
+import { nowCellProps } from './now-cell'
 
 export interface WbsTableProps {
   rows: WbsRow[]
@@ -25,7 +26,8 @@ export interface WbsTableProps {
   nameSuffix?: (row: WbsRow) => ReactNode
 }
 
-const ROW = 36
+/** Row height in px; keep equal to `--pp-row` in tokens.css. */
+const ROW = 40
 
 export function WbsTable({ rows, caption, collapsed, onToggle, previous, current, remark, extra = [], rowAttrs, virtual = false, scrollToId, onRowClick, nameSuffix }: WbsTableProps) {
   const scroll = useRef<HTMLDivElement>(null)
@@ -58,7 +60,7 @@ export function WbsTable({ rows, caption, collapsed, onToggle, previous, current
             {onRowClick ? <button className="nbc-name nbc-name-button" onClick={() => onRowClick(row)}>{a.name}</button> : <span className="nbc-name">{a.name}</span>}{row.group && <span className="nbc-count">{row.leafCount}</span>}{nameSuffix?.(row)}</div>
           </td>
           <td className="nbc-num" data-label="Previous week %">{percent(previous(a))}</td>
-          <td className="nbc-num" data-label="This week %">{row.group ? percent(row.progress) : current(row)}</td>
+          <td className="nbc-num" data-label="This week %" {...nowCellProps(row.progress, previous(a))}>{row.group ? percent(row.progress) : current(row)}</td>
           {remark && <td data-label="Remark">{row.group ? null : remark(row)}</td>}
           {extra.map((c) => <td key={c.header} data-label={c.header}>{c.cell(row)}</td>)}
         </tr>

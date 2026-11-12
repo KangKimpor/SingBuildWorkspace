@@ -49,6 +49,8 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
   const roomMode = useMemo(() => isRoomProject(activities), [activities])
   const floors = useMemo(() => roomMode ? roomFloors(activities) : [], [activities, roomMode])
   const [floorId, setFloorId] = useState('')
+  // Phones fold the three select filters behind a button; a filter already in the URL keeps them open.
+  const [filtersOpen, setFiltersOpen] = useState(() => !!(params.get('handler') || params.get('area')))
   const floor = floors.find((f) => f.root.id === floorId) ?? floors[0]
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => params.toString() || isRoomProject(activities) ? new Set() : new Set(activities.filter((a) => !a.editable && a.parentId).map((a) => a.id)))
   const search = useRef<HTMLInputElement>(null)
@@ -76,15 +78,19 @@ function ActivityTable({ projectId, activities, baseline, controls }: { projectI
   function clear() { setParams({}); setQuery(''); setRange('all'); setChanged(false) }
   function toggle(id: string) { setCollapsed((old) => { const next = new Set(old); if (next.has(id)) next.delete(id); else next.add(id); return next }) }
   const selected = activities.find((a) => a.id === detail)
+  const selectFilters = [handler, area, range !== 'all' ? range : ''].filter(Boolean).length
   const chips = (['location', 'trade', 'wbs'] as const).flatMap((key) => params.get(key) ? [{ key, label: params.get(key)! }] : [])
 
   return <section className="nbc-activities">
     <div className="nbc-filters">
       {floor && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === floor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
+      <button className="nbc-chip nbc-filters-toggle" aria-expanded={filtersOpen} aria-controls="nbc-filter-selects" onClick={() => setFiltersOpen(!filtersOpen)}>Filters{selectFilters > 0 && <span className="nbc-filters-count">{selectFilters}</span>}</button>
+      <div id="nbc-filter-selects" className="nbc-filter-selects" data-open={filtersOpen || undefined}>
       <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...projectHandlers(projectId), ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
       <GlassSelect aria-label="Work area" value={area} onChange={(e) => filter('area', e.target.value)}><option value="">All areas</option>{[...new Set(activities.map((a) => a.area))].map((a) => <option key={a}>{a}</option>)}</GlassSelect>
       <GlassSelect aria-label="Progress range" value={range} onChange={(e) => setRange(e.target.value)}><option value="all">All progress</option><option value="zero">0% · Not started</option><option value="active">1–99% · In progress</option><option value="done">100% · Done</option></GlassSelect>
+      </div>
       <button className="nbc-chip" aria-pressed={changed} onClick={() => setChanged(!changed)}>Changed this week</button>
       {chips.map((c) => <button key={c.key} className="nbc-chip" aria-label={`Remove ${c.label} filter`} onClick={() => filter(c.key, '')}>{c.label}<X size={12}/></button>)}
       {active && <button className="text-link small" onClick={clear}>Clear all</button>}

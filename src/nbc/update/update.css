@@ -131,7 +131,7 @@
 .nbc-gate-list small { color: var(--text-secondary); font-size: 13px; }
 .nbc-gate-go { padding: 12px 32px; font-size: 16px; border-radius: var(--radius-pill); }
 
-/* Table inside the update screen — uniform row height (36px), fixed table layout to prevent shifting on input, and no blue outline on updated rows */
+/* Table inside the update screen — uniform row height (--pp-row), fixed table layout to prevent shifting on input, and no blue outline on updated rows */
 .nbc-update .nbc-wbs {
   table-layout: fixed;
   width: 100%;
@@ -143,12 +143,12 @@
 .nbc-update .nbc-wbs thead th:nth-child(5) { width: 140px; }
 
 .nbc-update .nbc-wbs tr {
-  height: 36px;
-  max-height: 36px;
+  height: var(--pp-row);
+  max-height: var(--pp-row);
 }
 .nbc-update .nbc-wbs td {
-  height: 36px;
-  max-height: 36px;
+  height: var(--pp-row);
+  max-height: var(--pp-row);
   padding: 0 12px;
   vertical-align: middle;
   box-sizing: border-box;
@@ -160,7 +160,7 @@
   box-shadow: none !important;
   outline: none !important;
 }
-.nbc-update .nbc-wbs tr[data-changed=true] td { background: color-mix(in srgb, var(--accent) 7%, var(--bg-canvas)); }
+.nbc-update .nbc-wbs tr[data-changed=true] td { background: color-mix(in srgb, var(--pp-accent) 8%, var(--pp-l3)); }
 .nbc-update .nbc-wbs tr[data-problem=true] td { background: color-mix(in srgb, var(--danger-text) 10%, var(--bg-canvas)); }
 
 .nbc-update .nbc-desc {
@@ -371,7 +371,9 @@
   .nbc-update .nbc-wbs, .nbc-update .nbc-wbs tbody, .nbc-update .nbc-wbs tr, .nbc-update .nbc-wbs td { display: block; }
   .nbc-update .nbc-wbs tbody tr { height: auto; max-height: none; margin-bottom: 8px; padding: 8px 12px; background: var(--bg-raised); border-radius: 14px; box-shadow: 0 0 0 .5px var(--border-subtle); }
   .nbc-update .nbc-wbs tr[data-group=true] { background: transparent; box-shadow: none; padding: 12px 4px 2px; }
-  .nbc-update .nbc-wbs td { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); height: auto; min-height: 32px; border: 0; padding: 2px 0; background: transparent !important; }
+  .nbc-update .nbc-wbs td { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); height: auto; min-height: 32px; border: 0; padding: 2px 0; }
+  /* Cards are transparent; the room matrix stays a grid with its own opaque tier colors (room-matrix.css). */
+  .nbc-update .nbc-wbs:not(.nbc-rooms) td { background: transparent !important; }
   .nbc-update .nbc-wbs td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--text-secondary); font-family: inherit; flex: none; }
   .nbc-update .nbc-wbs td[data-label=Description]::before, .nbc-update .nbc-wbs td[data-label=WBS]::before { content: none; }
   .nbc-update .nbc-wbs tr[data-changed=true], .nbc-update .nbc-wbs tr[data-problem=true] { box-shadow: 0 0 0 1.5px var(--accent); }

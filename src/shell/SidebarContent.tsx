@@ -104,6 +104,7 @@ export function SidebarContent({
                     aria-controls={viewsId}
                     aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${project.name}`}
                     title={project.name}
+                    style={{ '--pct': Math.round(project.progress * 100) } as React.CSSProperties}
                     onClick={() => toggleProject(project.id)}
                   >
                     <span className="nav-icon project-chevron" aria-hidden="true">

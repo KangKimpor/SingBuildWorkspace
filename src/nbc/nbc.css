@@ -78,7 +78,7 @@ html:has(.nbc-project) .canvas { padding-top: 0; }
 .nbc-field { display: grid; gap: var(--space-8); min-width: 0; font-size: var(--fs-small); }
 .nbc-field textarea, .nbc-field input { width: 100%; min-width: 0; font: inherit; border: 1px solid var(--border-subtle); background: var(--bg-raised); color: var(--text-primary); border-radius: var(--radius-control); padding: var(--space-8); }
 .nbc-sheet-fields { display: grid; gap: var(--space-16); padding-bottom: calc(var(--space-24) + var(--safe-bottom, 0px)); min-width: 0; }
-.nbc-project :focus-visible, .nbc-sheet-fields :focus-visible { outline: 2px solid var(--accent-text); outline-offset: var(--space-2); }
+.nbc-project :focus-visible, .nbc-sheet-fields :focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: var(--space-2); }
 .nbc-project .nbc-num { font-variant-numeric: tabular-nums; }
 @media (max-width: 767px) {
   .nbc-project.workspace-surface { padding: 12px 14px; gap: 10px; }
@@ -105,14 +105,15 @@ html:has(.nbc-project) .canvas { padding-top: 0; }
 /* One toolbar row above both progress tables: shared height, gap and search width. */
 .nbc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .nbc-filters .search-field { flex: 1 1 180px; max-width: 260px; min-width: 0; }
-.nbc-filters .glass-select { border-color: var(--border-subtle); }
+.nbc-filters .glass-select { border-color: var(--pp-line-strong); background: var(--pp-l3); }
+.nbc-filters .glass-select:hover { border-color: var(--pp-ink-muted); }
 .nbc-filters .nbc-spacer { flex: 1 1 auto; min-width: 0; }
 .nbc-filters .nbc-expand-editor { flex: none; }
 
 /* Chips: one shape and one height across both progress screens. */
-.nbc-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 0; background: var(--status-neutral-bg); color: var(--text-primary); border-radius: 7px; padding: 0 11px; min-height: var(--h-button); font-size: 12px; font-weight: 500; white-space: nowrap; }
-.nbc-chip:hover { background: var(--bg-pressed); }
-.nbc-chip[aria-pressed=true] { background: var(--bg-selected); color: var(--text-primary); }
+.nbc-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid transparent; background: var(--bg-sidebar); color: var(--pp-ink); border-radius: 6px; padding: 0 11px; min-height: var(--h-button); font-size: 12px; font-weight: 500; white-space: nowrap; }
+.nbc-chip:hover { background: var(--pp-wash); }
+.nbc-chip[aria-pressed=true] { background: var(--pp-selected); color: var(--pp-accent-ink); border-color: color-mix(in srgb, var(--pp-accent) 40%, transparent); }
 
 /* Expanded editors keep their mounted content and use the whole workspace. */
 .nbc-expand-editor { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-subtle); background: var(--bg-raised); border-radius: 8px; min-height: 32px; padding: 0 11px; font-size: 12px; font-weight: 500; }
@@ -127,4 +128,36 @@ html:has(.nbc-project) .canvas { padding-top: 0; }
 .nbc-activities-page[data-expanded=true] .nbc-activities > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 @media (max-width: 639px) {
   .nbc-project:has(.nbc-activities-page[data-expanded=true]) { height: calc(100dvh - 48px - var(--safe-top)); padding: 12px 16px max(12px, var(--safe-bottom)); }
+}
+
+/* Project Progress re-skin: page header, tabs and toolbar. Colors from the `--pp-*` tokens; the sidebar and shell are untouched. */
+.nbc-project-header p { color: var(--pp-ink-2); }
+.nbc-project .nbc-export-button { min-height: 32px; padding: 0 12px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font-size: 13px; font-weight: 500; }
+.nbc-project .nbc-export-button:hover:not(:disabled) { background: var(--pp-wash); }
+.nbc-tabs .view-tab { color: var(--pp-ink-2); }
+.nbc-tabs .view-tab:hover { color: var(--pp-ink); }
+.nbc-tabs .view-tab[aria-current=page] { color: var(--pp-ink); }
+/* Toolbar: one wrapping row of 32px controls with 6px corners. */
+.nbc-filters { gap: 8px; }
+.nbc-filters .search-field { min-width: 170px; min-height: 32px; border-color: var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink-2); }
+.nbc-filters .search-field:hover { border-color: var(--pp-ink-muted); }
+.nbc-filters .search-field input { color: var(--pp-ink); font-size: 13px; }
+.nbc-filters .search-field input::placeholder { color: var(--pp-ink-muted); opacity: 1; }
+.nbc-filters .search-field kbd { font: 500 11px var(--font-mono); color: var(--pp-ink-2); border: 1px solid var(--pp-line-strong); border-radius: 4px; padding: 0 5px; line-height: 16px; background: transparent; }
+.nbc-filters .ibtn { width: 32px; height: 32px; min-height: 32px; border-radius: 6px; color: var(--pp-ink-2); }
+.nbc-filters .ibtn:hover { background: var(--pp-wash); color: var(--pp-ink); }
+.nbc-filters .text-link { color: var(--pp-accent-ink); }
+.nbc-filter-selects { display: contents; }
+.nbc-filters-toggle { display: none; }
+.nbc-filters-count { font-weight: 600; }
+.nbc-seg { background: var(--bg-sidebar); border: 1px solid var(--pp-line); max-width: 100%; overflow-x: auto; }
+.nbc-seg button { border: 1px solid transparent; color: var(--pp-ink-2); }
+.nbc-seg button:hover:not(:disabled) { color: var(--pp-ink); background: var(--pp-wash); }
+.nbc-seg button[aria-pressed=true] { background: var(--pp-l3); color: var(--pp-ink); border-color: var(--pp-line-strong); box-shadow: 0 1px 2px rgb(0 0 0 / .14); }
+/* Phones: the handler, area and progress filters fold behind a Filters button (open by default when one is already applied). Same controls, same behavior. */
+@media (max-width: 640px) {
+  .nbc-activities .nbc-filters-toggle { display: inline-flex; }
+  .nbc-activities .nbc-filter-selects { display: none; }
+  .nbc-activities .nbc-filter-selects[data-open] { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 8px; }
+  .nbc-activities .nbc-filter-selects[data-open] .glass-select { flex: 1 1 120px; min-width: 0; }
 }

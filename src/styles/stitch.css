@@ -105,3 +105,25 @@ html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='
 @media (prefers-reduced-motion: reduce) {
   .sidebar, .nav-item, .nav-project-views-wrap { transition: none; }
 }
+
+/* Sidebar matched to the Project Progress prototype: flat panel with a hairline edge, plain project rows with a thin progress bar, tinted active view. Width and background keep their existing values. */
+.sidebar { border: 0; border-right: 1px solid var(--pp-line); border-radius: 0; box-shadow: none; transition: width 180ms ease; }
+.sidebar[data-collapsed='true'] { border-radius: 0; }
+.nav-section > .t-caption { color: var(--pp-ink-2); font-weight: 600; letter-spacing: .05em; }
+.nav-progress { gap: 2px; }
+.nav-progress > li { padding: 0; margin-bottom: 0; border-bottom: 0; }
+.nav-project-toggle { position: relative; min-height: 46px !important; padding: 6px 10px 10px 6px !important; border-radius: 8px; }
+.nav-project-toggle:hover { background: var(--pp-wash); }
+.nav-project-toggle .project-chevron { color: var(--pp-ink-2); }
+.project-name { color: var(--pp-ink); }
+.project-subtitle { color: var(--pp-ink-2); }
+.nav-project-toggle .nav-meta, .nav-progress > li[data-current='true'] .nav-meta { padding: 0; border-radius: 0; background: transparent; color: var(--pp-ink-2); }
+.nav-project-toggle::after { content: ''; position: absolute; inset-inline: 32px 10px; bottom: 5px; height: 2px; border-radius: 2px; background: linear-gradient(to right, var(--pp-accent) calc(var(--pct, 0) * 1%), var(--pp-line) 0); pointer-events: none; }
+.sidebar[data-collapsed='true'] .nav-project-toggle::after { display: none; }
+.sidebar-body .nav-project-views { gap: 1px; margin: 2px 0 8px 17px; padding: 0 0 0 8px; border-left: 1px solid var(--pp-line); }
+.sidebar-body .nav-item:hover, .sidebar-foot .nav-item:hover { background: var(--pp-wash); color: var(--pp-ink); }
+.nav-project-views .nav-item, .sidebar-foot .nav-item { min-height: 32px; border-radius: 6px; color: var(--pp-ink-2); }
+.nav-project-views .nav-item[aria-current='page'], html:has(.nbc-project) .sidebar-body .nav-project-views .nav-item[aria-current='page'] { background: var(--pp-selected); color: var(--pp-accent-ink); font-weight: 600; }
+.nav-project-views .nav-item[aria-current='page'] .nav-icon { color: var(--pp-accent-ink); }
+.sidebar-foot { border-top: 1px solid var(--pp-line); }
+@media (pointer: coarse) { .nav-project-views .nav-item, .sidebar-foot .nav-item { min-height: 44px; } }

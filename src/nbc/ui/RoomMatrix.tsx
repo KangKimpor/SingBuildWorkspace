@@ -6,6 +6,7 @@ import { percent } from '../format'
 import { visibleRoomRows } from '../rooms'
 import type { RoomFloor, RoomRow } from '../rooms'
 import type { NbcActivity } from '../types'
+import { nowCellProps } from './now-cell'
 
 export interface RoomMatrixProps {
   floor: RoomFloor
@@ -25,6 +26,12 @@ export interface RoomMatrixProps {
   rowAttrs?: (row: RoomRow) => Record<string, string | boolean | undefined>
 }
 
+/** Room codes like `CSK4-2301` read as type above, number below; the hyphen stays for screen readers and copy. Area labels (`code\nplace`) and anything else render as they are. */
+const roomHead = (label: string | undefined) => {
+  const parts = label ? /^([A-Z0-9]+)-(\d+)$/.exec(label) : null
+  return parts ? <><span className="nbc-room-type">{parts[1]}</span><span className="sr-only">-</span><span className="nbc-room-no">{parts[2]}</span></> : label
+}
+
 /** One column per room: rooms of the same type keep their own percentages. */
 export function RoomMatrix({ floor, caption, collapsed, onToggle, progress, previous, show, cell, cellAttrs, extra = [], onRowClick, rowAttrs }: RoomMatrixProps) {
   const rows = visibleRoomRows(floor, show, collapsed)
@@ -34,7 +41,7 @@ export function RoomMatrix({ floor, caption, collapsed, onToggle, progress, prev
       <th scope="col" className="nbc-room-sticky-1">Item</th><th scope="col" className="nbc-room-sticky-2">Description</th>
       <th scope="col" className="nbc-num">Prev %</th><th scope="col" className="nbc-num">Now %</th>
       {extra.map((c) => <th scope="col" key={c.header}>{c.header}</th>)}
-      {floor.rooms.map((room, i) => <th scope="col" key={room} className="nbc-room-head" title={floor.labels[i]}>{floor.labels[i]}</th>)}
+      {floor.rooms.map((room, i) => <th scope="col" key={room} className="nbc-room-head" title={floor.labels[i]}>{roomHead(floor.labels[i])}</th>)}
     </tr></thead>
     <tbody>{rows.map((row) => {
       const a = row.activity, open = !collapsed.has(a.id)
@@ -45,7 +52,7 @@ export function RoomMatrix({ floor, caption, collapsed, onToggle, progress, prev
           {onRowClick ? <button className="nbc-name nbc-name-button" onClick={() => onRowClick(row)}>{a.name}</button> : <span className="nbc-name">{a.name}</span>}
         </div></td>
         <td className="nbc-num" data-label="Prev %">{percent(previous.get(a.id) ?? 0, 1)}</td>
-        <td className="nbc-num" data-label="Now %">{percent(progress.get(a.id) ?? 0, 1)}</td>
+        <td className="nbc-num" data-label="Now %" {...nowCellProps(progress.get(a.id) ?? 0, previous.get(a.id) ?? 0)}>{percent(progress.get(a.id) ?? 0, 1)}</td>
         {extra.map((c) => <td key={c.header} data-label={c.header}>{row.task ? c.cell(row) : null}</td>)}
         {row.task
           ? floor.rooms.map((room) => {
