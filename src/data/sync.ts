@@ -21,6 +21,9 @@ const pending = new Map<string, Write>()
 const versions = new Map<string, string>()
 const EPOCH = '1970-01-01T00:00:00+00:00'
 const FULL_RECONCILE_MS = 14 * 24 * 60 * 60 * 1000
+// Rows deleted on the server never reach a device that only pulls newer rows. A snapshot whose last full read is older than this
+// reads everything once more: the BP02 Weekly 63 migration (12 Nov 2026) deleted 134 activities.
+const RECONCILE_AFTER = Date.parse('2026-11-12T05:30:00Z')
 const SNAPSHOT_DELAY_MS = 1200
 /**
  * Collections large enough that a full reconcile should read only a small
@@ -346,7 +349,7 @@ async function switchAccount(session: Session | null) {
         watermarks = new Map(Object.entries(snapshot.watermarks ?? {}) as [CloudCollection, string][])
         lastFullPull = snapshot.lastFullPull ? Date.parse(snapshot.lastFullPull) || Date.now() : (watermarks.size > 0 ? Date.now() : 0)
         // A snapshot with watermarks can resume incrementally instead of pulling 8 MB of BOQ again.
-        hydrated = watermarks.size > 0
+        hydrated = watermarks.size > 0 && (Date.parse(snapshot.lastFullPull ?? '') || 0) >= RECONCILE_AFTER
         const normalized = normalize(snapshot.content)
         for (const col of collections) {
           for (const item of (normalized[col] ?? []) as { id?: string; updatedAt?: string }[]) {
