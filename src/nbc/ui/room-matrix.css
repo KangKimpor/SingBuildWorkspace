@@ -13,21 +13,24 @@
   .nbc-rooms thead th:is(:nth-child(3), :nth-child(4)) { z-index: 6; }
   .nbc-rooms :is(th, td):nth-child(3) { left: var(--left-prev); }
   .nbc-rooms :is(th, td):nth-child(4) { left: var(--left-now); border-right: 1px solid var(--pp-line-strong); }
-  .nbc-rooms .nbc-room-sticky { border-right: 0; }
+  .nbc-rooms td.nbc-room-sticky { border-right: 1px solid var(--row-line); }
+  .nbc-rooms th.nbc-room-sticky { border-right: 1px solid var(--pp-line-strong); }
 }
 
 /* Handler names are shown in full, so the column grows to fit them. */
-.nbc-rooms td[data-label=Handler] { white-space: nowrap; }
+.nbc-rooms td[data-label=Handler] { white-space: nowrap; border-right: 1px solid var(--row-line); }
 .nbc-rooms th:nth-child(5):not(.nbc-room-head) { min-width: 120px; }
 
 /* Room columns: type above, number below (see RoomMatrix.tsx). Area panels keep a code and a place name on two lines, so their columns are wider. */
-.nbc-rooms thead th.nbc-room-head { min-width: var(--pp-w-room); max-width: 86px; text-align: center; white-space: pre-line; overflow-wrap: anywhere; font-family: var(--font-mono); letter-spacing: 0; line-height: 1.2; padding: 4px 2px; border-right: 1px solid var(--pp-line-cell); text-transform: none; }
+.nbc-rooms thead th.nbc-room-head { min-width: var(--pp-w-room); max-width: 86px; text-align: center; white-space: pre-line; overflow-wrap: anywhere; font-family: var(--font-mono); letter-spacing: 0; line-height: 1.2; padding: 6px 4px; border-right: 1px solid var(--pp-line-strong); text-transform: none; }
+.nbc-rooms thead th.nbc-room-head:last-child { border-right: 0; }
 .nbc-rooms .nbc-room-type, .nbc-rooms .nbc-room-no { display: block; font-family: var(--font-mono); }
 .nbc-rooms .nbc-room-type { font-size: 10px; font-weight: 500; color: var(--pp-ink-2); }
 .nbc-rooms .nbc-room-no { font-size: 12px; font-weight: 600; color: var(--pp-ink); }
 .nbc-rooms td.nbc-room-cell { padding: 0 3px; text-align: center; font-size: 12px; font-weight: 600; min-width: var(--pp-w-room); border-right: 1px solid var(--pp-line-cell); }
 /* Room cells keep a plain background: never tinted by percentage, and done, in-progress and not-started cells look alike. */
 .nbc-rooms td.nbc-room-na { background-image: repeating-linear-gradient(135deg, transparent 0 5px, var(--pp-hatch) 5px 6px); border-right: 1px solid var(--pp-line-cell); }
+.nbc-rooms td:is(.nbc-room-cell, .nbc-room-na):last-child { border-right: 0; }
 .nbc-rooms td.nbc-room-fill { border-right: 0; }
 .nbc-rooms tr[data-level='2'] td.nbc-room-fill { background-color: var(--row-bg); }
 .nbc-rooms td.nbc-room-cell[data-problem='true'] { box-shadow: inset 0 0 0 2px var(--danger, #dc2626); }
@@ -46,7 +49,8 @@
   .nbc-rooms { --pp-w-desc: 220px; --pp-w-now: 96px; }
 }
 /* Phones turn the other tables into cards (activities.css, update.css) but keep the matrix a grid, so it takes its tier colors back and drops the card labels. */
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td { background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td { background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); border-right: 1px solid var(--row-line); }
+:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td:last-child, :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td.nbc-room-fill { border-right: 0; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td[data-label].nbc-num:nth-child(3) { color: var(--row-ink-2); }
 @media (max-width: 767px) {
   .nbc-activities .nbc-rooms.nbc-wbs td[data-label]:not([data-label=WBS]):not([data-label=Description])::before { content: none; }
@@ -90,8 +94,3 @@
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-cell { padding: 0 3px; width: var(--pp-w-room); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td[data-label=Description] .nbc-desc { overflow: hidden; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky { padding-inline-end: 6px; }
-
-/* Header band: every column is closed off by a clear divider and the band sits on a heavier base line, so the codes are easy to tell apart. */
-.nbc-wbs thead th { border-bottom: 2px solid var(--pp-line-strong); }
-.nbc-wbs thead th:not(:last-child), .nbc-wbs thead th.nbc-room-head:not(:last-child) { border-right: 1px solid var(--pp-line-strong); }
-.nbc-rooms thead th.nbc-room-head { padding: 6px 4px; }

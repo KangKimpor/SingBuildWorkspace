@@ -20,8 +20,10 @@
   --row-bg: var(--pp-l2); --row-line: var(--pp-l2-line); --row-link: var(--pp-l2-link); --name-weight: 600; --num-weight: 600;
 }
 
-.nbc-wbs thead th { position: sticky; top: 0; z-index: 3; height: 44px; background: var(--pp-band); color: var(--pp-ink); font-weight: 600; text-align: start; padding: 0 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; border-bottom: 1px solid var(--pp-line-strong); border-right: 0; border-left: 0; border-top: 0; }
-.nbc-wbs td { position: relative; padding: 4px 12px; height: var(--pp-row); vertical-align: middle; background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); border-right: 0; border-left: 0; border-top: 0; }
+.nbc-wbs thead th { position: sticky; top: 0; z-index: 3; height: 44px; background: var(--pp-band); color: var(--pp-ink); font-weight: 600; text-align: start; padding: 0 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; border-bottom: 2px solid var(--pp-line-strong); border-right: 1px solid var(--pp-line-strong); border-left: 0; border-top: 0; }
+.nbc-wbs thead th:last-child { border-right: 0; }
+.nbc-wbs td { position: relative; padding: 4px 12px; height: var(--pp-row); vertical-align: middle; background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); border-right: 1px solid var(--row-line); border-left: 0; border-top: 0; }
+.nbc-wbs td:last-child { border-right: 0; }
 /* The last row keeps its bottom border: a short table (for example the changed-only view after confirming) would otherwise end open-ended inside the taller scroll area. */
 .nbc-wbs td.nbc-num { font-weight: var(--num-weight); }
 .nbc-wbs td[data-label='Prev %'], .nbc-wbs td[data-label='Previous week %'] { color: var(--row-ink-2); font-weight: 400; }
