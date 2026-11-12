@@ -10,7 +10,7 @@ export function Sidebar() {
   return (
     <div className="sidebar-slot" data-collapsed={collapsed}>
       <Glass as="aside" material="regular" className="sidebar" aria-label="Sidebar" data-testid="sidebar" data-collapsed={collapsed}>
-        <SidebarContent collapsed={collapsed} onToggleCollapsed={() => useShell.getState().setSidebarOpen(collapsed)} />
+        <SidebarContent />
       </Glass>
     </div>
   )

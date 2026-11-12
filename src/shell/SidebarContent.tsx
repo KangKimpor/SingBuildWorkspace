@@ -4,8 +4,6 @@ import {
   ChevronDown,
   ChevronRight,
   Eye,
-  PanelLeftClose,
-  PanelLeftOpen,
   Settings,
   SquarePen,
 } from 'lucide-react'
@@ -29,15 +27,7 @@ function Item({ to, icon, label, onNavigate }: { to: string; icon: React.ReactNo
 }
 
 /** Sidebar contents, shared by the persistent sidebar and the overlay drawer. */
-export function SidebarContent({
-  onNavigate,
-  collapsed = false,
-  onToggleCollapsed,
-}: {
-  onNavigate?: () => void
-  collapsed?: boolean
-  onToggleCollapsed?: () => void
-}) {
+export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const projects = useProjects()
   const progressProjects = projects.filter((p) => p.nbcBp03).sort((a, b) => bpNumber(a.name) - bpNumber(b.name))
   const { pathname } = useLocation()
@@ -72,18 +62,6 @@ export function SidebarContent({
       <div className="sidebar-header">
         <img className="brand-logo" src="/brand/favicon.svg" alt="" width={28} height={28} />
         <span className="sidebar-brand">SingBuild Workspace</span>
-        {onToggleCollapsed && (
-          <button
-            type="button"
-            className="sidebar-collapse"
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            aria-pressed={!collapsed}
-            onClick={onToggleCollapsed}
-          >
-            {collapsed ? <PanelLeftOpen {...ic} /> : <PanelLeftClose {...ic} />}
-          </button>
-        )}
       </div>
 
       <nav className="sidebar-body" aria-label="Primary">

@@ -16,9 +16,9 @@
   .nbc-rooms .nbc-room-sticky { border-right: 0; }
 }
 
-/* Handler column stays narrow; the full list is in its title. */
-.nbc-rooms td[data-label=Handler] { max-width: 112px; }
-.nbc-rooms th:nth-child(5):not(.nbc-room-head) { width: 112px; }
+/* Handler names are shown in full, so the column grows to fit them. */
+.nbc-rooms td[data-label=Handler] { white-space: nowrap; }
+.nbc-rooms th:nth-child(5):not(.nbc-room-head) { min-width: 120px; }
 
 /* Room columns: type above, number below (see RoomMatrix.tsx). Area panels keep a code and a place name on two lines, so their columns are wider. */
 .nbc-rooms thead th.nbc-room-head { min-width: var(--pp-w-room); max-width: 86px; text-align: center; white-space: pre-line; overflow-wrap: anywhere; font-family: var(--font-mono); letter-spacing: 0; line-height: 1.2; padding: 4px 2px; border-right: 1px solid var(--pp-line-cell); text-transform: none; }
@@ -90,3 +90,8 @@
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-cell { padding: 0 3px; width: var(--pp-w-room); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td[data-label=Description] .nbc-desc { overflow: hidden; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs td.nbc-room-sticky { padding-inline-end: 6px; }
+
+/* Header band: every column is closed off by a clear divider and the band sits on a heavier base line, so the codes are easy to tell apart. */
+.nbc-wbs thead th { border-bottom: 2px solid var(--pp-line-strong); }
+.nbc-wbs thead th:not(:last-child), .nbc-wbs thead th.nbc-room-head:not(:last-child) { border-right: 1px solid var(--pp-line-strong); }
+.nbc-rooms thead th.nbc-room-head { padding: 6px 4px; }

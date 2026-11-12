@@ -6,10 +6,10 @@
 .nbc-hint { margin: 0; }
 .nbc-spacer { flex: 1; }
 .nbc-columns { display: grid; gap: var(--space-8); padding: var(--space-8); }
-.nbc-handler-button { display: inline-flex; align-items: center; gap: 7px; max-width: 96px; height: 26px; padding: 0 6px 0 3px; border: 1px solid transparent; border-radius: 6px; background: transparent; font: inherit; font-size: 12px; color: var(--row-ink, var(--pp-ink)); cursor: pointer; }
-.nbc-handler-button:hover { border-color: var(--pp-line-strong); background: var(--pp-l3); color: var(--pp-ink); }
-.nbc-handler-name { min-width: 0; max-width: 62px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nbc-wbs td span[title='Shared 50/50'] { display: block; max-width: 96px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Handler names are shown whole, never clipped. */
+.nbc-handler { display: inline-flex; align-items: center; gap: 7px; height: 26px; padding: 0 6px 0 3px; font-size: 12px; color: var(--row-ink, var(--pp-ink)); white-space: nowrap; }
+.nbc-handler-text { white-space: nowrap; }
+.nbc-wbs td span[title='Shared 50/50'], .nbc-wbs td .nbc-group-handlers { white-space: nowrap; }
 .nbc-activities > .nbc-wbs-scroll { max-height: calc(100dvh - 18.5rem); }
 /* Wider than a phone, Project Progress is one screen: the table takes the height that is left and the counter and legend sit at the bottom, as on Update Progress. */
 @media (min-width: 768px) {
@@ -83,7 +83,7 @@
   .nbc-activities .nbc-wbs tr[data-group=true][data-wbs] td { background: transparent; }
   .nbc-activities .nbc-wbs tr[data-group=true] td:nth-child(n+3) { display: none; }
   .nbc-activities .nbc-wbs-no { overflow-wrap: anywhere; }
-  .nbc-activities .nbc-handler-button { min-height: 44px; max-width: none; }
+  .nbc-activities .nbc-handler { min-height: 44px; }
   .nbc-activities .nbc-toggle { width: 44px; height: 44px; }
   .nbc-activity-band .nbc-view { display: inline-flex; align-items: center; min-height: 44px; }
   .nbc-activity-band .nbc-expand-editor { min-height: 44px; }

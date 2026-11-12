@@ -92,18 +92,20 @@ test('a new issue clears search and preserves the selected WBS link', () => {
   expect(screen.queryByText('No matching issues')).toBeNull()
 })
 
-test('clicking an activity name opens its details in a side panel', () => {
+test('activity names open nothing and handlers are shown in full, without a picker', () => {
   setup()
-  fireEvent.click(screen.getByRole('button', { name: 'Install board' }))
-  expect(screen.getByRole('dialog')).toBeTruthy()
-  expect(screen.getByText('Progress history')).toBeTruthy()
-  expect(within(screen.getByRole('dialog')).getByText('Tola')).toBeTruthy()
+  expect(screen.queryByRole('button', { name: 'Install board' })).toBeNull()
+  expect(screen.queryByRole('dialog')).toBeNull()
+  expect(screen.getByTitle('Sitha, Tola')).toBeVisible()
+  expect(screen.queryByRole('button', { name: /Assign handler/ })).toBeNull()
 })
 
-test('groups show their handlers and support reassignment', () => {
+test('the toolbar has no area or progress selectors, columns menu or more menu, and search has no shortcut tag', () => {
   setup()
-  expect(screen.getByTitle('Sitha, Tola')).toBeVisible()
-  fireEvent.click(screen.getByRole('button', { name: 'Assign handler for 1.6.1.2: Tola' }))
-  fireEvent.change(document.querySelector('select[aria-label="Handler for 1.6.1.2"]')!, { target: { value: 'Sitha' } })
-  expect(useWorkspace.getState().nbc_activities?.find((a) => a.wbs === '1.6.1.2')?.handler).toBe('Sitha')
+  expect(screen.queryByLabelText('Work area')).toBeNull()
+  expect(screen.queryByLabelText('Progress range')).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Columns' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Activity tools' })).toBeNull()
+  expect(screen.getByPlaceholderText('Search activity')).toBeTruthy()
+  expect(document.querySelector('.search-field kbd')).toBeNull()
 })

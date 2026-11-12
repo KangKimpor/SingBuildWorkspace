@@ -20,7 +20,7 @@ const GROUPS = [['location', 'Floor'], ['area', 'Work area'], ['trade', 'Trade']
 const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
 
 export default function Overview({ project, activities, submissions, summaries, baseline }: { project: ProjectSummary; activities: NbcActivity[]; submissions: NbcSubmission[]; summaries: NbcWeekSummary[]; baseline: Map<string, number> }) {
-  const [now, setNow] = useState(Date.now), [breakdown, setBreakdown] = useState(true)
+  const [now, setNow] = useState(Date.now)
   const [group, setGroup] = useState<BreakdownField | 'heatmap'>('location')
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
   const overall = useMemo(() => { try { return calculate(activities).overall } catch { return 0 } }, [activities])
@@ -44,9 +44,8 @@ export default function Overview({ project, activities, submissions, summaries, 
     <Attention items={attention}/>
     <Trend summaries={summaries} today={today} plan={plan}/>
     <div className="nbc-progress-panels"><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/>
-    <section className="nbc-execution"><div className="row-between"><div><h2>Completion breakdown</h2><p className="small muted">Furthest behind first. Select a row to open its activities.</p></div><div className="nbc-seg" role="group" aria-label="Breakdown grouping">{GROUPS.map(([key, label]) => <button key={key} aria-pressed={group === key} onClick={() => { setGroup(key); setBreakdown(true) }}>{label}</button>)}</div></div>
-      {breakdown && <div className="nbc-breakdowns">{group === 'heatmap' ? <Heatmap activities={activities}/> : <Breakdown field={group} activities={activities} previous={baseline}/>}</div>}
-      <button className="nbc-linkish nbc-breakdown-toggle" aria-expanded={breakdown} onClick={() => setBreakdown(!breakdown)}>{breakdown ? 'Hide breakdown' : 'Show breakdown'}</button>
+    <section className="nbc-execution"><div className="row-between"><div><h2>Completion breakdown</h2><p className="small muted">Furthest behind first. Select a row to open its activities.</p></div><div className="nbc-seg" role="group" aria-label="Breakdown grouping">{GROUPS.map(([key, label]) => <button key={key} aria-pressed={group === key} onClick={() => setGroup(key)}>{label}</button>)}</div></div>
+      <div className="nbc-breakdowns">{group === 'heatmap' ? <Heatmap activities={activities}/> : <Breakdown field={group} activities={activities} previous={baseline}/>}</div>
     </section></div>
   </div>
 }
