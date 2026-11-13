@@ -44,7 +44,10 @@ export function PhoneTopBar({ crumb }: { crumb: Crumb }) {
   const registered = usePhoneHeaderState()
   const { pathname } = useLocation()
   const settings = inSettings.test(pathname)
-  const header: PhoneHeader = registered ?? (settings ? { title: 'Settings', back: '/projects-progress' } : { title: crumb.label })
+  const fallbackTitle = settings ? 'Settings' : crumb.label
+  const header: PhoneHeader = registered
+    ? { ...registered, title: registered.title || fallbackTitle }
+    : settings ? { title: 'Settings', back: '/projects-progress' } : { title: crumb.label }
   const [searchAt, setSearchAt] = useState<string | null>(null)
   const search = header.search
   // Search stays open while it holds a query, and closes when the screen changes.

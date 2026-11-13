@@ -21,6 +21,7 @@ import { PhoneProject } from './mobile/PhoneProject'
 const EMPTY_ACTIVITIES: NbcActivity[] = [], EMPTY_SUBMISSIONS: NbcSubmission[] = [], EMPTY_SUMMARIES: NbcWeekSummary[] = []
 const views = [['overview', 'Overview'], ['activities', 'Project Progress'], ['update', 'Update Progress']] as const
 const ExportWorkbook = lazy(() => import('./export/ExportWorkbook'))
+const PhoneProgress = lazy(() => import('./mobile/PhoneProgress'))
 
 export default function NbcProject({ project, view }: { project: ProjectSummary; view: string }) {
   const scope = useWorkspace((s) => s.scope), [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false)
@@ -93,7 +94,11 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
       {!calculation && !dismissed && <div className="nbc-banner nbc-warning" role="status"><span>Calculation needs attention. Progress editing is paused.</span><button className="ibtn" aria-label="Dismiss calculation warning" onClick={() => setDismissed(true)}><X size={16}/></button></div>}
       {view === 'overview' && <Overview project={project} activities={activities} submissions={submissions} summaries={summaries} baseline={baseline} overall={calculation?.overall}/>}
       {view === 'update' && calculation && <UpdateProgress projectId={project.id} activities={activities} submissions={submissions}/>}
-      {(view === 'activities' || view === 'issues') && (calculation || activityView !== 'activities') && <Activities projectId={project.id} activities={activities} baseline={baseline} view={activityView} rollups={{ live: calculation ?? undefined, before }}/>}
+      {(view === 'activities' || view === 'issues') && (calculation || activityView !== 'activities') && (
+        phone && activityView === 'activities' && calculation
+          ? <Suspense fallback={null}><PhoneProgress projectId={project.id} activities={activities} rollups={{ live: calculation, before }}/></Suspense>
+          : <Activities projectId={project.id} activities={activities} baseline={baseline} view={activityView} rollups={{ live: calculation ?? undefined, before }}/>
+      )}
     </>
   return <div className="workspace-surface project-page nbc-project" data-view={view}>
     {phone

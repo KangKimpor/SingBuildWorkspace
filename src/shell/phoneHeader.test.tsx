@@ -1,7 +1,7 @@
 import { act, render, renderHook } from '@testing-library/react'
 import { useState } from 'react'
 import { expect, test, vi } from 'vitest'
-import { usePhoneHeader, usePhoneHeaderState } from './phoneHeader'
+import { usePhoneHeader, usePhoneHeaderPatch, usePhoneHeaderState } from './phoneHeader'
 import type { PhoneHeader } from './phoneHeader'
 
 function Screen(props: PhoneHeader) {
@@ -57,3 +57,20 @@ test('a fresh object and new actions each render update without looping', () => 
   expect(action().props.children).toBe(1)
   view.unmount()
 })
+
+test('patch merges onto the base header without dropping back or actions', () => {
+  const state = renderHook(() => usePhoneHeaderState())
+  const search = { value: '', onChange: () => {}, placeholder: 'Search' }
+  function Child() {
+    usePhoneHeaderPatch({ search })
+    return null
+  }
+  function Layout() {
+    usePhoneHeader({ title: 'NBC BP03', back: '/projects-progress' })
+    return <Child />
+  }
+  const view = render(<Layout />)
+  expect(state.result.current).toEqual({ title: 'NBC BP03', back: '/projects-progress', search })
+  view.unmount()
+})
+

@@ -75,7 +75,8 @@ test('Progress tab lists projects and opens one', async ({ page }) => {
 test('tab bar hides while typing', async ({ page }) => {
   await setup(page)
   await page.goto('/projects-progress/nbc-bp03/activities')
-  const search = page.getByLabel('Search activities')
+  await page.locator('.ptopbar').getByRole('button', { name: 'Search activities' }).tap()
+  const search = page.locator('.ptopbar').getByRole('searchbox', { name: 'Search activities' })
   await search.focus()
   await expect(page.getByTestId('tabbar')).toBeHidden()
   await search.blur()
@@ -100,4 +101,51 @@ test('overview fits: KPIs and attention on the first screen', async ({ page }) =
   const height = await page.evaluate(() => document.documentElement.scrollHeight)
   expect(height).toBeLessThan(1700)
 })
+
+test('view progress down to one activity', async ({ page }) => {
+  const base = fixtureActivities()
+  const nested = [
+    { ...base[0]!, id: 'nbc:1.6', wbs: '1.6', name: 'Phase 1', parentId: null, order: 0 },
+    { ...base[0]!, parentId: 'nbc:1.6', order: 1 },
+    base[1]!,
+    base[2]!,
+  ]
+  await page.addInitScript(({ activities, project }) => {
+    if (!localStorage.getItem('kw-workspace-v1')) {
+      localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], projects: [project], nbc_activities: activities, nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] }))
+    }
+  }, { activities: nested, project: fixtureProject })
+
+  await page.goto('/projects-progress')
+  await page.getByRole('link', { name: /NBC BP03/ }).tap()
+  await page.getByTestId('tabbar').getByRole('link', { name: 'Progress' }).tap()
+  await expect(page).toHaveURL(/\/projects-progress\/nbc-bp03\/activities$/)
+
+  const nestedScroll = await page.evaluate(() => {
+    const main = document.querySelector('main')
+    if (!main) return false
+    for (const el of main.querySelectorAll<HTMLElement>('*')) {
+      const style = getComputedStyle(el)
+      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return true
+    }
+    return false
+  })
+  expect(nestedScroll).toBe(false)
+
+  await page.getByRole('button', { name: /Phase 1/ }).tap()
+  await page.getByRole('button', { name: /Test area/ }).tap()
+  await page.getByRole('button', { name: /Install board/ }).tap()
+
+  const sheet = page.getByRole('dialog')
+  await expect(sheet).toContainText('Previous week %')
+  await expect(sheet).toContainText('25.00%')
+  await page.keyboard.press('Escape')
+  await expect(sheet).toHaveCount(0)
+
+  await page.goBack()
+  await expect(page.getByRole('button', { name: /Test area/ })).toBeVisible()
+  await page.goBack()
+  await expect(page.getByRole('button', { name: /Phase 1/ })).toBeVisible()
+})
+
 
