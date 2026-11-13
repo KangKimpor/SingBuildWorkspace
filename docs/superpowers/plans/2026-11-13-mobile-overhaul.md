@@ -10,6 +10,14 @@
 
 **Spec:** `docs/superpowers/specs/2026-11-13-mobile-overhaul-design.md` — read it first.
 
+## Amendment — 13 November 2026 (owner: Tasks and Search are retired)
+
+Overrides the task text below wherever they differ.
+
+- **Task 2:** `TabBar` renders only on `/projects-progress/:id[/:view]` and shows three `NavLink`s — Overview (`…/overview`), Progress (`…/activities`), Update (`…/update`). No bar and no bottom padding elsewhere. `PhoneTopBar` shows a Settings gear (link to `/settings/account`) when the header has no `back` and the path is not under `/settings`; under `/settings` with no registered header it defaults to title "Settings" and back `/projects-progress`. No `MoreSheet`, no `'more'` sheet kind, no "+" on Tasks.
+- **Task 3:** `PhoneProject` renders no segmented control (the bottom bar is the view switch). It registers the header and renders the one-line week text and the view.
+- **Task 7:** no Tasks redesign and no redesign of search, pages, trash or workspace-project screens. Scope: Settings and sign-in polish, removing desktop leftovers that still show on phone, and the rewritten `e2e/mobile-spacing.spec.ts` (routes: `/projects-progress`, the three project views, `/settings/account`; plus an overflow-only check on `/projects`, `/tasks`, `/search`, `/trash`).
+
 ## Global Constraints
 
 - Phone = viewport width below 768 px. Desktop and tablet (768 px and wider) must look and behave exactly as before.

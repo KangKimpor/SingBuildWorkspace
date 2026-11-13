@@ -2,6 +2,15 @@
 
 13 November 2026. Status: awaiting approval.
 
+## Amendment — 13 November 2026 (owner)
+
+Tasks and Search are retired functions, so they get no tabs. This replaces sections 1, 3 and 7 where they differ:
+
+- **No bottom bar outside a project.** The Progress projects list is the home screen; Settings is a gear icon in its top bar, and Settings has a back arrow to the list.
+- **Inside a project the bottom bar is the project's three views:** Overview · Progress · Update. It replaces the sticky segmented control under the top bar.
+- No More sheet, no quick-add entry point on phones.
+- Tasks, search, pages, trash and workspace-project screens get no phone redesign. They only have to stay free of sideways overflow if someone reaches them by URL.
+
 ## Intent
 
 Staff open the app on their phones mostly to **look at project progress**. They must also be able to do everything else the app does (update progress, tasks, projects, pages, search, settings). Today the phone layout is the desktop tables restyled with CSS, and it is close to unusable. This work rebuilds the phone experience so viewing progress is fast and everything else is comfortable.
