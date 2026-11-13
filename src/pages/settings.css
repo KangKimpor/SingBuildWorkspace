@@ -81,13 +81,13 @@ input.settings-switch:checked::after { transform: translateX(18px); }
   .settings-nav a { padding-inline: 12px; }
   .settings-nav a > svg { display: none; }
 }
-@media (max-width: 600px) {
-  .settings-page > .page-heading { margin-bottom: 24px; }
+@media (max-width: 767px) {
+  .settings-page > .page-heading { display: none; }
   .settings-nav { width: 100%; }
   .settings-nav a { justify-content: center; gap: 8px; padding-inline: 6px; font-size: 12px; }
-  .settings-content { padding: 20px 12px; border-radius: 20px; }
-  .settings-content-heading { margin-bottom: 24px; padding-inline: 4px; }
-  .settings-content-heading h2 { font-size: 23px; }
+  .settings-content { padding: 16px; border-radius: 16px; }
+  .settings-content-heading { margin-bottom: 16px; padding-inline: 0; }
+  .settings-content-heading h2 { font-size: 17px; line-height: 24px; }
   .settings-theme { padding: 16px 12px; }
   .settings-theme-options { gap: 8px; }
   .settings-theme-preview { height: 76px; padding: 10px 6px; }
@@ -100,6 +100,8 @@ input.settings-switch:checked::after { transform: translateX(18px); }
   .settings-install { padding: 16px 12px; gap: 12px; }
   .settings-content .account-profile, .settings-content .account-sync-card, .settings-content .account-action-card { padding: 16px; }
   .settings-content .account-profile > div:nth-child(2) { flex: 1 1 130px; }
+  .settings-content .account-dashboard .btn-secondary,
+  .settings-content .account-backup { min-height: 44px; padding-inline: 14px; }
 }
 @media (pointer: coarse) { .settings-preference:has(.settings-switch) { min-height: 72px; cursor: pointer; } .settings-preference .glass-select { min-height: 44px; } }
 @media (prefers-reduced-motion: reduce) { input.settings-switch, input.settings-switch::after { transition: none; } }

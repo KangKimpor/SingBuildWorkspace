@@ -74,14 +74,17 @@
   line-height: 1.5;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .auth-header {
-    padding: 20px 20px;
+    padding: calc(16px + var(--safe-top)) max(16px, var(--safe-right)) 12px max(16px, var(--safe-left));
   }
   .auth-main {
-    padding: 24px 16px;
+    padding: 16px max(16px, var(--safe-right)) 16px max(16px, var(--safe-left));
   }
   .auth-main .account-auth-card {
-    padding: 28px 22px;
+    padding: 20px;
+  }
+  .auth-footer {
+    padding: 16px max(16px, var(--safe-right)) calc(16px + var(--safe-bottom)) max(16px, var(--safe-left));
   }
 }

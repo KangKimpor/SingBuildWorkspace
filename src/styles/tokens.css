@@ -213,7 +213,7 @@
   }
 }
 
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   :root {
     --content-pad: 16px;
     --fs-title: 2rem;

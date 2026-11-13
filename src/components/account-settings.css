@@ -281,7 +281,7 @@
     font-size: var(--fs-caption);
   }
   .account-auth-card {
-    padding: var(--space-24);
+    padding: 20px;
   }
   .account-action-grid {
     grid-template-columns: 1fr;

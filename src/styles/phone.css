@@ -32,6 +32,11 @@
     line-height: 24px;
   }
 
+  kbd,
+  .kbd {
+    display: none;
+  }
+
   /* Popovers leave their anchor and sit on the bottom edge. Radix positions the wrapper inline. */
   [data-radix-popper-content-wrapper] {
     position: fixed !important;

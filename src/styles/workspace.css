@@ -1364,7 +1364,7 @@ button:disabled {
     left: var(--space-16);
   }
 }
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .topbar .crumbs .brand-crumb,
   .topbar .crumbs .parent {
     display: none;
