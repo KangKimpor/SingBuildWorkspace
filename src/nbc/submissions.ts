@@ -61,10 +61,27 @@ export function weekLabel(week: string) {
   const format = (date: string) => new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
   return `${format(week)} – ${format(addDays(week, 6))}`
 }
+// One index per store array (they are replaced, never mutated): the Overview asks for a status per handler and week.
+const indexes = new WeakMap<readonly NbcActivity[], { ids: Set<string>; assigned: Map<string, Set<string>> }>()
+function activityIndex(activities: NbcActivity[]) {
+  let index = indexes.get(activities)
+  if (!index) {
+    index = { ids: new Set(), assigned: new Map() }
+    for (const a of activities) {
+      index.ids.add(a.id)
+      if (!a.editable) continue
+      let own = index.assigned.get(a.handler)
+      if (!own) index.assigned.set(a.handler, own = new Set())
+      own.add(a.id)
+    }
+    indexes.set(activities, index)
+  }
+  return index
+}
 export function submissionStatus(s: NbcSubmission | undefined, week: string, activities: NbcActivity[], now = Date.now()) {
   if (s?.confirmedAt) {
-    const byId = new Map(activities.map((a) => [a.id, a]))
-    const assigned = new Set(activities.filter((a) => a.editable && a.handler === s.handler).map((a) => a.id))
+    const { ids: byId, assigned: byHandler } = activityIndex(activities)
+    const assigned = byHandler.get(s.handler) ?? new Set<string>()
     const recorded = new Set(appliedEntries(s).filter((e) => byId.has(e.activityId)).map((e) => e.activityId))
     if (assigned.size !== recorded.size || [...assigned].some((id) => !recorded.has(id))) return 'Needs review'
   }

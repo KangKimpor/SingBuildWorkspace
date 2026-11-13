@@ -42,14 +42,31 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
     if (parsed.message) throw new Error(parsed.message)
     return { ...entry, progress: parsed.progress, remark: value?.remark ?? entry.remark, baseRevision: value?.baseRevision ?? entry.baseRevision }
   }
-  const parse = (formValue = form) => rows.map((entry) => parseEntry(entry, formValue))
+  // A row without a form value parses from its own saved progress, so it is parsed once per `rows`,
+  // not on every keystroke (Tola holds about 10,000 BP02 cells). Edited rows are parsed on each change.
+  const entryById = useMemo(() => new Map(rows.map((e) => [e.activityId, e])), [rows])
+  const untouched = useMemo(() => {
+    const empty: HandlerDraft = { values: {}, note: '' }
+    // A stored value outside 0–100% stays null and is parsed (and reported) the slow way, as before.
+    return rows.map((entry) => { try { return parseEntry(entry, empty) } catch { return null } })
+  }, [rows])
+  const parse = (formValue = form) => rows.map((entry, i) => !formValue.values[entry.activityId] && untouched[i] ? untouched[i] : parseEntry(entry, formValue))
   // Display copy: an unparseable row keeps its saved value, so one typo never hides the other edits.
-  const invalid = new Set<string>()
-  const parsed = rows.map((entry) => { try { return parseEntry(entry, form) } catch { invalid.add(entry.activityId); return entry } })
-  const shown = confirmed ? submission.entries : parsed, changed = changedEntries(shown)
+  // Memoized on the form values, so renders that do not edit (focus, sync status) reuse the same arrays.
+  const { parsed, invalid } = useMemo(() => {
+    const invalid = new Set<string>()
+    const parsed = rows.map((entry, i) => {
+      if (!form.values[entry.activityId] && untouched[i]) return untouched[i]
+      try { return parseEntry(entry, form) } catch { invalid.add(entry.activityId); return entry }
+    })
+    return { parsed, invalid }
+    // oxlint-disable-next-line react-hooks/exhaustive-deps -- parseEntry only reads its arguments.
+  }, [rows, untouched, form])
+  const shown = confirmed ? submission.entries : parsed
+  const changed = useMemo(() => changedEntries(shown), [shown])
   const lowered = changed.filter((e) => e.progress < e.previous)
   const byId = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities])
-  const contribution = shown.reduce((sum, e) => sum + (e.progress - e.previous) * (byId.get(e.activityId)?.globalWeight ?? 0), 0)
+  const contribution = useMemo(() => shown.reduce((sum, e) => sum + (e.progress - e.previous) * (byId.get(e.activityId)?.globalWeight ?? 0), 0), [shown, byId])
 
   function change(next: HandlerDraft) {
     setForm(next); setDirty(true)
@@ -61,7 +78,7 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
     }
   }
   function field(id: string, patch: Partial<HandlerDraft['values'][string]>) {
-    const entry = rows.find((e) => e.activityId === id)!
+    const entry = entryById.get(id)!
     setTouched((old) => new Set(old).add(id))
     change({ ...form, values: { ...form.values, [id]: { text: formatPercent(entry.progress), remark: entry.remark, baseRevision: entry.baseRevision, ...form.values[id], ...patch } } })
   }
@@ -90,8 +107,8 @@ export function useUpdateDraft({ projectId, week, handler, activities, submissio
   const status: DraftStatus = dirty ? 'saving' : sync.kind === 'error' ? 'error' : scope !== 'guest' && sync.kind !== 'saved' ? 'local' : 'saved'
   return {
     confirmed, rows, shown, changed, lowered, contribution, invalid, touched, status, error, busy,
-    text: (id: string) => form.values[id]?.text ?? formatPercent(rows.find((e) => e.activityId === id)?.progress ?? 0),
-    remark: (id: string) => form.values[id]?.remark ?? rows.find((e) => e.activityId === id)?.remark ?? '',
+    text: (id: string) => form.values[id]?.text ?? formatPercent(entryById.get(id)?.progress ?? 0),
+    remark: (id: string) => form.values[id]?.remark ?? entryById.get(id)?.remark ?? '',
     setText: (id: string, text: string) => field(id, { text }),
     setRemark: (id: string, remark: string) => field(id, { remark }),
     note: form.note, setNote: (note: string) => change({ ...form, note }),

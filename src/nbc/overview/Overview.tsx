@@ -19,11 +19,11 @@ import { attentionItems } from './insights'
 const GROUPS = [['location', 'Floor'], ['area', 'Work area'], ['trade', 'Trade'], ['heatmap', 'Heatmap']] as const
 const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
 
-export default function Overview({ project, activities, submissions, summaries, baseline }: { project: ProjectSummary; activities: NbcActivity[]; submissions: NbcSubmission[]; summaries: NbcWeekSummary[]; baseline: Map<string, number> }) {
+export default function Overview({ project, activities, submissions, summaries, baseline, overall: known }: { project: ProjectSummary; activities: NbcActivity[]; submissions: NbcSubmission[]; summaries: NbcWeekSummary[]; baseline: Map<string, number>; /** Project roll-up, when the caller already has it. */ overall?: number }) {
   const [now, setNow] = useState(Date.now)
   const [group, setGroup] = useState<BreakdownField | 'heatmap'>('location')
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
-  const overall = useMemo(() => { try { return calculate(activities).overall } catch { return 0 } }, [activities])
+  const overall = useMemo(() => { if (known !== undefined) return known; try { return calculate(activities).overall } catch { return 0 } }, [known, activities])
   const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }), current = weekStart(today)
   const owners = projectHandlers(project.id)
   const active = owners.filter((h) => !handlerComplete(activities, h))

@@ -29,3 +29,6 @@ graphify-out/manifest.json
 
 # MCP config holds access tokens; copy .mcp.example.json to .mcp.json locally
 .mcp.json
+
+# BP02 interaction timings (corepack pnpm perf:bp02)
+perf-results/

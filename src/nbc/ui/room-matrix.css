@@ -67,13 +67,13 @@
 .nbc-rooms[data-area] td.nbc-room-cell { min-width: var(--pp-w-room-area); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs[data-area] td.nbc-room-cell { width: var(--pp-w-room-area); }
 
-/* Soft shadow on the last frozen column once the matrix has been scrolled sideways (scroll-driven; the 1px divider remains without it). */
-@supports (animation-timeline: scroll()) {
-  .nbc-rooms .nbc-room-sticky { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
-  @media (min-width: 901px) {
-    .nbc-rooms .nbc-room-sticky { animation: none; box-shadow: none; }
-    .nbc-rooms :is(th, td):nth-child(4) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
-  }
+/* Soft shadow on the last frozen column once the matrix has been scrolled sideways (the 1px divider remains without it).
+   RoomMatrix sets data-scrolled on the scroller. A scroll-driven animation on every frozen cell (~460 per floor) gave each
+   cell its own animated layer, which cost about half of a tab switch and was re-evaluated on every scroll frame. */
+.nbc-rooms-scroll[data-scrolled] .nbc-rooms .nbc-room-sticky { box-shadow: 5px 0 6px -4px rgb(15 15 15 / .16); }
+@media (min-width: 901px) {
+  .nbc-rooms-scroll[data-scrolled] .nbc-rooms .nbc-room-sticky { box-shadow: none; }
+  .nbc-rooms-scroll[data-scrolled] .nbc-rooms :is(th, td):nth-child(4) { box-shadow: 5px 0 6px -4px rgb(15 15 15 / .16); }
 }
 
 /* The update and activities screens size their tables by column position and turn them into cards on phones; the matrix keeps one fixed grid and scrolls sideways instead. */

@@ -16,7 +16,8 @@
     "figma:prep": "node scripts/figma-prep.mjs",
     "figma:plugin": "node scripts/figma-plugin-build.mjs",
     "figma:serve": "node scripts/figma-serve.mjs",
-    "lint": "oxlint src --react-plugin --jsx-a11y-plugin -D correctness -A react/purity -A react/set-state-in-effect -A jsx-a11y/prefer-tag-over-role -A jsx-a11y/no-autofocus"
+    "lint": "oxlint src --react-plugin --jsx-a11y-plugin -D correctness -A react/purity -A react/set-state-in-effect -A jsx-a11y/prefer-tag-over-role -A jsx-a11y/no-autofocus",
+    "perf:bp02": "playwright test -c playwright.perf.config.ts"
   },
   "dependencies": {
     "@blocknote/ariakit": "0.56.0",

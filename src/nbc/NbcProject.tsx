@@ -43,6 +43,7 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
     for (const s of [...submissions].filter((s) => s.weekStart === current).sort((a, b) => (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''))) for (const e of appliedEntries(s)) values.set(e.activityId, e.previous)
     return values
   }, [activities, submissions, current])
+  const before = useMemo(() => { try { return calculate(activities, baseline) } catch { return undefined } }, [activities, baseline])
   useEffect(() => {
     if (!supabase || scope === 'guest') return
     const client = supabase, channel = client.channel(`nbc:${scope}:${project.id}`)
@@ -89,9 +90,9 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
       ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>
       : <>
         {!calculation && !dismissed && <div className="nbc-banner nbc-warning" role="status"><span>Calculation needs attention. Progress editing is paused.</span><button className="ibtn" aria-label="Dismiss calculation warning" onClick={() => setDismissed(true)}><X size={16}/></button></div>}
-        {view === 'overview' && <Overview project={project} activities={activities} submissions={submissions} summaries={summaries} baseline={baseline}/>}
+        {view === 'overview' && <Overview project={project} activities={activities} submissions={submissions} summaries={summaries} baseline={baseline} overall={calculation?.overall}/>}
         {view === 'update' && calculation && <UpdateProgress projectId={project.id} activities={activities} submissions={submissions}/>}
-        {(view === 'activities' || view === 'issues') && (calculation || activityView !== 'activities') && <Activities projectId={project.id} activities={activities} baseline={baseline} view={activityView}/>}
+        {(view === 'activities' || view === 'issues') && (calculation || activityView !== 'activities') && <Activities projectId={project.id} activities={activities} baseline={baseline} view={activityView} rollups={{ live: calculation ?? undefined, before }}/>}
       </>}
     {exportOpen && <Suspense fallback={<span className="sr-only" role="status">Opening export…</span>}><ExportWorkbook projectId={project.id} activities={activities} submissions={submissions} onClose={() => setExportOpen(false)}/></Suspense>}
   </div>

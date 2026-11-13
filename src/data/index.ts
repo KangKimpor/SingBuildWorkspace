@@ -6,6 +6,7 @@ import { contentText } from './text'
 import { sundayWeekSubmission, sundayWeekSummary } from '@/nbc/normalize'
 import { useWorkspaceUI } from '@/shell/workspace'
 import type { Content } from './persistence'
+import type { NbcActivity } from '@/nbc/types'
 import type {
   CalendarEvent,
   PageNode,
@@ -545,11 +546,14 @@ export function usePages(): PageNode[] {
   )
   return pageTree(pages.filter((p) => !tasks.some((t) => t.pageId === p.id)))
 }
-export function useProjects() {
-  const { tasks, projects, nbc_activities } = useWorkspace(
-    useShallow((s) => ({ tasks: s.tasks, projects: s.projects, nbc_activities: s.nbc_activities })),
-  )
-  return projects
+// Every sidebar, breadcrumb and overlay render asked for this list, and each NBC project summed its
+// activities with a filter over the whole BOQ. One shared result per set of store arrays, one pass.
+let projectsCache: { tasks: Task[]; projects: ProjectSummary[]; activities?: NbcActivity[]; value: ProjectSummary[] } | null = null
+function projectList(tasks: Task[], projects: ProjectSummary[], activities: NbcActivity[] | undefined) {
+  if (projectsCache && projectsCache.tasks === tasks && projectsCache.projects === projects && projectsCache.activities === activities) return projectsCache.value
+  const nbc = new Map<string, number>()
+  for (const a of activities ?? []) nbc.set(a.projectId, (nbc.get(a.projectId) ?? 0) + (a.editable ? a.globalWeight * a.progress : 0))
+  const value = projects
     .filter((p) => p.status !== 'Archived')
     .map((project) => {
       const list = tasks.filter(
@@ -557,11 +561,19 @@ export function useProjects() {
       )
       return {
         ...project,
-        progress: project.nbcBp03 ? (nbc_activities?.some((a) => a.projectId === project.id) ? nbc_activities.filter((a) => a.projectId === project.id && a.editable).reduce((sum, a) => sum + a.globalWeight * a.progress, 0) : project.progress) : list.length
+        progress: project.nbcBp03 ? nbc.get(project.id) ?? project.progress : list.length
           ? list.filter((t) => t.status === 'Done').length / list.length
           : 0,
       }
     })
+  projectsCache = { tasks, projects, activities, value }
+  return value
+}
+export function useProjects() {
+  const { tasks, projects, nbc_activities } = useWorkspace(
+    useShallow((s) => ({ tasks: s.tasks, projects: s.projects, nbc_activities: s.nbc_activities })),
+  )
+  return projectList(tasks, projects, nbc_activities)
 }
 export function useSyncStatus(): SyncState {
   return useWorkspace((s) => s.sync)
