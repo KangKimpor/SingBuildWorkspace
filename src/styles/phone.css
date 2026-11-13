@@ -1,0 +1,93 @@
+/* Phone layout (below 768 px): gutters, type scale, room for the tab bar, and Radix dialogs and
+   popovers presented as bottom sheets. Desktop and tablet never match these rules. */
+
+@media (max-width: 767px) {
+  :root {
+    --h-tabbar: 64px;
+    --content-pad: 16px;
+  }
+
+  /* 16 px side gutter and 12 px under the top bar. The page ends above the tab bar where there is one. */
+  .canvas {
+    padding: var(--space-12) 0 var(--safe-bottom);
+  }
+  .shell[data-tabbar] .canvas {
+    padding-bottom: calc(64px + var(--safe-bottom));
+  }
+
+  /* Type scale. Scoped through .shell so it outranks the desktop page-heading rules. */
+  .shell .canvas :is(.t-title, h1) {
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .shell .canvas h2 {
+    font-size: 17px;
+    line-height: 24px;
+  }
+
+  /* Popovers leave their anchor and sit on the bottom edge. Radix positions the wrapper inline. */
+  [data-radix-popper-content-wrapper] {
+    position: fixed !important;
+    inset: auto 0 0 !important;
+    min-width: 0 !important;
+    transform: none !important;
+  }
+  [data-radix-popper-content-wrapper] > [role='dialog'] {
+    box-shadow: 0 0 0 100vmax var(--scrim);
+  }
+
+  [role='dialog'][id^='radix-']:not(.bsheet, .drawer, .rsheet) {
+    --glass-radius: 16px 16px 0 0;
+    position: fixed;
+    inset: auto 0 0;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    max-height: 90dvh;
+    margin: 0;
+    padding: var(--space-24) var(--space-16) calc(var(--space-16) + var(--safe-bottom));
+    border-radius: 16px 16px 0 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: none;
+    translate: none;
+    animation: phone-sheet-in var(--duration-base) var(--ease-enter);
+  }
+  [role='dialog'][id^='radix-']:not(.bsheet, .drawer, .rsheet)[data-state='closed'] {
+    animation: phone-sheet-out 160ms var(--ease-exit) forwards;
+  }
+  /* Drag handle */
+  [role='dialog'][id^='radix-']:not(.bsheet, .drawer, .rsheet)::before {
+    content: '';
+    position: absolute;
+    top: var(--space-8);
+    left: 50%;
+    width: 36px;
+    height: 5px;
+    margin-left: -18px;
+    border-radius: var(--radius-pill);
+    background: var(--border-strong);
+  }
+
+  @keyframes phone-sheet-in {
+    from {
+      transform: translateY(100%);
+    }
+  }
+  @keyframes phone-sheet-out {
+    to {
+      transform: translateY(100%);
+    }
+  }
+  html[data-motion='reduced'] [role='dialog'][id^='radix-'][data-state]:not(.bsheet, .drawer, .rsheet) {
+    animation: none;
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  [role='dialog'][id^='radix-'][data-state]:not(.bsheet, .drawer, .rsheet) {
+    animation: none;
+  }
+}

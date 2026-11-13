@@ -40,11 +40,24 @@ export interface Crumb {
   parent?: string
 }
 
-export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
+/** Save state shared by the desktop pill and the phone sync button. */
+export function useSyncView() {
   const online = useOnline()
+  const sync = useSyncStatus()
+  const offline = !online || sync.kind === 'offline'
+  const tone = offline ? 'warn' : sync.kind === 'saving' ? 'busy' : sync.kind === 'error' ? 'error' : 'success'
+  const text = offline ? 'Offline' : sync.kind === 'saved'
+    ? useWorkspace.getState().scope === 'guest' ? 'Demo · local' : 'Saved to cloud'
+    : sync.kind === 'saving' ? 'Saving' : 'Error'
+  const icon = offline ? <WifiOff size={12} aria-hidden="true"/> : sync.kind === 'saved' ? <Check className="sync-check" size={12} aria-hidden="true"/> : <span className="dot" aria-hidden="true" />
+  const retry = sync.kind === 'error' && online ? () => void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false)) : undefined
+  return { online, sync, offline, tone, text, icon, retry }
+}
+
+export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
   // Project Progress keeps its top bar to the breadcrumb and save status; search stays on the keyboard shortcut.
   const progressScreen = crumb.parent === 'Projects Progress'
-  const sync = useSyncStatus()
+  const { online, sync, tone, text, icon, retry } = useSyncView()
   const compact = bp === 'compact'
   const scrolled = useScrolled(48)
   const { sidebarOpen, setSidebarOpen, setDrawerOpen } = useShell()
@@ -102,20 +115,14 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
         <span
           className="pill"
           role="status"
-          data-tone={!online || sync.kind === 'offline' ? 'warn' : sync.kind === 'saving' ? 'busy' : sync.kind === 'error' ? 'error' : 'success'}
+          data-tone={tone}
           title={sync.kind === 'error' ? sync.reason : undefined}
           aria-label={sync.kind === 'error' ? `Save failed: ${sync.reason}` : undefined}
           data-testid="sync-pill"
         >
-          {!online || sync.kind === 'offline' ? <WifiOff size={12} aria-hidden="true"/> : sync.kind === 'saved' ? <Check className="sync-check" size={12} aria-hidden="true"/> : <span className="dot" aria-hidden="true" />}
-          <span key={!online?'offline':sync.kind}>{!online || sync.kind === 'offline' ? 'Offline' : sync.kind === 'saved'
-            ? useWorkspace.getState().scope === 'guest'
-              ? 'Demo · local'
-              : 'Saved to cloud'
-            : sync.kind === 'saving'
-              ? 'Saving'
-              : 'Error'}</span>
-          {sync.kind === 'error' && online && <button className="text-link small" onClick={()=>void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false))}>Retry</button>}
+          {icon}
+          <span key={!online?'offline':sync.kind}>{text}</span>
+          {retry && <button className="text-link small" onClick={retry}>Retry</button>}
         </span>
         {!progressScreen && (
           <button

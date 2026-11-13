@@ -1,36 +1,39 @@
-import { FolderKanban, LayoutDashboard, Plus, Search, Settings } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { ChartNoAxesColumn, Eye, SquarePen } from 'lucide-react'
+import { Link, useLocation } from 'react-router-dom'
 import { Glass } from '@/components/glass/Glass'
-import { useShell } from './store'
+import { aliases } from '@/nbc/views'
 
-const ic = { size: 22, strokeWidth: 1.75 } as const
+const ic = { size: 22, strokeWidth: 1.75, 'aria-hidden': true } as const
 
-function Tab({ to, label, end, children }: { to: string; label: string; end?: boolean; children: React.ReactNode }) {
-  return (
-    <NavLink to={to} end={end} className="tab" aria-label={label}>
-      {children}
-      <span>{label}</span>
-    </NavLink>
-  )
+const tabs = [
+  { view: 'overview', label: 'Overview', icon: <Eye {...ic} /> },
+  { view: 'activities', label: 'Progress', icon: <ChartNoAxesColumn {...ic} /> },
+  { view: 'update', label: 'Update', icon: <SquarePen {...ic} /> },
+] as const
+
+/** The tab a project view belongs to: legacy names follow their alias, Issues sits under Progress, no view is Overview. */
+function tabFor(view = 'overview') {
+  const v = aliases[view] ?? view
+  return v === 'issues' ? 'activities' : tabs.some((t) => t.view === v) ? v : 'overview'
 }
 
-/** Compact workspace navigation, add, projects, search and settings. 64 px plus the safe area (§12). */
+/** Phone navigation inside a progress project: its three views, 64 px plus the safe area. */
 export function TabBar() {
-  const setSheet = useShell((s) => s.setSheet)
+  const [, , id, view] = useLocation().pathname.split('/')
+  const current = tabFor(view || undefined)
   return (
-    <Glass as="nav" material="regular" className="tabbar" aria-label="Tabs" data-testid="tabbar">
-      <Tab to="/" end label="Workspace"><LayoutDashboard {...ic} /></Tab>
-      {/* Solid, not glass: glass never stacks on glass (§10) */}
-      <button type="button" className="btn-accent tab-add" data-round="true" aria-label="Quick add" onClick={() => setSheet('quick-add')}>
-        <Plus size={24} strokeWidth={1.75} aria-hidden="true" />
-      </button>
-      <Tab to="/projects-progress" label="Progress">
-        <FolderKanban {...ic} />
-      </Tab>
-      <Tab to="/search" label="Search">
-        <Search {...ic} />
-      </Tab>
-      <Tab to="/settings/account" label="Settings"><Settings {...ic} /></Tab>
+    <Glass as="nav" material="regular" className="tabbar" aria-label="Project tabs" data-testid="tabbar">
+      {tabs.map((t) => (
+        <Link
+          key={t.view}
+          className="tab"
+          to={`/projects-progress/${id}/${t.view}`}
+          aria-current={t.view === current ? 'page' : undefined}
+        >
+          {t.icon}
+          <span>{t.label}</span>
+        </Link>
+      ))}
     </Glass>
   )
 }

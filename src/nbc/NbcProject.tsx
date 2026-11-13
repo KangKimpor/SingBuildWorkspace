@@ -14,12 +14,11 @@ import Activities from './activities/Activities'
 import UpdateProgress from './update/UpdateProgress'
 import { appliedEntries, weekLabel, weekStart } from './submissions'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from './types'
+import { aliases } from './views'
 
 const EMPTY_ACTIVITIES: NbcActivity[] = [], EMPTY_SUBMISSIONS: NbcSubmission[] = [], EMPTY_SUMMARIES: NbcWeekSummary[] = []
 const views = [['overview', 'Overview'], ['activities', 'Project Progress'], ['update', 'Update Progress']] as const
 const ExportWorkbook = lazy(() => import('./export/ExportWorkbook'))
-/** Earlier URLs keep working: Past Updates now lives inside Overview. */
-const aliases: Record<string, string> = { boq: 'activities', progress: 'activities', weekly: 'update', handlers: 'overview', past: 'overview', board: 'issues' }
 
 export default function NbcProject({ project, view }: { project: ProjectSummary; view: string }) {
   const scope = useWorkspace((s) => s.scope), [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false)

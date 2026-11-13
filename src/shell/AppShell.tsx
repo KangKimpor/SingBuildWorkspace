@@ -1,4 +1,5 @@
 import '@/styles/stitch.css'
+import '@/styles/phone.css'
 import {
   lazy,
   Suspense,
@@ -25,6 +26,7 @@ const SidebarContent = lazy(() =>
   import('./SidebarContent').then((module) => ({ default: module.SidebarContent })),
 )
 import { TabBar } from './TabBar'
+import { PhoneTopBar } from './PhoneTopBar'
 import { TopBar } from './TopBar'
 import { useCrumb } from './routes'
 import { breakpointFor, useShell } from './store'
@@ -42,7 +44,12 @@ const QuickAdd = lazy(() =>
   })),
 )
 
-/** Flat sidebar navigation with an overlay drawer and bottom tabs on smaller screens. */
+/** Text fields raise the on-screen keyboard, so the phone tab bar steps aside while one has focus. */
+const TEXT_FIELD = 'textarea, input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file], [type=button], [type=submit], [type=reset], [type=image])'
+const projectPath = /^\/projects-progress\/[^/]+(\/[^/]+)?\/?$/
+const isTyping = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || el.matches(TEXT_FIELD))
+
+/** Flat sidebar navigation with an overlay drawer on tablets, and a phone top bar with bottom tabs below 768 px. */
 export function AppShell() {
   useEffect(() => afterFirstPaint(registerUpdates), [])
   useEffect(() => {
@@ -70,6 +77,9 @@ export function AppShell() {
   const crumb = useCrumb(pathname)
   const shell = useShell()
   const persistent = bp === 'expanded' || bp === 'large'
+  const phone = bp === 'compact'
+  // On phones the bottom bar exists only inside a progress project, as that project's views.
+  const projectTabs = phone && projectPath.test(pathname)
   const [overlaysReady, setOverlaysReady] = useState(false)
   useEffect(() => {
     if (shell.drawerOpen || shell.sheet) setOverlaysReady(true)
@@ -79,18 +89,31 @@ export function AppShell() {
     const el = root.current
     if (!el) return
     const ro = new ResizeObserver(
-      ([entry]) => entry && setBp(breakpointFor(entry.contentRect.width)),
+      // The viewport width, not the shell's, so the switch matches the 767 px media queries exactly.
+      () => setBp(breakpointFor(window.innerWidth)),
     )
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
 
+  // Set on the element directly: toggling it must not re-render the screen underneath.
+  useEffect(() => {
+    const on = (e: FocusEvent) =>
+      root.current?.toggleAttribute('data-typing', isTyping(e.type === 'focusin' ? e.target : e.relatedTarget))
+    addEventListener('focusin', on)
+    addEventListener('focusout', on)
+    return () => {
+      removeEventListener('focusin', on)
+      removeEventListener('focusout', on)
+    }
+  }, [])
+
   // Overlays that do not exist at this breakpoint close when the breakpoint changes.
   const { setDrawerOpen, setSheet } = shell
   useEffect(() => {
-    if (persistent) setDrawerOpen(false)
+    if (bp !== 'medium') setDrawerOpen(false)
     if (bp !== 'compact') setSheet(null)
-  }, [bp, persistent, setDrawerOpen, setSheet])
+  }, [bp, setDrawerOpen, setSheet])
 
   // Ctrl or Cmd plus backslash toggles the sidebar; Ctrl or Cmd plus K opens search.
   useLayoutEffect(() => {
@@ -132,6 +155,7 @@ export function AppShell() {
       className="shell"
       data-bp={bp}
       data-sidebar={shell.sidebarOpen ? 'open' : 'closed'}
+      data-tabbar={projectTabs || undefined}
       style={{ ['--sidebar-w' as string]: `${shell.sidebarWidth}px` }}
     >
       <a className="skip" href="#main">
@@ -145,17 +169,13 @@ export function AppShell() {
       {persistent ? <Suspense fallback={null}><Sidebar /></Suspense> : null}
 
       <div className="main">
-        <TopBar crumb={crumb} bp={bp} />
-        <main
-          id="main"
-          tabIndex={-1}
-          className={bp === 'compact' ? 'canvas canvas-compact-pad' : 'canvas'}
-        >
+        {phone ? <PhoneTopBar crumb={crumb} /> : <TopBar crumb={crumb} bp={bp} />}
+        <main id="main" tabIndex={-1} className="canvas">
           <Outlet context={crumb.meta} />
         </main>
       </div>
 
-      {bp === 'compact' ? <TabBar /> : null}
+      {projectTabs ? <TabBar /> : null}
       <UpdateNotice />
       <Suspense
         fallback={
@@ -164,7 +184,7 @@ export function AppShell() {
           </span>
         }
       >
-        {overlaysReady && (bp === 'medium' || bp === 'compact') ? (
+        {overlaysReady && bp === 'medium' ? (
           <>
             <SideSheet
               side="left"
@@ -178,7 +198,7 @@ export function AppShell() {
           </>
         ) : null}
 
-        {bp === 'compact' ? (
+        {phone ? (
           <>
             {overlaysReady && (
               <BottomSheet
@@ -193,7 +213,7 @@ export function AppShell() {
             )}
           </>
         ) : null}
-        {overlaysReady && bp !== 'compact' && (
+        {overlaysReady && !phone && (
           <SideSheet
             side="right"
             className="rsheet"

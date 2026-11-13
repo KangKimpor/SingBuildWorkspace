@@ -2,9 +2,9 @@ import { create } from 'zustand'
 
 export type Breakpoint = 'compact' | 'medium' | 'expanded' | 'large'
 
-/** Compact below 640, medium 640 to 1023, expanded 1024 to 1439, large 1440 and up (§3). */
+/** Compact (phone) below 768, medium 768 to 1023, expanded 1024 to 1439, large 1440 and up (§3). */
 export function breakpointFor(width: number): Breakpoint {
-  if (width < 640) return 'compact'
+  if (width < 768) return 'compact'
   if (width < 1024) return 'medium'
   if (width < 1440) return 'expanded'
   return 'large'
