@@ -149,4 +149,250 @@
   .ph-menu > button:disabled {
     color: var(--text-tertiary);
   }
+
+  /* Overview: KPIs and Needs attention on the first screen, the rest folded into one grouped list. */
+  .shell .nbc-overview {
+    gap: var(--space-16);
+  }
+  .shell .nbc-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-12);
+  }
+  .shell .nbc-kpi {
+    gap: 2px;
+    padding: var(--space-12);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  .shell .nbc-kpi-label {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .shell .nbc-kpi-value {
+    font-size: 20px;
+    line-height: 26px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .shell .nbc-kpi > .small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 18px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .shell .nbc-attention {
+    padding: 0 var(--space-16) var(--space-4);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    box-shadow: none;
+  }
+  .shell .nbc-attention > header {
+    align-items: baseline;
+    margin: 0;
+    padding: var(--space-12) 0 0;
+  }
+  .shell .nbc-attention h2 {
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .shell .nbc-attention > header .small {
+    font-size: 13px;
+  }
+  /* Title and due line, then the count and Open on one row beneath them. */
+  .shell .nbc-attention li {
+    grid-template-columns: 8px minmax(0, 1fr) auto;
+    grid-template-areas: 'dot text text' '. impact link';
+    column-gap: var(--space-12);
+    row-gap: 0;
+    align-items: center;
+    padding: var(--space-12) 0 0;
+  }
+  .shell .nbc-attention li + li {
+    border-top: 1px solid var(--border-subtle);
+  }
+  .shell .nbc-attention li:not(:last-child) {
+    border-bottom: 0;
+  }
+  .shell .nbc-attention .nbc-dot {
+    grid-area: dot;
+    align-self: start;
+    width: 8px;
+    height: 8px;
+    margin-top: 7px;
+  }
+  .shell .nbc-attention li > span:first-of-type {
+    grid-area: text;
+    gap: 2px;
+  }
+  .shell .nbc-attention strong {
+    font-size: 15px;
+    line-height: 22px;
+  }
+  .shell .nbc-attention li > span:first-of-type > .small {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .shell .nbc-attention .nbc-impact {
+    grid-area: impact;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .shell .nbc-attention li > .text-link {
+    grid-area: link;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-right: calc(var(--space-12) * -1);
+    padding: 0 var(--space-12);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .shell .nbc-attention-empty {
+    padding: var(--space-8) 0 var(--space-12);
+    font-size: 15px;
+    line-height: 22px;
+  }
+
+  .ph-group {
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    background: var(--bg-raised);
+    overflow: hidden;
+  }
+  .ph-collapsible + .ph-collapsible {
+    border-top: 1px solid var(--border-subtle);
+  }
+  .shell .ph-collapsible-head {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    width: 100%;
+    min-height: 52px;
+    padding: 0 var(--space-12) 0 var(--space-16);
+    border: 0;
+    background: transparent;
+    color: var(--text-primary);
+    font: inherit;
+    text-align: start;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .shell .ph-collapsible-head:active {
+    transform: none;
+    background: var(--bg-pressed);
+  }
+  .ph-collapsible-title {
+    flex: none;
+    font-size: 15px;
+    line-height: 22px;
+    font-weight: 600;
+  }
+  .ph-collapsible-summary {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: end;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .ph-collapsible-head > svg {
+    flex: none;
+    color: var(--text-secondary);
+    transition: rotate var(--duration-instant) var(--ease-standard);
+  }
+  .ph-collapsible[data-open] .ph-collapsible-head > svg {
+    rotate: 180deg;
+  }
+  .ph-collapsible-body {
+    padding: 0 var(--space-16) var(--space-16);
+  }
+
+  /* Sections inside a fold lose their own card and heading: the row above names them. */
+  .shell .ph-collapsible-body :is(.nbc-trend, .nbc-execution, .nbc-handler-panel) {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .shell .ph-collapsible-body :is(.nbc-trend > .row-between h2, .nbc-section-heading h2) {
+    display: none;
+  }
+  .shell .ph-collapsible-body :is(.nbc-trend > .row-between p, .nbc-section-heading p) {
+    margin: 0;
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .shell .ph-collapsible-body .nbc-trend > .row-between {
+    flex-wrap: wrap;
+    gap: var(--space-8);
+  }
+  .shell .ph-collapsible-body .nbc-section-heading {
+    padding: 0 0 var(--space-4);
+  }
+  .shell .ph-collapsible-body .nbc-handler-row {
+    margin-inline: 0;
+  }
+  .shell .ph-collapsible-body .nbc-weeks > td {
+    padding-inline: var(--space-12);
+  }
+  .shell .ph-collapsible-body .nbc-handler-footer {
+    margin: 0 calc(var(--space-16) * -1) calc(var(--space-16) * -1);
+    padding: var(--space-16);
+  }
+  .shell .ph-collapsible-body :is(.nbc-handler-footer p, .nbc-progress-legend) {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .shell .ph-collapsible-body .nbc-execution > .nbc-seg {
+    display: flex;
+    width: 100%;
+  }
+  .shell .ph-collapsible-body .nbc-execution > .nbc-seg button {
+    flex: 1;
+    min-height: 44px;
+    padding-inline: var(--space-4);
+    font-size: 13px;
+  }
+  .shell .ph-collapsible-body .nbc-breakdowns {
+    margin-top: var(--space-12);
+  }
+  .shell .ph-collapsible-body .nbc-breakdown a {
+    gap: var(--space-8);
+    padding: var(--space-12) 0;
+    font-size: 15px;
+  }
+  .shell .ph-collapsible-body .nbc-breakdown .nbc-progress-value {
+    font-size: 15px;
+  }
+  .shell .ph-collapsible-body .nbc-progress-note {
+    font-size: 13px;
+    line-height: 18px;
+  }
+  .shell .ph-collapsible-body .nbc-heatmap {
+    overflow-x: auto;
+  }
+  .shell .nbc-show-all {
+    width: 100%;
+    min-height: 44px;
+    margin-top: var(--space-8);
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .ph-collapsible-head > svg {
+    transition: none;
+  }
 }

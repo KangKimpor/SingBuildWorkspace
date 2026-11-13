@@ -11,7 +11,9 @@ import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
 import { deadlineNote } from '../update/deadline'
 import Trend from '../Trend'
 import { Attention } from './Attention'
-import { Breakdown, Heatmap } from './Breakdown'
+import { Breakdown, breakdownRows, Heatmap } from './Breakdown'
+import { usePhone } from '@/shell/usePhone'
+import { Collapsible } from '../mobile/Collapsible'
 import type { BreakdownField } from './Breakdown'
 import { HandlerTable } from './HandlerTable'
 import { attentionItems } from './insights'
@@ -22,7 +24,7 @@ const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
 
 export default function Overview({ project, activities, submissions, summaries, baseline, overall: known }: { project: ProjectSummary; activities: NbcActivity[]; submissions: NbcSubmission[]; summaries: NbcWeekSummary[]; baseline: Map<string, number>; /** Project roll-up, when the caller already has it. */ overall?: number }) {
   const [now, setNow] = useState(Date.now)
-  const [group, setGroup] = useState<BreakdownField | 'heatmap'>('location')
+  const [group, setGroup] = useState<BreakdownField | 'heatmap'>('location'), phone = usePhone()
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
   // Floor, area and trade inherited from parent rows; groupings with no tagged activity are left out.
   const tags = useMemo(() => activityTags(activities), [activities])
@@ -41,19 +43,31 @@ export default function Overview({ project, activities, submissions, summaries, 
   const planned = plan ? plannedProgress(today, plan.points) : null, gap = planned === null ? null : overall - planned, days = plan ? daysToCompletion(today, plan.completion) : null
   const deadline = deadlineNote(current, now)
   const attention = attentionItems({ projectId: project.id, activities, submissions, today, now })
+  // Phones name the furthest-behind row on the closed breakdown; the roll-up runs only there.
+  const behind = useMemo(() => phone ? breakdownRows(shown === 'heatmap' ? 'location' : shown, activities, baseline, tags)[0]?.name ?? '' : '', [phone, shown, activities, baseline, tags])
+  const seg = groups.length > 1 && <div className="nbc-seg" role="group" aria-label="Breakdown grouping">{groups.map(([key, label]) => <button key={key} aria-pressed={shown === key} onClick={() => setGroup(key)}>{label}</button>)}</div>
+  const breakdown = (limit?: number) => <div className="nbc-breakdowns">{shown === 'heatmap' ? <Heatmap activities={activities} tags={tags}/> : <Breakdown field={shown} activities={activities} previous={baseline} tags={tags} limit={limit}/>}</div>
+  // Phone notes stay on one line in a half-width tile.
+  const note = (long: string, short: string) => phone ? short : long
   return <div className="nbc-overview">
-    <header className="nbc-ov-head"><div><h2>Overview</h2><p className="small muted">{weekLabel(current)}</p></div></header>
+    {!phone && <header className="nbc-ov-head"><div><h2>Overview</h2><p className="small muted">{weekLabel(current)}</p></div></header>}
     <section className="nbc-kpis" aria-label="Project snapshot">
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Overall progress</span><strong className="nbc-kpi-value">{percent(overall)}</strong><span className="small muted">{thisWeek ? `${thisWeek.overall >= thisWeek.previous ? '+' : '−'}${pts(thisWeek.overall - thisWeek.previous)} this week` : lastWeek ? `Last week ${percent(lastWeek.overall)}` : 'No confirmed week yet'}</span></div>
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Versus plan</span>{gap === null || planned === null ? <><strong className="nbc-kpi-value">No plan</strong><span className="small muted">No planned curve supplied</span></> : <><strong className="nbc-kpi-value" data-tone={gap < -0.04 ? 'bad' : gap < -0.01 ? 'warn' : 'ok'}>{percent(Math.abs(gap))} {gap < 0 ? 'behind' : 'ahead'}</strong><span className="small muted">Plan: {percent(planned)} by now</span></>}</div>
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Completion deadline</span>{plan && days !== null ? <><strong className="nbc-kpi-value">{planDate(plan.completion)}</strong><span className="small" data-tone={days < 0 ? 'bad' : undefined}>{days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `${days} days left`}</span></> : <><strong className="nbc-kpi-value">Not set</strong><span className="small muted">No contract dates supplied</span></>}</div>
-      <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < active.length ? 'bad' : undefined}>{deadline.late ? 'Deadline passed' : deadline.text.split(' · ')[1]}</strong><span className="small muted">{active.length ? `${updated.length} of ${active.length} handlers updated this week` : 'All handler work is complete'}</span></div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Overall progress</span><strong className="nbc-kpi-value">{percent(overall)}</strong><span className="small muted">{thisWeek ? `${thisWeek.overall >= thisWeek.previous ? '+' : '−'}${pts(thisWeek.overall - thisWeek.previous)} this week` : lastWeek ? `Last week ${percent(lastWeek.overall)}` : note('No confirmed week yet', 'No confirmed week')}</span></div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Versus plan</span>{gap === null || planned === null ? <><strong className="nbc-kpi-value">No plan</strong><span className="small muted">{note('No planned curve supplied', 'No planned curve')}</span></> : <><strong className="nbc-kpi-value" data-tone={gap < -0.04 ? 'bad' : gap < -0.01 ? 'warn' : 'ok'}>{percent(Math.abs(gap))} {gap < 0 ? 'behind' : 'ahead'}</strong><span className="small muted">{note(`Plan: ${percent(planned)} by now`, `Plan ${percent(planned)}`)}</span></>}</div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Completion deadline</span>{plan && days !== null ? <><strong className="nbc-kpi-value">{planDate(plan.completion)}</strong><span className="small" data-tone={days < 0 ? 'bad' : undefined}>{days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `${days} days left`}</span></> : <><strong className="nbc-kpi-value">Not set</strong><span className="small muted">{note('No contract dates supplied', 'No contract dates')}</span></>}</div>
+      <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < active.length ? 'bad' : undefined}>{deadline.late ? note('Deadline passed', 'Closed') : deadline.text.split(' · ')[1]}</strong><span className="small muted">{active.length ? note(`${updated.length} of ${active.length} handlers updated this week`, `${updated.length} of ${active.length} updated`) : note('All handler work is complete', 'All work complete')}</span></div>
     </section>
     <Attention items={attention}/>
-    <Trend summaries={summaries} today={today} plan={plan}/>
-    <div className="nbc-progress-panels"><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/>
-    <section className="nbc-execution"><div className="row-between"><div><h2>Completion breakdown</h2><p className="small muted">Furthest behind first. Select a row to open its activities.</p></div>{groups.length > 1 && <div className="nbc-seg" role="group" aria-label="Breakdown grouping">{groups.map(([key, label]) => <button key={key} aria-pressed={shown === key} onClick={() => setGroup(key)}>{label}</button>)}</div>}</div>
-      <div className="nbc-breakdowns">{shown === 'heatmap' ? <Heatmap activities={activities} tags={tags}/> : <Breakdown field={shown} activities={activities} previous={baseline} tags={tags}/>}</div>
-    </section></div>
+    {phone ? <div className="ph-group">
+      <Collapsible title="Progress curve" summary={percent(overall)}><Trend summaries={summaries} today={today} plan={plan}/></Collapsible>
+      <Collapsible title="Handler contributions" summary={active.length ? `${updated.length} of ${active.length} updated` : 'All complete'}><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/></Collapsible>
+      <Collapsible title="Completion breakdown" summary={behind}><section className="nbc-execution">{seg}{breakdown(5)}</section></Collapsible>
+    </div> : <>
+      <Trend summaries={summaries} today={today} plan={plan}/>
+      <div className="nbc-progress-panels"><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/>
+      <section className="nbc-execution"><div className="row-between"><div><h2>Completion breakdown</h2><p className="small muted">Furthest behind first. Select a row to open its activities.</p></div>{seg}</div>
+        {breakdown()}
+      </section></div>
+    </>}
   </div>
 }
