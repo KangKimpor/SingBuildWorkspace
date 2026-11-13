@@ -74,7 +74,7 @@ export function Tile({
   name: string
   color?: PaletteColor
 }) {
-  if (name === BRAND_ICON) return <span className="icon-tile icon-tile-brand"><img src="/brand/pan-pacific.png" alt="" width={20} height={20} /></span>
+  if (name === BRAND_ICON) return <span className="icon-tile icon-tile-brand"><img src="/brand/pan-pacific.png" alt="" width={48} height={48} /></span>
   const Icon = (projectIcons as Record<string, typeof FileText>)[name] ?? FileText
   return (
     <span className="icon-tile" style={tint(color)}>

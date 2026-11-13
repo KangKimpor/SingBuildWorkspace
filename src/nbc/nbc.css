@@ -61,6 +61,8 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project-header { display: flex; align-items: center; gap: 10px; margin: 0; }
 .nbc-project-header > div { min-width: 0; }
 .nbc-project-header .icon-tile { width: 34px; height: 34px; margin: 0; border-radius: 8px; background: var(--chip-blue); color: var(--accent-text); }
+/* The full Pan Pacific logo needs more room than an icon: as tall as the title and week lines together. */
+.nbc-project-header .icon-tile.icon-tile-brand { width: 48px; height: 48px; padding: 2px; border-radius: 10px; }
 .nbc-start-update { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
 .nbc-project-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
 .nbc-project-actions .nbc-start-update { margin-left: 0; }
@@ -81,6 +83,7 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project :focus-visible, .nbc-sheet-fields :focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: var(--space-2); }
 .nbc-project .nbc-num { font-variant-numeric: tabular-nums; }
 @media (max-width: 767px) {
+  .nbc-project-header .icon-tile.icon-tile-brand { width: 40px; height: 40px; border-radius: 8px; }
   .nbc-project.workspace-surface { padding: 12px 14px; gap: 10px; }
   .nbc-project h1 { font-size: 19px; line-height: 24px; }
   .nbc-project-header { align-items: start; }

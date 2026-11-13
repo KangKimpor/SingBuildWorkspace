@@ -57,8 +57,9 @@ html[data-nbc] .glass.drawer { background-color: #f7f7f5; }
 .nav-progress > li[data-current='true'] > .nav-project-toggle { color: var(--text-primary); }
 .nav-project-toggle { min-height: 52px !important; align-items: center; gap: 8px; padding: 5px 8px !important; color: var(--text-primary) !important; }
 .nav-project-toggle .project-chevron { width: 18px; color: var(--text-primary); }
-.nav-project-toggle .project-symbol { display: grid; place-items: center; width: 22px; flex: none; }
-.nav-project-toggle .project-symbol img { width: 22px; height: 22px; object-fit: contain; border-radius: 4px; background: #fff; box-shadow: 0 0 0 1px var(--border-subtle); }
+/* Pan Pacific logo: 32px so the emblem and wordmark stay legible; white plate with a hairline edge. */
+.nav-project-toggle .project-symbol { display: grid; place-items: center; width: 32px; height: 32px; flex: none; }
+.nav-project-toggle .project-symbol img { width: 32px; height: 32px; padding: 1px; object-fit: contain; border-radius: 6px; background: #fff; box-shadow: 0 0 0 1px var(--border-subtle); }
 .project-heading { display: grid; flex: 1; min-width: 0; gap: 2px; text-align: left; }
 .project-name { overflow: hidden; color: #292824; font-size: 13px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .project-subtitle { overflow: hidden; color: #85837e; font-size: 12px; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
@@ -89,7 +90,7 @@ html[data-nbc] .sidebar-body .nav-project-views .nav-item[aria-current='page'] {
 .sidebar[data-collapsed='true'] .sidebar-foot .nav-item { justify-content: center; min-height: 42px !important; padding: 0 !important; }
 .sidebar[data-collapsed='true'] .nav-progress > li { padding-bottom: 4px; margin-bottom: 4px; }
 .sidebar[data-collapsed='true'] .nav-project-toggle .project-chevron { display: none; }
-.sidebar[data-collapsed='true'] .nav-project-toggle .project-symbol { display: grid; width: 20px; }
+.sidebar[data-collapsed='true'] .nav-project-toggle .project-symbol { display: grid; width: 32px; }
 .sidebar[data-collapsed='true'] .sidebar-foot .nav-icon { width: 20px; }
 .nav-item { transition: background 140ms ease, color 140ms ease, transform 140ms ease; }
 .sidebar .nav-item:active { transform: scale(.98); }
