@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { MoreMenu } from '../ui/MoreMenu'
@@ -17,10 +17,15 @@ export function HandlerTable({ projectId, activities, submissions, now }: { proj
   const owners = projectHandlers(projectId)
   const [open, setOpen] = useState<ReadonlySet<string>>(new Set()), [older, setOlder] = useState<ReadonlySet<string>>(new Set())
   const [peek, setPeek] = useState<NbcSubmission | null>(null), [error, setError] = useState(''), [busy, setBusy] = useState(false)
-  const total = summarize(activities).contribution
+  // One pass per activities array: totals, each handler's share and weights by id (BP02 has ~16,500 rows).
+  const { total, shares, weights } = useMemo(() => {
+    const weights = new Map<string, number>(), mine = new Map<string, NbcActivity[]>()
+    for (const a of activities) { weights.set(a.id, a.globalWeight); const list = mine.get(a.handler); if (list) list.push(a); else mine.set(a.handler, [a]) }
+    return { total: summarize(activities).contribution, shares: new Map([...mine].map(([h, list]) => [h, summarize(list).contribution])), weights }
+  }, [activities])
   const flip = (set: ReadonlySet<string>, key: string) => { const next = new Set(set); if (next.has(key)) next.delete(key); else next.add(key); return next }
   const find = (handler: Handler, week: string) => submissions.find((s) => s.handler === handler && s.weekStart === week)
-  const weighted = (s: NbcSubmission) => s.entries.reduce((sum, e) => sum + (e.progress - e.previous) * (activities.find((a) => a.id === e.activityId)?.globalWeight ?? 0), 0)
+  const weighted = (s: NbcSubmission) => s.entries.reduce((sum, e) => sum + (e.progress - e.previous) * (weights.get(e.activityId) ?? 0), 0)
 
   async function edit(s: NbcSubmission) {
     if (handlerComplete(activities, s.handler)) { setError(`${s.handler} has completed all activities and can no longer update them.`); return }
@@ -51,7 +56,7 @@ export function HandlerTable({ projectId, activities, submissions, now }: { proj
       <tbody>{owners.flatMap((handler) => {
         const now_ = find(handler, current), prev = find(handler, last), expanded = open.has(handler)
         const complete = handlerComplete(activities, handler)
-        const contribution = summarize(activities.filter((a) => a.handler === handler)).contribution
+        const contribution = shares.get(handler) ?? 0
         const cell = (s: NbcSubmission | undefined, week: string, missing: string) => complete
           ? <span className="nbc-pill" data-status="Complete">Complete</span>
           : s || week === current
