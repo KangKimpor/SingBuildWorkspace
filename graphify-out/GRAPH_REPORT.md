@@ -1,7 +1,7 @@
 # Graph Report - kimpor-workspace  (2026-11-13)
 
 ## Corpus Check
-- 643 files · ~1,053,890 words
+- 643 files · ~1,053,919 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 46 file(s) not represented in the graph (top: .css 20, (none) 9, .exe 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `b7672c59`
+- Built from commit: `cf33a16a`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -414,16 +414,16 @@
 10. `connectSSE()` - 34 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `WBS table` --references--> `Handler`  [INFERRED]
+  docs/NBC-BP03-UX-PLAN.md → src/nbc/types.ts
+- `6. Update Progress` --references--> `useUpdateDraft()`  [INFERRED]
+  docs/superpowers/specs/2026-11-13-mobile-overhaul-design.md → src/nbc/update/useUpdateDraft.ts
+- `History and summaries` --references--> `appliedEntries()`  [INFERRED]
+  docs/NBC-BP03-PROGRESS-TRACKER.md → src/nbc/submissions.ts
 - `Act on the receipt` --references--> `capture()`  [INFERRED]
   .agents/skills/impeccable/reference/component-review.md → scripts/figma-screens.mjs
 - `Assemble and review` --references--> `capture()`  [INFERRED]
   .agents/skills/impeccable/reference/component-review.md → scripts/figma-screens.mjs
-- `Act on the receipt` --references--> `capture()`  [INFERRED]
-  .gemini/skills/impeccable/reference/component-review.md → scripts/figma-screens.mjs
-- `Assemble and review` --references--> `capture()`  [INFERRED]
-  .gemini/skills/impeccable/reference/component-review.md → scripts/figma-screens.mjs
-- `Act on the receipt` --references--> `capture()`  [INFERRED]
-  .opencode/skills/impeccable/reference/component-review.md → scripts/figma-screens.mjs
 
 ## Import Cycles
 - None detected.
@@ -1961,15 +1961,15 @@ Nodes (5): After approval: the comp becomes a spec, Generate three compositional
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Write` connect `$impeccable hooks` to `sync.ts`?**
-  _High betweenness centrality (0.113) - this node is a cross-community bridge._
+  _High betweenness centrality (0.151) - this node is a cross-community bridge._
 - **Should `sync.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.03716129032258064 - nodes in this community are weakly interconnected._
-- **Why does `/impeccable hooks` connect `$impeccable hooks` to `.claude/skills/impeccable/SKILL.md`?**
-  _High betweenness centrality (0.037) - this node is a cross-community bridge._
+- **Why does `/impeccable hooks` connect `$impeccable hooks` to `.opencode/skills/impeccable/SKILL.md`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Should `extract` be split into smaller, more focused modules?**
   _Cohesion score 0.1225296442687747 - nodes in this community are weakly interconnected._
-- **Why does `/impeccable hooks` connect `$impeccable hooks` to `.cursor/skills/impeccable/SKILL.md`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `/impeccable hooks` connect `$impeccable hooks` to `Extract Flow`?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **Should `code.js` be split into smaller, more focused modules?**
   _Cohesion score 0.11340852130325814 - nodes in this community are weakly interconnected._
 - **Should `lib-doc.js` be split into smaller, more focused modules?**

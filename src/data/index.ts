@@ -59,7 +59,8 @@ export const sampleContent: Content = {
     'Review the Quiet Glass tokens and verify the Safari blur fallback before the next milestone.',
 }
 const KEY = 'kw-workspace-v1'
-const contentKeys: string[] = ['nbc_activities', 'nbc_submissions', 'nbc_summaries', 'pages', 'projects', 'tasks', 'scratchpad', 'taskViews'] satisfies (keyof Content)[]
+// A Record over every Content key, so a new field fails to compile until it is listed here.
+const contentKeys = Object.keys({ nbc_activities: 1, nbc_submissions: 1, nbc_summaries: 1, pages: 1, projects: 1, tasks: 1, scratchpad: 1, taskViews: 1 } satisfies Record<keyof Content, 1>)
 /** Stored or remote content can still carry keys of retired features; only current content keys are kept. */
 export function contentFields<T extends object>(data: T): T {
   return Object.fromEntries(Object.entries(data).filter(([key]) => contentKeys.includes(key))) as T
