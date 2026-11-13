@@ -148,4 +148,112 @@ test('view progress down to one activity', async ({ page }) => {
   await expect(page.getByRole('button', { name: /Phase 1/ })).toBeVisible()
 })
 
+test('update a value and confirm on a phone', async ({ page }) => {
+  const base = fixtureActivities()
+  const extra = Array.from({ length: 5 }, (_, i) => ({
+    ...base[2]!,
+    id: `nbc:1.6.1.${i + 3}`,
+    wbs: `1.6.1.${i + 3}`,
+    name: `Install fixture ${i + 1}`,
+    progress: 0.2,
+    baseline: 0.2,
+    order: i + 4,
+    relativeWeight: 0,
+    globalWeight: 0,
+  }))
+  await page.addInitScript(({ activities, project }) => {
+    if (!localStorage.getItem('kw-workspace-v1')) {
+      localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], projects: [project], nbc_activities: activities, nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] }))
+    }
+  }, { activities: [...base, ...extra], project: fixtureProject })
+
+  await page.goto('/projects-progress/nbc-bp03/update')
+  await page.getByRole('button', { name: /^Tola/ }).tap()
+  await page.getByRole('button', { name: 'Continue as Tola' }).tap()
+
+  const nestedScroll = await page.evaluate(() => {
+    const main = document.querySelector('main')
+    if (!main) return false
+    for (const el of main.querySelectorAll<HTMLElement>('*')) {
+      const style = getComputedStyle(el)
+      if ((style.overflowY === 'auto' || style.overflowY === 'scroll') && el.scrollHeight > el.clientHeight) return true
+    }
+    return false
+  })
+  expect(nestedScroll).toBe(false)
+
+  const cards = page.locator('.ph-ucard')
+  await expect(cards.first()).toBeVisible()
+  let inViewport = 0
+  const count = await cards.count()
+  for (let i = 0; i < count; i++) {
+    const box = await cards.nth(i).boundingBox()
+    if (box && box.y >= 0 && box.y + box.height <= 844) inViewport++
+  }
+  expect(inViewport).toBeGreaterThanOrEqual(3)
+
+  const input = page.getByLabel('This week % for 1.6.1.2')
+  await input.fill('50')
+  const bar = page.locator('.ph-update-bar')
+  await expect(bar).toContainText('1 changed')
+
+  await bar.getByRole('button', { name: 'Confirm update' }).tap()
+  const sheet = page.getByRole('dialog', { name: 'Confirm update' })
+  await sheet.getByRole('switch').tap()
+  await expect(sheet).toContainText('Install board')
+  await sheet.getByRole('button', { name: 'Confirm' }).tap()
+  await expect(bar).toContainText('Confirmed')
+})
+
+test('focused field is not covered', async ({ page }) => {
+  const base = fixtureActivities()
+  const extra = Array.from({ length: 10 }, (_, i) => ({
+    ...base[2]!,
+    id: `nbc:1.6.1.${i + 3}`,
+    wbs: `1.6.1.${i + 3}`,
+    name: `Install item ${i + 1}`,
+    progress: 0.2,
+    baseline: 0.2,
+    order: i + 4,
+    relativeWeight: 0,
+    globalWeight: 0,
+  }))
+  await page.addInitScript(({ activities, project }) => {
+    if (!localStorage.getItem('kw-workspace-v1')) {
+      localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], projects: [project], nbc_activities: activities, nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] }))
+    }
+  }, { activities: [...base, ...extra], project: fixtureProject })
+
+  await page.goto('/projects-progress/nbc-bp03/update?handler=Tola')
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight))
+  await page.waitForTimeout(100)
+
+  const inputs = page.locator('.ph-ucard-input')
+  const last = inputs.last()
+  await last.focus()
+  await expect(page.getByTestId('tabbar')).toBeHidden()
+  await page.waitForTimeout(100)
+
+  const inputBox = await last.boundingBox()
+  const barBox = await page.locator('.ph-update-bar').boundingBox()
+  expect(inputBox).not.toBeNull()
+  expect(barBox).not.toBeNull()
+  expect(inputBox!.y + inputBox!.height).toBeLessThanOrEqual(barBox!.y)
+})
+
+test('crossing 768 px keeps unsaved draft', async ({ page }) => {
+  await setup(page)
+  await page.goto('/projects-progress/nbc-bp03/update?handler=Tola')
+  const phoneInput = page.getByLabel('This week % for 1.6.1.2')
+  await phoneInput.fill('55')
+
+  await page.setViewportSize({ width: 900, height: 800 })
+  const desktopInput = page.getByLabel('This week % for 1.6.1.2')
+  await expect(desktopInput).toBeVisible()
+  await expect(desktopInput).toHaveValue('55')
+
+  await desktopInput.fill('65')
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expect(page.getByLabel('This week % for 1.6.1.2')).toHaveValue('65')
+})
 

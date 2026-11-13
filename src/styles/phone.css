@@ -7,6 +7,11 @@
     --content-pad: 16px;
   }
 
+  /* Let fixed sheets inside .main stack above the sibling tab bar. */
+  .shell[data-bp='compact'] .main {
+    z-index: auto;
+  }
+
   /* 16 px side gutter and 12 px under the top bar. The page ends above the tab bar where there is one. */
   .canvas {
     padding: var(--space-12) 0 var(--safe-bottom);

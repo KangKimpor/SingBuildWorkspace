@@ -98,13 +98,50 @@ export function AppShell() {
 
   // Set on the element directly: toggling it must not re-render the screen underneath.
   useEffect(() => {
-    const on = (e: FocusEvent) =>
-      root.current?.toggleAttribute('data-typing', isTyping(e.type === 'focusin' ? e.target : e.relatedTarget))
-    addEventListener('focusin', on)
-    addEventListener('focusout', on)
+    let tapping = false
+    let settle: number | undefined
+    const sync = (typing: boolean) => root.current?.toggleAttribute('data-typing', typing)
+    const clear = () => {
+      tapping = false
+      clearTimeout(settle)
+      settle = undefined
+      sync(isTyping(document.activeElement))
+    }
+    const armSettle = (ms: number) => {
+      clearTimeout(settle)
+      settle = window.setTimeout(clear, ms)
+    }
+    const onFocusIn = (e: FocusEvent) => {
+      if (isTyping(e.target)) {
+        tapping = false
+        clearTimeout(settle)
+        settle = undefined
+        sync(true)
+      }
+    }
+    const onFocusOut = (e: FocusEvent) => {
+      if (isTyping(e.relatedTarget)) { sync(true); return }
+      // Defer removing data-typing while a pointer tap is in flight so fixed bottom bars do not shift before click fires.
+      if (tapping) return
+      sync(false)
+    }
+    const onDown = () => { tapping = true; clearTimeout(settle); settle = undefined }
+    const onUp = () => armSettle(80)
+    const onClick = () => { if (tapping) armSettle(0) }
+    addEventListener('focusin', onFocusIn)
+    addEventListener('focusout', onFocusOut)
+    addEventListener('pointerdown', onDown, true)
+    addEventListener('pointerup', onUp, true)
+    addEventListener('pointercancel', onUp, true)
+    addEventListener('click', onClick, true)
     return () => {
-      removeEventListener('focusin', on)
-      removeEventListener('focusout', on)
+      clearTimeout(settle)
+      removeEventListener('focusin', onFocusIn)
+      removeEventListener('focusout', onFocusOut)
+      removeEventListener('pointerdown', onDown, true)
+      removeEventListener('pointerup', onUp, true)
+      removeEventListener('pointercancel', onUp, true)
+      removeEventListener('click', onClick, true)
     }
   }, [])
 
