@@ -66,9 +66,7 @@
 .nbc-trend-labels { display: flex; justify-content: space-between; gap: 12px; font: 11px var(--font-mono); color: var(--text-secondary); }
 .nbc-trend-labels span:last-child { color: var(--accent-text); }
 @media (max-width: 767px) {
-  .nbc-snapshot, .nbc-trend, .nbc-execution { padding: 16px; }
-  .nbc-snapshot-meta .nbc-pill { margin-bottom: 8px; }
-  .nbc-progress-scale span:last-child { display: none; }
+  .nbc-trend, .nbc-execution { padding: 16px; }
 }
 
 /* Overview: Apple-style polish. Same tokens, so light and dark follow the theme. */
@@ -115,7 +113,6 @@
 .nbc-heat-cell[data-empty=true] { background: transparent; color: var(--text-secondary); font-weight: 400; }
 a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
 @media (max-width: 767px) {
-  .nbc-ov-head h2 { font-size: 28px; line-height: 34px; }
   .nbc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nbc-kpi-value { font-size: 20px; }
   .nbc-attention, .nbc-trend, .nbc-execution { padding: 16px; }
@@ -137,8 +134,6 @@ a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
   .nbc-handler-row { margin-inline: 20px; }
   .nbc-handler-footer { padding-inline: 20px; }
   .nbc-weeks > td { padding-inline: 20px; }
-  .nbc-progress-panels .nbc-execution { padding: 20px; }
-  .nbc-progress-panels .nbc-seg button { padding-inline: 6px; font-size: 12px; }
 }
 
 .nbc-handler-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; text-align: start; }

@@ -229,9 +229,13 @@ for (const width of [1920, 1180, 820, 393, 320]) {
       '/settings/account',
     ]) {
       await page.goto(route)
-      await expect(
-        page.locator('h1, input[aria-label="Page title"]').first(),
-      ).toBeVisible()
+      if (width < 768 && (route === '/' || route.startsWith('/settings'))) {
+        await expect(page.locator('.ptopbar')).toContainText(route === '/' ? 'Progress' : 'Settings')
+      } else {
+        await expect(
+          page.locator('h1, input[aria-label="Page title"]').first(),
+        ).toBeVisible()
+      }
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth <= innerWidth + 1,

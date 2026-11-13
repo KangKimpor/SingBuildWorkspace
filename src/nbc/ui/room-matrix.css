@@ -52,14 +52,8 @@
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td { background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); border-right: 1px solid var(--row-line); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td:last-child, :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td.nbc-room-fill { border-right: 0; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td[data-label].nbc-num:nth-child(3) { color: var(--row-ink-2); }
-@media (max-width: 767px) {
-  .nbc-activities .nbc-rooms.nbc-wbs td[data-label]:not([data-label=WBS]):not([data-label=Description])::before { content: none; }
-}
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] :is(.nbc-name, .nbc-name-button) { color: var(--row-ink); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] .nbc-toggle { color: var(--row-ink-2); }
-@media (max-width: 720px) {
-  .nbc-rooms { --pp-w-desc: 180px; }
-}
 
 /* Area panels (BP03/BP04) head each column with a code and a place name, so their columns are wider than room codes. */
 .nbc-rooms[data-area] thead th.nbc-room-head { min-width: var(--pp-w-room-area); max-width: 132px; }

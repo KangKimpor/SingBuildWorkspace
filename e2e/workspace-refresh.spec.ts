@@ -36,12 +36,16 @@ for (const theme of ['light'] as const) for (const width of [1440, 393]) {
     expect((await headers.allTextContents()).map((v) => v.replace(/[↑↓]/g, '').trim())).toEqual(['Task name', 'Status', 'Priority', 'Due date', 'Description'])
     await expect(page.locator('.main')).toHaveCSS('background-color', theme === 'light' ? 'rgb(255, 255, 255)' : 'rgb(25, 25, 25)')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
-    if (width < 1024) await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
-    const nav = page.getByRole('navigation', { name: 'Primary', exact: true })
-    for (const name of ['Home', 'My tasks', 'Favorites', 'Pages', 'New page']) await expect(nav.getByText(name, { exact: true })).toHaveCount(0)
-    await expect(nav.getByText('Team Workspace', { exact: true })).toHaveCount(0)
-    await expect(nav.getByText('Personal Workspace (Testing Phase)', { exact: true })).toHaveCount(0)
-    await expect(nav.getByText('Projects', { exact: true })).toBeVisible()
-    await expect(nav.getByRole('link', { name: /Reference workspace/ })).toHaveCount(0)
+    if (width < 768) {
+      await expect(page.getByRole('button', { name: 'Open sidebar', exact: true })).toHaveCount(0)
+    } else {
+      if (width < 1024) await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
+      const nav = page.getByRole('navigation', { name: 'Primary', exact: true })
+      for (const name of ['Home', 'My tasks', 'Favorites', 'Pages', 'New page']) await expect(nav.getByText(name, { exact: true })).toHaveCount(0)
+      await expect(nav.getByText('Team Workspace', { exact: true })).toHaveCount(0)
+      await expect(nav.getByText('Personal Workspace (Testing Phase)', { exact: true })).toHaveCount(0)
+      await expect(nav.getByText('Projects', { exact: true })).toBeVisible()
+      await expect(nav.getByRole('link', { name: /Reference workspace/ })).toHaveCount(0)
+    }
   })
 }

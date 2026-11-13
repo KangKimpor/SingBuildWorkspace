@@ -17,8 +17,12 @@ for (const route of routes) {
         await page.goto(route)
         await page.waitForLoadState('networkidle')
         if (route === '/') {
-          // "/" opens the first progress project; there is no project list page.
-          await expect(page.locator('h1').first()).toBeVisible()
+          if (size.width < 768) {
+            await expect(page.locator('.ptopbar')).toContainText('Progress')
+          } else {
+            // "/" opens the first progress project on desktop/tablet; there is no project list page.
+            await expect(page.locator('h1').first()).toBeVisible()
+          }
         } else if (route === '/design') {
           await expect(page.locator('.stagger-list > li').last()).toHaveCSS('opacity', '1')
           await page.waitForTimeout(200)

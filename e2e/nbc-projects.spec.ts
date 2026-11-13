@@ -14,7 +14,7 @@ for (const real of [false, true]) test(`both projects persist isolated drafts, c
   await page.route('https://**.supabase.co/**', route => route.abort())
   await page.addInitScript(data => { if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify(data)) }, { pages: [], tasks: [], projects: [bp03.project, bp04.project], nbc_activities: [...bp03.activities, ...bp04.activities], nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] })
   await page.goto('/projects-progress')
-  for (const project of [bp03.project, bp04.project]) await expect(page.getByRole('link', { name: new RegExp(project.name) }).first()).toBeVisible()
+  for (const project of [bp03.project, bp04.project]) await expect(page.getByTestId('sidebar').getByRole('button', { name: new RegExp(project.name) }).first()).toBeVisible()
   const read = () => page.evaluate(() => JSON.parse(localStorage.getItem('kw-workspace-v1')!))
   for (const [data, other] of [[bp04, bp03], [bp03, bp04]]) {
     const before = await read()

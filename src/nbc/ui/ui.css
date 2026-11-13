@@ -37,10 +37,6 @@
 @media (min-width: 768px) {
   .nbc-activities .nbc-wbs .nbc-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; flex-shrink: 1; }
 }
-/* Phone cards keep their sentence-case names. */
-@media (max-width: 767px) {
-  .nbc-activities .nbc-wbs:not(.nbc-rooms) tr { --name-case: none; --name-tracking: normal; }
-}
 .nbc-count { font-size: 11px; font-weight: 500; margin-inline-start: auto; padding-inline-start: 6px; flex: none; font-family: var(--font-mono); color: var(--row-ink-2); }
 .nbc-toggle { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; background: transparent; border-radius: 5px; cursor: pointer; padding: 0; flex: none; color: var(--row-ink-2); }
 .nbc-toggle:hover { background: var(--row-hover); color: var(--row-ink); }

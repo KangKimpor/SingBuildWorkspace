@@ -9,15 +9,6 @@
 .nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 8px; }
 .nbc-update[data-expanded=true] > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 
-/* Toolbar sizes are shared with Project Progress (nbc.css). Phones tighten the toolbar when expanded so the table gets the room. */
-@media (max-width: 767px) {
-  .nbc-update[data-expanded=true] .nbc-filters, .nbc-update[data-expanded=true] .nbc-update-controls { gap: 6px; }
-  .nbc-update[data-expanded=true] .nbc-update-controls .nbc-chip { padding: 3px 10px; font-size: 12px; min-height: 28px; border-radius: 6px; }
-  .nbc-update[data-expanded=true] .nbc-update-controls .nbc-deadline { padding: 3px 8px; font-size: 11px; }
-  .nbc-update[data-expanded=true] .nbc-filters .search-field { max-width: 240px; min-height: 28px; }
-  .nbc-update[data-expanded=true] .nbc-filters .search-field input { height: 28px; font-size: 12px; padding-block: 4px; }
-  .nbc-update[data-expanded=true] .nbc-filters .glass-select { min-height: 28px; font-size: 12px; padding: 0 8px; }
-}
 .nbc-update[data-expanded=true] .nbc-seg {
   padding: 1px;
   border-radius: 6px;
@@ -327,51 +318,9 @@
 @media (prefers-reduced-motion: reduce) { .nbc-sheet, .nbc-gate-list button, .nbc-seg button, .nbc-cell input { animation: none; transition: none; } }
 
 @media (max-width: 767px) {
-  .shell[data-bp=compact] .nbc-project:has(.nbc-update:not(.nbc-update-gate)) { height: calc(100dvh - 48px - var(--safe-top) - var(--h-tabbar) - var(--safe-bottom)); }
-  .shell[data-bp=compact] .nbc-project:has(.nbc-update[data-expanded=true]) { height: calc(100dvh - 48px - var(--safe-top)); padding-bottom: max(12px, var(--safe-bottom)); }
-  .nbc-expand-editor { min-height: 44px; }
-  .nbc-update-gate { height: auto; }
-  .nbc-project:has(.nbc-update:not(.nbc-update-gate)) > .nbc-project-header { display: none; }
-  .nbc-update-controls { justify-content: flex-end; }
   .nbc-gate h2 { font-size: 32px; line-height: 38px; }
   .nbc-gate-list { grid-template-columns: 1fr; }
-  .nbc-update-bar { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; padding: 6px 6px 6px 10px; bottom: calc(var(--h-tabbar) + var(--safe-bottom) + 8px); }
-  .nbc-update-bar .nbc-spacer { display: none; }
-  .nbc-update-bar > .btn-accent { margin-left: auto; }
-  .nbc-update-bar .nbc-status, .nbc-update-bar .nbc-problems { grid-column: 1 / -1; }
-  .nbc-update-metrics { flex-wrap: wrap; border: 0; padding-left: 0; gap: 6px; font-size: 12px; }
-  .nbc-contribution { padding: 4px 6px; }
   .nbc-sheet { right: 16px; bottom: calc(var(--h-tabbar) + var(--safe-bottom) + 76px); max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - var(--h-tabbar) - 100px); }
-  /* One rounded card per activity instead of a table. */
-  .nbc-update .nbc-wbs-scroll { background: transparent; box-shadow: none; }
-  .nbc-update .nbc-wbs thead { display: none; }
-  .nbc-update .nbc-wbs, .nbc-update .nbc-wbs tbody, .nbc-update .nbc-wbs tr, .nbc-update .nbc-wbs td { display: block; }
-  .nbc-update .nbc-wbs tbody tr { height: auto; max-height: none; margin-bottom: 8px; padding: 8px 12px; background: var(--bg-raised); border-radius: 14px; box-shadow: 0 0 0 .5px var(--border-subtle); }
-  .nbc-update .nbc-wbs tr[data-group=true] { background: transparent; box-shadow: none; padding: 12px 4px 2px; }
-  .nbc-update .nbc-wbs td { display: flex; align-items: center; justify-content: space-between; gap: var(--space-8); height: auto; min-height: 32px; border: 0; padding: 2px 0; }
-  /* Cards are transparent; the room matrix stays a grid with its own opaque tier colors (room-matrix.css). */
-  .nbc-update .nbc-wbs:not(.nbc-rooms) td { background: transparent !important; }
-  .nbc-update .nbc-wbs td[data-label]::before { content: attr(data-label); font-size: 12px; color: var(--text-secondary); font-family: inherit; flex: none; }
-  .nbc-update .nbc-wbs td[data-label=Description]::before, .nbc-update .nbc-wbs td[data-label=WBS]::before { content: none; }
-  .nbc-update .nbc-wbs tr[data-changed=true], .nbc-update .nbc-wbs tr[data-problem=true] { box-shadow: 0 0 0 1.5px var(--accent); }
-  .nbc-update .nbc-wbs td[data-label=Description] .nbc-desc { min-width: 0; }
-  .nbc-update .nbc-wbs tr[data-group=true] td:nth-child(n+3) { display: none; }
-  .nbc-update .nbc-wbs td[data-label=Description] { padding-inline-start: 0 !important; }
-  .nbc-update .nbc-name { font-size: 15px; line-height: 1.5; }
-  .nbc-update .nbc-toggle { width: 44px; height: 44px; }
-  .nbc-update .nbc-toggle-gap { display: none; }
-  .nbc-cell { flex-wrap: wrap; min-width: 0; }
-  .nbc-cell input, .nbc-remark { min-height: 44px; font-size: 16px; }
-  .nbc-remark { min-width: 0; }
-  .nbc-remark-cell { min-width: 0; flex: 1; align-items: stretch; }
-  .nbc-remark-btn { min-height: 44px; text-align: end; white-space: normal; overflow-wrap: anywhere; }
-  .nbc-update .nbc-wbs tr[data-level='1'] .nbc-remark-btn { color: var(--accent-text); }
-  .nbc-update .nbc-wbs tr[data-level='1'] .nbc-unit { color: var(--text-secondary); }
-  .nbc-update .nbc-wbs td[data-label]::before { font-family: var(--font-sans); }
-  .nbc-update .nbc-filters { min-width: 0; }
-  .nbc-update .nbc-update-controls { flex-wrap: wrap; }
-  .nbc-update .nbc-seg { max-width: 100%; overflow-x: auto; }
-  .nbc-update .nbc-seg button { padding-inline: 8px; }
 }
 .nbc-chip.nbc-change-handler { background:#ffdbb5; color:#803900; }
 .nbc-chip.nbc-change-handler:hover { background:#ffcc96; }

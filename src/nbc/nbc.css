@@ -82,17 +82,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-sheet-fields { display: grid; gap: var(--space-16); padding-bottom: calc(var(--space-24) + var(--safe-bottom, 0px)); min-width: 0; }
 .nbc-project :focus-visible, .nbc-sheet-fields :focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: var(--space-2); }
 .nbc-project .nbc-num { font-variant-numeric: tabular-nums; }
-@media (max-width: 767px) {
-  .nbc-project-header .icon-tile.icon-tile-brand { width: 40px; height: 40px; border-radius: 8px; }
-  .nbc-project.workspace-surface { padding: 12px 14px; gap: 10px; }
-  .nbc-project h1 { font-size: 19px; line-height: 24px; }
-  .nbc-project-header { align-items: start; }
-  .nbc-project-header > div:not(.icon-tile) { flex: 1; }
-  .nbc-start-update { display: none; }
-  .nbc-project-header > .nbc-project-actions { flex: none; }
-  .nbc-export-button span { display: none; }
-  .nbc-export-button { width: 40px; min-width: 40px; padding: 0; }
-}
 @media (pointer: coarse) {
   .nbc-project :is(.nbc-chip, .nbc-seg button) { min-height: 44px; }
   html[data-nbc] { --h-button: 44px; --h-input: 44px; }
@@ -103,7 +92,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-tabs .view-tab[aria-current=page] { background:var(--bg-canvas); box-shadow:0 1px 3px rgb(0 0 0 / .12),0 0 0 1px rgb(0 0 0 / .03); font-weight:600; }
 .nbc-tabs .view-tab:focus-visible { outline:2px solid var(--accent-text); outline-offset:2px; }
 @media(prefers-reduced-motion:reduce) { .nbc-tabs .view-tab { transition:none; } }
-@media(max-width:400px) { .nbc-tabs .view-tab { padding:4px 8px; } }
 
 /* One toolbar row above both progress tables: shared height, gap and search width. */
 .nbc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
@@ -132,9 +120,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 @container nbc-toolbar (max-width: 900px) { .nbc-update .nbc-filter-line .nbc-expand-label { display: none; } .nbc-update .nbc-filter-line .nbc-expand-editor { width: 32px; padding: 0; } }
 @container nbc-toolbar (max-width: 760px) { .nbc-filter-line { flex-wrap: wrap; } }
 @media (min-width: 768px) { .nbc-filter-line > * { flex-shrink: 0; } .nbc-filter-line > .search-field { flex-shrink: 1; min-width: 140px; } }
-@media (max-width: 767px) { .nbc-filter-line { display: contents; } }
-/* Phones: the action group may wrap, and the deadline note stays compact so the table keeps its height. */
-@media (max-width: 767px) { .nbc-toolbar-actions { flex-wrap: wrap; justify-content: flex-end; } .nbc-filters .nbc-toolbar-actions .nbc-deadline { height: 30px; min-height: 30px; padding: 0 8px; font-size: 11px; } }
 
 /* Chips: one shape and one height across both progress screens. */
 .nbc-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid transparent; background: var(--bg-sidebar); color: var(--pp-ink); border-radius: 6px; padding: 0 11px; min-height: var(--h-button); font-size: 12px; font-weight: 500; white-space: nowrap; }
@@ -152,9 +137,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-activities-page[data-expanded=true], .nbc-activities-page[data-expanded=true] > .nbc-activities { display: flex; flex: 1; flex-direction: column; min-height: 0; }
 .nbc-activities-page[data-expanded=true] .nbc-activities > .nbc-wbs-scroll { flex: 1; max-height: none; min-height: 8rem; border-radius: 8px; }
 .nbc-activities-page[data-expanded=true] .nbc-activities > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
-@media (max-width: 639px) {
-  .nbc-project:has(.nbc-activities-page[data-expanded=true]) { height: calc(100dvh - 48px - var(--safe-top)); padding: 12px 16px max(12px, var(--safe-bottom)); }
-}
 
 /* Project Progress re-skin: page header, tabs and toolbar. Colors from the `--pp-*` tokens; the sidebar and shell are untouched. */
 .nbc-project-header p { color: var(--pp-ink-2); }
@@ -180,10 +162,3 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-seg button { border: 1px solid transparent; color: var(--pp-ink-2); }
 .nbc-seg button:hover:not(:disabled) { color: var(--pp-ink); background: var(--pp-wash); }
 .nbc-seg button[aria-pressed=true] { background: var(--pp-l3); color: var(--pp-ink); border-color: var(--pp-line-strong); box-shadow: 0 1px 2px rgb(0 0 0 / .14); }
-/* Phones: the handler, area and progress filters fold behind a Filters button (open by default when one is already applied). Same controls, same behavior. */
-@media (max-width: 640px) {
-  .nbc-activities .nbc-filters-toggle { display: inline-flex; }
-  .nbc-activities .nbc-filter-selects { display: none; }
-  .nbc-activities .nbc-filter-selects[data-open] { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 8px; }
-  .nbc-activities .nbc-filter-selects[data-open] .glass-select { flex: 1 1 120px; min-width: 0; }
-}

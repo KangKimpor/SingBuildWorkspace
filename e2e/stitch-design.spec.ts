@@ -48,7 +48,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       await page.getByRole('button', { name: `Collapse ${fixtureProject.name}` }).click()
       await expect(page.getByRole('button', { name: `Expand ${fixtureProject.name}` })).toHaveAttribute('aria-expanded', 'false')
       await page.getByRole('button', { name: `Expand ${fixtureProject.name}` }).click()
-    } else {
+    } else if (width >= 768) {
       await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
       const drawer = page.getByRole('dialog', { name: 'Sidebar', exact: true })
       await expect(drawer).toBeVisible()
@@ -59,20 +59,28 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       await children.getByRole('link', { name: 'Project Progress', exact: true }).click()
       await expect(drawer).not.toBeVisible()
       await expect(page.locator('.nbc-tabs a[aria-current=page]')).toHaveText('Project Progress')
+    } else {
+      await expect(page.getByRole('button', { name: 'Open sidebar', exact: true })).toHaveCount(0)
+      await expect(page.locator('.ptopbar')).toContainText('NBC BP03')
+      await expect(page.getByTestId('tabbar').getByRole('link')).toHaveCount(3)
     }
-    for (const [view, label] of [['overview', 'Overview'], ['activities', 'Project Progress'], ['update', 'Update Progress']] as const) {
-      await page.locator('.nbc-tabs').getByRole('link', { name: label, exact: true }).click()
-      await expect(page.locator('.nbc-tabs a[aria-current=page]')).toHaveText(label)
-      await expect(page.getByRole('heading', { name: fixtureProject.name, exact: true })).toBeVisible()
+    const phone = width < 768
+    const nav = phone ? page.getByTestId('tabbar') : page.locator('.nbc-tabs')
+    for (const [view, desktopLabel, phoneLabel] of [['overview', 'Overview', 'Overview'], ['activities', 'Project Progress', 'Progress'], ['update', 'Update Progress', 'Update']] as const) {
+      const label = phone ? phoneLabel : desktopLabel
+      await nav.getByRole('link', { name: label, exact: true }).click()
+      await expect(nav.locator('a[aria-current=page]')).toHaveText(label)
+      if (!phone) await expect(page.getByRole('heading', { name: fixtureProject.name, exact: true })).toBeVisible()
       if (view === 'overview') {
         await expect(page.locator('.nbc-kpi').filter({ hasText: 'Overall progress' }).locator('strong')).toHaveText('43.75%')
         await expect(page.getByRole('region', { name: 'Project snapshot' })).toContainText('Versus plan')
+        if (phone) await page.getByRole('button', { name: /^Completion breakdown/ }).click()
         await page.getByRole('button', { name: 'Work area', exact: true }).click()
         await expect(page.getByRole('region', { name: 'Work area', exact: true })).toBeVisible()
         await page.getByRole('button', { name: 'Floor', exact: true }).click()
         await expect(page.getByRole('region', { name: 'Floor / location' })).toBeVisible()
       }
-      if (view === 'activities') await expect(page.locator('.nbc-wbs')).toBeVisible()
+      if (view === 'activities') await expect(page.locator(phone ? '.ph-progress' : '.nbc-wbs')).toBeVisible()
       if (view === 'update') {
         await expect(page.getByRole('heading', { name: 'Who is updating?' })).toBeVisible()
         await page.locator('.nbc-gate-list').getByRole('button', { name: /^Tola/ }).click(); await page.getByRole('button', { name: /^Continue as/ }).click()

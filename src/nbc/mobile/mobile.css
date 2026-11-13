@@ -316,6 +316,9 @@
   .ph-collapsible-body {
     padding: 0 var(--space-16) var(--space-16);
   }
+  .ph-collapsible-body:has(> .nbc-handler-panel) {
+    padding: 0;
+  }
 
   /* Sections inside a fold lose their own card and heading: the row above names them. */
   .shell .ph-collapsible-body :is(.nbc-trend, .nbc-execution, .nbc-handler-panel) {
@@ -341,6 +344,12 @@
   .shell .ph-collapsible-body .nbc-section-heading {
     padding: 0 0 var(--space-4);
   }
+  .shell .ph-collapsible-body .nbc-handler-panel > .nbc-section-heading {
+    padding: 0 var(--space-16) var(--space-4);
+  }
+  .shell .ph-collapsible-body .nbc-handler-panel > :is(.table-scroll, .form-error) {
+    padding-inline: var(--space-16);
+  }
   .shell .ph-collapsible-body .nbc-handler-row {
     margin-inline: 0;
   }
@@ -348,7 +357,7 @@
     padding-inline: var(--space-12);
   }
   .shell .ph-collapsible-body .nbc-handler-footer {
-    margin: 0 calc(var(--space-16) * -1) calc(var(--space-16) * -1);
+    margin: 0;
     padding: var(--space-16);
   }
   .shell .ph-collapsible-body :is(.nbc-handler-footer p, .nbc-progress-legend) {
@@ -1101,6 +1110,14 @@
     border-radius: 16px 16px 0 0;
     box-shadow: 0 0 0 100vmax var(--scrim);
     z-index: 60;
+    transform-origin: bottom center;
+    animation: ph-sheet-in 180ms var(--ease-standard);
+  }
+  @keyframes ph-sheet-in {
+    from {
+      opacity: 0;
+      transform: scale(0.97);
+    }
   }
   .shell .nbc-sheet-note textarea {
     font-size: 16px;
@@ -1114,5 +1131,8 @@
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
   .ph-collapsible-head > svg {
     transition: none;
+  }
+  .shell .nbc-sheet {
+    animation: none;
   }
 }

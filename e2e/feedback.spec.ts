@@ -6,7 +6,7 @@ for (const preference of ['system', 'os-reduced']) {
   test(`press and save feedback respects ${preference} motion`, async ({ page }) => {
     await page.emulateMedia({ reducedMotion: preference === 'os-reduced' ? 'reduce' : 'no-preference' })
     await page.goto('/')
-    const button = page.getByRole('button', { name: 'Open sidebar', exact: true })
+    const button = page.getByRole('link', { name: 'Settings', exact: true })
     await expect(button).toBeVisible()
     await button.hover()
     await page.mouse.down()
@@ -18,7 +18,7 @@ for (const preference of ['system', 'os-reduced']) {
     const status = page.getByTestId('sync-pill')
     await expect(status).toHaveAttribute('data-tone', 'success')
     await expect(status).toContainText('Demo · local')
-    await expect(status.locator('.sync-check')).toBeVisible()
+    await expect(status.locator('svg')).toBeVisible()
     await expect(status.locator('.dot')).toHaveCount(0)
 
     await page.goto('/projects/website/board')
