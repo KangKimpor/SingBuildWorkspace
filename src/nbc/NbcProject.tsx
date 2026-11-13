@@ -4,11 +4,12 @@ import { Link, Navigate } from 'react-router-dom'
 import { Download, X } from 'lucide-react'
 import type { ProjectSummary } from '@/data'
 import { useWorkspace } from '@/data'
-import { Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
 import { applyDeletedRow, applyRealtimeRow, pendingCollectionIds, refreshCollections } from '@/data/sync'
 import { calculate } from './progress'
 import { issuesEnabled } from './features'
+import { percent } from './format'
+import { timeLeft } from './update/deadline'
 import Overview from './overview/Overview'
 import Activities from './activities/Activities'
 import UpdateProgress from './update/UpdateProgress'
@@ -85,9 +86,19 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   if (!issuesEnabled && view === 'issues') return <Navigate to={`/projects-progress/${project.id}/activities${location.search}`} replace/>
   if (!views.some(([key]) => key === view) && view !== 'issues') return <Navigate to={`/projects-progress/${project.id}/overview`} replace/>
   const activityView = view === 'issues' ? view : 'activities'
+  const left = timeLeft(current, now)
   return <div className="workspace-surface project-page nbc-project" data-view={view}>
-    <header className="nbc-project-header"><Tile name={project.icon || 'building'} color={project.color}/><div><h1>{project.name}</h1><p className="small muted">{weekLabel(current)} · This week · Due Friday 11:59 PM</p></div><div className="nbc-project-actions"><button className="btn-secondary nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={15} aria-hidden="true"/><span>Export XLSX</span></button></div></header>
-    <nav className="view-tabs nbc-tabs" aria-label="Project views">{views.map(([key, label]) => <Link className="view-tab" key={key} aria-current={key === view || key === 'activities' && view === 'issues' ? 'page' : undefined} to={`/projects-progress/${project.id}/${key}`}>{label}</Link>)}</nav>
+    <header className="nbc-project-header">
+      <div className="nbc-project-title"><h1>{project.name}</h1><p><span>{weekLabel(current)}</span><span aria-hidden="true">·</span><span>This week</span><span aria-hidden="true">·</span><span className="nbc-due">Due Friday 11:59 PM</span></p></div>
+      <dl className="nbc-project-stats">
+        {calculation && <div><dt>Overall</dt><dd className="nbc-num" data-strong>{percent(calculation.overall)}</dd></div>}
+        <div className="nbc-stat-reporting"><dt>Reporting</dt><dd className="nbc-num" data-tone={left ? undefined : 'bad'}>{left ?? 'Late'}</dd></div>
+      </dl>
+    </header>
+    <div className="nbc-tabs-row">
+      <nav className="view-tabs nbc-tabs" aria-label="Project views">{views.map(([key, label]) => <Link className="view-tab" key={key} aria-current={key === view || key === 'activities' && view === 'issues' ? 'page' : undefined} to={`/projects-progress/${project.id}/${key}`}>{label}</Link>)}</nav>
+      <button className="nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={14} aria-hidden="true"/><span>Export XLSX</span></button>
+    </div>
     {!activities.length
       ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>
       : <>

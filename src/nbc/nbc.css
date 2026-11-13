@@ -54,22 +54,10 @@ html[data-motion=reduced][data-nbc] button:active { transform: none; }
 /* Project frame: flat page, quiet header, underlined text tabs. */
 html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project.workspace-surface { margin: 0; padding: 16px 24px; border: 0; border-radius: 0; min-width: 0; max-width: 100%; display: flex; flex-direction: column; gap: 12px; }
-.nbc-project h1 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.02em; margin: 0; }
 .nbc-project h2 { font-size: 16px; line-height: 24px; font-weight: 600; margin: 0; }
 .nbc-project h3 { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: 600; margin: 0; }
 .nbc-project p { margin: var(--space-8) 0; }
-.nbc-project-header { display: flex; align-items: center; gap: 10px; margin: 0; }
-.nbc-project-header > div { min-width: 0; }
-.nbc-project-header .icon-tile { width: 34px; height: 34px; margin: 0; border-radius: 8px; background: var(--chip-blue); color: var(--accent-text); }
 .nbc-start-update { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
-.nbc-project-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
-.nbc-project-actions .nbc-start-update { margin-left: 0; }
-.nbc-export-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
-.nbc-project-header p { margin: 2px 0 0; font-size: 12px; line-height: 18px; }
-.nbc-tabs { display: flex; gap: 24px; width: 100%; overflow-x: auto; position: sticky; top: calc(var(--h-topbar) + var(--safe-top)); z-index: 8; background: var(--bg-canvas); border-bottom: 0; padding: 0; margin: 0; }
-.nbc-tabs .view-tab { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 0 0 8px; font-size: 14px; color: var(--text-secondary); white-space: nowrap; }
-.nbc-tabs .view-tab:hover { background: var(--bg-hover); }
-.nbc-tabs .view-tab[aria-current=page] { color: var(--text-primary); border-bottom-color: var(--accent); font-weight: 500; }
 .nbc-eyebrow { display: inline-flex; align-items: center; gap: 5px; color: var(--text-secondary); font-size: 11px; line-height: 18px; letter-spacing: .04em; text-transform: uppercase; }
 .nbc-eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
 .nbc-banner { display: flex; align-items: center; gap: var(--space-8); padding: var(--space-8) var(--space-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-control); font-size: var(--fs-small); color: var(--text-secondary); }
@@ -82,25 +70,42 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project .nbc-num { font-variant-numeric: tabular-nums; }
 @media (max-width: 767px) {
   .nbc-project.workspace-surface { padding: 12px 14px; gap: 10px; }
-  .nbc-project h1 { font-size: 19px; line-height: 24px; }
-  .nbc-project-header { align-items: start; }
-  .nbc-project-header > div:not(.icon-tile) { flex: 1; }
   .nbc-start-update { display: none; }
-  .nbc-project-header > .nbc-project-actions { flex: none; }
-  .nbc-export-button span { display: none; }
-  .nbc-export-button { width: 40px; min-width: 40px; padding: 0; }
+  .nbc-project-header { align-items: flex-start; }
+  .nbc-stat-reporting { display: none !important; }
+  .nbc-project .nbc-export-button span { display: none; }
+  .nbc-project .nbc-export-button { width: 32px; padding: 0; }
 }
 @media (pointer: coarse) {
   .nbc-project :is(.nbc-chip, .nbc-seg button) { min-height: 44px; }
   html[data-nbc] { --h-button: 44px; --h-input: 44px; }
   html[data-nbc] :is(.btn-accent,.btn-secondary,.glass-select) { min-height: 44px; }
 }
-.nbc-tabs { gap:3px; padding:3px; border-radius:9px; background:var(--bg-sidebar); width:fit-content; max-width:100%; }
-.nbc-tabs .view-tab { padding:4px 11px; font-size:13px; border:0; border-radius:6px; transition:background 160ms ease,color 160ms ease,box-shadow 160ms ease; }
-.nbc-tabs .view-tab[aria-current=page] { background:var(--bg-canvas); box-shadow:0 1px 3px rgb(0 0 0 / .12),0 0 0 1px rgb(0 0 0 / .03); font-weight:600; }
 .nbc-tabs .view-tab:focus-visible { outline:2px solid var(--accent-text); outline-offset:2px; }
-@media(prefers-reduced-motion:reduce) { .nbc-tabs .view-tab { transition:none; } }
-@media(max-width:400px) { .nbc-tabs .view-tab { padding:4px 8px; } }
+
+/* Project header: title and week on the left, live stats on the right, compact underline tabs below. */
+.nbc-project h1 { font-size: 20px; line-height: 28px; font-weight: 700; letter-spacing: -.025em; margin: 0; color: var(--pp-ink); }
+.nbc-project-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 0; flex-wrap: wrap; }
+.nbc-project-title { min-width: 0; }
+.nbc-project-header p { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--pp-ink-2); }
+.nbc-project-header .nbc-due { color: #b45309; font-weight: 500; }
+.nbc-project-stats { display: flex; align-items: center; margin: 0; font-size: 12px; line-height: 16px; }
+.nbc-project-stats > div { display: flex; align-items: baseline; gap: 6px; padding: 0 20px; border-left: 1px solid var(--pp-line); }
+.nbc-project-stats > div:first-child { padding-left: 0; border-left: 0; }
+.nbc-project-stats > div:last-child { padding-right: 0; }
+.nbc-project-stats dt { color: var(--pp-ink-2); }
+.nbc-project-stats dd { margin: 0; font-family: var(--font-mono); font-weight: 600; color: var(--pp-ink); }
+.nbc-project-stats dd[data-strong] { font-weight: 700; }
+.nbc-project-stats dd[data-tone=bad] { color: #d92d46; }
+.nbc-tabs-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -4px; border-bottom: 1px solid var(--pp-line); position: sticky; top: calc(var(--h-topbar) + var(--safe-top)); z-index: 8; background: var(--bg-canvas); }
+.nbc-tabs { display: flex; gap: 20px; min-width: 0; overflow-x: auto; padding: 0; margin: 0; border: 0; background: transparent; }
+.nbc-tabs .view-tab { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 8px 0; margin-bottom: -1px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--pp-ink-2); white-space: nowrap; transition: color 140ms ease, border-color 140ms ease; }
+.nbc-tabs .view-tab:hover { color: var(--pp-ink); background: transparent; }
+.nbc-tabs .view-tab[aria-current=page] { color: var(--pp-ink); border-bottom-color: var(--pp-accent-fill); font-weight: 600; }
+.nbc-tabs .view-tab:focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .nbc-tabs .view-tab { transition: none; } }
+.nbc-project .nbc-export-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; min-height: 28px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font-size: 12px; font-weight: 500; }
+.nbc-project .nbc-export-button:hover:not(:disabled) { background: var(--pp-wash); }
 
 /* One toolbar row above both progress tables: shared height, gap and search width. */
 .nbc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
@@ -109,6 +114,13 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-filters .glass-select:hover { border-color: var(--pp-ink-muted); }
 .nbc-filters .nbc-spacer { flex: 1 1 auto; min-width: 0; }
 .nbc-filters .nbc-expand-editor { flex: none; }
+/* Floor picker gets its own row; search, filters, Changed this week, Expand editor and the two tree buttons share one line. */
+.nbc-filters > .nbc-seg { flex: 0 1 auto; }
+.nbc-filter-line { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; flex: 1 1 100%; min-width: 0; }
+.nbc-filter-line > * { flex-shrink: 0; }
+.nbc-filter-line .search-field { flex: 1 1 200px; min-width: 120px; max-width: 280px; }
+.nbc-filter-line .nbc-spacer { flex: 1 1 0; min-width: 0; }
+@media (max-width: 767px) { .nbc-filter-line { display: contents; } }
 
 /* Chips: one shape and one height across both progress screens. */
 .nbc-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid transparent; background: var(--bg-sidebar); color: var(--pp-ink); border-radius: 6px; padding: 0 11px; min-height: var(--h-button); font-size: 12px; font-weight: 500; white-space: nowrap; }
@@ -119,7 +131,7 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-expand-editor { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--border-subtle); background: var(--bg-raised); border-radius: 8px; min-height: 32px; padding: 0 11px; font-size: 12px; font-weight: 500; }
 .shell:has(:is(.nbc-update,.nbc-activities-page)[data-expanded=true]) { --sidebar-col: 0px; }
 .shell:has(:is(.nbc-update,.nbc-activities-page)[data-expanded=true]) :is(.sidebar-slot, .tabbar) { display: none; }
-.nbc-project:has(:is(.nbc-update,.nbc-activities-page)[data-expanded=true]) > :is(.nbc-project-header, .nbc-tabs) { display: none; }
+.nbc-project:has(:is(.nbc-update,.nbc-activities-page)[data-expanded=true]) > :is(.nbc-project-header, .nbc-tabs-row) { display: none; }
 .nbc-project:has(.nbc-activities-page[data-expanded=true]) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); padding: 10px 24px; gap: 6px; }
 .nbc-project:has(.nbc-update[data-expanded=true]) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); padding: 10px 24px; gap: 6px; }
 .canvas:has(.nbc-activities-page[data-expanded=true]) { padding-bottom: 0; }
@@ -131,12 +143,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 }
 
 /* Project Progress re-skin: page header, tabs and toolbar. Colors from the `--pp-*` tokens; the sidebar and shell are untouched. */
-.nbc-project-header p { color: var(--pp-ink-2); }
-.nbc-project .nbc-export-button { min-height: 32px; padding: 0 12px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font-size: 13px; font-weight: 500; }
-.nbc-project .nbc-export-button:hover:not(:disabled) { background: var(--pp-wash); }
-.nbc-tabs .view-tab { color: var(--pp-ink-2); }
-.nbc-tabs .view-tab:hover { color: var(--pp-ink); }
-.nbc-tabs .view-tab[aria-current=page] { color: var(--pp-ink); }
 /* Toolbar: one wrapping row of 32px controls with 6px corners. */
 .nbc-filters { gap: 8px; }
 .nbc-filters .search-field { min-width: 170px; min-height: 32px; border-color: var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink-2); }
