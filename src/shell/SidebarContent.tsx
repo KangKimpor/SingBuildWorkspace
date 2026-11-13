@@ -1,5 +1,6 @@
 import {
   BarChart3,
+  Building2,
   ChevronDown,
   ChevronRight,
   Eye,
@@ -87,7 +88,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     <span className="nav-icon project-chevron" aria-hidden="true">
                       {isExpanded ? <ChevronDown {...ic} /> : <ChevronRight {...ic} />}
                     </span>
-                    <span className="nav-icon project-symbol" aria-hidden="true"><img src="/brand/pan-pacific.png" alt="" width={32} height={32} /></span>
+                    <span className="nav-icon project-symbol" aria-hidden="true"><Building2 {...ic} /></span>
                     <span className="project-heading">
                       <span className="project-name">{name}</span>
                       {subtitle ? <span className="project-subtitle">{subtitle}</span> : null}

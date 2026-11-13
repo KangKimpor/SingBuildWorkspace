@@ -1,7 +1,7 @@
 # Graph Report - kimpor-workspace  (2026-11-13)
 
 ## Corpus Check
-- 648 files · ~1,053,749 words
+- 648 files · ~1,053,747 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 47 file(s) not represented in the graph (top: .css 21, (none) 9, .exe 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `be58532b`
+- Built from commit: `5e963183`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1950,15 +1950,15 @@ Nodes (5): After approval: the comp becomes a spec, Generate three compositional
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Write` connect `$impeccable hooks` to `sync.ts`?**
-  _High betweenness centrality (0.073) - this node is a cross-community bridge._
+  _High betweenness centrality (0.093) - this node is a cross-community bridge._
 - **Should `sync.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.05047250859106529 - nodes in this community are weakly interconnected._
 - **Why does `event()` connect `.cursor/skills/impeccable/reference/generate.md` to `index.ts`, `.opencode/skills/impeccable/reference/live.md`, `.agents/skills/impeccable/reference/live.md`, `.claude/skills/impeccable/reference/live.md`?**
-  _High betweenness centrality (0.058) - this node is a cross-community bridge._
+  _High betweenness centrality (0.062) - this node is a cross-community bridge._
 - **Should `extract` be split into smaller, more focused modules?**
   _Cohesion score 0.1225296442687747 - nodes in this community are weakly interconnected._
-- **Why does `Step 2: Reuse the page, then start` connect `.agents/skills/impeccable/reference/live.md` to `.cursor/skills/impeccable/reference/generate.md`?**
-  _High betweenness centrality (0.021) - this node is a cross-community bridge._
+- **Why does `/impeccable hooks` connect `$impeccable hooks` to `.claude/skills/impeccable/SKILL.md`?**
+  _High betweenness centrality (0.025) - this node is a cross-community bridge._
 - **Should `code.js` be split into smaller, more focused modules?**
   _Cohesion score 0.11340852130325814 - nodes in this community are weakly interconnected._
 - **Should `lib-doc.js` be split into smaller, more focused modules?**
