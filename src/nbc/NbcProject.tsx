@@ -43,7 +43,9 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
     for (const s of [...submissions].filter((s) => s.weekStart === current).sort((a, b) => (b.confirmedAt ?? '').localeCompare(a.confirmedAt ?? ''))) for (const e of appliedEntries(s)) values.set(e.activityId, e.previous)
     return values
   }, [activities, submissions, current])
-  const before = useMemo(() => { try { return calculate(activities, baseline) } catch { return undefined } }, [activities, baseline])
+  // Only Project Progress shows start-of-week values; other views skip this full roll-up (autosaves change `baseline`).
+  const usesBefore = view === 'activities' || view === 'issues'
+  const before = useMemo(() => { if (!usesBefore) return undefined; try { return calculate(activities, baseline) } catch { return undefined } }, [usesBefore, activities, baseline])
   useEffect(() => {
     if (!supabase || scope === 'guest') return
     const client = supabase, channel = client.channel(`nbc:${scope}:${project.id}`)
