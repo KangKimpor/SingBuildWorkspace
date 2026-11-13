@@ -80,6 +80,10 @@ test('live isolated accounts enforce ownership and private attachment access', a
   expect(
     (await b.client.storage.from('kw-files').download(path)).error,
   ).toBeTruthy()
+  // The retired calendar's token table still exists on the server and must stay unreadable.
+  expect(
+    (await a.client.from('kw_calendar_tokens').select('account_id')).error,
+  ).toBeTruthy()
   expect(
     (await a.client.storage.from('kw-files').remove([path])).error,
   ).toBeNull()
