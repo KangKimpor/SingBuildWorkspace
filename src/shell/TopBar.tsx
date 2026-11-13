@@ -117,8 +117,6 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
               : 'Error'}</span>
           {sync.kind === 'error' && online && <button className="text-link small" onClick={()=>void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false))}>Retry</button>}
         </span>
-        {/* Pages put their own top-right actions here (Project Progress: Export XLSX). */}
-        <div id="topbar-page-actions" className="topbar-page-actions"/>
         {!progressScreen && (
           <button
             type="button"
