@@ -73,8 +73,6 @@ html[data-nbc] .canvas { padding-top: 0; }
   .nbc-start-update { display: none; }
   .nbc-project-header { align-items: flex-start; }
   .nbc-stat-reporting { display: none !important; }
-  .nbc-project .nbc-export-button span { display: none; }
-  .nbc-project .nbc-export-button { width: 32px; padding: 0; }
 }
 @media (pointer: coarse) {
   .nbc-project :is(.nbc-chip, .nbc-seg button) { min-height: 44px; }
@@ -97,15 +95,16 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project-stats dd { margin: 0; font-family: var(--font-mono); font-weight: 600; color: var(--pp-ink); }
 .nbc-project-stats dd[data-strong] { font-weight: 700; }
 .nbc-project-stats dd[data-tone=bad] { color: #d92d46; }
-.nbc-tabs-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -4px; border-bottom: 1px solid var(--pp-line); position: sticky; top: calc(var(--h-topbar) + var(--safe-top)); z-index: 8; background: var(--bg-canvas); }
+.nbc-tabs-row { display: flex; align-items: center; gap: 8px; margin-top: -4px; border-bottom: 1px solid var(--pp-line); position: sticky; top: calc(var(--h-topbar) + var(--safe-top)); z-index: 8; background: var(--bg-canvas); }
 .nbc-tabs { display: flex; gap: 20px; min-width: 0; overflow-x: auto; padding: 0; margin: 0; border: 0; background: transparent; }
 .nbc-tabs .view-tab { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; padding: 8px 0; margin-bottom: -1px; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--pp-ink-2); white-space: nowrap; transition: color 140ms ease, border-color 140ms ease; }
 .nbc-tabs .view-tab:hover { color: var(--pp-ink); background: transparent; }
 .nbc-tabs .view-tab[aria-current=page] { color: var(--pp-ink); border-bottom-color: var(--pp-accent-fill); font-weight: 600; }
 .nbc-tabs .view-tab:focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .nbc-tabs .view-tab { transition: none; } }
-.nbc-project .nbc-export-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; min-height: 28px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font-size: 12px; font-weight: 500; }
-.nbc-project .nbc-export-button:hover:not(:disabled) { background: var(--pp-wash); }
+.nbc-export-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; flex: none; min-height: 32px; margin-left: 4px; padding: 0 12px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font-size: 12px; font-weight: 500; }
+.nbc-export-button:hover:not(:disabled) { background: var(--pp-wash); }
+@media (max-width: 767px) { .nbc-export-button span { display: none; } .nbc-export-button { width: 32px; padding: 0; } }
 
 /* One toolbar row above both progress tables: shared height, gap and search width. */
 .nbc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }

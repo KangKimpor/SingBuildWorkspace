@@ -215,6 +215,9 @@
   align-items: center;
   gap: var(--space-4);
 }
+.topbar-page-actions {
+  display: contents;
+}
 .ibtn {
   display: grid;
   place-items: center;

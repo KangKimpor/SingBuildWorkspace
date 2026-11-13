@@ -1,5 +1,6 @@
 import './nbc.css'
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, Navigate } from 'react-router-dom'
 import { Download, X } from 'lucide-react'
 import type { ProjectSummary } from '@/data'
@@ -25,6 +26,9 @@ const aliases: Record<string, string> = { boq: 'activities', progress: 'activiti
 export default function NbcProject({ project, view }: { project: ProjectSummary; view: string }) {
   const scope = useWorkspace((s) => s.scope), [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
+  // Export XLSX sits in the top bar beside the save status; the shell renders the slot, this page fills it.
+  const [actionSlot, setActionSlot] = useState<HTMLElement | null>(null)
+  useLayoutEffect(() => { setActionSlot(document.getElementById('topbar-page-actions')) }, [])
   // Page-wide NBC styling keys off html[data-nbc]. A document-level :has(.nbc-project) selector made the
   // browser re-check the whole page on DOM changes; layout effects keep it in place before the first paint.
   useLayoutEffect(() => {
@@ -97,8 +101,8 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
     </header>
     <div className="nbc-tabs-row">
       <nav className="view-tabs nbc-tabs" aria-label="Project views">{views.map(([key, label]) => <Link className="view-tab" key={key} aria-current={key === view || key === 'activities' && view === 'issues' ? 'page' : undefined} to={`/projects-progress/${project.id}/${key}`}>{label}</Link>)}</nav>
-      <button className="nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={14} aria-hidden="true"/><span>Export XLSX</span></button>
     </div>
+    {actionSlot && createPortal(<button className="nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={15} aria-hidden="true"/><span>Export XLSX</span></button>, actionSlot)}
     {!activities.length
       ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>
       : <>
