@@ -1,0 +1,388 @@
+/* Weekly client report sheet.
+   An Apple-style grouped sheet: one quiet card of inset rows, hairline separators and a single
+   filled action, so the export reads as two choices and one button on a phone. */
+
+.report-sheet.glass[data-material='thick'] {
+  --glass-radius: 22px;
+  --rs-group: #f2f2f7;
+  --rs-separator: rgb(60 60 67 / 0.16);
+  --rs-muted: #6e6e73;
+  --rs-chevron: #c5c5ca;
+  width: min(480px, calc(100% - 32px));
+  padding: 22px 22px 18px;
+  color: #1d1d1f;
+  box-shadow:
+    0 0 0 1px rgb(0 0 0 / 0.04),
+    0 24px 64px rgb(0 0 0 / 0.22);
+  -webkit-font-smoothing: antialiased;
+}
+
+.report-sheet .report-sheet-head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-12);
+}
+
+.report-sheet .report-sheet-heading {
+  min-width: 0;
+  flex: 1;
+}
+
+.report-sheet .report-sheet-title {
+  margin: 0;
+  font-size: 21px;
+  line-height: 26px;
+  font-weight: 700;
+  letter-spacing: -0.021em;
+  color: #1d1d1f;
+}
+
+.report-sheet .report-sheet-lede {
+  margin: 5px 0 0;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--rs-muted);
+}
+
+.report-sheet .report-sheet-close {
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  margin: 1px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: #e8e8ed;
+  color: var(--rs-muted);
+  cursor: pointer;
+  transition:
+    background var(--duration-instant) var(--ease-standard),
+    opacity var(--duration-instant) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .report-sheet .report-sheet-close:hover:not(:disabled) {
+    background: #dededf;
+    color: #3a3a3c;
+  }
+}
+
+.report-sheet .report-sheet-close:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.report-sheet .report-sheet-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.report-sheet form {
+  display: block;
+  margin-top: 0;
+}
+
+.report-sheet .report-section-label {
+  margin: 22px 0 7px;
+  padding: 0 4px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.038em;
+  text-transform: uppercase;
+  color: var(--rs-muted);
+}
+
+.report-sheet .report-group {
+  border-radius: 14px;
+  background: var(--rs-group);
+  overflow: clip;
+}
+
+.report-sheet .report-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 52px;
+  margin: 0;
+  padding: 9px var(--space-16);
+  font-size: 15px;
+  line-height: 20px;
+  color: #1d1d1f;
+  transition: background var(--duration-instant) var(--ease-standard);
+}
+
+.report-sheet .report-row + .report-row::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: var(--space-16);
+  right: 0;
+  height: 1px;
+  background: var(--rs-separator);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .report-sheet .report-row:hover {
+    background: rgb(0 0 0 / 0.024);
+  }
+}
+
+.report-sheet .report-row:active {
+  background: rgb(0 0 0 / 0.055);
+}
+
+.report-sheet .report-row-label {
+  font-weight: 400;
+  color: #1d1d1f;
+}
+
+/* The grouped row supplies the surface; the select becomes just its value and chevron. */
+.report-sheet .report-row .glass-select {
+  justify-self: end;
+  justify-content: flex-end;
+  gap: 5px;
+  width: auto;
+  max-width: 100%;
+  min-height: 0;
+  height: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--rs-muted);
+  text-align: right;
+}
+
+.report-sheet .report-row .glass-select > span {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  text-align: right;
+}
+
+.report-sheet .report-row .glass-select > svg {
+  width: 14px;
+  height: 14px;
+  color: var(--rs-chevron);
+}
+
+.report-sheet .report-row .glass-select:hover,
+.report-sheet .report-row .glass-select[aria-expanded='true'] {
+  background: transparent;
+  color: #1d1d1f;
+}
+
+.report-sheet .report-row .glass-select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.report-sheet .report-row-file {
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) auto;
+  cursor: pointer;
+}
+
+.report-sheet .report-row-chevron {
+  flex: none;
+  color: var(--rs-chevron);
+}
+
+.report-sheet .report-row-file:focus-within {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.report-sheet .report-row-value {
+  justify-self: end;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--rs-muted);
+}
+
+.report-sheet .report-row-file[data-empty='true'] .report-row-value {
+  color: var(--accent-text);
+}
+
+/* Covers the whole row, so the native picker opens from anywhere on it. */
+.report-sheet .report-row .report-file-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.report-sheet .report-notes {
+  display: grid;
+  gap: 6px;
+  margin: 16px 0 0;
+  padding: 0 4px;
+}
+
+.report-sheet .report-notes p {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 17px;
+  color: var(--rs-muted);
+}
+
+.report-sheet .report-notes .report-note-error {
+  color: var(--danger-text);
+  font-weight: 500;
+}
+
+.report-sheet .report-actions {
+  display: grid;
+  gap: 6px;
+  margin-top: 20px;
+}
+
+.report-sheet .report-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 50px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition:
+    filter var(--duration-instant) var(--ease-standard),
+    transform var(--duration-fast) var(--ease-standard),
+    opacity var(--duration-instant) var(--ease-standard);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .report-sheet .report-primary:hover:not(:disabled) {
+    filter: brightness(1.07);
+  }
+}
+
+.report-sheet .report-primary:active:not(:disabled) {
+  transform: scale(0.985);
+  filter: brightness(0.94);
+}
+
+.report-sheet .report-primary:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+
+.report-sheet .report-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.report-sheet .report-cancel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--accent-text);
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--duration-instant) var(--ease-standard);
+}
+
+.report-sheet .report-cancel:hover:not(:disabled) {
+  background: rgb(0 0 0 / 0.035);
+}
+
+.report-sheet .report-cancel:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.report-sheet .report-cancel:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Narrow sheets (phones): each row becomes label over value, so a long reporting week never
+   squeezes into a column of single words. */
+@media (max-width: 540px) {
+  .report-sheet .report-row {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 3px;
+    padding: 11px var(--space-16);
+  }
+  .report-sheet .report-row .glass-select,
+  .report-sheet .report-row-value {
+    grid-column: 1 / -1;
+    justify-self: start;
+    justify-content: flex-start;
+    max-width: 100%;
+    font-size: 14px;
+    line-height: 19px;
+    text-align: left;
+    color: var(--rs-muted);
+  }
+  .report-sheet .report-row .glass-select > span {
+    text-align: left;
+  }
+  .report-sheet .report-row-file {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .report-sheet .report-row-file .report-row-label {
+    grid-column: 1 / -1;
+    grid-row: 1;
+  }
+  .report-sheet .report-row-file .report-row-value {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .report-sheet .report-row-file .report-row-chevron {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+  }
+}
+
+/* Phones: the sheet arrives from the bottom edge; keep the title a step smaller and the actions thumb-sized. */
+@media (max-width: 767px) {
+  .report-sheet .report-sheet-title {
+    font-size: 20px;
+    line-height: 25px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .report-sheet .report-sheet-close,
+  .report-sheet .report-row,
+  .report-sheet .report-primary,
+  .report-sheet .report-cancel {
+    transition: none;
+  }
+}

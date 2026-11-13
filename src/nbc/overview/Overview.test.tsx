@@ -28,12 +28,14 @@ test('attention lists handlers who have not updated', () => {
   expect(attention.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('/projects-progress/nbc-bp03/update')
 })
 
-test('the breakdown can switch to a floor by trade heatmap whose cells open filtered activities', () => {
+test('the breakdown groups by floor or work area only', () => {
   show()
-  fireEvent.click(screen.getByRole('button', { name: 'Heatmap' }))
-  const cell = screen.getByRole('link', { name: /^GF, Test trade/ })
-  expect(cell.getAttribute('href')).toContain('location=GF')
-  expect(cell.getAttribute('href')).toContain('trade=Test+trade')
+  const seg = within(screen.getByRole('group', { name: 'Breakdown grouping' }))
+  expect(seg.getAllByRole('button').map((button) => button.textContent)).toEqual(['Floor', 'Work area'])
+  expect(screen.queryByRole('button', { name: 'Trade' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Heatmap' })).toBeNull()
+  fireEvent.click(seg.getByRole('button', { name: 'Work area' }))
+  expect(screen.getByRole('region', { name: 'Work area' })).toBeTruthy()
 })
 
 describe('phone', () => {

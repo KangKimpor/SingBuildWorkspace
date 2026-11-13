@@ -106,12 +106,6 @@
 .nbc-execution .nbc-seg { display: inline-flex; padding: 2px; border-radius: 10px; background: var(--status-neutral-bg); }
 .nbc-execution .nbc-seg button { border: 0; background: transparent; padding: 5px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); }
 .nbc-execution .nbc-seg button[aria-pressed=true] { background: var(--bg-raised); box-shadow: 0 1px 3px rgb(0 0 0 / .14), 0 0 0 .5px rgb(0 0 0 / .05); font-weight: 600; }
-.nbc-heat-grid { display: grid; gap: 4px; font-size: 13px; }
-.nbc-heat-head { color: var(--text-secondary); font-size: 12px; font-weight: 500; align-self: center; text-align: center; }
-.nbc-heat-row { text-align: start; }
-.nbc-heat-cell { display: grid; place-items: center; padding: 12px 6px; border-radius: 10px; font-weight: 600; font-variant-numeric: tabular-nums; text-decoration: none; color: var(--text-primary); background: color-mix(in srgb, var(--accent) var(--heat, 0%), var(--status-neutral-bg)); }
-.nbc-heat-cell[data-empty=true] { background: transparent; color: var(--text-secondary); font-weight: 400; }
-a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
 @media (max-width: 767px) {
   .nbc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nbc-kpi-value { font-size: 20px; }
@@ -123,11 +117,9 @@ a.nbc-heat-cell:hover { outline: 2px solid var(--accent); }
 /* The approved progress cards stack before their content becomes cramped. */
 .nbc-progress-panels .nbc-execution { padding: 24px; border: 1px solid var(--border-subtle); border-radius: 22px; box-shadow: 0 2px 6px rgb(0 0 0 / .02), 0 12px 32px rgb(0 0 0 / .02); }
 .nbc-progress-panels .nbc-execution > .row-between { align-items: stretch; flex-direction: column; gap: 18px; }
-.nbc-progress-panels .nbc-seg { max-width: 100%; overflow-x: auto; }
+.nbc-progress-panels .nbc-seg { width: 100%; max-width: 100%; overflow-x: auto; }
 .nbc-progress-panels .nbc-seg button { flex: 1; min-height: 44px; padding-inline: 10px; }
 .nbc-progress-panels .nbc-breakdown-toggle { min-height: 44px; }
-.nbc-progress-panels .nbc-heatmap { overflow-x: auto; }
-.nbc-heatmap .nbc-heat-grid { min-width: max-content; }
 @media (max-width: 1099px) { .nbc-progress-panels { grid-template-columns: minmax(0, 1fr); gap: 18px; } }
 @media (max-width: 767px) {
   .nbc-section-heading { padding: 22px 20px 8px; }

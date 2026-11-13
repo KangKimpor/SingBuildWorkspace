@@ -11,7 +11,7 @@ import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
 import { deadlineNote } from '../update/deadline'
 import Trend from '../Trend'
 import { Attention } from './Attention'
-import { Breakdown, breakdownRows, Heatmap } from './Breakdown'
+import { Breakdown, breakdownRows } from './Breakdown'
 import { usePhone } from '@/shell/usePhone'
 import { Collapsible } from '../mobile/Collapsible'
 import type { BreakdownField } from './Breakdown'
@@ -19,18 +19,18 @@ import { HandlerTable } from './HandlerTable'
 import { attentionItems } from './insights'
 import { activityTags } from '../tags'
 
-const GROUPS = [['location', 'Floor'], ['area', 'Work area'], ['trade', 'Trade'], ['heatmap', 'Heatmap']] as const
+const GROUPS = [['location', 'Floor'], ['area', 'Work area']] as const
 const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
 
 export default function Overview({ project, activities, submissions, summaries, baseline, overall: known }: { project: ProjectSummary; activities: NbcActivity[]; submissions: NbcSubmission[]; summaries: NbcWeekSummary[]; baseline: Map<string, number>; /** Project roll-up, when the caller already has it. */ overall?: number }) {
   const [now, setNow] = useState(Date.now)
-  const [group, setGroup] = useState<BreakdownField | 'heatmap'>('location'), phone = usePhone()
+  const [group, setGroup] = useState<BreakdownField>('location'), phone = usePhone()
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
-  // Floor, area and trade inherited from parent rows; groupings with no tagged activity are left out.
+  // Floor and area inherited from parent rows; a grouping with no tagged activity is left out.
   const tags = useMemo(() => activityTags(activities), [activities])
   const groups = useMemo(() => {
     const leaves = activities.filter((a) => a.editable), has = (f: BreakdownField) => leaves.some((a) => tags.get(a.id)?.[f])
-    return GROUPS.filter(([key]) => key === 'heatmap' ? has('location') && has('trade') : has(key))
+    return GROUPS.filter(([key]) => has(key))
   }, [activities, tags])
   const shown = groups.some(([key]) => key === group) ? group : groups[0]?.[0] ?? 'location'
   const overall = useMemo(() => { if (known !== undefined) return known; try { return calculate(activities).overall } catch { return 0 } }, [known, activities])
@@ -44,9 +44,9 @@ export default function Overview({ project, activities, submissions, summaries, 
   const deadline = deadlineNote(current, now)
   const attention = attentionItems({ projectId: project.id, activities, submissions, today, now })
   // Phones name the furthest-behind row on the closed breakdown; the roll-up runs only there.
-  const behind = useMemo(() => phone ? breakdownRows(shown === 'heatmap' ? 'location' : shown, activities, baseline, tags)[0]?.name ?? '' : '', [phone, shown, activities, baseline, tags])
+  const behind = useMemo(() => phone ? breakdownRows(shown, activities, baseline, tags)[0]?.name ?? '' : '', [phone, shown, activities, baseline, tags])
   const seg = groups.length > 1 && <div className="nbc-seg" role="group" aria-label="Breakdown grouping">{groups.map(([key, label]) => <button key={key} aria-pressed={shown === key} onClick={() => setGroup(key)}>{label}</button>)}</div>
-  const breakdown = (limit?: number) => <div className="nbc-breakdowns">{shown === 'heatmap' ? <Heatmap activities={activities} tags={tags}/> : <Breakdown field={shown} activities={activities} previous={baseline} tags={tags} limit={limit}/>}</div>
+  const breakdown = (limit?: number) => <div className="nbc-breakdowns"><Breakdown field={shown} activities={activities} previous={baseline} tags={tags} limit={limit}/></div>
   // Phone notes stay on one line in a half-width tile.
   const note = (long: string, short: string) => phone ? short : long
   return <div className="nbc-overview">

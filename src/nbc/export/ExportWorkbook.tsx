@@ -1,5 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog'
-import { Download, X } from 'lucide-react'
+import { ChevronRight, Download, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { useWorkspace } from '@/data'
@@ -14,6 +14,7 @@ import { areaWorkbook } from './areaWorkbook'
 import { roomWorkbook } from './roomWorkbook'
 import { loadReportTemplate } from './template'
 import { hasReportPatch, patchWeeklyReport } from './reportPatch'
+import './export.css'
 
 export default function ExportWorkbook({ projectId, activities, submissions, onClose }: { projectId: string; activities: NbcActivity[]; submissions: NbcSubmission[]; onClose: () => void }) {
   const scope = useWorkspace(s => s.scope), current = weekStart()
@@ -83,20 +84,37 @@ export default function ExportWorkbook({ projectId, activities, submissions, onC
   }
   return <Dialog.Root open onOpenChange={open => !open && !busy && onClose()}><Dialog.Portal>
     <Dialog.Overlay className="scrim"/>
-    <Dialog.Content className="event-editor project-editor glass" data-material="thick">
-      <div className="row-between"><Dialog.Title className="t-h3">Weekly client report</Dialog.Title><Dialog.Close disabled={busy} className="ibtn" aria-label="Close export"><X size={18}/></Dialog.Close></div>
-      <Dialog.Description className="small muted">{reporting ? 'Choose your weekly report on this computer. Its percentages are updated from the app; formulas, weights and layout stay as they are.' : generated ? (isAreaProject(activities) ? 'Export Overall Progress, the ID and MEP sheets and every handler sheet with one column per area.' : 'Export Overall Progress, every floor and every handler sheet with one column per room.') : 'Export the Progress sheet and every handler sheet in your workbook’s existing format.'}</Dialog.Description>
+    <Dialog.Content className="event-editor project-editor glass report-sheet" data-material="thick">
+      <header className="report-sheet-head">
+        <div className="report-sheet-heading">
+          <Dialog.Title className="report-sheet-title">Weekly client report</Dialog.Title>
+          <Dialog.Description className="report-sheet-lede">{reporting ? 'Choose your weekly report on this computer. Its percentages are updated from the app; formulas, weights and layout stay as they are.' : generated ? (isAreaProject(activities) ? 'Export Overall Progress, the ID and MEP sheets and every handler sheet with one column per area.' : 'Export Overall Progress, every floor and every handler sheet with one column per room.') : 'Export the Progress sheet and every handler sheet in your workbook’s existing format.'}</Dialog.Description>
+        </div>
+        <Dialog.Close disabled={busy} className="report-sheet-close" aria-label="Close export"><X size={15} strokeWidth={2.75}/></Dialog.Close>
+      </header>
       <form onSubmit={event => { event.preventDefault(); void download() }}>
-        <label htmlFor="export-week">Reporting week<GlassSelect id="export-week" aria-label="Reporting week" disabled={busy} value={week} onChange={event => setWeek(event.target.value)}>{weeks.map(value => <option key={value} value={value}>{reportingBlock(value)} {value.slice(0, 4)}{value === current ? ' · This week' : ''}</option>)}</GlassSelect></label>
-        <p className="small" role="status">{confirmed} of {owners.length} handlers confirmed. {confirmed < owners.length ? 'The workbook will show the confirmation count.' : 'All handlers have confirmed this week.'} Unconfirmed draft edits are excluded.</p>
-        {reportable && <label htmlFor="export-format">Format<GlassSelect id="export-format" aria-label="Export format" disabled={busy} value={format} onChange={event => setFormat(event.target.value as 'report' | 'tracker')}><option value="report">Update my weekly report</option><option value="tracker">Tracker workbook</option></GlassSelect></label>}
-        {reporting && <label>Weekly report (.xlsx)<input type="file" accept=".xlsx" aria-label="Weekly report file" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) void chooseReport(file).catch(() => setError('Could not read that file.')); event.target.value = '' }}/></label>}
-        {reporting && reportFile && <p className="small muted">Selected report: {reportFile.name}</p>}
-        {!generated && scope === 'guest' && <label>Excel template<input type="file" accept=".xlsx" aria-label="Weekly report template" disabled={busy || loading} onChange={event => { const file = event.target.files?.[0]; if (file) void choose(file); event.target.value = '' }}/></label>}
-        {template && <p className="small muted">Saved template: {template.name}</p>}
-        <p className="small muted">{reporting ? 'Only the percentage cells of the ID and MEP sheets change. Excel recalculates the report when you open it.' : generated ? (isAreaProject(activities) ? 'The report is built from the current area percentages.' : 'The report is built from the current room percentages.') : loading ? 'Loading report format…' : scope === 'guest' ? 'Choose your NBC BOQ workbook once for this demo device.' : 'The project baseline workbook format is ready to export.'}</p>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <footer><Dialog.Close type="button" disabled={busy} className="btn-secondary">Cancel</Dialog.Close><button className="btn-accent" type="submit" disabled={(!template && !generated) || (reporting && !reportFile) || busy || loading}><Download size={15} aria-hidden="true"/>{busy ? 'Preparing…' : 'Export XLSX'}</button></footer>
+        <p className="report-section-label" id="report-settings-label">Report</p>
+        <div className="report-group" role="group" aria-labelledby="report-settings-label">
+          <label className="report-row" htmlFor="export-week"><span className="report-row-label">Reporting week</span><GlassSelect id="export-week" aria-label="Reporting week" disabled={busy} value={week} onChange={event => setWeek(event.target.value)}>{weeks.map(value => <option key={value} value={value}>{reportingBlock(value)} {value.slice(0, 4)}{value === current ? ' · This week' : ''}</option>)}</GlassSelect></label>
+          {reportable && <label className="report-row" htmlFor="export-format"><span className="report-row-label">Format</span><GlassSelect id="export-format" aria-label="Export format" disabled={busy} value={format} onChange={event => setFormat(event.target.value as 'report' | 'tracker')}><option value="report">Update my weekly report</option><option value="tracker">Tracker workbook</option></GlassSelect></label>}
+        </div>
+        {(reporting || (!generated && scope === 'guest')) && <>
+          <p className="report-section-label" id="report-file-label">File</p>
+          <div className="report-group" role="group" aria-labelledby="report-file-label">
+            {reporting && <label className="report-row report-row-file" data-empty={!reportFile}><span className="report-row-label">Weekly report</span><span className="report-row-value">{reportFile?.name ?? 'Choose .xlsx'}</span><ChevronRight className="report-row-chevron" size={15} aria-hidden="true"/><input className="report-file-input" type="file" accept=".xlsx" aria-label="Weekly report file" disabled={busy} onChange={event => { const file = event.target.files?.[0]; if (file) void chooseReport(file).catch(() => setError('Could not read that file.')); event.target.value = '' }}/></label>}
+            {!generated && scope === 'guest' && <label className="report-row report-row-file" data-empty={!template}><span className="report-row-label">Excel template</span><span className="report-row-value">{template?.name ?? 'Choose .xlsx'}</span><ChevronRight className="report-row-chevron" size={15} aria-hidden="true"/><input className="report-file-input" type="file" accept=".xlsx" aria-label="Weekly report template" disabled={busy || loading} onChange={event => { const file = event.target.files?.[0]; if (file) void choose(file); event.target.value = '' }}/></label>}
+          </div>
+        </>}
+        <div className="report-notes">
+          <p role="status">{confirmed} of {owners.length} handlers confirmed. {confirmed < owners.length ? 'The workbook will show the confirmation count.' : 'All handlers have confirmed this week.'} Unconfirmed draft edits are excluded.</p>
+          {template && <p>Saved template: {template.name}</p>}
+          <p>{reporting ? 'Only the percentage cells of the ID and MEP sheets change. Excel recalculates the report when you open it.' : generated ? (isAreaProject(activities) ? 'The report is built from the current area percentages.' : 'The report is built from the current room percentages.') : loading ? 'Loading report format…' : scope === 'guest' ? 'Choose your NBC BOQ workbook once for this demo device.' : 'The project baseline workbook format is ready to export.'}</p>
+          {error && <p className="report-note-error" role="alert">{error}</p>}
+        </div>
+        <footer className="report-actions">
+          <button className="report-primary" type="submit" disabled={(!template && !generated) || (reporting && !reportFile) || busy || loading}><Download size={16} aria-hidden="true"/>{busy ? 'Preparing…' : 'Export XLSX'}</button>
+          <Dialog.Close type="button" disabled={busy} className="report-cancel">Cancel</Dialog.Close>
+        </footer>
       </form>
     </Dialog.Content>
   </Dialog.Portal></Dialog.Root>

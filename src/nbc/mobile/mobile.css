@@ -389,9 +389,6 @@
     font-size: 13px;
     line-height: 18px;
   }
-  .shell .ph-collapsible-body .nbc-heatmap {
-    overflow-x: auto;
-  }
   .shell .nbc-show-all {
     width: 100%;
     min-height: 44px;
