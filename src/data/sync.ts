@@ -9,6 +9,7 @@ import type { Collection, Content, Pending } from './persistence'
 import type { WorkspacePage } from './types'
 import { syncWorkspaceFiles } from './files'
 import { changedFields, rebaseWrite } from './sync-merge'
+import { allowedEmail, DOMAIN_ERROR } from '@/lib/emailDomain'
 
 export const useAccount = create<{
   session: Session | null; ready: boolean; error: string; recovering: boolean
@@ -323,6 +324,12 @@ export function initializeCloud() {
   return cloudInitialization
 }
 async function switchAccount(session: Session | null) {
+  // Accounts outside @singbuild.com are signed straight back out; the server refuses to create them too.
+  if (session && !allowedEmail(session.user.email)) {
+    void supabase?.auth.signOut()
+    useAccount.setState({ error: DOMAIN_ERROR })
+    session = null
+  }
   const scope = session?.user.id ?? 'guest'
   const previousScope = useWorkspace.getState().scope
   useAccount.setState({ session })

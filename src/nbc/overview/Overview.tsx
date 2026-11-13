@@ -15,6 +15,7 @@ import { Breakdown, Heatmap } from './Breakdown'
 import type { BreakdownField } from './Breakdown'
 import { HandlerTable } from './HandlerTable'
 import { attentionItems } from './insights'
+import { activityTags } from '../tags'
 
 const GROUPS = [['location', 'Floor'], ['area', 'Work area'], ['trade', 'Trade'], ['heatmap', 'Heatmap']] as const
 const pts = (n: number) => `${Math.abs(n * 100).toFixed(2)} pts`
@@ -23,6 +24,13 @@ export default function Overview({ project, activities, submissions, summaries, 
   const [now, setNow] = useState(Date.now)
   const [group, setGroup] = useState<BreakdownField | 'heatmap'>('location')
   useEffect(() => { const timer = setInterval(() => setNow(Date.now()), 60000); return () => clearInterval(timer) }, [])
+  // Floor, area and trade inherited from parent rows; groupings with no tagged activity are left out.
+  const tags = useMemo(() => activityTags(activities), [activities])
+  const groups = useMemo(() => {
+    const leaves = activities.filter((a) => a.editable), has = (f: BreakdownField) => leaves.some((a) => tags.get(a.id)?.[f])
+    return GROUPS.filter(([key]) => key === 'heatmap' ? has('location') && has('trade') : has(key))
+  }, [activities, tags])
+  const shown = groups.some(([key]) => key === group) ? group : groups[0]?.[0] ?? 'location'
   const overall = useMemo(() => { if (known !== undefined) return known; try { return calculate(activities).overall } catch { return 0 } }, [known, activities])
   const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' }), current = weekStart(today)
   const owners = projectHandlers(project.id)
@@ -44,8 +52,8 @@ export default function Overview({ project, activities, submissions, summaries, 
     <Attention items={attention}/>
     <Trend summaries={summaries} today={today} plan={plan}/>
     <div className="nbc-progress-panels"><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/>
-    <section className="nbc-execution"><div className="row-between"><div><h2>Completion breakdown</h2><p className="small muted">Furthest behind first. Select a row to open its activities.</p></div><div className="nbc-seg" role="group" aria-label="Breakdown grouping">{GROUPS.map(([key, label]) => <button key={key} aria-pressed={group === key} onClick={() => setGroup(key)}>{label}</button>)}</div></div>
-      <div className="nbc-breakdowns">{group === 'heatmap' ? <Heatmap activities={activities}/> : <Breakdown field={group} activities={activities} previous={baseline}/>}</div>
+    <section className="nbc-execution"><div className="row-between"><div><h2>Completion breakdown</h2><p className="small muted">Furthest behind first. Select a row to open its activities.</p></div>{groups.length > 1 && <div className="nbc-seg" role="group" aria-label="Breakdown grouping">{groups.map(([key, label]) => <button key={key} aria-pressed={shown === key} onClick={() => setGroup(key)}>{label}</button>)}</div>}</div>
+      <div className="nbc-breakdowns">{shown === 'heatmap' ? <Heatmap activities={activities} tags={tags}/> : <Breakdown field={shown} activities={activities} previous={baseline} tags={tags}/>}</div>
     </section></div>
   </div>
 }

@@ -1,5 +1,5 @@
 import './activities.css'
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { ChevronsDown, ChevronsUp, Maximize2, Minimize2, Search, X } from 'lucide-react'
@@ -14,6 +14,7 @@ import { RoomMatrix } from '../ui/RoomMatrix'
 import { TableFooter } from '../ui/TableFooter'
 import { floorPickerLabel, floorTabName, isRoomProject, roomFloors } from '../rooms'
 import { percent } from '../format'
+import { activityTags } from '../tags'
 import { projectHandlers } from '../types'
 import { activityHandlers } from '../handlers'
 import type { NbcActivity } from '../types'
@@ -43,15 +44,25 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
   const roomMode = useMemo(() => isRoomProject(activities), [activities])
   const floors = useMemo(() => roomMode ? roomFloors(activities) : [], [activities, roomMode])
   const [floorId, setFloorId] = useState('')
+  // "/" jumps to search, the same shortcut as Update Progress.
+  const search = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const key = (e: KeyboardEvent) => { if (e.key === '/' && !(e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable=true]'))) { e.preventDefault(); search.current?.focus() } }
+    addEventListener('keydown', key); return () => removeEventListener('keydown', key)
+  }, [])
   // Phones fold the handler filter behind a button; a filter already in the URL keeps it open.
   const [filtersOpen, setFiltersOpen] = useState(() => !!params.get('handler'))
   // A link to one activity (?wbs=…) opens the floor or panel that holds it, unless a floor was picked since.
   const wbsParam = params.get('wbs') ?? ''
   const wbsFloor = wbsParam ? floors.find((f) => f.rows.some((r) => r.leaves.some((l) => l.wbs === wbsParam))) : undefined
+  // Floor, area and trade come from parent rows when a room cell leaves them blank (BP02), so Overview links match.
+  const tags = useMemo(() => activityTags(activities), [activities])
+  const locationParam = params.get('location') ?? ''
+  const linkFloor = wbsFloor ?? (locationParam ? floors.find((f) => tags.get(f.root.id)?.location === locationParam) : undefined)
   // A floor holds up to ~2,000 cells; deferring the switch lets the pressed button paint first.
   const shownFloorId = useDeferredValue(floorId)
-  const floor = floors.find((f) => f.root.id === shownFloorId) ?? wbsFloor ?? floors[0]
-  const pressedFloor = floors.find((f) => f.root.id === floorId) ?? wbsFloor ?? floors[0]
+  const floor = floors.find((f) => f.root.id === shownFloorId) ?? linkFloor ?? floors[0]
+  const pressedFloor = floors.find((f) => f.root.id === floorId) ?? linkFloor ?? floors[0]
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => params.toString() || isRoomProject(activities) ? new Set() : new Set(activities.filter((a) => !a.editable && a.parentId).map((a) => a.id)))
   const sync = useWorkspace((s) => s.sync), tasks = useWorkspace((s) => s.tasks), pending = pendingCollectionIds('nbc_activities')
   const handler = params.get('handler') ?? '', area = params.get('area') ?? '', location = params.get('location') ?? '', trade = params.get('trade') ?? '', wbs = params.get('wbs') ?? ''
@@ -64,7 +75,7 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
   const textMatch = (a: NbcActivity) => { for (let n: NbcActivity | undefined = a; n; n = n.parentId ? byId.get(n.parentId) : undefined) if (`${n.wbs} ${n.name} ${n.description}`.toLowerCase().includes(q)) return true; return false }
   const leaf = (a: NbcActivity) => {
     const p = live.progress.get(a.id)!, b = before.progress.get(a.id)!
-    return (!q || textMatch(a)) && (!handler || (a.handler || 'Unassigned') === handler) && (!area || a.area === area) && (!location || a.location === location) && (!trade || a.trade === trade)
+    return (!q || textMatch(a)) && (!handler || (a.handler || 'Unassigned') === handler) && (!area || tags.get(a.id)?.area === area) && (!location || tags.get(a.id)?.location === location) && (!trade || tags.get(a.id)?.trade === trade)
       && (!wbs || a.wbs === wbs || a.wbs.startsWith(`${wbs}.`)) && (!changed || Math.abs(p - b) > 1e-12)
   }
   const rows = roomMode ? [] : buildWbsRows(activities, { leaf, collapsed })
@@ -78,7 +89,7 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
   return <section className="nbc-activities">
     <div className="nbc-filters">
       {floor && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor!.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
-      <label className="search-field"><Search size={16}/><input aria-label="Search activities" placeholder="Search activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/></label>
+      <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       <button className="nbc-chip nbc-filters-toggle" aria-expanded={filtersOpen} aria-controls="nbc-filter-selects" onClick={() => setFiltersOpen(!filtersOpen)}>Filters{selectFilters > 0 && <span className="nbc-filters-count">{selectFilters}</span>}</button>
       <div id="nbc-filter-selects" className="nbc-filter-selects" data-open={filtersOpen || undefined}>
       <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...projectHandlers(projectId), ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>
@@ -86,10 +97,11 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
       <button className="nbc-chip" aria-pressed={changed} onClick={() => setChanged(!changed)}>Changed this week</button>
       {chips.map((c) => <button key={c.key} className="nbc-chip" aria-label={`Remove ${c.label} filter`} onClick={() => filter(c.key, '')}>{c.label}<X size={12}/></button>)}
       {active && <button className="text-link small" onClick={clear}>Clear all</button>}
-      <span className="nbc-spacer"/>
-      {controls}
-      <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={() => setCollapsed(new Set())}><ChevronsDown size={16}/></button>
-      <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={() => setCollapsed(new Set(activities.filter((a) => !a.editable).map((a) => a.id)))}><ChevronsUp size={16}/></button>
+      <div className="nbc-toolbar-actions">
+        {controls}
+        <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={() => setCollapsed(new Set())}><ChevronsDown size={16}/></button>
+        <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={() => setCollapsed(new Set(activities.filter((a) => !a.editable).map((a) => a.id)))}><ChevronsUp size={16}/></button>
+      </div>
     </div>
     {sync.kind !== 'saved' && pending.size > 0 && <p className="small muted" role="status">{sync.kind === 'error' ? <>Save failed · <button className="text-link" onClick={() => void syncWorkspace(false)}>Retry</button></> : `Pending sync · ${pending.size}`}</p>}
     {roomMode && floor
@@ -123,9 +135,9 @@ export default function Activities({ projectId, activities, baseline, view, roll
   if (view === 'issues') return <div className="nbc-activities-page"><Issues projectId={projectId} activities={activities} switcher={null}/></div>
   return <div className="nbc-activities-page" data-expanded={expanded}>
     <ActivityTable projectId={projectId} activities={activities} baseline={baseline} rollups={rollups} controls={
-      <button className="nbc-chip nbc-expand-editor" aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>
+      <button className="nbc-chip nbc-expand-editor" aria-label={expanded ? 'Collapse editor' : 'Expand editor'} aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>
         {expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
-        {expanded ? 'Collapse editor' : 'Expand editor'}
+        {expanded ? 'Collapse' : 'Expand'}
       </button>}/>
   </div>
 }

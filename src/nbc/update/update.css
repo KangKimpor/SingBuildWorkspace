@@ -9,36 +9,14 @@
 .nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 8px; }
 .nbc-update[data-expanded=true] > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 
-.nbc-update[data-expanded=true] .nbc-update-controls {
-  gap: 6px;
-}
-.nbc-update[data-expanded=true] .nbc-update-controls .nbc-chip {
-  padding: 3px 10px;
-  font-size: 12px;
-  min-height: 28px;
-  border-radius: 6px;
-}
-.nbc-update[data-expanded=true] .nbc-update-controls .nbc-deadline {
-  padding: 3px 8px;
-  font-size: 11px;
-}
-
-.nbc-update[data-expanded=true] .nbc-filters {
-  gap: 6px;
-}
-.nbc-update[data-expanded=true] .nbc-filters .search-field {
-  max-width: 240px;
-  min-height: 28px;
-}
-.nbc-update[data-expanded=true] .nbc-filters .search-field input {
-  height: 28px;
-  font-size: 12px;
-  padding-block: 4px;
-}
-.nbc-update[data-expanded=true] .nbc-filters .glass-select {
-  min-height: 28px;
-  font-size: 12px;
-  padding: 0 8px;
+/* Toolbar sizes are shared with Project Progress (nbc.css). Phones tighten the toolbar when expanded so the table gets the room. */
+@media (max-width: 767px) {
+  .nbc-update[data-expanded=true] .nbc-filters, .nbc-update[data-expanded=true] .nbc-update-controls { gap: 6px; }
+  .nbc-update[data-expanded=true] .nbc-update-controls .nbc-chip { padding: 3px 10px; font-size: 12px; min-height: 28px; border-radius: 6px; }
+  .nbc-update[data-expanded=true] .nbc-update-controls .nbc-deadline { padding: 3px 8px; font-size: 11px; }
+  .nbc-update[data-expanded=true] .nbc-filters .search-field { max-width: 240px; min-height: 28px; }
+  .nbc-update[data-expanded=true] .nbc-filters .search-field input { height: 28px; font-size: 12px; padding-block: 4px; }
+  .nbc-update[data-expanded=true] .nbc-filters .glass-select { min-height: 28px; font-size: 12px; padding: 0 8px; }
 }
 .nbc-update[data-expanded=true] .nbc-seg {
   padding: 1px;
@@ -103,7 +81,6 @@
 .nbc-update-gate { height: auto; min-height: 0; }
 /* Deadline and handler chips sit in the table's search row, so they inherit its height. */
 .nbc-update-controls { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
-.nbc-update .nbc-update-controls .nbc-deadline { padding: 0 8px; min-height: 30px; font-size: 11px; white-space: nowrap; }
 
 /* Segmented controls and chips */
 .nbc-seg { display: inline-flex; padding: 2px; border: 0; border-radius: 8px; background: var(--status-neutral-bg); }

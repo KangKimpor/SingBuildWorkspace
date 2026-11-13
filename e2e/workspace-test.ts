@@ -12,7 +12,7 @@ export const test = base.extend({
       localStorage.setItem(key, JSON.stringify({
         access_token: 'workspace-ui-test', refresh_token: 'workspace-ui-test',
         expires_at: 4102444800, expires_in: 3600, token_type: 'bearer',
-        user: { id: 'guest', aud: 'authenticated', email: 'ui@example.invalid', user_metadata: {} },
+        user: { id: 'guest', aud: 'authenticated', email: 'ui.tester@singbuild.com', user_metadata: {} },
       }))
     }, { key: authStorageKey })
     await use(page)

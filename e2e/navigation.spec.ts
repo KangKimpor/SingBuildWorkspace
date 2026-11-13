@@ -32,8 +32,10 @@ test('phone sidebar opens on the first tap and closes after navigation', async (
   expect(await tabs!.evaluate((element) => element.isConnected)).toBe(true)
   expect(loads).toBe(1)
   await expect(drawer.getByRole('link', { name: 'Personal projects', exact: true })).toHaveCount(0)
-  await drawer.getByRole('link', { name: 'Projects Progress', exact: true }).tap()
-  await expect(page).toHaveURL(/\/projects-progress$/)
+  // The "Projects" heading is a label, not a link: there is no project list page.
+  await expect(drawer.getByText('Projects', { exact: true })).toBeVisible()
+  await expect(drawer.getByRole('link', { name: 'Projects', exact: true })).toHaveCount(0)
+  await drawer.getByRole('button', { name: 'Close sidebar', exact: true }).tap()
   await expect(drawer).not.toBeVisible()
   await button.tap()
   await expect(drawer).toBeVisible()

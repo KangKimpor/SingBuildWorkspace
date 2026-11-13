@@ -6,7 +6,7 @@ import { expect, test, vi } from 'vitest'
 // full pull (every page body, the whole BOQ manifest, sometimes all of BP02) on each such reload.
 const cloud = vi.hoisted(() => {
   const user = 'account-race'
-  const session = { user: { id: user }, access_token: 'token' }
+  const session = { user: { id: user, email: `${user}@singbuild.com` }, access_token: 'token' }
   const queries: { table: string; select: string; incremental: boolean }[] = []
   let listener: ((event: string, session: unknown) => void) | undefined
   const builder = (table: string) => {

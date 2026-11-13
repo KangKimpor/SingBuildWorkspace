@@ -109,6 +109,18 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-filters .glass-select:hover { border-color: var(--pp-ink-muted); }
 .nbc-filters .nbc-spacer { flex: 1 1 auto; min-width: 0; }
 .nbc-filters .nbc-expand-editor { flex: none; }
+/* Project Progress and Update Progress share one toolbar: floor picker, search, filters, then the action group on the right.
+   Every control is 32px tall; the action group wraps as a unit and stays right-aligned. */
+@media (min-width: 768px) {
+  .nbc-filters .search-field { flex: 0 1 260px; min-width: 180px; max-width: 260px; min-height: 32px; height: 32px; }
+  .nbc-filters :is(.glass-select, .nbc-chip, .nbc-deadline) { min-height: 32px; height: 32px; }
+  .nbc-filters .nbc-seg { padding: 2px; border-radius: 8px; }
+  .nbc-filters .nbc-seg button { min-height: 28px; }
+}
+.nbc-toolbar-actions { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; margin-left: auto; }
+.nbc-toolbar-actions .nbc-deadline { padding: 0 10px; font-size: 12px; white-space: nowrap; }
+/* Phones: the action group may wrap, and the deadline note stays compact so the table keeps its height. */
+@media (max-width: 767px) { .nbc-toolbar-actions { flex-wrap: wrap; justify-content: flex-end; } .nbc-filters .nbc-toolbar-actions .nbc-deadline { height: 30px; min-height: 30px; padding: 0 8px; font-size: 11px; } }
 
 /* Chips: one shape and one height across both progress screens. */
 .nbc-chip { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid transparent; background: var(--bg-sidebar); color: var(--pp-ink); border-radius: 6px; padding: 0 11px; min-height: var(--h-button); font-size: 12px; font-weight: 500; white-space: nowrap; }

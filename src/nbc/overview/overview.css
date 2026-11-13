@@ -26,6 +26,7 @@
 .nbc-handler-contribution { grid-column: 1 / -1; grid-row: 2; }
 .nbc-progress-value { font: 600 15px var(--font-sans); font-variant-numeric: tabular-nums; letter-spacing: -.025em; white-space: nowrap; }
 .nbc-handler-contribution > .nbc-progress-value { position: absolute; top: 27px; right: 0; }
+.nbc-handler-contribution > .nbc-progress-note { display: block; margin-top: 8px; }
 [data-empty=true] .nbc-progress-value { color: var(--text-secondary); font-weight: 400; }
 .nbc-handler-footer { padding: 20px 24px 24px; background: color-mix(in srgb, var(--nbc-progress-fill) 5%, var(--bg-raised)); }
 .nbc-handler-footer > div { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: 14px; font-weight: 500; }

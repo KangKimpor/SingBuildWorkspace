@@ -5,7 +5,7 @@ const cloud = vi.hoisted(() => {
   const records = new Map<string, Row>()
   const queries: { table: string; select: string; gte?: string; gt?: string; in?: string[]; projectId?: string }[] = []
   let sequence = Date.parse('2026-01-01T00:00:00Z')
-  const session = (id: string) => ({ user: { id }, access_token: `token-${id}` })
+  const session = (id: string) => ({ user: { id, email: `${id}@singbuild.com` }, access_token: `token-${id}` })
   const state = {
     scope: 'account-test',
     records,

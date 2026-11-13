@@ -4,6 +4,8 @@ import { expect, test } from 'vitest'
 import { fixtureActivities, fixtureProject } from '../test-fixture'
 import { submissionId } from '../submissions'
 import { HandlerTable } from './HandlerTable'
+import { summarize } from '../progress'
+import { percent } from '../format'
 import type { NbcSubmission } from '../types'
 
 const now = Date.parse('2026-10-27T07:05:00Z'), current = '2026-10-25', old = '2026-01-04'
@@ -26,14 +28,17 @@ test('a confirmed current-week update shows Updated and its changed count', () =
   expect(within(row('Sitha')).getAllByText('Complete').length).toBeGreaterThan(0)
 })
 
-test('contribution tracks retain the true project share, including zero work', () => {
+test('each handler track shows progress on their own work, with what it adds to the project', () => {
   const activities = fixtureActivities()
   activities[2]!.progress = .5
   render(<MemoryRouter><HandlerTable projectId={fixtureProject.id} activities={activities} submissions={[]} now={now}/></MemoryRouter>)
-  expect(screen.getByRole('progressbar', { name: 'Tola contribution' })).toHaveAttribute('value', '0.375')
-  expect(screen.getByRole('progressbar', { name: 'Kheng contribution' })).toHaveAttribute('value', '0')
+  const tola = summarize(activities.filter((a) => a.handler === 'Tola'))
+  expect(Number(screen.getByRole('progressbar', { name: 'Tola progress on assigned work' }).getAttribute('value'))).toBeCloseTo(tola.progress)
+  expect(screen.getByText(`Adds ${percent(tola.contribution)} of the project · ${percent(tola.weight)} of the project assigned`)).toBeTruthy()
+  expect(screen.getByRole('progressbar', { name: 'Kheng progress on assigned work' })).toHaveAttribute('value', '0')
   expect(Number(screen.getByRole('progressbar', { name: 'Total project contribution' }).getAttribute('value'))).toBeCloseTo(.625)
   expect(screen.getByText('62.50%')).toBeTruthy()
+  expect(screen.queryByText(/shared and unassigned/)).toBeNull()
 })
 
 test('expanding a handler shows this week, last week as Missing, and a collapsed Older weeks', () => {

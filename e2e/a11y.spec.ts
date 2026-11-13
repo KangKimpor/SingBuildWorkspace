@@ -17,7 +17,8 @@ for (const route of routes) {
         await page.goto(route)
         await page.waitForLoadState('networkidle')
         if (route === '/') {
-          await expect(page.getByRole('heading', { name: 'Projects Progress', exact: true })).toBeVisible()
+          // "/" opens the first progress project; there is no project list page.
+          await expect(page.locator('h1').first()).toBeVisible()
         } else if (route === '/design') {
           await expect(page.locator('.stagger-list > li').last()).toHaveCSS('opacity', '1')
           await page.waitForTimeout(200)

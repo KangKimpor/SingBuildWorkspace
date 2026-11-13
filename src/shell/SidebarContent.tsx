@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  Building2,
   ChevronDown,
   ChevronRight,
   Eye,
@@ -66,7 +65,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <nav className="sidebar-body" aria-label="Primary">
         <div className="nav-section">
-          <div className="t-caption"><NavLink to="/projects-progress" end onClick={onNavigate}>Projects Progress</NavLink></div>
+          <div className="t-caption">Projects</div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">
             {progressProjects.map((project) => {
               const isExpanded = expanded.has(project.id)
@@ -88,7 +87,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     <span className="nav-icon project-chevron" aria-hidden="true">
                       {isExpanded ? <ChevronDown {...ic} /> : <ChevronRight {...ic} />}
                     </span>
-                    <span className="nav-icon project-symbol" aria-hidden="true"><Building2 {...ic} /></span>
+                    <span className="nav-icon project-symbol" aria-hidden="true"><img src="/brand/pan-pacific.png" alt="" width={22} height={22} /></span>
                     <span className="project-heading">
                       <span className="project-name">{name}</span>
                       {subtitle ? <span className="project-subtitle">{subtitle}</span> : null}

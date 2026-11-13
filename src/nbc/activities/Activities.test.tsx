@@ -100,12 +100,12 @@ test('activity names open nothing and handlers are shown in full, without a pick
   expect(screen.queryByRole('button', { name: /Assign handler/ })).toBeNull()
 })
 
-test('the toolbar has no area or progress selectors, columns menu or more menu, and search has no shortcut tag', () => {
+test('the toolbar has no area or progress selectors, columns menu or more menu, and search shows its / shortcut like Update Progress', () => {
   setup()
   expect(screen.queryByLabelText('Work area')).toBeNull()
   expect(screen.queryByLabelText('Progress range')).toBeNull()
   expect(screen.queryByRole('button', { name: 'Columns' })).toBeNull()
   expect(screen.queryByRole('button', { name: 'Activity tools' })).toBeNull()
-  expect(screen.getByPlaceholderText('Search activity')).toBeTruthy()
-  expect(document.querySelector('.search-field kbd')).toBeNull()
+  expect(screen.getByPlaceholderText('Search WBS or activity')).toBeTruthy()
+  expect(document.querySelector('.search-field kbd')?.textContent).toBe('/')
 })

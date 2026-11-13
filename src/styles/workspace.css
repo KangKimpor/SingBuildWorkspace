@@ -55,6 +55,9 @@ body {
   border-radius: var(--radius-chip);
   border: 0;
 }
+/* Client logo (NBC projects): full Pan Pacific logo on its own white plate, no tint. */
+.icon-tile.icon-tile-brand { overflow: hidden; background: #fff !important; border: 1px solid var(--border-subtle); box-shadow: none; }
+.icon-tile.icon-tile-brand img { width: 100%; height: 100%; object-fit: contain; }
 .nav-item .icon-tile svg {
   width: var(--space-16);
   height: var(--space-16);

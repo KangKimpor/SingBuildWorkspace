@@ -64,6 +64,9 @@ export const projectIcons = {
   'brick-wall': BrickWall,
   pickaxe: Pickaxe,
 } satisfies Record<string, typeof FileText>
+/** NBC projects (Pan Pacific hotels) all show the client's emblem. */
+export const BRAND_ICON = 'pan-pacific'
+export const projectTile = (project: { icon?: string; id: string; nbcBp03?: boolean }) => project.nbcBp03 ? BRAND_ICON : project.icon || project.id
 export function Tile({
   name,
   color = 'blue',
@@ -71,6 +74,7 @@ export function Tile({
   name: string
   color?: PaletteColor
 }) {
+  if (name === BRAND_ICON) return <span className="icon-tile icon-tile-brand"><img src="/brand/pan-pacific.png" alt="" width={20} height={20} /></span>
   const Icon = (projectIcons as Record<string, typeof FileText>)[name] ?? FileText
   return (
     <span className="icon-tile" style={tint(color)}>
@@ -145,7 +149,7 @@ export function ProjectCard({ project }: { project: ProjectSummary }) {
       style={tint(project.color)}
     >
       <div className="row-between">
-        <Tile name={project.icon || project.id} color={project.color} />
+        <Tile name={projectTile(project)} color={project.color} />
         {project.nbcBp03 && <span className="project-percent">
           {Math.round(project.progress * 100)}%
         </span>}

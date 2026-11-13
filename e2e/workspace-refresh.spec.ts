@@ -41,7 +41,7 @@ for (const theme of ['light'] as const) for (const width of [1440, 393]) {
     for (const name of ['Home', 'Calendar', 'My tasks', 'Favorites', 'Pages', 'New page']) await expect(nav.getByText(name, { exact: true })).toHaveCount(0)
     await expect(nav.getByText('Team Workspace', { exact: true })).toHaveCount(0)
     await expect(nav.getByText('Personal Workspace (Testing Phase)', { exact: true })).toHaveCount(0)
-    await expect(nav.getByText('Projects Progress', { exact: true })).toBeVisible()
+    await expect(nav.getByText('Projects', { exact: true })).toBeVisible()
     await expect(nav.getByRole('link', { name: /Reference workspace/ })).toHaveCount(0)
   })
 }

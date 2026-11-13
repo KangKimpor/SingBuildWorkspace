@@ -5,7 +5,7 @@ const cloud = vi.hoisted(() => {
   const records = new Map<string, Row>()
   let authChange: (event: string, session: unknown) => void = () => {}
   let sequence = Date.parse('2026-01-01T00:00:00Z')
-  const session = (id: string) => ({ user: { id }, access_token: `token-${id}` })
+  const session = (id: string) => ({ user: { id, email: `${id}@singbuild.com` }, access_token: `token-${id}` })
   const state = { scope: 'account-a', gate: null as Promise<void> | null, handlers: [] as { type: string; filter: Record<string, string>; fn: (payload?: unknown) => void }[], records, session,
     switch(id: string | null) { state.scope = id || ''; authChange('SIGNED_IN', id ? session(id) : null) },
     row(collection: string, id: string, data: Record<string, unknown>, owner?: string): Row { const row = { id, data: { ...data, id }, updated_at: new Date(sequence += 1000).toISOString() }; records.set(`${owner ?? state.scope}:${collection}:${id}`, row); return row },

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { syncWorkspace, useAccount } from '@/data/sync'
 import { contentOf, useWorkspace } from '@/data'
 import './account-settings.css'
+import { ALLOWED_EMAIL_DOMAIN } from '@/lib/emailDomain'
 
 function GoogleMark() {
   return (
@@ -56,7 +57,8 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
       provider: 'google',
       options: {
         redirectTo: `${location.origin}/settings/account`,
-        queryParams: { prompt: 'select_account' },
+        // `hd` makes Google offer only singbuild.com accounts; the app and the server still check the address.
+        queryParams: { prompt: 'select_account', hd: ALLOWED_EMAIL_DOMAIN },
       },
     })
     if (error) throw error
@@ -150,7 +152,7 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
         <header className="account-form-heading">
           <Heading>Welcome</Heading>
           <p className="account-form-sub">
-            Sign in to sync your projects, tasks, and workbooks across devices.
+            Sign in with your @{ALLOWED_EMAIL_DOMAIN} Google account to sync your projects, tasks, and workbooks across devices.
           </p>
         </header>
         {notice}

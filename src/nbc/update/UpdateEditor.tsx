@@ -1,7 +1,6 @@
 import { useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { CheckCircle2, ChevronsDown, ChevronsUp, CircleAlert, CloudUpload, LoaderCircle, Search } from 'lucide-react'
-import { GlassSelect } from '@/components/glass/GlassSelect'
 import { MoreMenu } from '../ui/MoreMenu'
 import { WbsTable } from '../ui/WbsTable'
 import { RoomMatrix } from '../ui/RoomMatrix'
@@ -37,7 +36,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(new Set()), [filter, setFilter] = useState<Filter>(confirmed ? 'chg' : 'need')
   const [focusId, setFocusId] = useState(''), [sheet, setSheet] = useState(false), [tried, setTried] = useState(false)
   const [remarkOpen, setRemarkOpen] = useState<ReadonlySet<string>>(new Set()), [jump, setJump] = useState<{ id: string; kind: 'value' | 'remark' } | null>(null)
-  const [query, setQuery] = useState(''), [area, setArea] = useState(''), [floorId, setFloorId] = useState('')
+  const [query, setQuery] = useState(''), [floorId, setFloorId] = useState('')
   const roomMode = useMemo(() => isRoomProject(activities), [activities])
   // Floors that hold work for this handler; the matrix shows one floor at a time with a column per room.
   const floors = useMemo(() => roomMode ? roomFloors(activities).filter((f) => f.rows.some((r) => r.task && r.leaves.some((l) => canUpdate(l, handler)))) : [], [activities, handler, roomMode])
@@ -51,13 +50,11 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const deferredQuery = useDeferredValue(query), shownFloorId = useDeferredValue(floorId)
   const q = deferredQuery.trim().toLowerCase()
   const textMatch = (a: NbcActivity) => { for (let n: NbcActivity | undefined = a; n; n = n.parentId ? byId.get(n.parentId) : undefined) if (`${n.wbs} ${n.name} ${n.description}`.toLowerCase().includes(q)) return true; return false }
-  const areas = useMemo(() => [...new Set(activities.filter((a) => canUpdate(a, handler)).map((a) => a.area).filter(Boolean))], [activities, handler])
 
   const visible = (a: NbcActivity) => {
     const e = shownById.get(a.id)
     if (!e) return false
     if (q && !textMatch(a)) return false
-    if (area && a.area !== area) return false
     if (filter === 'all') return true
     const flagged = problems.has(a.id) || focusId === a.id
     if (filter === 'chg') return changedIds.has(a.id) || flagged
@@ -157,10 +154,8 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     <div className="nbc-filters">
       {roomMode && pressedFloor && floors.length > 1 && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
-      {areas.length > 1 && <GlassSelect aria-label="Work area" value={area} onChange={(e) => setArea(e.target.value)}><option value="">All areas</option>{areas.map((a) => <option key={a}>{a}</option>)}</GlassSelect>}
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
-      <span className="nbc-spacer"/>
-      <div className="nbc-update-controls">
+      <div className="nbc-toolbar-actions nbc-update-controls">
         {controls}
         <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={expandAll}><ChevronsDown size={16}/></button>
         <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={collapseAll}><ChevronsUp size={16}/></button>

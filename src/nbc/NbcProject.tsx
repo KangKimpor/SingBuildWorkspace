@@ -4,7 +4,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { Download, X } from 'lucide-react'
 import type { ProjectSummary } from '@/data'
 import { useWorkspace } from '@/data'
-import { Tile } from '@/components/WorkspaceUI'
+import { BRAND_ICON, Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
 import { applyDeletedRow, applyRealtimeRow, pendingCollectionIds, refreshCollections } from '@/data/sync'
 import { calculate } from './progress'
@@ -86,7 +86,7 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   if (!views.some(([key]) => key === view) && view !== 'issues') return <Navigate to={`/projects-progress/${project.id}/overview`} replace/>
   const activityView = view === 'issues' ? view : 'activities'
   return <div className="workspace-surface project-page nbc-project" data-view={view}>
-    <header className="nbc-project-header"><Tile name={project.icon || 'building'} color={project.color}/><div><h1>{project.name}</h1><p className="small muted">{weekLabel(current)} · This week · Due Friday 11:59 PM</p></div><div className="nbc-project-actions"><button className="btn-secondary nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={15} aria-hidden="true"/><span>Export XLSX</span></button></div></header>
+    <header className="nbc-project-header"><Tile name={BRAND_ICON}/><div><h1>{project.name}</h1><p className="small muted">{weekLabel(current)} · This week · Due Friday 11:59 PM</p></div><div className="nbc-project-actions"><button className="btn-secondary nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={15} aria-hidden="true"/><span>Export XLSX</span></button></div></header>
     <nav className="view-tabs nbc-tabs" aria-label="Project views">{views.map(([key, label]) => <Link className="view-tab" key={key} aria-current={key === view || key === 'activities' && view === 'issues' ? 'page' : undefined} to={`/projects-progress/${project.id}/${key}`}>{label}</Link>)}</nav>
     {!activities.length
       ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>

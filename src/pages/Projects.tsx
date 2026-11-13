@@ -2,7 +2,7 @@ import './workspace-views.css'
 import { ArrowLeft, ChevronDown, Kanban, Pencil, Plus, Search, SlidersHorizontal, Star, Table2 } from 'lucide-react'
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, NavLink, Navigate, useParams, useSearchParams } from 'react-router-dom'
-import { ProjectCards, Tile } from '@/components/WorkspaceUI'
+import { ProjectCards, projectTile, Tile } from '@/components/WorkspaceUI'
 import { useProjects, useWorkspace } from '@/data'
 import type { TaskStatus } from '@/data'
 import { rememberWorkspace } from '@/shell/landing'
@@ -14,6 +14,9 @@ const GlassSelect = lazy(() => import('@/components/glass/GlassSelect').then((m)
 const GlassPopover = lazy(() => import('@/components/glass/GlassPopover').then((m) => ({ default: m.GlassPopover })))
 const ProjectBoard = lazy(() => import('@/components/ProjectBoard').then((m) => ({ default: m.ProjectBoard })))
 const ProjectEditor = lazy(() => import('@/components/ProjectEditor').then((m) => ({ default: m.ProjectEditor })))
+
+/** BP number in a project name ("NBC BP02 – …" → 2), so projects list in workbook order. */
+export const bpNumber = (name: string) => Number(/BP\s*0*(\d+)/i.exec(name)?.[1] ?? Number.MAX_SAFE_INTEGER)
 
 export default function Projects({ progressSection = false }: { progressSection?: boolean }) {
   const mobile = useMediaQuery('(max-width: 639px)')
@@ -39,7 +42,11 @@ export default function Projects({ progressSection = false }: { progressSection?
     if (!id || projectId) rememberWorkspace(scope, { workspace: projectWorkspace ?? workspace, projectId })
   }, [id, projectId, projectWorkspace, scope, workspace])
   if (project?.nbcBp03 && !progressSection) return <Navigate to={`/projects-progress/${id}/${view}${params.size ? `?${params}` : ''}`} replace />
-  if (progressSection && !id) return <div className="page workspace-page" data-wide="true"><header className="page-heading"><div><h1 className="t-title">Projects Progress</h1><p className="muted small">Project quantities, progress updates and reporting.</p></div></header><ProjectCards progressOnly /></div>
+  // There is no list page for progress projects: the sidebar lists them, so the section opens the first one.
+  if (progressSection && !id) {
+    const first = projects.filter((p) => p.nbcBp03 && p.status !== 'Archived').sort((a, b) => bpNumber(a.name) - bpNumber(b.name))[0]
+    return first ? <Navigate to={`/projects-progress/${first.id}/overview`} replace /> : <div className="page workspace-page"><header className="page-heading"><div><h1 className="t-title">Projects</h1><p className="muted small">No projects yet.</p></div></header></div>
+  }
   if (!id)
     return (
       <div className="page workspace-page" data-wide="true">
@@ -119,7 +126,7 @@ export default function Projects({ progressSection = false }: { progressSection?
       </div>}
       <header className="page-heading">
         <div className="project-heading">
-          <Tile name={project.icon || project.id} color={project.color} />
+          <Tile name={projectTile(project)} color={project.color} />
           <div>
             <h1 className="t-h1">{project.name}</h1>
           </div>
