@@ -3,9 +3,6 @@
   --bg-workspace: var(--bg-canvas);
   --radius-reference-card: var(--radius-card);
   --fs-section: 1.0625rem;
-  --calendar-hour: 64px;
-  --calendar-label: 96px;
-  --calendar-tasks: 72px;
 }
 body {
   background: var(--bg-workspace);
@@ -224,35 +221,9 @@ body {
 .home-columns > section {
   min-width: 0;
 }
-.event-stack,
 .task-stack {
   display: grid;
   gap: var(--space-8);
-}
-.event-card {
-  display: grid;
-  gap: var(--space-12);
-  width: 100%;
-  padding: var(--space-12);
-  text-align: left;
-  cursor: pointer;
-}
-.event-title {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-8);
-  font-size: var(--fs-label);
-}
-.event-title::before {
-  content: '';
-  flex: none;
-  width: var(--space-6);
-  height: var(--space-12);
-  border-radius: var(--radius-pill);
-  background: var(--tint);
-}
-.event-stack + .text-link {
-  margin-top: var(--space-16);
 }
 .status-badge {
   display: inline-flex;
@@ -1328,10 +1299,6 @@ kbd {
     animation: none;
   }
 }
-.quick-add-options {
-  display: grid;
-  gap: var(--space-12);
-}
 @keyframes overlay-in {
   from {
     opacity: 0;
@@ -1349,7 +1316,6 @@ kbd {
   }
   .project-card:hover,
   .recent-card:hover,
-  .event-card:hover,
   .board-card:hover {
     border-color: var(--border-strong);
   }
@@ -1618,9 +1584,6 @@ button:disabled {
   .block-controls select {
     min-height: var(--space-48);
   }
-  .calendar-event {
-    min-height: var(--space-48);
-  }
 }
 
 .table-resizer { position:absolute; right:0; top:0; bottom:0; width:8px; cursor:col-resize; touch-action:none; border-right:2px solid var(--border-subtle); }
@@ -1652,7 +1615,7 @@ button:disabled {
 
 /* Keep press feedback on controls, so page and overlay positioning never moves. */
 :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-    .project-view-picker, .project-card, .recent-card, .event-card, .theme-choice) {
+    .project-view-picker, .project-card, .recent-card, .theme-choice) {
   transition:
     scale var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard),
@@ -1660,7 +1623,7 @@ button:disabled {
     color var(--duration-fast) var(--ease-standard);
 }
 :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-    .project-view-picker, .project-card, .recent-card, .event-card, .theme-choice):where(:not(:disabled):not([aria-disabled='true'])):active {
+    .project-view-picker, .project-card, .recent-card, .theme-choice):where(:not(:disabled):not([aria-disabled='true'])):active {
   scale: .97;
 }
 .task-title {
@@ -1682,13 +1645,13 @@ button:disabled {
 }
 @media (prefers-reduced-motion: reduce) {
   :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-      .project-view-picker, .project-card, .recent-card, .event-card, .theme-choice):active {
+      .project-view-picker, .project-card, .recent-card, .theme-choice):active {
     scale: none;
   }
   .pill[data-tone='busy'] .dot { animation: none; }
 }
 html[data-motion='reduced'] :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-    .project-view-picker, .project-card, .recent-card, .event-card, .theme-choice):active {
+    .project-view-picker, .project-card, .recent-card, .theme-choice):active {
   scale: none;
 }
 html[data-motion='reduced'] .pill[data-tone='busy'] .dot { animation: none; }

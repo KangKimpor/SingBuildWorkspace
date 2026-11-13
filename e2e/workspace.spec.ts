@@ -54,32 +54,6 @@ test('inline board fields edit status and subtasks, completion can be undone', a
   await expect(card.getByRole('combobox', { name: /^Status for/ })).toHaveText('In review')
 })
 
-test('event validation, save, reload and delete', async ({ page }) => {
-  await page.goto('/calendar/week/today')
-  await page.getByRole('button', { name: 'New event' }).click()
-  const dialog = page.getByRole('dialog')
-  await dialog
-    .getByLabel('Title', { exact: true })
-    .fill('Personal design review')
-  await dialog.getByLabel('Start', { exact: true }).fill('11:00')
-  await dialog.getByLabel('End', { exact: true }).fill('10:00')
-  await dialog.getByRole('button', { name: 'Save event' }).click()
-  await expect(dialog.getByRole('alert')).toHaveText(
-    'End time must be after start time.',
-  )
-  await dialog.getByLabel('End', { exact: true }).fill('12:00')
-  await dialog.getByRole('button', { name: 'Save event' }).click()
-  await page.goto('/calendar/agenda/today')
-  await page.getByRole('button', { name: /Personal design review/ }).click()
-  await page
-    .getByRole('dialog')
-    .getByRole('button', { name: 'Delete', exact: true })
-    .click()
-  await expect(
-    page.getByRole('button', { name: /Personal design review/ }),
-  ).toHaveCount(0)
-})
-
 test('command palette supports keyboard navigation', async ({ page }) => {
   await page.goto('/')
   await expect(
@@ -252,7 +226,6 @@ for (const width of [1920, 1180, 820, 393, 320]) {
       '/projects/website/board',
       '/tasks',
       '/p/weekly-plan',
-      '/calendar/week/today',
       '/settings/account',
     ]) {
       await page.goto(route)
@@ -274,7 +247,6 @@ for (const scheme of ['light'] as const) {
     '/projects/website/board',
     '/tasks',
     '/p/weekly-plan',
-    '/calendar/week/today',
     '/settings/account',
     '/search',
   ]) {

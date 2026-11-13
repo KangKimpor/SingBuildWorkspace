@@ -3,7 +3,7 @@ import { normalizeActivity } from '@/nbc/normalize'
 import type { RealtimeChannel, Session } from '@supabase/supabase-js'
 import { supabase, initializeSupabase, hasStoredSession } from '@/lib/supabase'
 import { useWorkspaceUI } from '@/shell/workspace'
-import { contentOf, emptyContent, useWorkspace } from './index'
+import { contentFields, contentOf, emptyContent, useWorkspace } from './index'
 import { collections, db, purgedRows } from './persistence'
 import type { Collection, Content, Pending } from './persistence'
 import type { WorkspacePage } from './types'
@@ -33,7 +33,6 @@ const SNAPSHOT_DELAY_MS = 1200
 const MANIFEST_COLLECTIONS = new Set<CloudCollection>([
   'pages',
   'tasks',
-  'events',
   'nbc_activities',
   'nbc_submissions',
 ])
@@ -71,6 +70,8 @@ const tabId = (() => {
 })()
 const keyFor = (scope: string, collection: CloudCollection, id: string) => `${scope}:${collection}:${id}`
 const recoveryKey = (scope: string) => `kw-cloud-pending:${scope}:${tabId}`
+/** Journals can still hold writes to a retired collection; they are dropped, never uploaded. */
+const retired = (write: Pending) => write.collection !== 'profiles' && !(collections as string[]).includes(write.collection)
 // A native lock distinguishes an active tab's recovery journal from an abandoned one.
 if (typeof navigator !== 'undefined' && navigator.locks) void navigator.locks.request(`kw-sync-tab:${tabId}`, () => new Promise<void>((release) => addEventListener('pagehide', () => release(), { once: true }))).catch(() => {})
 // Closing or backgrounding the tab must not wait for the debounce, and
@@ -90,10 +91,10 @@ addEventListener('visibilitychange', () => {
 })
 
 function profile(content: Content): Data {
-  return { scratchpad: content.scratchpad, taskViews: content.taskViews ?? [], calendarPreferences: content.calendarPreferences }
+  return { scratchpad: content.scratchpad, taskViews: content.taskViews ?? [] }
 }
 function normalize(content: Content): Content {
-  return { ...content, taskViews: content.taskViews ?? [], projects: content.projects.map((p) => ({ ...p, workspace: p.workspace === 'team' ? 'team' : 'personal' })) }
+  return { ...contentFields(content), taskViews: content.taskViews ?? [], projects: content.projects.map((p) => ({ ...p, workspace: p.workspace === 'team' ? 'team' : 'personal' })) }
 }
 export function changedAppliedActivityIds(
   appliedEntries: { activityId?: string; progress?: number; previous?: number; remark?: string; previousRemark?: string }[] | undefined,
@@ -271,16 +272,13 @@ export async function reassignNbcActivities(projectId: string, ids: string[], ha
   }) as unknown as Content['nbc_activities'] })
   cacheSnapshot(scope)
 }
-export function pendingEventIds(scope: string) {
-  return new Set([...pending.values()].filter((p) => p.scope === scope && p.collection === 'events').map((p) => p.id))
-}
 export async function initializeData() {
   if (initialized) return
   initialized = true
   try { void navigator.storage?.persist?.().catch(() => {}) } catch { /* ignore */ }
   useWorkspace.subscribe((state, previous) => {
     if (!applying && state.scope !== 'guest' && state.scope === previous.scope && (
-      collections.some((c) => state[c] !== previous[c]) || state.scratchpad !== previous.scratchpad || state.taskViews !== previous.taskViews || state.calendarPreferences !== previous.calendarPreferences
+      collections.some((c) => state[c] !== previous[c]) || state.scratchpad !== previous.scratchpad || state.taskViews !== previous.taskViews
     )) queueChanges(contentOf(state), contentOf(previous))
   })
   addEventListener('online', () => { void syncWorkspace() })
@@ -345,7 +343,7 @@ async function switchAccount(session: Session | null) {
   pending.clear(); versions.clear(); hydrated = false; live = false; wasLive = false; retry = 0
   watermarks = new Map(); lastFullPull = 0
   activeRun = undefined; refreshRequested = false; refreshFull = false
-  useWorkspaceUI.setState({ eventId: null, commandOpen: false, toast: null })
+  useWorkspaceUI.setState({ commandOpen: false, toast: null })
   // Clear the previous account synchronously, before any asynchronous initialization.
   applyRemotePatch({ ...structuredClone(emptyContent) })
   useWorkspace.setState({ scope, sync: scope === 'guest' ? { kind: 'saved' } : { kind: 'saving' }, storageError: false })
@@ -381,7 +379,7 @@ async function switchAccount(session: Session | null) {
       // The full-workspace localStorage cache is obsolete; IndexedDB holds the snapshot.
       try { for (const key of Object.keys(localStorage)) if (key.startsWith('kw-cloud-cache:')) localStorage.removeItem(key) } catch { /* ignore */ }
       const writes: Write[] = JSON.parse(localStorage.getItem(recoveryKey(scope)) || '[]')
-      for (const write of writes) if (write.scope === scope) { pending.set(write.key, write); applyRow(write.collection, write.remove ? null : { id: write.id, data: write.data, updated_at: String(write.data.updatedAt || '') }, write.id) }
+      for (const write of writes) if (write.scope === scope && !retired(write)) { pending.set(write.key, write); applyRow(write.collection, write.remove ? null : { id: write.id, data: write.data, updated_at: String(write.data.updatedAt || '') }, write.id) }
     }
   } catch { /* An invalid cache cannot replace cloud content. */ } finally {
     if (restoring === restore) restoring = undefined
@@ -444,7 +442,7 @@ async function recoverAbandoned(scope: string, current: number) {
       if (!lock || current !== generation) return
       const writes: Write[] = JSON.parse(localStorage.getItem(key) || '[]')
       for (const write of writes) {
-        if (write.scope !== scope) continue
+        if (write.scope !== scope || retired(write)) continue
         const existing = pending.get(write.key)
         if (existing && JSON.stringify(existing.data) !== JSON.stringify(write.data)) recoverConflict(write)
         else {
@@ -463,7 +461,7 @@ async function recoverLegacy(scope: string, current: number) {
     const legacy = localStorage.getItem(`kw-recovery:${scope}`)
     const snapshot = legacy ? await db.snapshots.get(scope).catch(() => undefined) : null
     if (current !== generation) return
-    for (const item of old) if (!pending.has(item.key)) pending.set(item.key, { ...item, original: {} })
+    for (const item of old) if (retired(item)) void db.outbox.delete(item.key).catch(() => {}); else if (!pending.has(item.key)) pending.set(item.key, { ...item, original: {} })
     if (legacy) {
       const recovered = normalize(JSON.parse(legacy))
       queueChanges(recovered, snapshot?.content ?? emptyContent)
@@ -515,7 +513,7 @@ export function applyDeletedRow(collection: CloudCollection, id: string) {
 function applyRow(collection: CloudCollection, row: Row | null, id: string) {
   if (collection === 'profiles') {
     const data = row?.data ?? {}
-    applyRemotePatch({ scratchpad: String(data.scratchpad || ''), taskViews: (data.taskViews ?? []) as Content['taskViews'], calendarPreferences: data.calendarPreferences as Content['calendarPreferences'] })
+    applyRemotePatch({ scratchpad: String(data.scratchpad || ''), taskViews: (data.taskViews ?? []) as Content['taskViews'] })
   } else {
     const list = (useWorkspace.getState()[collection] ?? []).filter((r) => r.id !== id)
     if (row) list.push(rowEntity(collection, row) as unknown as (typeof list)[number])

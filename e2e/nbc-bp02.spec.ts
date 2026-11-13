@@ -12,7 +12,7 @@ test('BP02 persists drafts, confirmation, history and export without touching an
   const bp02 = JSON.parse(readFileSync('.private/nbc-bp02/initial.json', 'utf8')), bp03 = { project: fixtureProject, activities: fixtureActivities() }
   await page.clock.install({ time: new Date('2026-10-30T03:00:00Z') })
   await page.route('https://**.supabase.co/**', route => route.abort())
-  await page.addInitScript(data => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('kw-workspace-v1', JSON.stringify(data)) } }, { pages: [], tasks: [], events: [], projects: [bp03.project, bp02.project], nbc_activities: [...bp03.activities, ...bp02.activities], nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] })
+  await page.addInitScript(data => { if (!sessionStorage.getItem('seeded')) { sessionStorage.setItem('seeded', '1'); localStorage.setItem('kw-workspace-v1', JSON.stringify(data)) } }, { pages: [], tasks: [], projects: [bp03.project, bp02.project], nbc_activities: [...bp03.activities, ...bp02.activities], nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] })
   await page.goto('/projects-progress')
   await expect(page.getByRole('link', { name: /NBC BP02 – Pan Pacific Hotel/ }).first()).toBeVisible()
   const read = () => page.evaluate(async () => {

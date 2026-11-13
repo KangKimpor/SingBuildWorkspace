@@ -1,8 +1,6 @@
-import { GlassSelect } from '@/components/glass/GlassSelect'
 import * as Dialog from '@radix-ui/react-dialog'
 import {
   ArrowRight,
-  CalendarDays,
   Check,
   CheckSquare,
   FileText,
@@ -13,21 +11,12 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
 import {
-  dateKey,
   useProjects,
   useWorkspace,
 } from '@/data'
-import type { CalendarEvent } from '@/data'
 import { modKey } from './store'
 import { useWorkspaceUI } from './workspace'
 import { contentText, searchRank } from '@/data/text'
-import {
-  localSeriesChange,
-  occurrenceDraft,
-  validateRecurrence,
-} from '@/calendar/recurrence'
-import type { RecurrenceScope } from '@/calendar/recurrence'
-import type { PaletteColor } from '@/data'
 
 export function SearchResults({
   query,
@@ -38,12 +27,11 @@ export function SearchResults({
   onSelect?: () => void
   selected?: number
 }) {
-  const { pages, tasks, events } = useWorkspace(
-    useShallow((s) => ({ pages: s.pages, tasks: s.tasks, events: s.events })),
+  const { pages, tasks } = useWorkspace(
+    useShallow((s) => ({ pages: s.pages, tasks: s.tasks })),
   )
   const projects = useProjects()
   const q = query.toLowerCase().trim()
-  const { openEvent } = useWorkspaceUI()
   const results = useMemo(
     () =>
       [
@@ -75,16 +63,6 @@ export function SearchResults({
             to: `/projects/${t.projectId}/table?task=${encodeURIComponent(t.id)}`,
             icon: CheckSquare,
           })),
-        ...events
-          .filter((e) => !e.deletedAt)
-          .map((e) => ({
-            id: e.id,
-            title: e.title,
-            body: `${e.description || ''} ${e.location}`,
-            type: 'Event',
-            to: '',
-            icon: CalendarDays,
-          })),
       ]
         .map((result) => ({
           ...result,
@@ -93,49 +71,29 @@ export function SearchResults({
         .filter((result) => Number.isFinite(result.rank))
         .sort((a, b) => a.rank - b.rank)
         .slice(0, q ? 12 : 5),
-    [pages, tasks, events, projects, q],
+    [pages, tasks, projects, q],
   )
   return (
     <div className="search-results">
-      {results.map((result, i) => {
-        const children = (
-          <>
-            <result.icon size={17} />
-            <span>
-              <strong>{result.title}</strong>
-              <span className="small muted">
-                {result.type} · SingBuild Workspace
-              </span>
+      {results.map((result, i) => (
+        <Link
+          data-search-result
+          data-selected={selected === i}
+          className="search-result"
+          key={`${result.type}-${result.id}`}
+          to={result.to}
+          onClick={onSelect}
+        >
+          <result.icon size={17} />
+          <span>
+            <strong>{result.title}</strong>
+            <span className="small muted">
+              {result.type} · SingBuild Workspace
             </span>
-            <ArrowRight size={14} />
-          </>
-        )
-        return result.to ? (
-          <Link
-            data-search-result
-            data-selected={selected === i}
-            className="search-result"
-            key={`${result.type}-${result.id}`}
-            to={result.to}
-            onClick={onSelect}
-          >
-            {children}
-          </Link>
-        ) : (
-          <button
-            data-search-result
-            data-selected={selected === i}
-            className="search-result"
-            key={`${result.type}-${result.id}`}
-            onClick={() => {
-              onSelect?.()
-              openEvent(result.id)
-            }}
-          >
-            {children}
-          </button>
-        )
-      })}
+          </span>
+          <ArrowRight size={14} />
+        </Link>
+      ))}
       {!results.length && (
         <p className="quiet-empty">
           No results for “{query}”. Try a different word.
@@ -225,7 +183,7 @@ function CommandPalette() {
                 setQuery(e.target.value)
                 setSelected(0)
               }}
-              placeholder="Search pages, tasks, and events…"
+              placeholder="Search pages, tasks, and projects…"
               aria-label="Search and commands"
             />
             <Dialog.Close className="kbd">Esc</Dialog.Close>
@@ -280,481 +238,6 @@ function CommandPalette() {
     </Dialog.Root>
   )
 }
-function EventEditor() {
-  const { eventId, eventOccurrence, eventPatch, openEvent, notify } =
-    useWorkspaceUI()
-  const saveEvent = useWorkspace((s) => s.saveEvent), deleteEvent = useWorkspace((s) => s.deleteEvent)
-  const [draft, setDraft] = useState<CalendarEvent | null>(null)
-  const [original, setOriginal] = useState<CalendarEvent | null>(null)
-  const [scope, setScope] = useState<RecurrenceScope>('this')
-  const [guestText, setGuestText] = useState('')
-  const [descriptionText, setDescriptionText] = useState('')
-  const [error, setError] = useState('')
-  useEffect(() => {
-    setError('')
-    setScope('this')
-    const existing = useWorkspace
-      .getState()
-      .events.find((e) => e.id === eventId && !e.deletedAt)
-    const occurrence = existing
-      ? occurrenceDraft(existing, eventOccurrence)
-      : null
-    setOriginal(occurrence)
-    setDescriptionText(
-      existing?.description || '',
-    )
-    setGuestText(
-      useWorkspace
-        .getState()
-        .events.find((event) => event.id === eventId)
-        ?.guests?.join(', ') || '',
-    )
-    if (!eventId) {
-      setDraft(null)
-      return
-    }
-    const [, date, hour, minute] = eventId.split(':')
-    const start = hour ? `${hour}:${minute ?? '00'}` : '09:00'
-    const end = hour
-      ? `${String(Math.min(23, Number(hour) + 1)).padStart(2, '0')}:${minute ?? '00'}`
-      : '10:00'
-    setDraft(
-      eventId.startsWith('new')
-        ? {
-            id: crypto.randomUUID(),
-            title: '',
-            date: date || dateKey(),
-            start,
-            end,
-            calendar: 'Personal',
-            color: 'blue',
-            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            location: '',
-          }
-        : occurrence
-          ? { ...occurrence, ...eventPatch }
-          : null,
-    )
-  }, [eventId, eventOccurrence, eventPatch])
-  const recurring = !!(
-    original?.recurrence ||
-        original?.localSeriesId
-  )
-  function applyChange(event: CalendarEvent, remove = false) {
-    const before = useWorkspace.getState().events
-    const changed = recurring
-      ? localSeriesChange(before, event, scope, remove, original || undefined)
-      : [
-          {
-            ...event,
-            ...(remove ? { deletedAt: new Date().toISOString() } : {}),
-          },
-        ]
-    for (const item of changed) saveEvent(item)
-    notify(remove ? 'Event deleted' : 'Event saved', () => {
-      for (const item of changed) {
-        const previous = before.find((e) => e.id === item.id)
-        if (previous) saveEvent(previous)
-          else deleteEvent(item.id)
-      }
-    })
-    openEvent(null)
-  }
-  return (
-    <Dialog.Root
-      open={!!eventId}
-      onOpenChange={(open) => !open && openEvent(null)}
-    >
-      <Dialog.Portal>
-        <Dialog.Overlay className="scrim" />
-        <Dialog.Content
-          className="event-editor glass"
-          data-material="thick"
-          aria-describedby={undefined}
-        >
-          <div className="row-between">
-            <Dialog.Title className="t-h3">
-              {eventId?.startsWith('new') ? 'New event' : 'Event details'}
-            </Dialog.Title>
-            <Dialog.Close className="ibtn" aria-label="Close event editor">
-              <X size={17} />
-            </Dialog.Close>
-          </div>
-          {draft ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  if (!draft.title.trim()) {
-                    setError('Give this event a title.')
-                    return
-                  }
-                  if (
-                    !draft.allDay &&
-                    (!draft.endDate || draft.endDate === draft.date) &&
-                    draft.end <= draft.start
-                  ) {
-                    setError('End time must be after start time.')
-                    return
-                  }
-                  try {
-                    new Intl.DateTimeFormat('en', {
-                      timeZone:
-                        draft.timeZone ||
-                        Intl.DateTimeFormat().resolvedOptions().timeZone,
-                    })
-                  } catch {
-                    setError(
-                      'Choose a valid IANA time zone, such as Asia/Bangkok.',
-                    )
-                    return
-                  }
-                  const guests = guestText
-                    .split(',')
-                    .map((email) => email.trim())
-                    .filter(Boolean)
-                  if (
-                    guests.some(
-                      (email) => !/^\S+@[^\s@]+\.[^\s@]+$/.test(email),
-                    )
-                  ) {
-                    setError(
-                      'Enter valid guest email addresses separated by commas.',
-                    )
-                    return
-                  }
-                  if ((draft.endDate || draft.date) < draft.date) {
-                    setError('End date must be on or after the start date.')
-                    return
-                  }
-                  if (
-                    recurring &&
-                    scope === 'this' &&
-                    draft.recurrence !== original?.recurrence
-                  ) {
-                    setError(
-                      'Choose All events or This and following to change the repeat rule.',
-                    )
-                    return
-                  }
-                  try {
-                    validateRecurrence(draft.recurrence || '')
-                  } catch (error) {
-                    setError(
-                      error instanceof Error
-                        ? error.message
-                        : 'Enter a valid RRULE.',
-                    )
-                    return
-                  }
-                  applyChange({ ...draft, guests, title: draft.title.trim() })
-                }}
-              >
-                {recurring && (
-                  <label htmlFor="event-scope-control">
-                    Apply changes to
-                    <GlassSelect id="event-scope"
-                      aria-label="Apply changes to"
-                      value={scope}
-                      onChange={(e) =>
-                        setScope(e.target.value as RecurrenceScope)
-                      }
-                    >
-                      <option value="this">This event</option>
-                      <option value="following">This and following</option>
-                      <option value="all">All events</option>
-                    </GlassSelect>
-                  </label>
-                )}
-                <label>
-                  Title
-                  <input
-                    autoFocus
-                    required
-                    maxLength={300}
-                    placeholder="What’s the plan?"
-                    value={draft.title}
-                    onChange={(e) =>
-                      setDraft({ ...draft, title: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Date
-                  <input
-                    required
-                    type="date"
-                    value={draft.date}
-                    onChange={(e) =>
-                      setDraft({ ...draft, date: e.target.value })
-                    }
-                  />
-                </label>
-                <div className="form-columns">
-                  <label>
-                    Start
-                    <input
-                      required
-                      type="time"
-                      value={draft.start}
-                      onChange={(e) =>
-                        setDraft({ ...draft, start: e.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    End
-                    <input
-                      required
-                      type="time"
-                      value={draft.end}
-                      onChange={(e) =>
-                        setDraft({ ...draft, end: e.target.value })
-                      }
-                    />
-                  </label>
-                </div>
-                <label htmlFor="event-calendar-control">
-                  Calendar
-                  <GlassSelect id="event-calendar"
-                    value={draft.calendar}
-                    onChange={(e) =>
-                      setDraft({ ...draft, calendar: e.target.value, color: 'blue' })
-                    }
-                  >
-                    {['Personal', 'Work', 'Singbuild'].map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </GlassSelect>
-                </label>
-                <label className="inline">
-                  <input
-                    type="checkbox"
-                    checked={!!draft.allDay}
-                    onChange={(e) =>
-                      setDraft({ ...draft, allDay: e.target.checked })
-                    }
-                  />
-                  All day
-                </label>
-                <label>
-                  End date
-                  <input
-                    type="date"
-                    min={draft.date}
-                    value={draft.endDate || draft.date}
-                    onChange={(e) =>
-                      setDraft({ ...draft, endDate: e.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Time zone
-                  <input
-                    value={
-                      draft.timeZone ||
-                      Intl.DateTimeFormat().resolvedOptions().timeZone
-                    }
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        timeZone: e.target.value,
-                        sourceTimeZone: undefined,
-                      })
-                    }
-                  />
-                </label>
-                <label>
-                  Description
-                  <textarea
-                    value={descriptionText}
-                    onChange={(e) => {
-                      setDescriptionText(e.target.value)
-                      setDraft({ ...draft, description: e.target.value })
-                    }}
-                  />
-                </label>
-                <label>
-                  Repeat
-                  <GlassSelect
-                    value={
-                      draft.recurrence &&
-                      ![
-                        'FREQ=DAILY',
-                        'FREQ=WEEKLY',
-                        'FREQ=MONTHLY',
-                        'FREQ=YEARLY',
-                      ].includes(draft.recurrence)
-                        ? 'custom'
-                        : (draft.recurrence ??
-                          (draft.localSeriesId ? 'inherit' : ''))
-                    }
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        recurrence:
-                          e.target.value === 'inherit'
-                            ? undefined
-                            : e.target.value === 'custom'
-                              ? 'FREQ=WEEKLY;INTERVAL=2'
-                              : e.target.value,
-                      })
-                    }
-                  >
-                    {draft.localSeriesId && (
-                      <option value="inherit">
-                        Series schedule (unchanged)
-                      </option>
-                    )}
-                    <option value="">Does not repeat</option>
-                    <option value="FREQ=DAILY">Daily</option>
-                    <option value="FREQ=WEEKLY">Weekly</option>
-                    <option value="FREQ=MONTHLY">Monthly</option>
-                    <option value="FREQ=YEARLY">Yearly</option>
-                    <option value="custom">Custom RRULE</option>
-                  </GlassSelect>
-                </label>
-                {draft.recurrence &&
-                  ![
-                    'FREQ=DAILY',
-                    'FREQ=WEEKLY',
-                    'FREQ=MONTHLY',
-                    'FREQ=YEARLY',
-                  ].includes(draft.recurrence) && (
-                    <label>
-                      Repeat rule
-                      <input
-                        aria-label="Repeat rule"
-                        value={draft.recurrence}
-                        onChange={(e) =>
-                          setDraft({ ...draft, recurrence: e.target.value })
-                        }
-                      />
-                      <span className="small muted">
-                        For example: FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,WE;COUNT=10
-                      </span>
-                    </label>
-                  )}
-                <label htmlFor="event-reminder-control">
-                  Reminder
-                  <GlassSelect id="event-reminder"
-                    value={draft.reminders?.[0] ?? ''}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        reminders: e.target.value ? [Number(e.target.value)] : [],
-                      })
-                    }
-                  >
-                    <option value="">None</option>
-                    <option value="10">10 minutes before</option>
-                    <option value="30">30 minutes before</option>
-                    <option value="60">1 hour before</option>
-                  </GlassSelect>
-                </label>
-                <label>
-                  Guests
-                  <input
-                    type="text"
-                    placeholder="Email addresses separated by commas"
-                    value={guestText}
-                    onChange={(e) => setGuestText(e.target.value)}
-                  />
-                </label>
-                <label htmlFor="event-availability-control">
-                  Availability
-                  <GlassSelect id="event-availability"
-                    value={draft.busy === false ? 'free' : 'busy'}
-                    onChange={(e) =>
-                      setDraft({ ...draft, busy: e.target.value === 'busy' })
-                    }
-                  >
-                    <option value="busy">Busy</option>
-                    <option value="free">Free</option>
-                  </GlassSelect>
-                </label>
-                <label htmlFor="event-visibility-control">
-                  Visibility
-                  <GlassSelect id="event-visibility"
-                    value={draft.visibility || 'default'}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        visibility: e.target
-                          .value as CalendarEvent['visibility'],
-                      })
-                    }
-                  >
-                    <option value="default">Calendar default</option>
-                    <option value="private">Private</option>
-                    <option value="public">Public</option>
-                  </GlassSelect>
-                </label>
-                <label>
-                  Event color
-                  <GlassSelect
-                    value={draft.color}
-                    onChange={(e) =>
-                      setDraft({
-                        ...draft,
-                        color: e.target.value as PaletteColor,
-                      })
-                    }
-                  >
-                    {[
-                      'gray',
-                      'brown',
-                      'orange',
-                      'yellow',
-                      'green',
-                      'blue',
-                      'purple',
-                      'pink',
-                      'red',
-                    ].map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </GlassSelect>
-                </label>
-                <label>
-                  Location
-                  <input
-                    placeholder="Add a location or meeting link"
-                    value={draft.location}
-                    onChange={(e) =>
-                      setDraft({ ...draft, location: e.target.value })
-                    }
-                  />
-                </label>
-                {error && (
-                  <p className="form-error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <footer>
-                  {!eventId?.startsWith('new') && (
-                    <button
-                      className="btn-secondary danger-text"
-                      type="button"
-                      onClick={() => {
-                        applyChange(draft, true)
-                      }}
-                    >
-                      Delete
-                    </button>
-                  )}
-                  <button className="btn-accent" type="submit">
-                    Save event
-                  </button>
-                </footer>
-              </form>
-          ) : (
-            <p>Event not found.</p>
-          )}
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  )
-}
 export function WorkspaceOverlays() {
   const storageError = useWorkspace((s) => s.storageError)
   const scope = useWorkspace((s) => s.scope)
@@ -765,7 +248,6 @@ export function WorkspaceOverlays() {
   return (
     <>
       <CommandPalette />
-      <EventEditor />
       {showBanner && (
         <div className="storage-banner" role="alert">
           <span>

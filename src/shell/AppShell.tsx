@@ -52,12 +52,11 @@ export function AppShell() {
   }, [])
   const hasOverlay = useWorkspaceUI(
     (state) =>
-      !!(state.commandOpen || state.eventId || state.toast),
+      !!(state.commandOpen || state.toast),
   )
   const hasReminders = useWorkspace(
     (s) =>
-      s.tasks.some((t) => t.reminder && !t.deletedAt && t.status !== 'Done') ||
-      s.events.some((e) => e.reminders?.length && !e.deletedAt),
+      s.tasks.some((t) => t.reminder && !t.deletedAt && t.status !== 'Done'),
   )
   const scope = useWorkspace((s) => s.scope)
   const lastScope = useRef(scope)
@@ -190,17 +189,6 @@ export function AppShell() {
                 <Suspense fallback={<p>Loading quick add…</p>}>
                   <QuickAdd onDone={() => shell.setSheet(null)} />
                 </Suspense>
-                <div className="quick-add-options">
-                  <button
-                    className="btn-accent"
-                    onClick={() => {
-                      shell.setSheet(null)
-                      useWorkspaceUI.getState().openEvent('new')
-                    }}
-                  >
-                    New event
-                  </button>
-                </div>
               </BottomSheet>
             )}
           </>

@@ -17,7 +17,7 @@ export default defineConfig({
       manifest: {
         name: 'SingBuild Workspace',
         short_name: 'SingBuild',
-        description: 'Pages, calendar and tasks in one workspace.',
+        description: 'Pages and tasks in one workspace.',
         start_url: '/',
         scope: '/',
         display: 'standalone',

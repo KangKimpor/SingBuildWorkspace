@@ -38,7 +38,7 @@ for (const theme of ['light'] as const) for (const width of [1440, 393]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true)
     if (width < 1024) await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
     const nav = page.getByRole('navigation', { name: 'Primary', exact: true })
-    for (const name of ['Home', 'Calendar', 'My tasks', 'Favorites', 'Pages', 'New page']) await expect(nav.getByText(name, { exact: true })).toHaveCount(0)
+    for (const name of ['Home', 'My tasks', 'Favorites', 'Pages', 'New page']) await expect(nav.getByText(name, { exact: true })).toHaveCount(0)
     await expect(nav.getByText('Team Workspace', { exact: true })).toHaveCount(0)
     await expect(nav.getByText('Personal Workspace (Testing Phase)', { exact: true })).toHaveCount(0)
     await expect(nav.getByText('Projects', { exact: true })).toBeVisible()

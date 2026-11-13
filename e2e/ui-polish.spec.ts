@@ -1,7 +1,7 @@
 import { expect, test } from './workspace-test'
 import AxeBuilder from '@axe-core/playwright'
 
-test('polished views, glass menus, project drafts and calendar layers', async ({ page }) => {
+test('polished views, glass menus and project drafts', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.setViewportSize({ width: 1280, height: 890 })
@@ -39,12 +39,6 @@ test('polished views, glass menus, project drafts and calendar layers', async ({
   await expect(editor.getByRole('combobox', { name: 'Status', exact: true })).toHaveText('On hold')
   await editor.getByRole('button', { name: 'Cancel', exact: true }).click()
   await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/project-table-polished.png' })
-  await page.goto('/calendar/week/today')
-  await page.getByRole('button', { name: /Calendars/ }).click()
-  await page.getByRole('checkbox', { name: 'Work', exact: true }).uncheck()
-  await expect(page.getByRole('checkbox', { name: 'Work', exact: true })).not.toBeChecked()
-  await page.screenshot({ animations: 'disabled', path: 'docs/screenshots/calendar-picker-polished.png' })
-  await page.keyboard.press('Escape')
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/tasks')
   await page.getByRole('heading', { name: 'My tasks' }).waitFor()

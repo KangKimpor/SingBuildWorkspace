@@ -46,17 +46,8 @@ test('live isolated accounts enforce ownership and private attachment access', a
     expected: null,
   })
   expect(first.error?.message).toBeUndefined()
-  const googleId = `google:${id}:${'a'.repeat(1024)}`
-  const googleEvent = await a.client.rpc('kw_workspace_write', {
-    collection: 'events',
-    record_id: googleId,
-    payload: { id: googleId, title: 'QA long Google instance ID' },
-    expected: null,
-  })
-  expect(googleEvent.error?.message).toBeUndefined()
-  expect(googleEvent.data.row.id).toBe(googleId)
   const oversized = await a.client.rpc('kw_workspace_write', {
-    collection: 'events',
+    collection: 'pages',
     record_id: 'x'.repeat(2049),
     payload: {},
     expected: null,
@@ -88,9 +79,6 @@ test('live isolated accounts enforce ownership and private attachment access', a
   ).toBeTruthy()
   expect(
     (await b.client.storage.from('kw-files').download(path)).error,
-  ).toBeTruthy()
-  expect(
-    (await a.client.from('kw_calendar_tokens').select('account_id')).error,
   ).toBeTruthy()
   expect(
     (await a.client.storage.from('kw-files').remove([path])).error,

@@ -1,9 +1,9 @@
 import { expect, test } from 'vitest'
-import { dueReminders } from '@/calendar/reminders'
+import { dueReminders } from '@/lib/reminders'
 import { nextTaskReminder } from '@/data/task-rules'
-import type { Task, CalendarEvent } from '@/data'
+import type { Task } from '@/data'
 test('recent reminders fire once per occurrence key and omit completed or old tasks', () => {
-  const now = new Date('2026-10-20T09:00:00Z').getTime()
+  const now = new Date('2026-10-20T09:00:00Z')
   const task: Task = {
     id: 'task',
     title: 'Review',
@@ -15,21 +15,9 @@ test('recent reminders fire once per occurrence key and omit completed or old ta
     subtasks: [],
     reminder: '2026-10-20T08:59:00Z',
   }
-  const event: CalendarEvent = {
-    id: 'event',
-    title: 'Call',
-    date: '2026-10-20',
-    start: '09:09',
-    end: '10:00',
-    calendar: 'Personal',
-    color: 'blue',
-    location: '',
-    timeZone: 'UTC',
-    reminders: [10],
-  }
-  expect(dueReminders([task], [event], now)).toHaveLength(2)
-  expect(dueReminders([{ ...task, status: 'Done' }], [], now)).toEqual([])
-  expect(dueReminders([task], [], now + 600000)).toEqual([])
+  expect(dueReminders([task], now)).toEqual([{ key: `task:task:${Date.parse(task.reminder!)}`, title: 'Review' }])
+  expect(dueReminders([{ ...task, status: 'Done' }], now)).toEqual([])
+  expect(dueReminders([task], new Date(now.getTime() + 600000))).toEqual([])
 })
 test('task recurrence shifts a reminder by date while preserving its local clock', () => {
   expect(

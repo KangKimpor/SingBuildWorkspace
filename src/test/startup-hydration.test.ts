@@ -58,10 +58,10 @@ vi.mock('@/data/persistence', async () => ({
           scope,
           content: {
             pages: [{ id: 'page-1', title: 'Notes', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null, updatedAt: stamp }],
-            projects: [], tasks: [], events: [], scratchpad: '', taskViews: [],
+            projects: [], tasks: [], scratchpad: '', taskViews: [],
             nbc_activities: [], nbc_submissions: [], nbc_summaries: [],
           },
-          watermarks: { pages: stamp, projects: stamp, tasks: stamp, events: stamp, profiles: stamp },
+          watermarks: { pages: stamp, projects: stamp, tasks: stamp, profiles: stamp },
           lastFullPull: new Date().toISOString(),
         }
       },

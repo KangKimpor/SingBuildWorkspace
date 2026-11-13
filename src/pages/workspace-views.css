@@ -1,12 +1,10 @@
 /* Focused workspace views: shared rhythm, compact controls, predictable alignment. */
 .tasks-page,
-.project-page,
-.calendar-page {
+.project-page {
   padding: 32px;
 }
 .tasks-page .page-heading,
-.project-page .page-heading,
-.calendar-page .page-heading { align-items: center; margin-bottom: 24px; }
+.project-page .page-heading { align-items: center; margin-bottom: 24px; }
 .project-page .heading-actions { flex-wrap: wrap; justify-content: flex-end; }
 .project-properties { gap: 20px; padding-block: 12px 20px; border-top: 0; }
 .project-page .view-toolbar { padding-block: 12px; gap: 12px; }
@@ -64,12 +62,12 @@
 .tasks-page .agenda-completed { background: transparent; border-color: transparent; }
 .tasks-page .agenda-completed > summary { background: transparent; color: var(--text-secondary); }
 @media (max-width: 900px) {
-  .tasks-page, .project-page, .calendar-page { padding: 24px; }
+  .tasks-page, .project-page { padding: 24px; }
   .project-page .page-heading { align-items: flex-start; }
   .project-page .view-toolbar > .filter-controls { width: 100%; }
 }
 @media (max-width: 639px) {
-  .tasks-page, .project-page, .calendar-page { padding: 0 calc(16px + var(--safe-right)) 0 calc(16px + var(--safe-left)); margin-inline: 0; }
+  .tasks-page, .project-page { padding: 0 calc(16px + var(--safe-right)) 0 calc(16px + var(--safe-left)); margin-inline: 0; }
   .tasks-topline { flex-wrap: wrap; }
   .tasks-topline .search-field { max-width: none; width: 100%; }
   .tasks-filterline .filter-controls { width: 100%; }

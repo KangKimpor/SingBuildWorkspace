@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import * as chrono from 'chrono-node'
 import { dateKey, useWorkspace } from '@/data'
-import { useWorkspaceUI } from '@/shell/workspace'
 import type { Priority } from '@/data'
 import { useShallow } from 'zustand/react/shallow'
 
@@ -34,12 +33,10 @@ export function parseQuickAdd(raw: string, now = new Date()) {
 }
 export function QuickAdd({ onDone }: { onDone?: () => void }) {
   const [text, setText] = useState(''),
-    [kind, setKind] = useState('task'),
     [error, setError] = useState('')
-  const { projects, addProject, addTask, saveEvent } = useWorkspace(
-    useShallow((s) => ({ projects: s.projects, addProject: s.addProject, addTask: s.addTask, saveEvent: s.saveEvent })),
+  const { projects, addProject, addTask } = useWorkspace(
+    useShallow((s) => ({ projects: s.projects, addProject: s.addProject, addTask: s.addTask })),
   )
-  const ui = useWorkspaceUI()
   const navigate = useNavigate()
   return (
     <form
@@ -51,62 +48,26 @@ export function QuickAdd({ onDone }: { onDone?: () => void }) {
           setError('Add a title for your plan.')
           return
         }
-        if (kind === 'task') {
-          const project = projects.find((p) =>
-            p.name.toLowerCase().includes(parsed.project.toLowerCase()),
-          )
-          if (parsed.project && !project) {
-            setError(`Project “${parsed.project}” was not found.`)
-            return
-          }
-          const id = addTask({
-            title: parsed.title,
-            projectId: project?.id ?? projects[0]?.id ?? addProject('Personal'),
-            due: parsed.due,
-            dueTime: parsed.time,
-            priority: parsed.priority,
-          })
-          onDone?.()
-          const task = useWorkspace.getState().tasks.find((t) => t.id === id)!
-          navigate(`/projects/${task.projectId}/table?task=${id}`)
-        } else {
-          const id = crypto.randomUUID()
-          const start = parsed.time || '09:00'
-          const endHour = Math.min(23, Number(start.slice(0, 2)) + 1)
-          saveEvent({
-            id,
-            title: parsed.title,
-            date: parsed.due || dateKey(),
-            start,
-            end: `${String(endHour).padStart(2, '0')}:${start.slice(3)}`,
-            calendar: 'Personal',
-            color: 'blue',
-            location: '',
-          })
-          onDone?.()
-          ui.openEvent(id)
+        const project = projects.find((p) =>
+          p.name.toLowerCase().includes(parsed.project.toLowerCase()),
+        )
+        if (parsed.project && !project) {
+          setError(`Project “${parsed.project}” was not found.`)
+          return
         }
+        const id = addTask({
+          title: parsed.title,
+          projectId: project?.id ?? projects[0]?.id ?? addProject('Personal'),
+          due: parsed.due,
+          dueTime: parsed.time,
+          priority: parsed.priority,
+        })
+        onDone?.()
+        const task = useWorkspace.getState().tasks.find((t) => t.id === id)!
+        navigate(`/projects/${task.projectId}/table?task=${id}`)
         setText('')
       }}
     >
-      <div className="view-tabs">
-        <button
-          type="button"
-          className="view-tab"
-          aria-pressed={kind === 'task'}
-          onClick={() => setKind('task')}
-        >
-          Task
-        </button>
-        <button
-          type="button"
-          className="view-tab"
-          aria-pressed={kind === 'event'}
-          onClick={() => setKind('event')}
-        >
-          Event
-        </button>
-      </div>
       <label className="sr-only" htmlFor="quick-add-input">
         Quick add
       </label>
@@ -126,7 +87,7 @@ export function QuickAdd({ onDone }: { onDone?: () => void }) {
           {error}
         </p>
       )}
-      <button className="btn-accent">Create {kind}</button>
+      <button className="btn-accent">Create task</button>
     </form>
   )
 }

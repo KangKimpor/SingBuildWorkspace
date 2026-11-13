@@ -1,7 +1,7 @@
 import { chromium } from '@playwright/test'
 import { mkdir } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
-import { eventSeed, pageSeed, projectSeed, taskSeed } from '../src/data/seed.ts'
+import { pageSeed, projectSeed, taskSeed } from '../src/data/seed.ts'
 import { fixtureActivities, fixtureProject } from '../src/nbc/test-fixture.ts'
 
 // Ground-truth screens for the Figma port. Seeds the same guest workspace the
@@ -24,14 +24,12 @@ const content = {
   pages: pageSeed,
   projects: [...projectSeed, fixtureProject],
   tasks: taskSeed,
-  events: eventSeed,
   nbc_activities: fixtureActivities(),
   nbc_submissions: [],
   nbc_summaries: [],
   scratchpad:
     'Review the Quiet Glass tokens and verify the Safari blur fallback before the next milestone.',
   taskViews: [],
-  calendarPreferences: { weekStart: 1, hour12: false },
 }
 
 const desktop = [
@@ -46,10 +44,6 @@ const desktop = [
   ['project-board', '/projects/website/board'],
   ['tasks', '/tasks'],
   ['page', '/p/weekly-plan'],
-  ['calendar-week', '/calendar/week/today'],
-  ['calendar-month', '/calendar/month/today'],
-  ['calendar-agenda', '/calendar/agenda/today'],
-  ['calendar-day', '/calendar/day/today'],
   ['settings-appearance', '/settings/appearance'],
   ['settings-account', '/settings/account'],
   ['trash', '/trash'],
@@ -66,7 +60,6 @@ const mobile = [
   ['project-board', '/projects/website/board'],
   ['tasks', '/tasks'],
   ['pages', '/p/weekly-plan'],
-  ['calendar-week', '/calendar/week/today'],
   ['settings-appearance', '/settings/appearance'],
   ['trash', '/trash'],
 ]

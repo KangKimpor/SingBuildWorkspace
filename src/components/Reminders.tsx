@@ -2,10 +2,10 @@ import { useEffect } from 'react'
 import { useWorkspace } from '@/data'
 import { useShallow } from 'zustand/react/shallow'
 import { useWorkspaceUI } from '@/shell/workspace'
-import { dueReminders } from '@/calendar/reminders'
+import { dueReminders } from '@/lib/reminders'
 export default function Reminders() {
-  const { scope, tasks, events } = useWorkspace(
-    useShallow((s) => ({ scope: s.scope, tasks: s.tasks, events: s.events })),
+  const { scope, tasks } = useWorkspace(
+    useShallow((s) => ({ scope: s.scope, tasks: s.tasks })),
   )
   useEffect(() => {
     const key = `kw-reminded:${scope}`
@@ -18,7 +18,7 @@ export default function Reminders() {
       /* A damaged reminder cache must not block the workspace. */
     }
     const check = () => {
-      const due = dueReminders(tasks, events, Date.now()).filter(
+      const due = dueReminders(tasks, new Date()).filter(
         (item) => !seen.includes(item.key),
       )
       if (!due.length) return
@@ -39,6 +39,6 @@ export default function Reminders() {
     check()
     const timer = setInterval(check, 30000)
     return () => clearInterval(timer)
-  }, [scope, tasks, events])
+  }, [scope, tasks])
   return null
 }

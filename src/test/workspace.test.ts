@@ -1,6 +1,8 @@
+import { createElement, type ReactNode } from 'react'
+import { MemoryRouter, Outlet, useLocation } from 'react-router-dom'
+import { render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { dateKey, pageTree, useWorkspace } from '@/data'
-import { addDays, weekStart } from '@/pages/Calendar'
+import { pageTree, useWorkspace } from '@/data'
 
 const initial = useWorkspace.getState()
 beforeEach(() => {
@@ -42,7 +44,7 @@ describe('local workspace', () => {
       JSON.parse(localStorage.getItem('kw-workspace-v1')!).pages,
     ).toHaveLength(initial.pages.length + 2)
   })
-  it('updates a task and event without creating duplicate records', () => {
+  it('updates a task in place', () => {
     const id = useWorkspace
       .getState()
       .addTask({ title: '  New task  ', projectId: 'website' })
@@ -50,27 +52,7 @@ describe('local workspace', () => {
     expect(
       useWorkspace.getState().tasks.find((t) => t.id === id),
     ).toMatchObject({ title: 'New task', status: 'Done' })
-    const event = {
-      id: 'new',
-      title: 'Review',
-      date: dateKey(),
-      start: '09:00',
-      end: '10:00',
-      calendar: 'Personal',
-      color: 'blue' as const,
-      location: '',
-    }
-    useWorkspace.getState().saveEvent(event)
-    useWorkspace.getState().saveEvent({ ...event, title: 'Updated' })
-    expect(
-      useWorkspace.getState().events.filter((e) => e.id === 'new'),
-    ).toHaveLength(1)
-    useWorkspace.getState().deleteEvent('new')
-    expect(
-      useWorkspace
-        .getState()
-        .events.some((e) => e.id === 'new' && !e.deletedAt),
-    ).toBe(false)
+    expect(useWorkspace.getState().tasks.filter((t) => t.id === id)).toHaveLength(1)
   })
   it('keeps edits in memory and reports a storage failure', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
@@ -80,8 +62,26 @@ describe('local workspace', () => {
     expect(useWorkspace.getState().scratchpad).toBe('Do not lose this thought')
     expect(useWorkspace.getState().storageError).toBe(true)
   })
-  it('finds a Monday and crosses month and year boundaries in local time', () => {
-    expect(dateKey(weekStart(new Date(2027, 0, 3, 12)))).toBe('2026-12-28')
-    expect(dateKey(addDays(new Date(2026, 11, 31, 12), 1))).toBe('2027-01-01')
+  it('ignores retired calendar data in stored content', async () => {
+    const page = { id: 'kept-page', title: 'Kept page', parentId: null, icon: 'note', isFavorite: false, blocks: [], deletedAt: null }
+    const task = { id: 'kept-task', title: 'Kept task', status: 'Not started', priority: 'Low', projectId: 'website', due: '2026-11-20', notes: '', subtasks: [] }
+    localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [page], tasks: [task], projects: [], scratchpad: '', taskViews: [], events: [{ id: 'e1', title: 'Old' }], calendarPreferences: { weekStart: 1, hour12: false } }))
+    vi.resetModules()
+    const { useWorkspace: fresh } = await import('@/data')
+    const state = fresh.getState()
+    expect(state.pages).toEqual([page])
+    expect(state.tasks).toEqual([task])
+    expect('events' in state).toBe(false)
+    expect('calendarPreferences' in state).toBe(false)
+  })
+  it('no calendar route', async () => {
+    vi.resetModules()
+    vi.doMock('@/components/AuthGate', () => ({ AuthGate: ({ children }: { children: ReactNode }) => children }))
+    vi.doMock('@/shell/AppShell', () => ({ AppShell: () => createElement(Outlet) }))
+    vi.doMock('@/pages/Projects', () => ({ default: () => null }))
+    const { App } = await import('@/App')
+    function Where() { return createElement('output', { 'data-testid': 'path' }, useLocation().pathname) }
+    render(createElement(MemoryRouter, { initialEntries: ['/calendar/day/today'] }, createElement(App), createElement(Where)))
+    await waitFor(() => expect(screen.getByTestId('path').textContent).toBe('/projects-progress'))
   })
 })

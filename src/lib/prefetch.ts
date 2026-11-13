@@ -10,7 +10,6 @@ const chunks: (() => Promise<unknown>)[] = [
   () => import('@/components/glass/GlassSelect'),
   () => import('@/components/glass/GlassPopover'),
   () => import('@/pages/Tasks'),
-  () => import('@/pages/Calendar'),
   () => import('@/components/ProjectBoard'),
   () => import('@/components/ProjectEditor'),
   () => import('@/shell/WorkspaceOverlays'),

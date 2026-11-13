@@ -119,30 +119,3 @@ export interface TaskView {
   label: string
   query: string
 }
-export interface CalendarEvent {
-  id: string
-  title: string
-  date: string
-  start: string
-  end: string
-  calendar: string
-  color: PaletteColor
-  location: string
-  endDate?: string
-  allDay?: boolean
-  timeZone?: string
-  recurrence?: string
-  description?: string
-  guests?: string[]
-  sourceTimeZone?: string
-  startInstant?: string
-  endInstant?: string
-  localSeriesId?: string
-  excludedDates?: string[]
-  reminders?: number[]
-  busy?: boolean
-  visibility?: 'default' | 'private' | 'public'
-  originalStartTime?: string
-  updatedAt?: string
-  deletedAt?: string | null
-}

@@ -14,7 +14,7 @@ const current = '2026-10-25', last = '2026-10-18'
 async function setup(page: Page, state: SubmissionState = { activities: fixtureActivities(), submissions: [], summaries: [] }) {
   await page.clock.install({ time: new Date('2026-10-27T07:05:00Z') })
   await page.addInitScript(({ state, project }) => {
-    if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], events: [], projects: [project], nbc_activities: state.activities, nbc_submissions: state.submissions, nbc_summaries: state.summaries, scratchpad: '', taskViews: [] }))
+    if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], projects: [project], nbc_activities: state.activities, nbc_submissions: state.submissions, nbc_summaries: state.summaries, scratchpad: '', taskViews: [] }))
   }, { state, project: fixtureProject })
 }
 function history() {

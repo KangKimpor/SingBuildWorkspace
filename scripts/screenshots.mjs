@@ -23,7 +23,6 @@ const routes = [
   ['project', '/projects/website/overview'],
   ['board', '/projects/website/board'],
   ['tasks', '/tasks'],
-  ['calendar', '/calendar/week/today'],
   ['settings', '/settings/appearance'],
 ]
 let captured = 0

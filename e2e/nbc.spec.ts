@@ -10,7 +10,7 @@ import type { NbcSubmission } from '../src/nbc/types'
 const now = new Date('2026-10-27T07:05:00Z'), current = '2026-10-25', last = '2026-10-18'
 async function setup(page: Page, data: SubmissionState = { activities: fixtureActivities(), submissions: [], summaries: [] }) {
   await page.clock.install({ time: now })
-  await page.addInitScript(({ data, project }) => { if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], events: [], projects: [project], nbc_activities: data.activities, nbc_submissions: data.submissions, nbc_summaries: data.summaries, scratchpad: '', taskViews: [] })) }, { data, project: fixtureProject })
+  await page.addInitScript(({ data, project }) => { if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify({ pages: [], tasks: [], projects: [project], nbc_activities: data.activities, nbc_submissions: data.submissions, nbc_summaries: data.summaries, scratchpad: '', taskViews: [] })) }, { data, project: fixtureProject })
 }
 async function open(page: Page) { await page.goto('/projects-progress/nbc-bp03/update?handler=Tola'); await expect(page.getByLabel('This week % for 1.6.1.2')).toBeVisible() }
 async function edit(page: Page, value: string) { await page.getByLabel('This week % for 1.6.1.2').fill(value); await expect(page.getByText('Draft saved', { exact: true })).toBeVisible() }

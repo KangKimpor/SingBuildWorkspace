@@ -9,7 +9,6 @@ const SearchPage = lazy(()=>import('@/shell/WorkspaceOverlays').then(module=>({d
 const Design = lazy(() => import('@/pages/Design'))
 const Projects = lazy(() => import('@/pages/Projects'))
 const Tasks = lazy(() => import('@/pages/Tasks'))
-const Calendar = lazy(() => import('@/pages/Calendar'))
 const PageEditor = lazy(() => import('@/pages/PageEditor'))
 const Trash = lazy(() => import('@/pages/Trash'))
 const Settings = lazy(() => import('@/pages/Settings'))
@@ -41,7 +40,7 @@ function WorkspaceApp() {
           <Route path="projects-progress/:id/:view" element={<Projects progressSection />} />
           <Route path="tasks" element={<Tasks />} />
           <Route path="p/:id" element={<PageEditor />} />
-          <Route path="calendar/:view/:date" element={<Calendar />} />
+          <Route path="calendar/*" element={<Navigate to="/" replace />} />
           <Route path="settings" element={<Settings />} />
           <Route path="settings/:section" element={<Settings />} />
           <Route path="trash" element={<Trash />} />

@@ -102,7 +102,7 @@ vi.mock('@/lib/supabase', () => ({
 let mockSnapshot: { scope: string; content: any; watermarks?: Record<string, string>; lastFullPull?: string } | null = null
 vi.mock('@/data/persistence', async () => ({
   ...await vi.importActual<typeof import('@/data/persistence')>('@/data/persistence'),
-  collections: ['pages', 'projects', 'tasks', 'events', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'],
+  collections: ['pages', 'projects', 'tasks', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'],
   db: {
     snapshots: {
       get: async () => mockSnapshot ? structuredClone(mockSnapshot) : null,
@@ -134,7 +134,6 @@ test('manifest reconcile only queries id,updated_at for large collections and do
       ],
       projects: [{ id: 'nbc-bp03', name: 'BP03', nbcBp03: true, workspace: 'team', color: 'blue', progress: 0, description: '', target: '', status: 'Planned' }],
       tasks: [],
-      events: [],
       nbc_activities: [],
       nbc_submissions: [],
       nbc_summaries: [],

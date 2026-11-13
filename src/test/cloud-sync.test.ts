@@ -58,7 +58,7 @@ const cloud = vi.hoisted(() => {
 vi.mock('@/lib/supabase', () => ({ supabase: cloud.client, hasStoredSession: () => true, initializeSupabase: async () => cloud.client }))
 vi.mock('@/data/persistence', async () => ({
   ...await vi.importActual<typeof import('@/data/persistence')>('@/data/persistence'),
-  collections: ['pages', 'projects', 'tasks', 'events', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'],
+  collections: ['pages', 'projects', 'tasks', 'nbc_activities', 'nbc_submissions', 'nbc_summaries'],
   db: { snapshots: { get: async () => { throw Error('IndexedDB disabled') }, put: async () => { throw Error('IndexedDB disabled') } }, outbox: { where: () => ({ equals: () => ({ toArray: async () => { throw Error('IndexedDB disabled') } }) }), delete: async () => {} } },
 }))
 vi.mock('@/data/files', () => ({ syncWorkspaceFiles: async (data: unknown) => data }))
@@ -68,7 +68,7 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   const { initializeData, useAccount } = await import('@/data/sync')
   const original = { id: 'project', name: 'Cloud project', description: '', color: 'blue', progress: 0, target: '', workspace: 'personal' }
   cloud.state.row('projects', 'project', original)
-  localStorage.setItem('kw-recovery:account-a', JSON.stringify({ pages: [{ id: 'legacy-page', title: 'Legacy recovery', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null }], projects: [], tasks: [], events: [], scratchpad: '', taskViews: [] }))
+  localStorage.setItem('kw-recovery:account-a', JSON.stringify({ pages: [{ id: 'legacy-page', title: 'Legacy recovery', blocks: [], parentId: null, icon: 'note', isFavorite: false, deletedAt: null }], projects: [], tasks: [], scratchpad: '', taskViews: [] }))
   await initializeData()
   await waitFor(() => expect(useWorkspace.getState().sync.kind).toBe('saved'))
   expect(useWorkspace.getState().projects[0]?.name).toBe('Cloud project')

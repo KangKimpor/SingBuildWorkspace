@@ -17,7 +17,7 @@ const RUNS = 5
 async function seed(page: Page) {
   await page.route('https://**.supabase.co/**', (route) => route.abort())
   await page.goto('/')
-  const content = { pages: [], tasks: [], events: [], projects: [bp02Project], nbc_activities: bp02Activities(), nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] }
+  const content = { pages: [], tasks: [], projects: [bp02Project], nbc_activities: bp02Activities(), nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] }
   await page.evaluate((content) => new Promise<void>((resolve, reject) => {
     localStorage.removeItem('kw-workspace-v1')
     const open = indexedDB.open('kimpor-workspace')

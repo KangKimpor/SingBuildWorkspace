@@ -28,7 +28,6 @@ test.beforeEach(async ({ page }) => {
         projects,
         tasks,
         pages: [],
-        events: [],
         taskViews: [],
         scratchpad: '',
       }),

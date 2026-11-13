@@ -2,7 +2,6 @@ import Dexie from 'dexie'
 import type { Table } from 'dexie'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '@/nbc/types'
 import type {
-  CalendarEvent,
   ProjectSummary,
   Task,
   WorkspacePage,
@@ -16,17 +15,14 @@ export interface Content {
   pages: WorkspacePage[]
   projects: ProjectSummary[]
   tasks: Task[]
-  events: CalendarEvent[]
   scratchpad: string
   taskViews: TaskView[]
-  calendarPreferences?: { weekStart: 0 | 1; hour12: boolean }
 }
-export type Collection = 'pages' | 'projects' | 'tasks' | 'events' | 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries'
+export type Collection = 'pages' | 'projects' | 'tasks' | 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries'
 export const collections: Collection[] = [
   'pages',
   'projects',
   'tasks',
-  'events',
   'nbc_activities',
   'nbc_submissions',
   'nbc_summaries',
@@ -75,8 +71,7 @@ export function persist(scope: string, content: Content, previous: Content) {
         if (scope === 'guest') return
         if (
           content.scratchpad !== previous.scratchpad ||
-          content.taskViews !== previous.taskViews ||
-          content.calendarPreferences !== previous.calendarPreferences
+          content.taskViews !== previous.taskViews
         ) {
           const key = `${scope}:profiles:${scope}`
           await db.outbox.put({
@@ -88,7 +83,6 @@ export function persist(scope: string, content: Content, previous: Content) {
               id: scope,
               scratchpad: content.scratchpad,
               taskViews: content.taskViews,
-              calendarPreferences: content.calendarPreferences,
             },
             version: crypto.randomUUID(),
             base: (await db.versions.get(key))?.value ?? null,

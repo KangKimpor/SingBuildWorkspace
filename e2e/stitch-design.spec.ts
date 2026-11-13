@@ -12,7 +12,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
     await page.clock.install({ time: new Date('2026-10-28T07:00:00Z') })
     await page.addInitScript(({ project, activities }) => {
       if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify({
-        pages: [], tasks: [], events: [], projects: [project], nbc_activities: activities,
+        pages: [], tasks: [], projects: [project], nbc_activities: activities,
         nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [],
       }))
     }, { project: fixtureProject, activities: fixtureActivities() })

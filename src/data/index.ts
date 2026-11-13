@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { useShallow } from 'zustand/react/shallow'
-import { eventSeed, pageSeed, projectSeed, taskSeed } from './seed'
+import { pageSeed, projectSeed, taskSeed } from './seed'
 import { canParentTask } from './task-tree'
 import { contentText } from './text'
 import { sundayWeekSubmission, sundayWeekSummary } from '@/nbc/normalize'
@@ -8,7 +8,6 @@ import { useWorkspaceUI } from '@/shell/workspace'
 import type { Content } from './persistence'
 import type { NbcActivity } from '@/nbc/types'
 import type {
-  CalendarEvent,
   PageNode,
   ProjectSummary,
   SyncState,
@@ -38,13 +37,8 @@ export interface Workspace extends Content {
   addTask: (input: Pick<Task, 'title' | 'projectId'> & Partial<Task>) => string
   addProject: (name: string, workspace?: 'team' | 'personal') => string
   updateProject: (id: string, patch: Partial<ProjectSummary>) => void
-  saveEvent: (event: CalendarEvent) => void
-  deleteEvent: (id: string) => void
   setScratchpad: (text: string) => void
   setTaskViews: (views: Content['taskViews']) => void
-  setCalendarPreferences: (
-    preferences: NonNullable<Content['calendarPreferences']>,
-  ) => void
 }
 export const emptyContent: Content = {
   nbc_activities: [],
@@ -53,7 +47,6 @@ export const emptyContent: Content = {
   pages: [],
   projects: [],
   tasks: [],
-  events: [],
   scratchpad: '',
   taskViews: [],
 }
@@ -62,11 +55,15 @@ export const sampleContent: Content = {
   pages: pageSeed,
   projects: projectSeed,
   tasks: taskSeed,
-  events: eventSeed,
   scratchpad:
     'Review the Quiet Glass tokens and verify the Safari blur fallback before the next milestone.',
 }
 const KEY = 'kw-workspace-v1'
+const contentKeys: string[] = ['nbc_activities', 'nbc_submissions', 'nbc_summaries', 'pages', 'projects', 'tasks', 'scratchpad', 'taskViews'] satisfies (keyof Content)[]
+/** Stored or remote content can still carry keys of retired features; only current content keys are kept. */
+export function contentFields<T extends object>(data: T): T {
+  return Object.fromEntries(Object.entries(data).filter(([key]) => contentKeys.includes(key))) as T
+}
 function validWbsLink(state: Content, projectId: string, activityId?: string | null) {
   return !activityId || (state.projects.some((p) => p.id === projectId && p.nbcBp03) && state.nbc_activities?.some((a) => a.id === activityId && a.projectId === projectId))
 }
@@ -78,12 +75,11 @@ function read(): Content {
     if (
       !Array.isArray(data.pages) ||
       !Array.isArray(data.tasks) ||
-      !Array.isArray(data.events) ||
       typeof data.scratchpad !== 'string'
     )
       return sampleContent
     return {
-      ...data,
+      ...contentFields(data),
       taskViews: data.taskViews ?? [],
       projects: (data.projects ?? projectSeed).map((p: ProjectSummary) => ({ ...p, workspace: p.workspace === 'team' ? 'team' : 'personal' })),
     }
@@ -486,29 +482,8 @@ export const useWorkspace = create<Workspace>((set, get) => {
             : p,
         ),
       }),
-    saveEvent: (event) =>
-      commit({
-        events: [
-          ...get().events.filter((e) => e.id !== event.id),
-          { ...event, updatedAt: new Date().toISOString() },
-        ],
-      }),
-    deleteEvent: (id) =>
-      commit({
-        events: get().events.map((e) =>
-          e.id === id
-            ? {
-                ...e,
-                deletedAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              }
-            : e,
-        ),
-      }),
     setScratchpad: (scratchpad) => commit({ scratchpad }),
     setTaskViews: (taskViews) => commit({ taskViews }),
-    setCalendarPreferences: (calendarPreferences) =>
-      commit({ calendarPreferences }),
   }
 })
 export function contentOf(s: Content): Content {
@@ -519,10 +494,8 @@ export function contentOf(s: Content): Content {
     pages: s.pages,
     projects: s.projects,
     tasks: s.tasks,
-    events: s.events,
     scratchpad: s.scratchpad,
     taskViews: s.taskViews ?? [],
-    calendarPreferences: s.calendarPreferences,
   }
 }
 export function pageTree(

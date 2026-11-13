@@ -11,7 +11,7 @@ await context.route('**/*', route => new URL(route.request().url()).hostname ===
 await context.addInitScript(({datasets,key}) => {
   localStorage.setItem(key, JSON.stringify({ access_token:'workspace-ui-test', refresh_token:'workspace-ui-test', expires_at:4102444800, expires_in:3600, token_type:'bearer', user:{id:'guest',aud:'authenticated',email:'ui@example.invalid',user_metadata:{}} }))
   const storageKey = 'kw-workspace-v1'
-  const state = JSON.parse(localStorage.getItem(storageKey) || 'null') || {pages:[],tasks:[],events:[],projects:[],nbc_activities:[],nbc_submissions:[],nbc_summaries:[],scratchpad:'',taskViews:[]}
+  const state = JSON.parse(localStorage.getItem(storageKey) || 'null') || {pages:[],tasks:[],projects:[],nbc_activities:[],nbc_submissions:[],nbc_summaries:[],scratchpad:'',taskViews:[]}
   for (const dataset of datasets) if (!state.projects.some(p => p.id === dataset.project.id)) {
     state.projects.push(dataset.project)
     state.nbc_activities = [...(state.nbc_activities || []), ...dataset.activities]

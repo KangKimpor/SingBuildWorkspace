@@ -12,7 +12,7 @@ for (const real of [false, true]) test(`both projects persist isolated drafts, c
   const bp04 = real ? JSON.parse(readFileSync('.private/nbc-bp04/initial.json', 'utf8')) : { project: { ...fixtureProject, id: 'nbc-bp04', name: 'NBC BP04 – Pan Pacific Hotel' }, activities: fixtureActivities().map(a => ({ ...a, id: a.id.replace('nbc:', 'nbc-bp04:'), parentId: a.parentId?.replace('nbc:', 'nbc-bp04:') ?? null, projectId: 'nbc-bp04' })) }
   await page.clock.install({ time: new Date('2026-10-30T03:00:00Z') })
   await page.route('https://**.supabase.co/**', route => route.abort())
-  await page.addInitScript(data => { if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify(data)) }, { pages: [], tasks: [], events: [], projects: [bp03.project, bp04.project], nbc_activities: [...bp03.activities, ...bp04.activities], nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] })
+  await page.addInitScript(data => { if (!localStorage.getItem('kw-workspace-v1')) localStorage.setItem('kw-workspace-v1', JSON.stringify(data)) }, { pages: [], tasks: [], projects: [bp03.project, bp04.project], nbc_activities: [...bp03.activities, ...bp04.activities], nbc_submissions: [], nbc_summaries: [], scratchpad: '', taskViews: [] })
   await page.goto('/projects-progress')
   for (const project of [bp03.project, bp04.project]) await expect(page.getByRole('link', { name: new RegExp(project.name) }).first()).toBeVisible()
   const read = () => page.evaluate(() => JSON.parse(localStorage.getItem('kw-workspace-v1')!))

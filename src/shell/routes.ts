@@ -24,15 +24,6 @@ export function useCrumb(pathname: string): Crumb & { meta: ScreenMeta } {
       parent: 'Workspace',
       meta: { title: 'Design system' },
     }
-  if (head === 'calendar')
-    return {
-      label: 'Calendar',
-      meta: {
-        title: 'Calendar',
-        phase: 3,
-        blurb: 'Day, week, month and agenda views arrive in Phase 3.',
-      },
-    }
   if (head === 'tasks')
     return {
       label: 'My tasks',
@@ -63,7 +54,7 @@ export function useCrumb(pathname: string): Crumb & { meta: ScreenMeta } {
       meta: {
         title: 'Settings',
         phase: 4,
-        blurb: 'Appearance, calendar and data settings arrive in Phase 4.',
+        blurb: 'Appearance and data settings arrive in Phase 4.',
       },
     }
   if (head === 'trash')
