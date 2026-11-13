@@ -7,8 +7,10 @@ import { useProjects, useWorkspace } from '@/data'
 import type { TaskStatus } from '@/data'
 import { rememberWorkspace } from '@/shell/landing'
 import { useMediaQuery } from '@/lib/media'
+import { usePhone } from '@/shell/usePhone'
 import { useShallow } from 'zustand/react/shallow'
 const NbcProject = lazy(() => import('@/nbc/NbcProject'))
+const PhoneProjects = lazy(() => import('@/nbc/mobile/PhoneProjects'))
 const TaskTable = lazy(() => import('@/components/TaskTable').then((m) => ({ default: m.TaskTable })))
 const GlassSelect = lazy(() => import('@/components/glass/GlassSelect').then((m) => ({ default: m.GlassSelect })))
 const GlassPopover = lazy(() => import('@/components/glass/GlassPopover').then((m) => ({ default: m.GlassPopover })))
@@ -19,7 +21,7 @@ const ProjectEditor = lazy(() => import('@/components/ProjectEditor').then((m) =
 export const bpNumber = (name: string) => Number(/BP\s*0*(\d+)/i.exec(name)?.[1] ?? Number.MAX_SAFE_INTEGER)
 
 export default function Projects({ progressSection = false }: { progressSection?: boolean }) {
-  const mobile = useMediaQuery('(max-width: 639px)')
+  const mobile = useMediaQuery('(max-width: 639px)'), phone = usePhone()
   const { id, view = 'table' } = useParams()
   const projects = useProjects()
   const project = projects.find((p) => p.id === id)
@@ -42,8 +44,9 @@ export default function Projects({ progressSection = false }: { progressSection?
     if (!id || projectId) rememberWorkspace(scope, { workspace: projectWorkspace ?? workspace, projectId })
   }, [id, projectId, projectWorkspace, scope, workspace])
   if (project?.nbcBp03 && !progressSection) return <Navigate to={`/projects-progress/${id}/${view}${params.size ? `?${params}` : ''}`} replace />
-  // There is no list page for progress projects: the sidebar lists them, so the section opens the first one.
+  // On a phone the section is the projects list. On wider screens the sidebar lists them, so it opens the first one.
   if (progressSection && !id) {
+    if (phone) return <Suspense fallback={null}><PhoneProjects /></Suspense>
     const first = projects.filter((p) => p.nbcBp03 && p.status !== 'Archived').sort((a, b) => bpNumber(a.name) - bpNumber(b.name))[0]
     return first ? <Navigate to={`/projects-progress/${first.id}/overview`} replace /> : <div className="page workspace-page"><header className="page-heading"><div><h1 className="t-title">Projects</h1><p className="muted small">No projects yet.</p></div></header></div>
   }

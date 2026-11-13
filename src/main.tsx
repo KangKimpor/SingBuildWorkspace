@@ -9,6 +9,7 @@ import { useWorkspace } from './data'
 import { afterFirstPaint } from './lib/paint'
 import { useAccount } from './data/sync'
 import { workspaceStart } from './shell/landing'
+import { PHONE_QUERY } from './shell/usePhone'
 
 syncGlassToDocument()
 // Keep app gestures at a fixed scale; browser menu and OS magnification remain available.
@@ -22,7 +23,7 @@ document.addEventListener('keydown', (event) => {
 const render = () => {
   if (location.pathname === '/' && useAccount.getState().session) {
     const { scope, projects } = useWorkspace.getState()
-    history.replaceState(history.state, '', workspaceStart(scope, projects))
+    history.replaceState(history.state, '', workspaceStart(scope, projects, matchMedia(PHONE_QUERY).matches))
   }
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

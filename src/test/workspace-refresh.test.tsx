@@ -64,6 +64,8 @@ test('opening screen defaults to Projects Progress and remembers a progress proj
   expect(workspaceStart('account-a', initial.projects)).toBe('/projects-progress')
   rememberWorkspace('account-a', { workspace: 'team', projectId: 'nbc-bp03' })
   expect(workspaceStart('account-a', [...initial.projects, progressProject])).toBe('/projects-progress/nbc-bp03/overview')
+  // Phones open the projects list, never the remembered project.
+  expect(workspaceStart('account-a', [...initial.projects, progressProject], true)).toBe('/projects-progress')
   expect(workspaceStart('account-b', [])).toBe('/projects-progress')
 })
 

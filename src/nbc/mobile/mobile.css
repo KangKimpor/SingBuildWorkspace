@@ -1,0 +1,152 @@
+/* NBC phone views (below 768 px). Overrides of older NBC phone rules are scoped through .shell so they win
+   whatever order the lazily loaded stylesheets arrive in. Desktop and tablet never match these rules. */
+
+@media (max-width: 767px) {
+  .shell [data-tone='bad'] { --ph-tone: var(--danger-text); }
+  .shell [data-tone='warn'] { --ph-tone: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
+  .shell [data-tone='ok'] { --ph-tone: var(--success-text); }
+
+  /* Projects list: one calm card per project. */
+  .ph-projects {
+    padding: 0 calc(var(--space-16) + var(--safe-right)) var(--space-24) calc(var(--space-16) + var(--safe-left));
+  }
+  .ph-cards {
+    display: grid;
+    gap: var(--space-12);
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .ph-card {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas: 'logo name pct' 'bar bar bar' 'status status status';
+    column-gap: var(--space-12);
+    align-items: center;
+    padding: var(--space-16);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    background: var(--bg-raised);
+    color: var(--text-primary);
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--duration-instant) var(--ease-standard);
+  }
+  .ph-card:active {
+    background: var(--bg-pressed);
+  }
+  .ph-card:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .ph-card > .icon-tile {
+    grid-area: logo;
+    width: 40px;
+    height: 40px;
+    margin: 0;
+    border-radius: 8px;
+  }
+  .ph-card-name {
+    grid-area: name;
+    display: grid;
+    min-width: 0;
+  }
+  .ph-card-name > * {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .ph-card-name strong {
+    font-size: 17px;
+    line-height: 24px;
+    font-weight: 600;
+  }
+  .ph-card-name span {
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--text-secondary);
+  }
+  .ph-card-pct {
+    grid-area: pct;
+    font-size: 22px;
+    line-height: 28px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+  .ph-bar {
+    grid-area: bar;
+    height: 4px;
+    margin-top: var(--space-12);
+    border-radius: var(--radius-pill);
+    background: linear-gradient(to right, var(--accent) var(--pct), var(--bg-pressed) 0);
+  }
+  .ph-card-status {
+    grid-area: status;
+    margin-top: var(--space-8);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .ph-card-status [data-tone] {
+    color: var(--ph-tone);
+    font-weight: 500;
+  }
+  .ph-empty {
+    margin: var(--space-24) 0;
+    font-size: 15px;
+    line-height: 22px;
+    color: var(--text-secondary);
+    text-align: center;
+  }
+
+  /* Project frame: the top bar carries the name, so the page opens with one muted week line. */
+  .shell .nbc-project.workspace-surface {
+    gap: var(--space-16);
+    padding: var(--space-12) calc(var(--space-16) + var(--safe-right)) var(--space-24) calc(var(--space-16) + var(--safe-left));
+  }
+  .shell .nbc-project > .ph-week {
+    margin: 0 0 calc(var(--space-4) * -1);
+    font-size: 13px;
+    line-height: 18px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Popover sheets keep their scrim inside a project, where html[data-nbc] flattens dialog shadows. */
+  html[data-nbc] [data-radix-popper-content-wrapper] > [role='dialog'] {
+    box-shadow: 0 0 0 100vmax var(--scrim);
+  }
+
+  /* "⋯" menu in the top bar, shown as a bottom sheet. */
+  .ph-menu {
+    display: grid;
+    gap: var(--space-8);
+    padding-top: var(--space-8);
+  }
+  .ph-menu > button {
+    display: flex;
+    align-items: center;
+    gap: var(--space-12);
+    min-height: 52px;
+    padding: 0 var(--space-16);
+    border: 0;
+    border-radius: 12px;
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 16px;
+    font-weight: 500;
+    text-align: start;
+  }
+  .ph-menu > button:active:not(:disabled) {
+    background: var(--bg-pressed);
+  }
+  .ph-menu > button:disabled {
+    color: var(--text-tertiary);
+  }
+}

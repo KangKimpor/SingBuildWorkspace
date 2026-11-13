@@ -15,6 +15,8 @@ import UpdateProgress from './update/UpdateProgress'
 import { appliedEntries, weekLabel, weekStart } from './submissions'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from './types'
 import { aliases } from './views'
+import { usePhone } from '@/shell/usePhone'
+import { PhoneProject } from './mobile/PhoneProject'
 
 const EMPTY_ACTIVITIES: NbcActivity[] = [], EMPTY_SUBMISSIONS: NbcSubmission[] = [], EMPTY_SUMMARIES: NbcWeekSummary[] = []
 const views = [['overview', 'Overview'], ['activities', 'Project Progress'], ['update', 'Update Progress']] as const
@@ -22,7 +24,7 @@ const ExportWorkbook = lazy(() => import('./export/ExportWorkbook'))
 
 export default function NbcProject({ project, view }: { project: ProjectSummary; view: string }) {
   const scope = useWorkspace((s) => s.scope), [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false)
-  const [exportOpen, setExportOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false), phone = usePhone()
   // Page-wide NBC styling keys off html[data-nbc]. A document-level :has(.nbc-project) selector made the
   // browser re-check the whole page on DOM changes; layout effects keep it in place before the first paint.
   useLayoutEffect(() => {
@@ -84,16 +86,23 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   if (!issuesEnabled && view === 'issues') return <Navigate to={`/projects-progress/${project.id}/activities${location.search}`} replace/>
   if (!views.some(([key]) => key === view) && view !== 'issues') return <Navigate to={`/projects-progress/${project.id}/overview`} replace/>
   const activityView = view === 'issues' ? view : 'activities'
+  const canExport = !!activities.length && !!calculation
+  const body = !activities.length
+    ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>
+    : <>
+      {!calculation && !dismissed && <div className="nbc-banner nbc-warning" role="status"><span>Calculation needs attention. Progress editing is paused.</span><button className="ibtn" aria-label="Dismiss calculation warning" onClick={() => setDismissed(true)}><X size={16}/></button></div>}
+      {view === 'overview' && <Overview project={project} activities={activities} submissions={submissions} summaries={summaries} baseline={baseline} overall={calculation?.overall}/>}
+      {view === 'update' && calculation && <UpdateProgress projectId={project.id} activities={activities} submissions={submissions}/>}
+      {(view === 'activities' || view === 'issues') && (calculation || activityView !== 'activities') && <Activities projectId={project.id} activities={activities} baseline={baseline} view={activityView} rollups={{ live: calculation ?? undefined, before }}/>}
+    </>
   return <div className="workspace-surface project-page nbc-project" data-view={view}>
-    <header className="nbc-project-header"><Tile name={BRAND_ICON}/><div><h1>{project.name}</h1><p className="small muted">{weekLabel(current)} · This week · Due Friday 11:59 PM</p></div><div className="nbc-project-actions"><button className="btn-secondary nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!activities.length || !calculation} onClick={() => setExportOpen(true)}><Download size={15} aria-hidden="true"/><span>Export XLSX</span></button></div></header>
-    <nav className="view-tabs nbc-tabs" aria-label="Project views">{views.map(([key, label]) => <Link className="view-tab" key={key} aria-current={key === view || key === 'activities' && view === 'issues' ? 'page' : undefined} to={`/projects-progress/${project.id}/${key}`}>{label}</Link>)}</nav>
-    {!activities.length
-      ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>
+    {phone
+      // Phones: the top bar names the project and holds Export; the tab bar switches views.
+      ? <PhoneProject project={project} weekText={`${weekLabel(current)} · Due Fri 11:59 PM`} onExport={canExport ? () => setExportOpen(true) : undefined}>{body}</PhoneProject>
       : <>
-        {!calculation && !dismissed && <div className="nbc-banner nbc-warning" role="status"><span>Calculation needs attention. Progress editing is paused.</span><button className="ibtn" aria-label="Dismiss calculation warning" onClick={() => setDismissed(true)}><X size={16}/></button></div>}
-        {view === 'overview' && <Overview project={project} activities={activities} submissions={submissions} summaries={summaries} baseline={baseline} overall={calculation?.overall}/>}
-        {view === 'update' && calculation && <UpdateProgress projectId={project.id} activities={activities} submissions={submissions}/>}
-        {(view === 'activities' || view === 'issues') && (calculation || activityView !== 'activities') && <Activities projectId={project.id} activities={activities} baseline={baseline} view={activityView} rollups={{ live: calculation ?? undefined, before }}/>}
+        <header className="nbc-project-header"><Tile name={BRAND_ICON}/><div><h1>{project.name}</h1><p className="small muted">{weekLabel(current)} · This week · Due Friday 11:59 PM</p></div><div className="nbc-project-actions"><button className="btn-secondary nbc-export-button" aria-label="Export XLSX" title="Export XLSX" disabled={!canExport} onClick={() => setExportOpen(true)}><Download size={15} aria-hidden="true"/><span>Export XLSX</span></button></div></header>
+        <nav className="view-tabs nbc-tabs" aria-label="Project views">{views.map(([key, label]) => <Link className="view-tab" key={key} aria-current={key === view || key === 'activities' && view === 'issues' ? 'page' : undefined} to={`/projects-progress/${project.id}/${key}`}>{label}</Link>)}</nav>
+        {body}
       </>}
     {exportOpen && <Suspense fallback={<span className="sr-only" role="status">Opening export…</span>}><ExportWorkbook projectId={project.id} activities={activities} submissions={submissions} onClose={() => setExportOpen(false)}/></Suspense>}
   </div>

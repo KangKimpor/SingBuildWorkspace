@@ -106,8 +106,10 @@ test('saving an export template upgrades existing local storage without losing r
 
 for (const mobile of [false, true]) test(`weekly XLSX exports confirmed snapshots and remembers the private template${mobile ? ' on mobile' : ''}`, async ({ page }, testInfo) => {
   if (mobile) await page.setViewportSize({ width: 390, height: 844 })
+  // On a phone Export sits in the top bar's "⋯" menu.
+  const openExport = async () => { if (mobile) await page.getByRole('button', { name: 'Project actions', exact: true }).click(); await page.getByRole('button', { name: 'Export XLSX', exact: true }).click() }
   await setup(page, history()); await page.goto('/projects-progress/nbc-bp03/overview')
-  await page.getByRole('button', { name: 'Export XLSX', exact: true }).click()
+  await openExport()
   const dialog = page.getByRole('dialog')
   await expect(dialog.getByRole('status')).toContainText('0 of 7 handlers confirmed')
   await page.getByLabel('Weekly report template').setInputFiles({ name: 'NBC-template.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', buffer: Buffer.from(fixtureTemplate()) })
@@ -117,7 +119,7 @@ for (const mobile of [false, true]) test(`weekly XLSX exports confirmed snapshot
   const file = await exportFile(page), xml = strFromU8(unzipSync(file.bytes)['xl/worksheets/sheet1.xml']!)
   expect(file.name).toBe('NBC-BP03-Progress Tracking by BOQ-(25 October to 31 October).xlsx')
   expect(value(xml, 'N8')).toBe(.8); expect(value(xml, 'L8')).toBe(.4); expect(value(xml, 'M8')).toBe(.4)
-  await page.reload(); await page.getByRole('button', { name: 'Export XLSX', exact: true }).click()
+  await page.reload(); await openExport()
   await expect(page.getByText('Saved template: NBC-template.xlsx')).toBeVisible()
   await page.getByRole('combobox', { name: 'Reporting week', exact: true }).click()
   await page.getByRole('option', { name: /18 October/ }).click()
