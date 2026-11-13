@@ -122,6 +122,17 @@ html[data-nbc] .canvas { padding-top: 0; }
 }
 .nbc-toolbar-actions { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; margin-left: auto; }
 .nbc-toolbar-actions .nbc-deadline { padding: 0 10px; font-size: 12px; white-space: nowrap; }
+/* Floor picker on its own row; search, filters and the action group share one straight row beneath it. */
+.nbc-floor-row { display: flex; flex: 1 1 100%; min-width: 0; overflow-x: auto; }
+.nbc-filter-line { display: flex; align-items: center; gap: 8px; flex: 1 1 100%; min-width: 0; flex-wrap: nowrap; }
+/* The row stays one straight line by tightening as the editor narrows (sidebar open, smaller laptops):
+   search shrinks first, then the deadline keeps only "10h left", then Expand drops its label. Only tablets wrap. */
+@media (min-width: 768px) { .nbc-filters { container: nbc-toolbar / inline-size; } }
+@container nbc-toolbar (max-width: 1040px) { .nbc-filter-line .nbc-deadline-due { display: none; } }
+@container nbc-toolbar (max-width: 900px) { .nbc-update .nbc-filter-line .nbc-expand-label { display: none; } .nbc-update .nbc-filter-line .nbc-expand-editor { width: 32px; padding: 0; } }
+@container nbc-toolbar (max-width: 760px) { .nbc-filter-line { flex-wrap: wrap; } }
+@media (min-width: 768px) { .nbc-filter-line > * { flex-shrink: 0; } .nbc-filter-line > .search-field { flex-shrink: 1; min-width: 140px; } }
+@media (max-width: 767px) { .nbc-filter-line { display: contents; } }
 /* Phones: the action group may wrap, and the deadline note stays compact so the table keeps its height. */
 @media (max-width: 767px) { .nbc-toolbar-actions { flex-wrap: wrap; justify-content: flex-end; } .nbc-filters .nbc-toolbar-actions .nbc-deadline { height: 30px; min-height: 30px; padding: 0 8px; font-size: 11px; } }
 

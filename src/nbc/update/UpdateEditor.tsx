@@ -152,13 +152,15 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
 
   return <>
     <div className="nbc-filters">
-      {roomMode && pressedFloor && floors.length > 1 && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
+      {roomMode && pressedFloor && floors.length > 1 && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div></div>}
+      <div className="nbc-filter-line">
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
       <div className="nbc-toolbar-actions nbc-update-controls">
         {controls}
         <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={expandAll}><ChevronsDown size={16}/></button>
         <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={collapseAll}><ChevronsUp size={16}/></button>
+      </div>
       </div>
     </div>
     {draft.error && !sheet && <p className="form-error" role="alert">{draft.error}</p>}

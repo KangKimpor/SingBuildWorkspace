@@ -88,7 +88,8 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
 
   return <section className="nbc-activities">
     <div className="nbc-filters">
-      {floor && <div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor!.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div>}
+      {floor && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor!.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div></div>}
+      <div className="nbc-filter-line">
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
       <button className="nbc-chip nbc-filters-toggle" aria-expanded={filtersOpen} aria-controls="nbc-filter-selects" onClick={() => setFiltersOpen(!filtersOpen)}>Filters{selectFilters > 0 && <span className="nbc-filters-count">{selectFilters}</span>}</button>
       <div id="nbc-filter-selects" className="nbc-filter-selects" data-open={filtersOpen || undefined}>
@@ -101,6 +102,7 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
         {controls}
         <button className="ibtn" title="Expand all" aria-label="Expand all" onClick={() => setCollapsed(new Set())}><ChevronsDown size={16}/></button>
         <button className="ibtn" title="Collapse all" aria-label="Collapse all" onClick={() => setCollapsed(new Set(activities.filter((a) => !a.editable).map((a) => a.id)))}><ChevronsUp size={16}/></button>
+      </div>
       </div>
     </div>
     {sync.kind !== 'saved' && pending.size > 0 && <p className="small muted" role="status">{sync.kind === 'error' ? <>Save failed · <button className="text-link" onClick={() => void syncWorkspace(false)}>Retry</button></> : `Pending sync · ${pending.size}`}</p>}
@@ -137,7 +139,7 @@ export default function Activities({ projectId, activities, baseline, view, roll
     <ActivityTable projectId={projectId} activities={activities} baseline={baseline} rollups={rollups} controls={
       <button className="nbc-chip nbc-expand-editor" aria-label={expanded ? 'Collapse editor' : 'Expand editor'} aria-pressed={expanded} onClick={() => setExpanded(!expanded)}>
         {expanded ? <Minimize2 size={15} aria-hidden="true" /> : <Maximize2 size={15} aria-hidden="true" />}
-        {expanded ? 'Collapse' : 'Expand'}
+        <span className="nbc-expand-label">{expanded ? 'Collapse' : 'Expand'}</span>
       </button>}/>
   </div>
 }
