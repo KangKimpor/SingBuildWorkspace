@@ -1,0 +1,1619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SingBuild Workspace — Apple Sidebar Prototype v2</title>
+  <style>
+    :root {
+      --font-apple: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Inter", system-ui, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: var(--font-apple);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .proto-stage {
+      width: 100%;
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    /* Quiet prototype controls bar */
+    .proto-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .proto-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .seg {
+      display: inline-flex;
+      padding: 2px;
+      border-radius: 8px;
+      background: var(--secondary, rgba(120, 120, 128, 0.12));
+      gap: 2px;
+    }
+
+    .seg button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--muted-foreground, #52525b);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+    }
+
+    .seg button:hover {
+      color: var(--foreground, #1d1d1f);
+    }
+
+    .seg button[aria-pressed="true"] {
+      background: var(--card, #ffffff);
+      color: var(--foreground, #1d1d1f);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.05);
+    }
+
+    .proto-shortcuts {
+      font-size: 11.5px;
+      color: var(--muted-foreground, #52525b);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .proto-shortcut-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .proto-kbd {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 20px;
+      padding: 0 5px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--secondary, rgba(120, 120, 128, 0.14));
+      color: var(--foreground, #1d1d1f);
+    }
+
+    /* ==========================================================================
+       APPLE WINDOW SHELL (macOS Sequoia Source List + Clean Canvas)
+       ========================================================================== */
+    .app-window {
+      --w-bg: #ffffff;
+      --sb-bg: #f5f5f7;
+      --sb-border: rgba(0, 0, 0, 0.085);
+      --sb-divider: rgba(0, 0, 0, 0.07);
+      --sb-ink-1: #1d1d1f;
+      --sb-ink-2: #48484c;
+      --sb-ink-3: #5e5e63;
+      --sb-hover: rgba(0, 0, 0, 0.048);
+      --sb-active-row: rgba(0, 0, 0, 0.065);
+      --sb-pill-bg: #006be6;
+      --sb-pill-ink: #ffffff;
+      --sb-pill-badge-bg: rgba(255, 255, 255, 0.22);
+      --sb-badge-bg: rgba(0, 0, 0, 0.065);
+      --sb-badge-ink: #48484c;
+      --sb-ring-track: rgba(0, 0, 0, 0.11);
+      --sb-ring-muted: #7a7a80;
+      --sb-accent: #006be6;
+      --sb-accent-ring: rgba(0, 122, 255, 0.28);
+      --sb-search-bg: rgba(0, 0, 0, 0.055);
+      --sb-search-focus: #ffffff;
+      --sb-card-bg: #fafafa;
+      --sb-danger-ink: #c1201a;
+      --sb-danger-dot: #ff3b30;
+      --sb-warning-dot: #ff9500;
+      --sb-success-bg: rgba(40, 205, 65, 0.14);
+      --sb-success-ink: #176f26;
+      --sb-tooltip-bg: #1d1d1f;
+      --sb-tooltip-ink: #ffffff;
+      --sb-window-shadow: 0 12px 36px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.08);
+
+      display: grid;
+      grid-template-columns: 260px minmax(0, 1fr);
+      min-height: 556px;
+      background: var(--w-bg);
+      color: var(--sb-ink-1);
+      border-radius: 14px;
+      box-shadow: var(--sb-window-shadow);
+      overflow: hidden;
+      transition: grid-template-columns 260ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms ease;
+    }
+
+    .app-window[data-collapsed="true"] {
+      grid-template-columns: 68px minmax(0, 1fr);
+    }
+
+    .app-window[data-appearance="dark"] {
+      --w-bg: #1c1c1e;
+      --sb-bg: #242427;
+      --sb-border: rgba(255, 255, 255, 0.09);
+      --sb-divider: rgba(255, 255, 255, 0.08);
+      --sb-ink-1: #f5f5f7;
+      --sb-ink-2: #d1d1d6;
+      --sb-ink-3: #a1a1a8;
+      --sb-hover: rgba(255, 255, 255, 0.065);
+      --sb-active-row: rgba(255, 255, 255, 0.10);
+      --sb-pill-bg: #0a78f5;
+      --sb-pill-ink: #ffffff;
+      --sb-pill-badge-bg: rgba(255, 255, 255, 0.22);
+      --sb-badge-bg: rgba(255, 255, 255, 0.10);
+      --sb-badge-ink: #d1d1d6;
+      --sb-ring-track: rgba(255, 255, 255, 0.14);
+      --sb-ring-muted: #98989f;
+      --sb-accent: #0a84ff;
+      --sb-accent-ring: rgba(10, 132, 255, 0.42);
+      --sb-search-bg: rgba(255, 255, 255, 0.08);
+      --sb-search-focus: #323236;
+      --sb-card-bg: #252528;
+      --sb-danger-ink: #ff6961;
+      --sb-danger-dot: #ff453a;
+      --sb-warning-dot: #ff9f0a;
+      --sb-success-bg: rgba(48, 209, 88, 0.18);
+      --sb-success-ink: #5ae27c;
+      --sb-tooltip-bg: #3a3a3c;
+      --sb-tooltip-ink: #f5f5f7;
+      --sb-window-shadow: 0 18px 48px rgba(0, 0, 0, 0.50), 0 0 0 1px rgba(255, 255, 255, 0.10);
+    }
+
+    /* ==========================================================================
+       APPLE SOURCE-LIST SIDEBAR
+       ========================================================================== */
+    .sidebar {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      background: var(--sb-bg);
+      border-right: 1px solid var(--sb-border);
+      padding: 12px 10px 10px;
+      min-width: 0;
+      user-select: none;
+    }
+
+    /* Header: brand + whisper-quiet Search & Collapse icon buttons */
+    .sb-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      height: 34px;
+      padding: 0 2px 0 6px;
+      margin-bottom: 8px;
+    }
+
+    .sb-brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .sb-logo {
+      width: 24px;
+      height: 24px;
+      flex: none;
+      border-radius: 6.5px;
+      background: #ffffff;
+      display: grid;
+      place-items: center;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 0 0 0.5px rgba(0, 0, 0, 0.08);
+    }
+
+    .sb-logo svg {
+      width: 14px;
+      height: 14px;
+      display: block;
+    }
+
+    .sb-brand-title {
+      font-size: 13.5px;
+      font-weight: 600;
+      letter-spacing: -0.018em;
+      color: var(--sb-ink-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sb-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: none;
+    }
+
+    .sb-icon-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--sb-ink-3);
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: background 130ms ease, color 130ms ease, transform 90ms ease;
+    }
+
+    .sb-icon-btn:hover {
+      background: var(--sb-hover);
+      color: var(--sb-ink-1);
+    }
+
+    .sb-icon-btn:active {
+      transform: scale(0.93);
+    }
+
+    .sb-icon-btn[aria-pressed="true"] {
+      background: var(--sb-active-row);
+      color: var(--sb-ink-1);
+    }
+
+    .sb-icon-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--sb-accent-ring);
+    }
+
+    /* Collapsible Spotlight-style Search Field (Hidden until toggled or ⌘K) */
+    .sb-search-drawer {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      transition: grid-template-rows 200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 160ms ease, margin 200ms ease;
+      margin: 0 2px 0;
+    }
+
+    .sb-search-drawer[data-open="true"] {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      margin: 2px 2px 10px;
+    }
+
+    .sb-search-inner {
+      min-height: 0;
+      overflow: hidden;
+      padding: 2px;
+      margin: -2px;
+    }
+
+    .sb-search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .sb-search-glyph {
+      position: absolute;
+      left: 9px;
+      color: var(--sb-ink-3);
+      pointer-events: none;
+      display: grid;
+      place-items: center;
+    }
+
+    .sb-search-input {
+      width: 100%;
+      height: 28px;
+      padding: 0 26px 0 27px;
+      border-radius: 7px;
+      border: 0;
+      background: var(--sb-search-bg);
+      color: var(--sb-ink-1);
+      font: inherit;
+      font-size: 12.5px;
+      outline: none;
+      transition: background 140ms ease, box-shadow 140ms ease;
+    }
+
+    .sb-search-input::placeholder {
+      color: var(--sb-ink-3);
+    }
+
+    .sb-search-input:focus {
+      background: var(--sb-search-focus);
+      box-shadow: 0 0 0 3px var(--sb-accent-ring), inset 0 0 0 0.5px var(--sb-accent);
+    }
+
+    .sb-search-clear {
+      position: absolute;
+      right: 6px;
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 0;
+      background: var(--sb-ink-3);
+      color: var(--sb-bg);
+      display: none;
+      place-items: center;
+      cursor: pointer;
+      font-size: 11px;
+      line-height: 1;
+      padding: 0;
+    }
+
+    .sb-search-box[data-has-query="true"] .sb-search-clear {
+      display: grid;
+    }
+
+    /* Section Label — Apple Sequoia Sentence Case */
+    .sb-section-label {
+      padding: 4px 8px 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      color: var(--sb-ink-3);
+    }
+
+    /* Source List Body */
+    .sb-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--sb-border) transparent;
+    }
+
+    .sb-projects {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    /* Project Disclosure Group */
+    .proj-group {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .proj-row {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      width: 100%;
+      padding: 7px 8px 7px 6px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      text-align: left;
+      color: inherit;
+      transition: background 130ms ease, transform 90ms ease;
+    }
+
+    .proj-row:hover {
+      background: var(--sb-hover);
+    }
+
+    .proj-row:active {
+      transform: scale(0.985);
+    }
+
+    .proj-row:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--sb-accent-ring);
+    }
+
+    /* Apple Things-style Progress Ring */
+    .proj-ring-wrap {
+      width: 24px;
+      height: 24px;
+      flex: none;
+      display: grid;
+      place-items: center;
+    }
+
+    .proj-ring {
+      width: 18px;
+      height: 18px;
+      transform: rotate(-90deg);
+      display: block;
+    }
+
+    .proj-ring-track {
+      fill: none;
+      stroke: var(--sb-ring-track);
+      stroke-width: 2.3;
+    }
+
+    .proj-ring-fill {
+      fill: none;
+      stroke: var(--sb-ring-muted);
+      stroke-width: 2.3;
+      stroke-linecap: round;
+      transition: stroke 180ms ease, stroke-dashoffset 320ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .proj-group[data-current="true"] .proj-ring-fill {
+      stroke: var(--sb-accent);
+    }
+
+    .proj-titles {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .proj-name {
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: -0.012em;
+      line-height: 16px;
+      color: var(--sb-ink-1);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .proj-group[data-current="true"] .proj-name {
+      font-weight: 600;
+    }
+
+    .proj-sub {
+      font-size: 11.5px;
+      font-weight: 400;
+      line-height: 14px;
+      color: var(--sb-ink-3);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .proj-trailing {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      flex: none;
+    }
+
+    .proj-pct {
+      font-size: 12px;
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+      color: var(--sb-ink-3);
+    }
+
+    .proj-group[data-current="true"] .proj-pct {
+      color: var(--sb-ink-2);
+      font-weight: 600;
+    }
+
+    .proj-chevron {
+      width: 12px;
+      height: 12px;
+      color: var(--sb-ink-3);
+      display: grid;
+      place-items: center;
+      transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms ease;
+    }
+
+    .proj-group[data-expanded="true"] .proj-chevron {
+      transform: rotate(90deg);
+      color: var(--sb-ink-2);
+    }
+
+    /* Sub-tabs — Full-width NSOutlineView pills with indented optical content */
+    .proj-views-collapse {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .proj-group[data-expanded="true"] .proj-views-collapse {
+      grid-template-rows: 1fr;
+    }
+
+    .proj-views-inner {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .proj-views {
+      list-style: none;
+      margin: 0;
+      padding: 2px 0 6px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .view-pill {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      width: 100%;
+      height: 31px;
+      padding: 0 10px 0 38px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      color: var(--sb-ink-2);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 450;
+      letter-spacing: -0.008em;
+      text-align: left;
+      transition: background 120ms ease, color 120ms ease, transform 90ms ease;
+    }
+
+    .view-pill:hover {
+      background: var(--sb-hover);
+      color: var(--sb-ink-1);
+    }
+
+    .view-pill:active {
+      transform: scale(0.985);
+    }
+
+    .view-pill:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--sb-accent-ring);
+    }
+
+    .view-pill-icon {
+      width: 16px;
+      height: 16px;
+      flex: none;
+      color: var(--sb-ink-3);
+      display: grid;
+      place-items: center;
+      transition: color 120ms ease;
+    }
+
+    .view-pill:hover .view-pill-icon {
+      color: var(--sb-ink-2);
+    }
+
+    .view-pill-label {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .view-pill-count {
+      font-size: 11px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+      padding: 1px 6px;
+      border-radius: 999px;
+      line-height: 15px;
+      background: var(--sb-badge-bg);
+      color: var(--sb-badge-ink);
+    }
+
+    /* Authentic Apple Blue Source-List Active Selection Pill */
+    .view-pill[aria-current="page"] {
+      background: var(--sb-pill-bg);
+      color: var(--sb-pill-ink);
+      font-weight: 550;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 107, 230, 0.22);
+    }
+
+    .view-pill[aria-current="page"] .view-pill-icon {
+      color: var(--sb-pill-ink);
+    }
+
+    .view-pill[aria-current="page"] .view-pill-count {
+      background: var(--sb-pill-badge-bg);
+      color: var(--sb-pill-ink);
+    }
+
+    .sb-empty {
+      padding: 18px 10px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--sb-ink-3);
+      display: none;
+    }
+
+    /* Footer — Clean single Settings row */
+    .sb-foot {
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 0.5px solid var(--sb-divider);
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .sb-foot-btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      width: 100%;
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      cursor: pointer;
+      color: var(--sb-ink-2);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 500;
+      text-align: left;
+      transition: background 120ms ease, color 120ms ease, transform 90ms ease;
+    }
+
+    .sb-foot-btn:hover {
+      background: var(--sb-hover);
+      color: var(--sb-ink-1);
+    }
+
+    .sb-foot-btn[aria-current="page"] {
+      background: var(--sb-pill-bg);
+      color: var(--sb-pill-ink);
+      font-weight: 550;
+    }
+
+    .sb-foot-btn[aria-current="page"] .sb-foot-icon {
+      color: var(--sb-pill-ink);
+    }
+
+    .sb-foot-btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px var(--sb-accent-ring);
+    }
+
+    .sb-foot-icon {
+      width: 18px;
+      height: 18px;
+      display: grid;
+      place-items: center;
+      color: var(--sb-ink-3);
+      flex: none;
+    }
+
+    /* ==========================================================================
+       COLLAPSED RAIL (60px floating dock inside 76px column)
+       ========================================================================== */
+    .rail-item {
+      display: none;
+    }
+
+    .app-window[data-collapsed="true"] .sidebar {
+      padding: 10px 6px 8px;
+      align-items: center;
+    }
+
+    .app-window[data-collapsed="true"] .sb-header {
+      flex-direction: column;
+      height: auto;
+      gap: 6px;
+      padding: 2px 0 6px;
+      margin-bottom: 6px;
+    }
+
+    .app-window[data-collapsed="true"] .sb-brand-title,
+    .app-window[data-collapsed="true"] .sb-search-btn,
+    .app-window[data-collapsed="true"] .sb-search-drawer,
+    .app-window[data-collapsed="true"] .sb-section-label,
+    .app-window[data-collapsed="true"] .proj-row,
+    .app-window[data-collapsed="true"] .proj-views-collapse,
+    .app-window[data-collapsed="true"] .sb-foot-label {
+      display: none;
+    }
+
+    .app-window[data-collapsed="true"] .sb-body {
+      width: 100%;
+      overflow: visible;
+    }
+
+    .app-window[data-collapsed="true"] .sb-projects {
+      align-items: center;
+      gap: 6px;
+    }
+
+    .app-window[data-collapsed="true"] .proj-group {
+      position: relative;
+      align-items: center;
+    }
+
+    .app-window[data-collapsed="true"] .rail-item {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      width: 46px;
+      height: 46px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      cursor: pointer;
+      color: var(--sb-ink-2);
+      transition: background 130ms ease, color 130ms ease, transform 90ms ease;
+    }
+
+    .app-window[data-collapsed="true"] .rail-item:hover {
+      background: var(--sb-hover);
+      color: var(--sb-ink-1);
+    }
+
+    .app-window[data-collapsed="true"] .proj-group[data-current="true"] .rail-item {
+      background: var(--sb-pill-bg);
+      color: var(--sb-pill-ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 6px rgba(0, 107, 230, 0.24);
+    }
+
+    .app-window[data-collapsed="true"] .proj-group[data-current="true"] .rail-item .proj-ring-track {
+      stroke: rgba(255, 255, 255, 0.30);
+    }
+
+    .app-window[data-collapsed="true"] .proj-group[data-current="true"] .rail-item .proj-ring-fill {
+      stroke: #ffffff;
+    }
+
+    .rail-code {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+
+    .rail-tip {
+      position: absolute;
+      left: calc(100% + 12px);
+      top: 50%;
+      transform: translateY(-50%) translateX(-4px);
+      background: var(--sb-tooltip-bg);
+      color: var(--sb-tooltip-ink);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+      transition: opacity 140ms ease, transform 140ms ease;
+      z-index: 20;
+    }
+
+    .app-window[data-collapsed="true"] .rail-item:hover + .rail-tip,
+    .app-window[data-collapsed="true"] .rail-item:focus-visible + .rail-tip {
+      opacity: 1;
+      transform: translateY(-50%) translateX(0);
+    }
+
+    .app-window[data-collapsed="true"] .sb-foot {
+      width: 100%;
+      align-items: center;
+    }
+
+    .app-window[data-collapsed="true"] .sb-foot-btn {
+      width: 40px;
+      height: 36px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    /* ==========================================================================
+       RIGHT CANVAS (Clean contextual workspace matching SingBuild)
+       ========================================================================== */
+    .main-pane {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .main-topbar {
+      height: 44px;
+      padding: 0 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .crumbs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      color: var(--sb-ink-3);
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+    }
+
+    .crumbs-current {
+      color: var(--sb-ink-1);
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cloud-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--sb-success-bg);
+      color: var(--sb-success-ink);
+      font-size: 11px;
+      font-weight: 600;
+      flex: none;
+    }
+
+    .main-content {
+      padding: 12px 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .hotel-crest {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 0.5px solid rgba(0, 0, 0, 0.10);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+      display: grid;
+      place-items: center;
+      flex: none;
+      color: #8a6d36;
+    }
+
+    .page-title {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 650;
+      letter-spacing: -0.02em;
+      color: var(--sb-ink-1);
+    }
+
+    .page-subtitle {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--sb-ink-3);
+    }
+
+    .seg-tabs {
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 9px;
+      background: var(--sb-search-bg);
+      gap: 2px;
+      align-self: flex-start;
+    }
+
+    .seg-tab {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--sb-ink-2);
+      font: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 5px 11px;
+      border-radius: 7px;
+      cursor: pointer;
+    }
+
+    .seg-tab[aria-selected="true"] {
+      background: var(--w-bg);
+      color: var(--sb-ink-1);
+      font-weight: 600;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+    }
+
+    .app-window[data-appearance="dark"] .seg-tab[aria-selected="true"] {
+      background: #3a3a3c;
+    }
+
+    .section-h2 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--sb-ink-1);
+    }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .kpi-card {
+      background: var(--sb-card-bg);
+      border: 0.5px solid var(--sb-border);
+      border-radius: 11px;
+      padding: 13px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .kpi-label {
+      font-size: 11.5px;
+      color: var(--sb-ink-3);
+      font-weight: 500;
+    }
+
+    .kpi-value {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      color: var(--sb-ink-1);
+      white-space: nowrap;
+    }
+
+    .kpi-value[data-tone="danger"] {
+      color: var(--sb-danger-ink);
+    }
+
+    .kpi-sub {
+      font-size: 11.5px;
+      color: var(--sb-ink-3);
+    }
+
+    .kpi-sub[data-tone="danger"] {
+      color: var(--sb-danger-ink);
+    }
+
+    .list-card {
+      background: var(--sb-card-bg);
+      border: 0.5px solid var(--sb-border);
+      border-radius: 11px;
+      padding: 13px 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .list-card-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--sb-ink-1);
+    }
+
+    .list-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding-top: 8px;
+      border-top: 0.5px solid var(--sb-divider);
+      font-size: 12.5px;
+      color: var(--sb-ink-2);
+    }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      flex: none;
+    }
+
+    .dot[data-tone="danger"] { background: var(--sb-danger-dot); }
+    .dot[data-tone="warning"] { background: var(--sb-warning-dot); }
+
+    .list-row-text {
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .list-row-meta {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sb-accent);
+      flex: none;
+    }
+
+    @media (max-width: 560px) {
+      .app-window,
+      .app-window[data-collapsed="true"] {
+        grid-template-columns: 1fr;
+        padding: 8px;
+      }
+      .kpi-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        transition-duration: 1ms !important;
+        animation-duration: 1ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="proto-stage">
+    <div class="proto-bar" role="toolbar" aria-label="Prototype controls">
+      <div class="proto-bar-left">
+        <div class="seg" role="group" aria-label="Sidebar mode">
+          <button type="button" id="btn-expanded" aria-pressed="true">Expanded</button>
+          <button type="button" id="btn-collapsed" aria-pressed="false">Collapsed</button>
+        </div>
+        <div class="seg" role="group" aria-label="Appearance">
+          <button type="button" id="btn-light" aria-pressed="true">Light</button>
+          <button type="button" id="btn-dark" aria-pressed="false">Dark</button>
+        </div>
+      </div>
+      <span class="proto-shortcuts">
+        <span class="proto-shortcut-item"><kbd class="proto-kbd">⌘K</kbd><span>Filter</span></span>
+        <span class="proto-shortcut-item"><kbd class="proto-kbd">⌘\</kbd><span>Rail</span></span>
+      </span>
+    </div>
+
+    <div class="app-window" id="app-window" data-collapsed="false" data-appearance="light">
+      <aside class="sidebar" aria-label="Sidebar navigation">
+        <div class="sb-header">
+          <div class="sb-brand">
+            <div class="sb-logo" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 188 185">
+                <path fill="#dd1f26" fill-rule="evenodd" d="M160 0 187 19 188 148 135 184 118 171 118 53 84 77 80 86 80 173 62 183 1 141 1 113 34 90 45 105 18 123 18 132 62 162 62 80 67 66ZM135 40 160 22 169 28 169 72 135 96ZM135 118 169 94 170 138 135 163Z"/>
+              </svg>
+            </div>
+            <span class="sb-brand-title">SingBuild</span>
+          </div>
+          <div class="sb-header-actions">
+            <button
+              type="button"
+              class="sb-icon-btn sb-search-btn"
+              id="btn-search-toggle"
+              title="Filter projects (⌘K)"
+              aria-label="Filter projects"
+              aria-pressed="false"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.5" y1="16.5" x2="21" y2="21" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="sb-icon-btn"
+              id="btn-rail-toggle"
+              title="Toggle sidebar (⌘\)"
+              aria-label="Toggle sidebar"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="3" />
+                <line x1="9" y1="4" x2="9" y2="20" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="sb-search-drawer" id="sb-search-drawer" data-open="false">
+          <div class="sb-search-inner">
+            <div class="sb-search-box" id="sb-search-box" data-has-query="false">
+              <span class="sb-search-glyph" aria-hidden="true">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <line x1="16.5" y1="16.5" x2="21" y2="21" />
+                </svg>
+              </span>
+              <input
+                type="text"
+                class="sb-search-input"
+                id="sb-search-input"
+                placeholder="Filter projects…"
+                aria-label="Filter projects"
+              />
+              <button type="button" class="sb-search-clear" id="sb-search-clear" aria-label="Clear">×</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sb-section-label">Projects</div>
+
+        <nav class="sb-body" aria-label="Projects">
+          <ul class="sb-projects" id="sb-projects"></ul>
+          <div class="sb-empty" id="sb-empty">No matching projects</div>
+        </nav>
+
+        <div class="sb-foot">
+          <button type="button" class="sb-foot-btn" id="btn-settings" aria-current="false">
+            <span class="sb-foot-icon" aria-hidden="true">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.08a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.08a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+              </svg>
+            </span>
+            <span class="sb-foot-label">Settings</span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="main-pane" aria-label="Workspace preview">
+        <header class="main-topbar">
+          <div class="crumbs" id="main-crumbs"></div>
+          <span class="cloud-pill">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>Saved to cloud</span>
+          </span>
+        </header>
+        <div class="main-content" id="main-content"></div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const PROJECTS = [
+      {
+        id: 'bp02',
+        code: 'BP02',
+        name: 'NBC BP02',
+        subtitle: 'Pan Pacific Hotel',
+        progress: 85,
+        overallText: '85.44%',
+        deltaText: '+0.58 pts this week',
+        versusPlan: '14.56% behind',
+        planSub: 'Plan: 100.00% by now',
+        tone: 'danger',
+        attentionCount: 4,
+        attentionItems: [
+          { tone: 'danger', title: 'Srun has not updated', meta: 'overdue' },
+          { tone: 'warning', title: '1.8.1.7.1.4.3.12 SK3-1712 lowered 90% → 10%', meta: '-0.01% overall' },
+        ]
+      },
+      {
+        id: 'bp03',
+        code: 'BP03',
+        name: 'NBC BP03',
+        subtitle: 'Pan Pacific Hotel',
+        progress: 51,
+        overallText: '51.20%',
+        deltaText: '+1.40 pts this week',
+        versusPlan: '3.80% behind',
+        planSub: 'Plan: 55.00% by now',
+        tone: 'warning',
+        attentionCount: 2,
+        attentionItems: [
+          { tone: 'warning', title: 'Level 08 MEP rough-in pending sign-off', meta: 'due Fri' },
+        ]
+      },
+      {
+        id: 'bp04',
+        code: 'BP04',
+        name: 'NBC BP04',
+        subtitle: 'Pan Pacific Hotel',
+        progress: 50,
+        overallText: '50.00%',
+        deltaText: '+2.10 pts this week',
+        versusPlan: 'On schedule',
+        planSub: 'Plan: 50.00% by now',
+        tone: 'normal',
+        attentionCount: 0,
+        attentionItems: []
+      }
+    ];
+
+    const VIEWS = [
+      {
+        id: 'overview',
+        label: 'Overview',
+        icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.75"/></svg>`
+      },
+      {
+        id: 'activities',
+        label: 'Project Progress',
+        icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 19V11"/><path d="M12 19V5"/><path d="M18 19V14"/></svg>`
+      },
+      {
+        id: 'update',
+        label: 'Update Progress',
+        icon: `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/></svg>`
+      }
+    ];
+
+    const RING_R = 7;
+    const RING_C = +(2 * Math.PI * RING_R).toFixed(2);
+
+    const state = {
+      activeRoute: 'project',
+      activeProjectId: 'bp02',
+      activeViewId: 'overview',
+      expandedIds: new Set(['bp02']),
+      collapsed: false,
+      appearance: 'light',
+      searchOpen: false,
+      query: ''
+    };
+
+    const windowEl = document.getElementById('app-window');
+    const projectsEl = document.getElementById('sb-projects');
+    const emptyEl = document.getElementById('sb-empty');
+    const searchToggleEl = document.getElementById('btn-search-toggle');
+    const searchDrawerEl = document.getElementById('sb-search-drawer');
+    const searchBoxEl = document.getElementById('sb-search-box');
+    const searchInputEl = document.getElementById('sb-search-input');
+    const searchClearEl = document.getElementById('sb-search-clear');
+    const settingsBtnEl = document.getElementById('btn-settings');
+    const mainCrumbsEl = document.getElementById('main-crumbs');
+    const mainContentEl = document.getElementById('main-content');
+
+    const btnExpanded = document.getElementById('btn-expanded');
+    const btnCollapsed = document.getElementById('btn-collapsed');
+    const btnLight = document.getElementById('btn-light');
+    const btnDark = document.getElementById('btn-dark');
+    const btnRailToggle = document.getElementById('btn-rail-toggle');
+
+    function setCollapsed(next) {
+      state.collapsed = next;
+      windowEl.setAttribute('data-collapsed', String(next));
+      btnExpanded.setAttribute('aria-pressed', String(!next));
+      btnCollapsed.setAttribute('aria-pressed', String(next));
+    }
+
+    function setAppearance(theme) {
+      state.appearance = theme;
+      windowEl.setAttribute('data-appearance', theme);
+      btnLight.setAttribute('aria-pressed', String(theme === 'light'));
+      btnDark.setAttribute('aria-pressed', String(theme === 'dark'));
+    }
+
+    function setSearchOpen(open) {
+      state.searchOpen = open;
+      searchDrawerEl.setAttribute('data-open', String(open));
+      searchToggleEl.setAttribute('aria-pressed', String(open));
+      if (open) {
+        setTimeout(() => searchInputEl.focus(), 60);
+      } else {
+        state.query = '';
+        searchInputEl.value = '';
+        searchBoxEl.setAttribute('data-has-query', 'false');
+        renderSidebar();
+      }
+    }
+
+    function ringSvg(pct) {
+      const offset = +(RING_C * (1 - pct / 100)).toFixed(2);
+      return `
+        <svg class="proj-ring" viewBox="0 0 18 18" aria-hidden="true">
+          <circle class="proj-ring-track" cx="9" cy="9" r="${RING_R}" />
+          <circle class="proj-ring-fill" cx="9" cy="9" r="${RING_R}" stroke-dasharray="${RING_C}" stroke-dashoffset="${offset}" />
+        </svg>
+      `;
+    }
+
+    function renderSidebar() {
+      const q = state.query.trim().toLowerCase();
+      const filtered = PROJECTS.filter(p =>
+        !q || p.name.toLowerCase().includes(q) || p.subtitle.toLowerCase().includes(q)
+      );
+
+      emptyEl.style.display = filtered.length === 0 ? 'block' : 'none';
+      settingsBtnEl.setAttribute('aria-current', state.activeRoute === 'settings' ? 'page' : 'false');
+
+      projectsEl.innerHTML = filtered.map(project => {
+        const isCurrent = state.activeRoute === 'project' && state.activeProjectId === project.id;
+        const isExpanded = state.expandedIds.has(project.id);
+
+        const viewsHtml = VIEWS.map(view => {
+          const isViewActive = isCurrent && state.activeViewId === view.id;
+          const badge = view.id === 'overview' && project.attentionCount > 0
+            ? `<span class="view-pill-count">${project.attentionCount}</span>`
+            : '';
+          return `
+            <li>
+              <button
+                type="button"
+                class="view-pill"
+                data-project-id="${project.id}"
+                data-view-id="${view.id}"
+                aria-current="${isViewActive ? 'page' : 'false'}"
+              >
+                <span class="view-pill-icon" aria-hidden="true">${view.icon}</span>
+                <span class="view-pill-label">${view.label}</span>
+                ${badge}
+              </button>
+            </li>
+          `;
+        }).join('');
+
+        return `
+          <li class="proj-group" data-current="${isCurrent}" data-expanded="${isExpanded}">
+            <button
+              type="button"
+              class="proj-row"
+              data-toggle-project="${project.id}"
+              aria-expanded="${isExpanded}"
+            >
+              <span class="proj-ring-wrap">${ringSvg(project.progress)}</span>
+              <span class="proj-titles">
+                <span class="proj-name">${project.name}</span>
+                <span class="proj-sub">${project.subtitle}</span>
+              </span>
+              <span class="proj-trailing">
+                <span class="proj-pct">${project.progress}%</span>
+                <span class="proj-chevron" aria-hidden="true">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="9 6 15 12 9 18" />
+                  </svg>
+                </span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              class="rail-item"
+              data-rail-project="${project.id}"
+              aria-label="${project.name} (${project.progress}%)"
+            >
+              ${ringSvg(project.progress)}
+              <span class="rail-code">${project.code}</span>
+            </button>
+            <div class="rail-tip" role="tooltip">${project.name} · ${project.progress}%</div>
+
+            <div class="proj-views-collapse" aria-hidden="${!isExpanded}">
+              <div class="proj-views-inner">
+                <ul class="proj-views">
+                  ${viewsHtml}
+                </ul>
+              </div>
+            </div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function renderMain() {
+      if (state.activeRoute === 'settings') {
+        mainCrumbsEl.innerHTML = `<span>SingBuild</span><span>/</span><span class="crumbs-current">Settings</span>`;
+        mainContentEl.innerHTML = `
+          <div class="page-header">
+            <div>
+              <h1 class="page-title">Workspace Settings</h1>
+              <p class="page-subtitle">Account, cloud sync, and reporting schedule</p>
+            </div>
+          </div>
+          <div class="list-card">
+            <div class="list-card-head"><span>Preferences</span></div>
+            <div class="list-row"><span class="list-row-text">Cloud sync: Automatic</span><span class="list-row-meta">Active</span></div>
+            <div class="list-row"><span class="list-row-text">Weekly deadline: Friday 11:59 PM</span><span class="list-row-meta">Edit</span></div>
+          </div>
+        `;
+        return;
+      }
+
+      const project = PROJECTS.find(p => p.id === state.activeProjectId) || PROJECTS[0];
+      const view = VIEWS.find(v => v.id === state.activeViewId) || VIEWS[0];
+
+      mainCrumbsEl.innerHTML = `
+        <span>SingBuild</span>
+        <span>/</span>
+        <span>Projects</span>
+        <span>/</span>
+        <span class="crumbs-current">${project.name} – ${project.subtitle}</span>
+      `;
+
+      const tabsHtml = VIEWS.map(v => `
+        <button type="button" class="seg-tab" data-inline-view="${v.id}" aria-selected="${v.id === state.activeViewId}">${v.label}</button>
+      `).join('');
+
+      let bodyHtml = '';
+      if (state.activeViewId === 'overview') {
+        const attnRows = project.attentionItems.length > 0
+          ? project.attentionItems.map(item => `
+              <div class="list-row">
+                <span class="dot" data-tone="${item.tone}"></span>
+                <span class="list-row-text">${item.title}</span>
+                <span class="list-row-meta">${item.meta}</span>
+              </div>
+            `).join('')
+          : `<div class="list-row"><span class="list-row-text">All handlers updated on time this week.</span></div>`;
+
+        bodyHtml = `
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <span class="kpi-label">Overall progress</span>
+              <span class="kpi-value">${project.overallText}</span>
+              <span class="kpi-sub">${project.deltaText}</span>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Versus plan</span>
+              <span class="kpi-value" ${project.tone === 'danger' ? 'data-tone="danger"' : ''}>${project.versusPlan}</span>
+              <span class="kpi-sub" ${project.tone === 'danger' ? 'data-tone="danger"' : ''}>${project.planSub}</span>
+            </div>
+          </div>
+          <div class="list-card">
+            <div class="list-card-head">
+              <span>Needs attention</span>
+              <span class="kpi-label">${project.attentionCount} items</span>
+            </div>
+            ${attnRows}
+          </div>
+        `;
+      } else if (state.activeViewId === 'activities') {
+        bodyHtml = `
+          <div class="list-card">
+            <div class="list-card-head">
+              <span>WBS Treegrid — ${project.name}</span>
+              <span class="kpi-label">${project.overallText}</span>
+            </div>
+            <div class="list-row"><span class="list-row-text">1.8.1 Interior Fit-Out & Joinery</span><span class="list-row-meta">88%</span></div>
+            <div class="list-row"><span class="list-row-text">1.8.2 MEP Services & Commissioning</span><span class="list-row-meta">79%</span></div>
+          </div>
+        `;
+      } else {
+        bodyHtml = `
+          <div class="list-card">
+            <div class="list-card-head">
+              <span>Weekly Update — ${project.name}</span>
+              <span class="kpi-label">8 Nov – 14 Nov</span>
+            </div>
+            <div class="list-row"><span class="list-row-text">Handler batch submission ready</span><span class="list-row-meta">Draft</span></div>
+          </div>
+        `;
+      }
+
+      mainContentEl.innerHTML = `
+        <div class="page-header">
+          <div class="hotel-crest" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 20h16"/>
+              <path d="M6 20V7l6-3 6 3v13"/>
+              <path d="M10 11h4"/>
+              <path d="M10 15h4"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="page-title">${project.name} – ${project.subtitle}</h1>
+            <p class="page-subtitle">8 Nov – 14 Nov · This week · Due Friday 11:59 PM</p>
+          </div>
+        </div>
+        <div class="seg-tabs" role="tablist">${tabsHtml}</div>
+        <h2 class="section-h2">${view.label}</h2>
+        ${bodyHtml}
+      `;
+    }
+
+    function render() {
+      renderSidebar();
+      renderMain();
+    }
+
+    projectsEl.addEventListener('click', (e) => {
+      const toggleBtn = e.target.closest('[data-toggle-project]');
+      if (toggleBtn) {
+        const id = toggleBtn.getAttribute('data-toggle-project');
+        if (state.expandedIds.has(id)) {
+          state.expandedIds.delete(id);
+        } else {
+          state.expandedIds.add(id);
+        }
+        renderSidebar();
+        return;
+      }
+
+      const viewBtn = e.target.closest('[data-view-id]');
+      if (viewBtn) {
+        const pid = viewBtn.getAttribute('data-project-id');
+        const vid = viewBtn.getAttribute('data-view-id');
+        state.activeRoute = 'project';
+        state.activeProjectId = pid;
+        state.activeViewId = vid;
+        state.expandedIds.add(pid);
+        render();
+        return;
+      }
+
+      const railBtn = e.target.closest('[data-rail-project]');
+      if (railBtn) {
+        const pid = railBtn.getAttribute('data-rail-project');
+        state.activeRoute = 'project';
+        state.activeProjectId = pid;
+        state.expandedIds.add(pid);
+        render();
+      }
+    });
+
+    mainContentEl.addEventListener('click', (e) => {
+      const tabBtn = e.target.closest('[data-inline-view]');
+      if (tabBtn) {
+        state.activeViewId = tabBtn.getAttribute('data-inline-view');
+        render();
+      }
+    });
+
+    settingsBtnEl.addEventListener('click', () => {
+      state.activeRoute = 'settings';
+      render();
+    });
+
+    searchToggleEl.addEventListener('click', () => setSearchOpen(!state.searchOpen));
+
+    searchInputEl.addEventListener('input', (e) => {
+      state.query = e.target.value;
+      searchBoxEl.setAttribute('data-has-query', String(state.query.length > 0));
+      renderSidebar();
+    });
+
+    searchClearEl.addEventListener('click', () => {
+      state.query = '';
+      searchInputEl.value = '';
+      searchBoxEl.setAttribute('data-has-query', 'false');
+      searchInputEl.focus();
+      renderSidebar();
+    });
+
+    btnExpanded.addEventListener('click', () => setCollapsed(false));
+    btnCollapsed.addEventListener('click', () => setCollapsed(true));
+    btnRailToggle.addEventListener('click', () => setCollapsed(!state.collapsed));
+    btnLight.addEventListener('click', () => setAppearance('light'));
+    btnDark.addEventListener('click', () => setAppearance('dark'));
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (state.collapsed) setCollapsed(false);
+        setSearchOpen(true);
+      } else if ((e.metaKey || e.ctrlKey) && e.key === '\\') {
+        e.preventDefault();
+        setCollapsed(!state.collapsed);
+      } else if (e.key === 'Escape' && state.searchOpen) {
+        setSearchOpen(false);
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
