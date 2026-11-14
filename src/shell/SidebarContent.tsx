@@ -8,7 +8,7 @@ import {
   SquarePen,
   X,
 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useProjects, useWorkspace } from '@/data'
 import { attentionItems } from '@/nbc/overview/insights'
@@ -53,13 +53,21 @@ function Item({
   badge?: number
   onNavigate?: () => void
 }) {
+  const badgeId = useId()
   return (
     <li>
-      <NavLink to={to} end className="nav-item" onClick={onNavigate}>
+      <NavLink
+        to={to}
+        end
+        className="nav-item"
+        aria-describedby={badge ? badgeId : undefined}
+        onClick={onNavigate}
+      >
         <span className="nav-icon" aria-hidden="true">{icon}</span>
         <span className="nav-label">{label}</span>
-        {badge ? <span className="nav-badge" aria-label={`${badge} needing attention`}>{badge}</span> : null}
+        {badge ? <span className="nav-badge" aria-hidden="true">{badge}</span> : null}
       </NavLink>
+      {badge ? <span id={badgeId} className="sr-only">{badge} needing attention</span> : null}
     </li>
   )
 }
