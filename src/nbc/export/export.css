@@ -6,7 +6,7 @@
   --glass-radius: 22px;
   --rs-group: #f2f2f7;
   --rs-separator: rgb(60 60 67 / 0.16);
-  --rs-muted: #6e6e73;
+  --rs-muted: #636368;
   --rs-chevron: #c5c5ca;
   width: min(480px, calc(100% - 32px));
   padding: 22px 22px 18px;
