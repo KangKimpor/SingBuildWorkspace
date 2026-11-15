@@ -43,8 +43,21 @@ export interface Pending {
   version: string
   base: string | null
 }
+/** Per-account sync state kept beside the per-row snapshot (D-37). */
+export interface SnapshotMeta {
+  scope: string
+  scratchpad: string
+  taskViews: TaskView[]
+  watermarks?: Record<string, string>
+  lastFullPull?: string
+}
+/** One workspace row of a signed-in account's local snapshot, keyed by [scope+collection+id]. */
+export interface SnapshotRow { scope: string; collection: Collection; id: string; row: unknown }
 class WorkspaceDB extends Dexie {
+  /** Whole-workspace records: the guest workspace, and accounts not yet moved to `rows`/`meta`. */
   snapshots!: Table<{ scope: string; content: Content; watermarks?: Record<string, string>; lastFullPull?: string }, string>
+  rows!: Table<SnapshotRow, [string, string, string]>
+  meta!: Table<SnapshotMeta, string>
   outbox!: Table<Pending, string>
   versions!: Table<{ key: string; value: string }, string>
   files!: Table<{ id: string; blob: Blob; name: string }, string>
@@ -58,6 +71,9 @@ class WorkspaceDB extends Dexie {
       files: 'id',
     })
     this.version(2).stores({ reportTemplates: 'id' })
+    // A signed-in workspace was one record holding every row (about 26 MB for BP02), rewritten after
+    // every change. Rows are now stored individually and only changed rows are written.
+    this.version(3).stores({ rows: '[scope+collection+id], scope', meta: 'scope' })
   }
 }
 export const db = new WorkspaceDB()

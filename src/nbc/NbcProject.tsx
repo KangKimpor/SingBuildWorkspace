@@ -6,7 +6,8 @@ import type { ProjectSummary } from '@/data'
 import { useWorkspace } from '@/data'
 import { BRAND_ICON, Tile } from '@/components/WorkspaceUI'
 import { supabase } from '@/lib/supabase'
-import { applyDeletedRow, applyRealtimeRow, pendingCollectionIds, refreshCollections } from '@/data/sync'
+import { receiveChangeNotice, receiveDeleteNotice, refreshCollections, useAccount } from '@/data/sync'
+import type { ChangeNotice } from '@/data/sync'
 import { calculate } from './progress'
 import { issuesEnabled } from './features'
 import Overview from './overview/Overview'
@@ -49,40 +50,35 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   // Only Project Progress shows start-of-week values; other views skip this full roll-up (autosaves change `baseline`).
   const usesBefore = view === 'activities' || view === 'issues'
   const before = useMemo(() => { if (!usesBefore) return undefined; try { return calculate(activities, baseline) } catch { return undefined } }, [usesBefore, activities, baseline])
+  // A private topic is authorised by the JWT Realtime holds, so wait until sync has handed it over.
+  const realtimeScope = useAccount((s) => s.realtimeScope)
   useEffect(() => {
-    if (!supabase || scope === 'guest') return
-    const client = supabase, channel = client.channel(`nbc:${scope}:${project.id}`)
-    const fallbacks = new Map<string, ReturnType<typeof setTimeout>>()
-    const schedule = (collection: 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries') => {
-      clearTimeout(fallbacks.get(collection))
-      fallbacks.set(
-        collection,
-        setTimeout(() => {
-          fallbacks.delete(collection)
-          if (pendingCollectionIds(collection).size > 0) return
-          void refreshCollections([collection], { projectId: project.id })
-        }, 1200),
-      )
+    if (!supabase || scope === 'guest' || realtimeScope !== scope) return
+    // Private company topic: the server broadcasts {collection, rows:[{id, updated_at}]} per write
+    // statement and the client fetches only rows it does not already hold (D-37).
+    const client = supabase, channel = client.channel(`kw-nbc:${project.id}`, { config: { private: true } })
+    const collectionOf = (notice: ChangeNotice | undefined) => {
+      const collection = notice?.collection
+      return collection === 'nbc_activities' || collection === 'nbc_submissions' || collection === 'nbc_summaries' || collection === 'projects' ? collection : undefined
     }
-    for (const table of ['kw_nbc_activities', 'kw_nbc_submissions', 'kw_nbc_summaries'] as const) {
-      const collection = table.slice(3) as 'nbc_activities' | 'nbc_submissions' | 'nbc_summaries'
-      channel.on('postgres_changes', { event: '*', schema: 'public', table, filter: `project_id=eq.${project.id}` }, (payload) => {
-        const change = payload as { eventType?: string; new?: { id?: string; data?: Record<string, unknown>; updated_at?: string }; old?: { id?: string } }
-        if (change.eventType === 'DELETE') { if (change.old?.id) applyDeletedRow(collection, change.old.id); else schedule(collection); return }
-        // Rows applied in place avoid re-reading the BOQ for another handler's edit.
-        if (!change.new?.data || !change.new.updated_at) { schedule(collection); return }
-        applyRealtimeRow(collection, change.new)
-      })
-    }
-    let wasSubscribed = false
+    channel.on('broadcast', { event: 'UPSERT' }, (message) => {
+      const notice = (message as { payload?: ChangeNotice }).payload, collection = collectionOf(notice)
+      if (collection) receiveChangeNotice(collection, notice!, project.id)
+    })
+    channel.on('broadcast', { event: 'DELETE' }, (message) => {
+      const notice = (message as { payload?: ChangeNotice }).payload, collection = collectionOf(notice)
+      if (collection) receiveDeleteNotice(collection, notice!)
+    })
+    let wasSubscribed = false, missed = false
     channel.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
-        if (wasSubscribed) void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries'], { projectId: project.id })
-        wasSubscribed = true
-      }
+        // Broadcasts sent while disconnected (or before a failed first join) are not replayed; a delta pull catches up.
+        if (wasSubscribed || missed) void refreshCollections(['nbc_activities', 'nbc_submissions', 'nbc_summaries'], { projectId: project.id })
+        wasSubscribed = true; missed = false
+      } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') missed = true
     })
-    return () => { for (const timer of fallbacks.values()) clearTimeout(timer); void client.removeChannel(channel) }
-  }, [scope, project.id])
+    return () => { void client.removeChannel(channel) }
+  }, [scope, realtimeScope, project.id])
 
   if (aliases[view]) return <Navigate to={`/projects-progress/${project.id}/${aliases[view]}${location.search}`} replace/>
   if (!issuesEnabled && view === 'issues') return <Navigate to={`/projects-progress/${project.id}/activities${location.search}`} replace/>

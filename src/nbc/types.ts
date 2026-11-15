@@ -25,6 +25,13 @@ export interface NbcSubmission {
   /** The last applied version stays live while a confirmed update is edited. */
   appliedEntries?: SubmissionEntry[]
   undoUntil?: string | null
+  /**
+   * Set by kw_private.nbc_compact_frozen_submissions() on confirmed weeks older than last week: `entries`
+   * then holds only activities whose progress or remark changed, and `needsReview` keeps the review
+   * state computed while the full coverage still existed (D-37).
+   */
+  compacted?: boolean
+  needsReview?: boolean
   updatedAt: string
 }
 export interface NbcWeekSummary {

@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { fixtureActivities } from './test-fixture'
-import { addDays, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, transitionSubmission, weekDeadline, weekStart } from './submissions'
+import { addDays, assertEditableWeek, canUpdate, sameDraftIntent, submissionId, submissionStatus, transitionSubmission, weekDeadline, weekStart } from './submissions'
 import type { SubmissionState } from './submissions'
 import type { Handler, NbcSubmission } from './types'
 
@@ -120,4 +120,14 @@ test('unconfirmed current drafts are re-chained and the late flag flips at Satur
   expect(onTime.submissions[0]!.late).toBe(false)
   const late = transitionSubmission(initial(), initial().submissions[0]!.id, 'confirm', 'actor', new Date('2026-10-30T17:00:00Z'))
   expect(late.submissions[0]!.late).toBe(true)
+})
+
+test('a compacted frozen week keeps the review state stored when it was compacted', () => {
+  const activities = fixtureActivities()
+  // Only the changed entry survives compaction, so coverage can no longer be recomputed (D-37).
+  const confirmed: NbcSubmission = { ...draft('Tola'), status: 'confirmed', confirmedAt: now.toISOString(), confirmedBy: 'actor', entries: [], compacted: true, needsReview: false }
+  expect(submissionStatus({ ...confirmed, compacted: false }, week, activities, +now)).toBe('Needs review')
+  expect(submissionStatus(confirmed, week, activities, +now)).toBe('Updated')
+  expect(submissionStatus({ ...confirmed, late: true }, week, activities, +now)).toBe('Updated late')
+  expect(submissionStatus({ ...confirmed, needsReview: true }, week, activities, +now)).toBe('Needs review')
 })
