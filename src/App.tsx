@@ -4,6 +4,7 @@ import { useWorkspace } from '@/data'
 import { workspaceStart } from '@/shell/landing'
 import { usePhone } from '@/shell/usePhone'
 import { AuthGate } from '@/components/AuthGate'
+import { ChunkBoundary } from '@/components/ChunkBoundary'
 import { NotFound } from '@/components/NotFound'
 const AppShell = lazy(() => import('@/shell/AppShell').then(module => ({ default: module.AppShell })))
 const SearchPage = lazy(()=>import('@/shell/WorkspaceOverlays').then(module=>({default:module.SearchPage})))
@@ -42,7 +43,7 @@ function WorkspaceApp() {
           <Route path="projects-progress/:id" element={<Projects progressSection />} />
           <Route path="projects-progress/:id/:view" element={<Projects progressSection />} />
           <Route path="tasks" element={<Tasks />} />
-          <Route path="p/:id" element={<PageEditor />} />
+          <Route path="p/:id" element={<ChunkBoundary><Suspense fallback={<div className="page quiet-empty" role="status">Opening page…</div>}><PageEditor /></Suspense></ChunkBoundary>} />
           <Route path="calendar/*" element={<Navigate to="/" replace />} />
           <Route path="settings" element={<Settings />} />
           <Route path="settings/:section" element={<Settings />} />

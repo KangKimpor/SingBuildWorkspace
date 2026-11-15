@@ -9,7 +9,8 @@ const cloud = vi.hoisted(() => {
   const state = { scope: 'account-a', gate: null as Promise<void> | null, handlers: [] as { type: string; filter: Record<string, string>; fn: (payload?: unknown) => void }[], records, session,
     switch(id: string | null) { state.scope = id || ''; authChange('SIGNED_IN', id ? session(id) : null) },
     row(collection: string, id: string, data: Record<string, unknown>, owner?: string): Row { const row = { id, data: { ...data, id }, updated_at: new Date(sequence += 1000).toISOString() }; records.set(`${owner ?? state.scope}:${collection}:${id}`, row); return row },
-    emit(table: string, eventType: string, row: Row) { for (const handler of state.handlers) if (handler.type === 'postgres_changes' && handler.filter.table === table) handler.fn({ eventType, new: row, old: {} }) },
+    // The server broadcasts only ids and versions (kw_private.broadcast_changes); the client fetches the row.
+    emit(table: string, _eventType: string, row: Row) { for (const handler of state.handlers) if (handler.type === 'broadcast' && handler.filter.event === 'UPSERT') handler.fn({ payload: { collection: table.slice(3), rows: [{ id: row.id, updated_at: row.updated_at }] } }) },
   }
   const client = {
     auth: { onAuthStateChange: vi.fn((fn) => { authChange = fn }), getSession: vi.fn(async () => ({ data: { session: session(state.scope) }, error: null })) },
@@ -75,7 +76,9 @@ test('cloud writes need no local database, retain in-flight edits, refresh live,
   await waitFor(() => expect(cloud.state.records.get('account-a:pages:legacy-page')?.data.title).toBe('Legacy recovery'))
   expect(cloud.client.channel).toHaveBeenCalledWith('kw-workspace:account-a', { config: { private: true } })
   const registrations = cloud.client.channel.mock.results[0]!.value.on.mock.calls as [string, { filter?: string; event?: string }][]
-  expect(registrations.filter(([type]) => type === 'postgres_changes').every(([, filter]) => ((filter as {table?:string}).table==='kw_projects' ? !filter.filter : filter.filter === 'user_id=eq.account-a') && filter.event !== 'DELETE')).toBe(true)
+  // Full rows no longer stream through postgres_changes; id notices and deletes arrive as broadcasts.
+  expect(registrations.some(([type]) => type === 'postgres_changes')).toBe(false)
+  expect(registrations.some(([type, filter]) => type === 'broadcast' && filter.event === 'UPSERT')).toBe(true)
   expect(registrations.some(([type, filter]) => type === 'broadcast' && filter.event === 'DELETE')).toBe(true)
 
   let release!: () => void

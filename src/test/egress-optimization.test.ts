@@ -215,3 +215,42 @@ test('an edit writes only the rows it changed, even when other rows are rebuilt 
     .map(([, args]) => `${args.collection}:${args.record_id}`)
   expect(writes).toEqual(['nbc_activities:a-2'])
 })
+
+test('a change broadcast fetches only rows newer than the rendered version, in one request and one store update', async () => {
+  const { useWorkspace } = await import('@/data')
+  const { applyRemotePatch, receiveChangeNotice, refreshCollections, NOTICE_DELAY_MS } = await import('@/data/sync')
+  const held = cloud.state.row('pages', 'page-held', { title: 'Held', blocks: [] })
+  cloud.state.row('pages', 'page-stale', { title: 'Old', blocks: [] })
+  applyRemotePatch({ pages: [] })
+  // Seed the rendered versions through a full read, as a real client would hold them.
+  await refreshCollections(['pages'], { full: true })
+  expect(useWorkspace.getState().pages.map((p) => p.id).sort()).toEqual(['page-held', 'page-stale'])
+  const newer = cloud.state.row('pages', 'page-stale', { title: 'Edited elsewhere', blocks: [] })
+  const added = cloud.state.row('pages', 'page-new', { title: 'Created elsewhere', blocks: [] })
+  cloud.state.queries.length = 0
+  let updates = 0
+  const unsubscribe = useWorkspace.subscribe((state, previous) => { if (state.pages !== previous.pages) updates++ })
+  // Two statements in quick succession, one of them echoing a version this client already holds.
+  receiveChangeNotice('pages', { collection: 'pages', rows: [{ id: held.id, updated_at: held.updated_at }, { id: newer.id, updated_at: newer.updated_at }] })
+  receiveChangeNotice('pages', { collection: 'pages', rows: [{ id: added.id, updated_at: added.updated_at }] })
+  await new Promise((resolve) => setTimeout(resolve, NOTICE_DELAY_MS + 50))
+  unsubscribe()
+  const fetches = cloud.state.queries.filter((q) => q.table === 'kw_pages')
+  expect(fetches).toHaveLength(1)
+  expect(fetches[0]!.in?.sort()).toEqual(['page-new', 'page-stale'])
+  expect(updates).toBe(1)
+  const titles = Object.fromEntries(useWorkspace.getState().pages.map((p) => [p.id, p.title]))
+  expect(titles).toMatchObject({ 'page-held': 'Held', 'page-stale': 'Edited elsewhere', 'page-new': 'Created elsewhere' })
+})
+
+test('an acknowledged own write is never downloaded again when its broadcast arrives', async () => {
+  const { useWorkspace } = await import('@/data')
+  const { receiveChangeNotice, flushPending, pendingCollectionIds, NOTICE_DELAY_MS } = await import('@/data/sync')
+  const id = useWorkspace.getState().addPage('Typed here')
+  await flushPending(() => pendingCollectionIds('pages').size > 0)
+  const saved = useWorkspace.getState().pages.find((p) => p.id === id)!
+  cloud.state.queries.length = 0
+  receiveChangeNotice('pages', { collection: 'pages', rows: [{ id, updated_at: saved.updatedAt! }] })
+  await new Promise((resolve) => setTimeout(resolve, NOTICE_DELAY_MS + 50))
+  expect(cloud.state.queries.filter((q) => q.table === 'kw_pages')).toHaveLength(0)
+})

@@ -32,7 +32,8 @@ export function registerUpdates() {
       addEventListener('focus', check)
       addEventListener('online', check)
       document.addEventListener('visibilitychange', check)
-      setInterval(check, 60_000)
+      // Focus, visibility and reconnects already check; the timer only covers a tab left open all day.
+      setInterval(check, 30 * 60_000)
       check()
     },
     onNeedReload() {},

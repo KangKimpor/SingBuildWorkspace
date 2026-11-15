@@ -79,7 +79,9 @@ function activityIndex(activities: NbcActivity[]) {
   return index
 }
 export function submissionStatus(s: NbcSubmission | undefined, week: string, activities: NbcActivity[], now = Date.now()) {
-  if (s?.confirmedAt) {
+  if (s?.confirmedAt && s.compacted) {
+    if (s.needsReview) return 'Needs review'
+  } else if (s?.confirmedAt) {
     const { ids: byId, assigned: byHandler } = activityIndex(activities)
     const assigned = byHandler.get(s.handler) ?? new Set<string>()
     const recorded = new Set(appliedEntries(s).filter((e) => byId.has(e.activityId)).map((e) => e.activityId))

@@ -67,6 +67,10 @@ vi.mock('@/data/persistence', async () => ({
       },
       put: async () => {},
     },
+    // No per-row snapshot yet: the account still has the older whole-workspace record above.
+    meta: { get: async () => undefined, put: async () => {} },
+    rows: { where: () => ({ equals: () => ({ toArray: async () => [], delete: async () => 0 }) }), bulkPut: async () => {}, bulkDelete: async () => {} },
+    transaction: async (...args: unknown[]) => (args[args.length - 1] as () => Promise<void>)(),
     outbox: { where: () => ({ equals: () => ({ toArray: async () => [] }) }), delete: async () => {} },
     versions: { get: async () => null, put: async () => {}, delete: async () => {} },
   },
