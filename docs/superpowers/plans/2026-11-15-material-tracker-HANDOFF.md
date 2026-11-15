@@ -62,9 +62,11 @@ What the audit changed, and what it means here:
   (`kw_private.broadcast_changes()`); do not add tables to `supabase_realtime`.
 - **IndexedDB.** `main` bumped the `kimpor-workspace` Dexie database to version 3 (per-row snapshot).
   The tracker uses its own database (`DB_NAME` in `src/mat/store.ts`), so there is no version clash.
-- **Service worker.** The precache now skips the page editor and emoji chunks; the `public/mat/*.webp`
-  thumbnails were never precached (`globPatterns` has no `webp`) and still are not.
-- **Merging.** Expect conflicts only in `graphify-out/` (rebuild with `graphify update .`) and
-  possibly `src/App.tsx` if `main` touches its routes. `main`'s client must ship before its
+- **Service worker.** Unchanged precache (an editor-chunk exclusion was tried and reverted, D-37); the
+  update timer is now 30 minutes. The `public/mat/*.webp` thumbnails are not precached (`globPatterns`
+  has no `webp`). `main` wraps the `/p/:id` route in `ChunkBoundary` (`src/components/ChunkBoundary.tsx`);
+  the lazy `/admin` route can use it the same way.
+- **Merging.** Expect conflicts only in `graphify-out/` (rebuild with `graphify update .`) and in
+  `src/App.tsx`, where `main` changed the `p/:id` route line (keep both). `main`'s client must ship before its
   post-deploy migration `20261115080000` runs; the tracker does not depend on it.
 
