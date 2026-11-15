@@ -67,6 +67,6 @@ What the audit changed, and what it means here:
   has no `webp`). `main` wraps the `/p/:id` route in `ChunkBoundary` (`src/components/ChunkBoundary.tsx`);
   the lazy `/admin` route can use it the same way.
 - **Merging.** Expect conflicts only in `graphify-out/` (rebuild with `graphify update .`) and in
-  `src/App.tsx`, where `main` changed the `p/:id` route line (keep both). `main`'s client must ship before its
-  post-deploy migration `20261115080000` runs; the tracker does not depend on it.
+  `src/App.tsx`, where `main` changed the `p/:id` route line (keep both). `main`'s post-deploy migration `20261115082848` has run (15 Nov);
+  the tracker does not depend on it.
 

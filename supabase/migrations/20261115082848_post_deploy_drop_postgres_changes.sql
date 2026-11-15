@@ -1,4 +1,4 @@
--- Forward-only. APPLY ONLY AFTER the D-37 client is live (D-37).
+-- Forward-only. Applied 15 November 2026 after the D-37 client (b79b4f6) was live in production (D-37).
 --
 -- Clients before D-37 subscribe to postgres_changes and compute the Needs review state from full
 -- submission coverage. The D-37 client listens to the id broadcasts from 20261115073911 and honours

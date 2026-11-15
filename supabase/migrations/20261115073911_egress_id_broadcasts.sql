@@ -6,7 +6,7 @@
 --      kw-nbc:<project id>     NBC activities, submissions, summaries and the shared project row
 --    Clients fetch only ids they do not already hold, so a writer never downloads its own write and a
 --    16,099-row migration costs one message instead of one full row per row per client.
---    The postgres_changes publication is dropped by 20261115080000 after the client ships.
+--    The postgres_changes publication is dropped by 20261115082848 after the client ships.
 -- 2. kw_private.nbc_compact_frozen_submissions() drops no-op entries (progress = previous, remark
 --    unchanged) from confirmed submissions older than last week. Those weeks are outside the editable
 --    window and are never re-chained, so the stored values stay identical. The Needs review state is
