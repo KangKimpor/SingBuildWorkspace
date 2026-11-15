@@ -19,6 +19,8 @@ export interface MatData {
   images?: { image?: string[]; sample?: string[] }  // file names under /mat/
   notes?: Partial<Record<CellKey | ColKey, string>> // e.g. the '=296+8' expression
   note?: string[]                              // kind 'note' rows: the row's cells, left to right
+  end?: number                                 // section rows: pos of the last row the section covers
+  level?: number                               // section rows: 0 for a top-level section, +1 per enclosing section
 }
 export interface MatItem {
   id: string

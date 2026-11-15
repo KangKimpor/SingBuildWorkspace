@@ -211,6 +211,8 @@ class ImporterTest(unittest.TestCase):
             self.assertNotIn('delete', text.lower())
             got = rows(text)
             self.assertEqual(got['bp03-id-0009']['kind'], 'section')
+            self.assertEqual((got['bp03-id-0009']['data']['end'], got['bp03-id-0009']['data']['level']), (12, 0))  # SUBTOTAL(1,AF10:AF12)
+            self.assertNotIn('end', got['bp03-id-0010']['data'])
             self.assertNotIn('bp03-id-0008', got)  # the sheet total row
             standard = got['bp03-id-0010']['data']
             self.assertEqual(standard['cols']['code'], 'WF-01')
@@ -233,10 +235,55 @@ class ImporterTest(unittest.TestCase):
                              ({'f': 'notYetPo'}, {'f': 'placedPoOverTotal'}, {'f': 'waiting'}, {'f': 'arrived'}))
             self.assertNotIn('production', mep)
             self.assertEqual(got['bp04-mep-0009']['kind'], 'section')
+            self.assertEqual((got['bp04-mep-0009']['data']['end'], got['bp04-mep-0009']['data']['level']), (10, 0))  # no SUBTOTAL: last data row
             self.assertEqual(got['bp03-mep-0010']['data']['cols']['no'], 'ACMV SYSTEM')  # other formulas keep their cached value
             note = got['bp03-changelog-0005']
             self.assertEqual((note['kind'], note['sheet'], note['data']['note']), ('note', 'changelog', ['104', 'WF-01', 'O', '', 'Approved']))
             self.assertEqual(got['bp04-review-0001']['data']['note'], ['BP04 notes'])
+
+    def test_nested_sections_carry_their_extent(self):
+        """Row 9 becomes a parent covering rows 10 to 14; row 13 is a sub-section over row 14."""
+        def change(wb, cached):
+            ws, c = wb['ID Material'], cached['ID Material']
+            ws['D13'] = 'Sub section'
+            typed = dict(AF=0, AG=1, AH=1, AI=0, AJ=0, AK=0.5)
+            ws['D14'], ws['Y14'], ws['Z14'] = 'WF-04', 10, 10
+            for col, value in typed.items():
+                ws[f'{col}14'] = value
+            parent = dict(AF=(0.5 + 0.75 + 0) / 3, AG=(0.5 + 0.25 + 1) / 3, AH=(0.3 + 0 + 1) / 3,
+                          AI=(max(0, 0.3 - 0 - 0.2) + 0 + 0) / 3, AJ=0, AK=(0.2 + 0 + 0.5) / 3)
+            for col in typed:
+                ws[f'{col}13'] = SUBTOTAL.format(c=col, a=14, b=14)
+                c[f'{col}13'] = typed[col]
+                for r in (8, 9):
+                    ws[f'{col}{r}'] = SUBTOTAL.format(c=col, a=r + 1, b=14)
+                    c[f'{col}{r}'] = parent[col]
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            got = rows(sql.read_text(encoding='utf-8'))
+            self.assertEqual((got['bp03-id-0009']['data']['end'], got['bp03-id-0009']['data']['level']), (14, 0))
+            self.assertEqual((got['bp03-id-0013']['data']['end'], got['bp03-id-0013']['data']['level']), (14, 1))
+            self.assertEqual(got['bp03-id-0014']['kind'], 'item')
+
+    def test_section_average_follows_its_extent(self):
+        """A SUBTOTAL that disagrees with the average of the rows its section covers is a mismatch."""
+        def change(wb, cached):
+            cached['ID Material']['AG9'] = 0.5  # the average of AG10:AG12 is 0.375
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 1, done.stdout + done.stderr)
+            self.assertIn('AG9', done.stdout)
+
+    def test_text_on_site_counts_as_zero_in_remaining(self):
+        """=Y12-N(AB12) with text in On site: Excel gives Total, and so must totalMinusOnsite."""
+        def change(wb, cached):
+            wb['ID Material']['AB12'] = 'Pending'
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            data = rows(sql.read_text(encoding='utf-8'))['bp03-id-0012']['data']
+            self.assertEqual((data['cells']['onsite'], data['cells']['remaining']), ({'v': 'Pending'}, {'f': 'totalMinusOnsite'}))
 
     def test_unknown_formula_stops_the_run(self):
         def change(wb, cached):

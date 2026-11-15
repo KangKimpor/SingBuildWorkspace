@@ -16,8 +16,12 @@ column letters replaced by the role of the referenced column), or { "v": <value>
 formula cell is stored as its cached value.
 
 Self-check: every formula-backed quantity and percentage cell is recalculated with a copy of the app's rules (src/mat/formulas.ts)
-and compared with Excel's cached value (an Excel error counts as blank); every SUBTOTAL on a section row and on row 8 is compared
-with the average of the material cells in its range. The run exits 1, and writes nothing, on any mismatch or unknown formula.
+and compared with Excel's cached value (an Excel error counts as blank); every SUBTOTAL on a section row is compared with the
+average of the materials the section covers (data.end, as src/mat/formulas.ts sectionItems reads it), and row 8 with the average
+of the materials in its range. The run exits 1, and writes nothing, on any mismatch or unknown formula.
+
+Section rows carry `end` (the last row they cover: the SUBTOTAL range end, else the row before the next section) and `level`
+(0 at the top, +1 per enclosing section), because sections nest.
 
 The seed is one transaction of upserts that set package, sheet, pos, kind and data only, and bump updated_at only when one of them
 changed, so a corrected workbook can be imported again without touching what people typed in the app. It never deletes.
@@ -126,6 +130,11 @@ def difference(left, right):
     return lambda get: None if is_text(get(left)) or is_text(get(right)) else n(get(left)) - n(get(right))
 
 
+def total_minus_onsite(get):
+    """Excel's =Y-N(AB): blank only when Total is text; text in On site counts as 0."""
+    return None if is_text(get('total')) else n(get('total')) - n(get('onsite'))
+
+
 def placed_po_over_total(get):
     total, po = n(get('total')), n(get('po'))
     return None if total == 0 else 0 if po == 0 else min(1, po / total)
@@ -156,7 +165,7 @@ FORMULAS = {
     'notYetPo': not_yet_po,
     'waiting': waiting,
     'arrived': arrived,
-    'totalMinusOnsite': difference('total', 'onsite'),
+    'totalMinusOnsite': total_minus_onsite,
     'shdMinusOnsite': difference('shd', 'onsite'),
     'totalMinusShd': difference('total', 'shd'),
 }
@@ -185,6 +194,15 @@ def effective(cells):
         return value
 
     return {cell: get(cell) for cell in CELLS}
+
+
+def section_items(rows, section):
+    """The material rows a section covers: same sheet, pos in (section pos, data.end], else up to the next section."""
+    end = section['data'].get('end')
+    if end is None:
+        later = [r['pos'] for r in rows if r['sheet'] == section['sheet'] and r['kind'] == 'section' and r['pos'] > section['pos']]
+        end = min(later) - 1 if later else math.inf
+    return [r for r in rows if r['kind'] == 'item' and r['sheet'] == section['sheet'] and section['pos'] < r['pos'] <= end]
 
 
 def average(cells_list, cell):
@@ -378,7 +396,8 @@ class Sheet:
         self.defaulted = 0     # empty percentage cells given the standard keys
         self.dropped = []      # stray quantity / percentage values on section rows
         self.warnings = []
-        self.nested = 0        # sections whose SUBTOTAL range spans further section rows
+        self.nested = 0        # sections that cover further sections
+        self.nested_in = 0     # sections inside another section (level > 0)
         self.pictures = dict(written=0, reused=0, skipped=[], ignored=0, moved=[])
         self.item_rows = {}    # source row -> row dict, items only
         self.role_col = {}
@@ -422,7 +441,7 @@ def read_material(pkg, wf, wv, title, legend_fallback):
     def is_subtotal(value):
         return isinstance(value, str) and 'SUBTOTAL(' in value.upper()
 
-    subtotals = []  # (coord, cell key, first row, last row, cached)
+    subtotals = []  # (coord, cell key, first row, last row, cached, section row or None for row 8)
     checks = []     # (coord, cell key, row data or None for a constant, cached, constant's value)
     for r in range(FIRST_ROW, max_row + 1):
         raw = {c: grid[(r, c)].value for c in range(1, max_col + 1)}
@@ -455,7 +474,7 @@ def read_material(pkg, wf, wv, title, legend_fallback):
                 if is_subtotal(value):
                     span = subtotal_range(value, get_column_letter(c))
                     if span:
-                        subtotals.append((coord, key, *span, cached))
+                        subtotals.append((coord, key, *span, cached, r))
                     else:
                         sheet.unknown.append((coord, value))
                 elif clean(value) is not None:
@@ -491,7 +510,7 @@ def read_material(pkg, wf, wv, title, legend_fallback):
             data['mark'] = mark
         if notes:
             data['notes'] = notes
-        item = dict(id=f'{pkg}-{sheet.key}-{r:04d}', pos=r, kind=kind, data=data)
+        item = dict(id=f'{pkg}-{sheet.key}-{r:04d}', sheet=sheet.key, pos=r, kind=kind, data=data)
         sheet.rows.append(item)
         if kind == 'item':
             sheet.item_rows[r] = item
@@ -504,7 +523,7 @@ def read_material(pkg, wf, wv, title, legend_fallback):
             coord = f'{get_column_letter(c)}{TOTAL_ROW}'
             span = subtotal_range(value, get_column_letter(c))
             if span:
-                subtotals.append((coord, key, *span, clean(*values[(TOTAL_ROW, c)])))
+                subtotals.append((coord, key, *span, clean(*values[(TOTAL_ROW, c)]), None))
             else:
                 sheet.unknown.append((coord, value))
 
@@ -515,16 +534,38 @@ def read_material(pkg, wf, wv, title, legend_fallback):
         if not same(computed, cached):
             label = 'constant' if data is None else data['cells'][key]['f']
             sheet.mismatches.append(f'{sheet.where(coord)}: {label} gives {show(computed)}, Excel has {show(cached)}')
-    section_rows = [row['pos'] for row in sheet.rows if row['kind'] == 'section']
-    for coord, key, first, last, cached in subtotals:
-        items = [row['data']['cells'] for r, row in sheet.item_rows.items() if first <= r <= last]
+    # Section extents: `end` from the SUBTOTAL ranges (clamped to the last data row), else the row before the next section;
+    # `level` = how many other sections enclose this one.
+    sections = [row for row in sheet.rows if row['kind'] == 'section']
+    last_row = sheet.rows[-1]['pos'] if sheet.rows else FIRST_ROW
+    for i, section in enumerate(sections):
+        ends = {last for _, _, _, last, _, at in subtotals if at == section['pos']}
+        if len(ends) > 1:
+            sheet.unknown.append((f"row {section['pos']}", f'SUBTOTAL ranges end on different rows {sorted(ends)}'))
+        if ends:
+            end = min(max(ends), last_row)
+        else:
+            end = sections[i + 1]['pos'] - 1 if i + 1 < len(sections) else last_row
+        section['data']['end'] = end
+    for section in sections:
+        level = sum(1 for other in sections if other is not section and other['pos'] < section['pos'] <= other['data']['end'])
+        section['data']['level'] = level
+        if level:
+            sheet.nested_in += 1
+        if any(section['pos'] < other['pos'] <= section['data']['end'] for other in sections):
+            sheet.nested += 1
+    # Section SUBTOTALs: the average of the material rows the section covers, as the app computes it (sectionItems).
+    # Row 8, the sheet total: the average of the material rows in its own range.
+    by_pos = {section['pos']: section for section in sections}
+    for coord, key, first, last, cached, at in subtotals:
+        if at is None:
+            items = [row['data']['cells'] for r, row in sheet.item_rows.items() if first <= r <= last]
+        else:
+            items = [row['data']['cells'] for row in section_items(sheet.rows, by_pos[at])]
         computed = average(items, key)
         sheet.checked += 1
         if not same(computed, cached):
             sheet.mismatches.append(f'{sheet.where(coord)}: average of {len(items)} materials gives {show(computed)}, Excel has {show(cached)}')
-    for coord, key, first, last, _ in subtotals:
-        if key == 'placed' and int(re.sub(r'\D', '', coord)) != TOTAL_ROW and any(first <= s <= last for s in section_rows):
-            sheet.nested += 1
     return sheet
 
 
@@ -538,7 +579,7 @@ def read_notes(pkg, wv, title):
         if not cells:
             continue
         r = row[0].row
-        sheet.rows.append(dict(id=f'{pkg}-{sheet.key}-{r:04d}', pos=r, kind='note', data=dict(cols={}, cells={}, note=cells)))
+        sheet.rows.append(dict(id=f'{pkg}-{sheet.key}-{r:04d}', sheet=sheet.key, pos=r, kind='note', data=dict(cols={}, cells={}, note=cells)))
     return sheet
 
 
@@ -779,7 +820,7 @@ def main(argv=None):
         line = (f"{sheet.pkg} {sheet.title}: rows {len(sheet.rows)}, sections {sheet.count('section')}, items {sheet.count('item')}, "
                 f"notes {sheet.count('note')}, formula cells checked {sheet.checked}, mismatches {len(sheet.mismatches)}")
         if sheet.title in MATERIAL_SHEETS:
-            line += (f", percentage cells defaulted {sheet.defaulted}, sections spanning sub-sections {sheet.nested}"
+            line += (f", percentage cells defaulted {sheet.defaulted}, sections covering sub-sections {sheet.nested}, nested sections {sheet.nested_in}"
                      f", pictures written {pictures['written']} (already there {pictures['reused']}), skipped {len(pictures['skipped'])}"
                      f", outside the picture columns {pictures['ignored']}")
         print(line)

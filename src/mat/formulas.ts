@@ -37,7 +37,8 @@ const FORMULAS: Record<FormulaKey, (get: Get) => number | null> = {
     const total = n(get('total'))
     return total === 0 ? null : Math.min(1, n(get('onsite')) / total)
   },
-  totalMinusOnsite: difference('total', 'onsite'),
+  // Excel's =Y-N(AB): blank only when Total is text; text in On site counts as 0.
+  totalMinusOnsite: get => (isText(get('total')) ? null : n(get('total')) - n(get('onsite'))),
   shdMinusOnsite: difference('shd', 'onsite'),
   totalMinusShd: difference('total', 'shd'),
 }
@@ -82,6 +83,19 @@ export function parseInput(cell: CellKey, text: string): number | string | null 
   if (!NUMBER.test(digits)) return trimmed
   const value = Number(digits.replace(/,/g, ''))
   return percent ? value / 100 : value
+}
+
+/**
+ * The material rows a section covers: items of the same package and sheet with pos in (section pos, section end].
+ * Without `data.end`, the section runs up to the row before the next section of that sheet (or to the end).
+ */
+export function sectionItems(items: MatItem[], section: MatItem): MatItem[] {
+  const sameSheet = items.filter(item => item.package === section.package && item.sheet === section.sheet)
+  const next = sameSheet
+    .filter(item => item.kind === 'section' && item.pos > section.pos)
+    .reduce((first, item) => Math.min(first, item.pos), Infinity)
+  const end = section.data.end ?? next - 1
+  return sameSheet.filter(item => item.kind === 'item' && item.pos > section.pos && item.pos <= end)
 }
 
 /** Mean of the numeric effective values, as Excel's SUBTOTAL(1, …); null when there are none. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { average, effective, formatCell, isOverride, n, parseInput } from './formulas'
+import { average, effective, formatCell, isOverride, n, parseInput, sectionItems } from './formulas'
 import type { CellKey, MatItem, Scalar, Source } from './types'
 
 const make = (cells: Partial<Record<CellKey, Source>>, edits: MatItem['edits'] = {}): MatItem => ({
@@ -130,9 +130,46 @@ describe.each([
     expect(remaining(null, 26)).toBe(-26)
     expect(remaining('', 26)).toBe(-26)
   })
-  it('is null when either operand is text', () => {
+  it('is null when the first operand is text', () => {
     expect(remaining('Excluded', 26)).toBeNull()
-    expect(remaining(826, 'TBC')).toBeNull()
+  })
+  if (key === 'totalMinusOnsite') {
+    it('counts text in on site as 0, as Excel N() does', () => {
+      expect(remaining(826, 'TBC')).toBe(826)
+    })
+  } else {
+    it('is null when the second operand is text', () => {
+      expect(remaining(826, 'TBC')).toBeNull()
+    })
+  }
+})
+
+describe('sectionItems', () => {
+  const row = (pos: number, kind: MatItem['kind'], data: Partial<MatItem['data']> = {}, sheet: MatItem['sheet'] = 'id'): MatItem => ({
+    ...make({}),
+    id: `bp03-${sheet}-${String(pos).padStart(4, '0')}`,
+    sheet,
+    pos,
+    kind,
+    data: { cols: {}, cells: {}, ...data },
+  })
+  const ids = (list: MatItem[]) => list.map(item => item.pos)
+
+  it('gives a parent section the items of its sub-sections', () => {
+    const parent = row(9, 'section', { end: 15, level: 0 })
+    const child = row(11, 'section', { end: 13, level: 1 })
+    const items = [parent, row(10, 'item'), child, row(12, 'item'), row(13, 'item'), row(14, 'section', { end: 15, level: 1 }),
+      row(15, 'item'), row(16, 'item'), row(12, 'item', {}, 'mep')]
+    expect(ids(sectionItems(items, parent))).toEqual([10, 12, 13, 15])
+    expect(ids(sectionItems(items, child))).toEqual([12, 13])
+  })
+
+  it('runs to the row before the next section when end is absent', () => {
+    const first = row(9, 'section')
+    const last = row(13, 'section')
+    const items = [first, row(10, 'item'), row(11, 'note'), row(12, 'item'), last, row(14, 'item'), row(20, 'item')]
+    expect(ids(sectionItems(items, first))).toEqual([10, 12])
+    expect(ids(sectionItems(items, last))).toEqual([14, 20])
   })
 })
 
