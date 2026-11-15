@@ -4,6 +4,7 @@ import { useWorkspace } from '@/data'
 import { workspaceStart } from '@/shell/landing'
 import { usePhone } from '@/shell/usePhone'
 import { AuthGate } from '@/components/AuthGate'
+import { NotFound } from '@/components/NotFound'
 const AppShell = lazy(() => import('@/shell/AppShell').then(module => ({ default: module.AppShell })))
 const SearchPage = lazy(()=>import('@/shell/WorkspaceOverlays').then(module=>({default:module.SearchPage})))
 
@@ -13,6 +14,7 @@ const Tasks = lazy(() => import('@/pages/Tasks'))
 const PageEditor = lazy(() => import('@/pages/PageEditor'))
 const Trash = lazy(() => import('@/pages/Trash'))
 const Settings = lazy(() => import('@/pages/Settings'))
+const MaterialTracker = lazy(() => import('@/mat/MaterialTracker'))
 
 function WorkspaceStart() {
   const { scope, projects } = useWorkspace(), phone = usePhone()
@@ -60,7 +62,8 @@ function WorkspaceApp() {
               </Suspense>
             }
           />
-          <Route path="*" element={<div className="page"><h1>Not found</h1><p>This page does not exist.</p></div>} />
+          <Route path="admin" element={<MaterialTracker />} />
+          <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
     </Suspense>

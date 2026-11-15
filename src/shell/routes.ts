@@ -66,6 +66,7 @@ export function useCrumb(pathname: string): Crumb & { meta: ScreenMeta } {
         blurb: 'Deleted pages are kept for 30 days. Trash arrives in Phase 1.',
       },
     }
+  if (head === 'admin') return { label: 'Material list', meta: { title: 'Material list' } }
   if (head === 'p') {
     const page = pages.find((p) => p.id === seg[1])
     const title = page?.title ?? 'New page'
