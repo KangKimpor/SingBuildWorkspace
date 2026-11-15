@@ -38,7 +38,7 @@
 
 | File | Responsibility |
 |---|---|
-| `supabase/migrations/20261115090000_material_tracker.sql` | tables, RLS, allow-list, week function, three RPCs |
+| `supabase/migrations/20261115021338_material_tracker.sql` | tables, RLS, allow-list, week function, three RPCs |
 | `src/mat/types.ts` | shared types and the column list |
 | `src/mat/formulas.ts` | formula keys, effective values, parsing typed input, section averages |
 | `src/mat/api.ts` | the four Supabase calls, nothing else |
@@ -55,7 +55,7 @@
 ### Task 1: Database migration
 
 **Files:**
-- Create: `supabase/migrations/20261115090000_material_tracker.sql`
+- Create: `supabase/migrations/20261115021338_material_tracker.sql`
 - Test: `src/test/material-tracker-migration.test.ts` (follow the style of `src/test/egress-optimization.test.ts`, which asserts on migration text)
 
 **Interfaces — Produces:**
@@ -290,20 +290,20 @@ Behaviour:
 
 **Files:**
 - Create: `src/mat/MatSummary.tsx`, `src/mat/MatNotes.tsx`
-- Modify: `src/mat/MaterialTracker.tsx` (replace the placeholders), `docs/DECISIONS.md` (add D-37)
+- Modify: `src/mat/MaterialTracker.tsx` (replace the placeholders), `docs/DECISIONS.md` (add D-38)
 - Test: `src/mat/MatSummary.test.tsx`
 
 **Interfaces — Consumes:** `MatState`, `average`, `formatCell`.
 
 - `MatSummary({ items })`: two blocks, ID Material and MEP Material. Each has one row for the sheet and one per section: Description, number of items with a numeric Placed Order value, then the six percentage averages. Same figures as the table's section rows.
 - `MatNotes({ items })`: a plain read-only table of the `note` rows of that package, first row of each block as its header.
-- D-37 in `docs/DECISIONS.md`, in the style of D-36: why own tables and RPCs instead of the workspace sync, the allow-list, Sunday weeks shared with D-31, source `data` kept apart from `edits`, pictures served by Vercel outside the login, and the usage estimate from the spec.
+- D-38 in `docs/DECISIONS.md`, in the style of D-36: why own tables and RPCs instead of the workspace sync, the allow-list, Sunday weeks shared with D-31, source `data` kept apart from `edits`, pictures served by Vercel outside the login, and the usage estimate from the spec.
 
 - [ ] **Step 1: Write the failing test**: three made-up items in two sections give the expected counts and averages; a section whose items are all text shows an empty cell.
 - [ ] **Step 2:** Run it. Expected: fails.
-- [ ] **Step 3: Implement** both components, wire the tabs, write D-37.
+- [ ] **Step 3: Implement** both components, wire the tabs, write D-38.
 - [ ] **Step 4:** Run `corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build`, then `graphify update .`. Expected: all pass.
-- [ ] **Step 5: Commit** `feat(mat): summary and notes tabs; record D-37`.
+- [ ] **Step 5: Commit** `feat(mat): summary and notes tabs; record D-38`.
 
 ---
 

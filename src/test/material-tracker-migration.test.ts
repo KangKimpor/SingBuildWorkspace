@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { expect, test } from 'vitest'
 
-const sql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261115090000_material_tracker.sql'), 'utf8')
+const sql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261115021338_material_tracker.sql'), 'utf8')
 
 test('creates both tracker tables with row level security', () => {
   expect(sql).toContain('create table public.kw_mat_items')

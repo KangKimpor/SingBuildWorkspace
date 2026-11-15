@@ -38,7 +38,7 @@ The tracker moves both lists into the app. Each team gets a "Last week" and a "T
 - Free Supabase plan. Database is 77 MB today. Follow the egress rules in `AGENTS.md` (name columns, compact RPC responses, no table downloads to check data).
 - Sign-in is `@singbuild.com` only (`kw_before_user_created`).
 - Source workbooks are private. They go in `.private/` (gitignored) and are never committed. Seed data is not committed either.
-- Node 24, `corepack pnpm`, React + Vite + react-router, existing `--pp-*` tokens and table patterns. Record the decision as D-37 in `docs/DECISIONS.md`.
+- Node 24, `corepack pnpm`, React + Vite + react-router, existing `--pp-*` tokens and table patterns. Record the decision as D-38 in `docs/DECISIONS.md`.
 
 ## What is in the workbooks
 
