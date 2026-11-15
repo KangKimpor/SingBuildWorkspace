@@ -20,8 +20,20 @@ test('uses the Sunday week key in Phnom Penh time', () => {
   expect(sql).toContain("(date_trunc('week',(clock_timestamp() at time zone 'Asia/Phnom_Penh')+interval '1 day')::date-1)")
 })
 
-test.each(['kw_mat_access', 'kw_mat_load', 'kw_mat_set_cell', 'kw_mat_set_remark'])('%s is security definer with an empty search_path', (name) => {
-  expect(sql).toMatch(new RegExp(`function public\\.${name}\\([^)]*\\)[^$]*?security definer[^$]*?set search_path=''`))
+test.each(['access', 'load', 'set_cell', 'set_remark'])('kw_mat_%s is an invoker wrapper over a private definer body', (name) => {
+  expect(sql).toMatch(new RegExp(`create function kw_private\\.mat_${name}\\([^)]*\\)[^$]*?security definer[^$]*?set search_path=''`))
+  expect(sql).toMatch(new RegExp(`create function public\\.kw_mat_${name}\\([^)]*\\)[^$]*?security invoker[^$]*?set search_path=''[^$]*\\$\\$\\s*select kw_private\\.mat_${name}\\(`))
+  expect(sql).not.toMatch(new RegExp(`create function public\\.kw_mat_${name}\\([^)]*\\)[^$]*?security definer`))
+})
+
+test('only the definer bodies can read the week key', () => {
+  expect(sql).toContain('revoke all on function kw_private.mat_week() from public, anon, authenticated')
+  expect(sql).not.toMatch(/grant [^;]*kw_private\.mat_week/)
+})
+
+test('remarks can be written only on item rows', () => {
+  const body = sql.match(/create function kw_private\.mat_set_remark\([\s\S]*?end \$\$;/)?.[0] ?? ''
+  expect(body).toMatch(/from public\.kw_mat_items where id = p_id and kind = 'item'\)[\s\S]*?'Item not found'/)
 })
 
 test('revokes direct writes on both tables', () => {

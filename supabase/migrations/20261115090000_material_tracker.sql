@@ -5,6 +5,9 @@
 -- below, which merge one cell or one remark at a time. Callers who are not on the
 -- list get 'Not found', so the RPCs do not reveal that the tracker exists.
 -- Adding a person later is one insert into kw_private.mat_admins.
+--
+-- As in 20261107140000_security_advisor_fixes.sql, the SECURITY DEFINER bodies
+-- live in kw_private and public exposes thin SECURITY INVOKER wrappers.
 
 -- Access list
 create table kw_private.mat_admins (email text primary key check (email = lower(email)));
@@ -14,20 +17,26 @@ insert into kw_private.mat_admins (email) values
 alter table kw_private.mat_admins enable row level security;
 revoke all on table kw_private.mat_admins from public, anon, authenticated;
 
-create function public.kw_mat_access() returns boolean
+create function kw_private.mat_access() returns boolean
   language sql stable security definer set search_path='' as $$
   select exists (select 1 from kw_private.mat_admins where email = lower(auth.jwt()->>'email'))
+$$;
+revoke all on function kw_private.mat_access() from public, anon;
+grant execute on function kw_private.mat_access() to authenticated;
+create function public.kw_mat_access() returns boolean
+  language sql stable security invoker set search_path='' as $$
+  select kw_private.mat_access()
 $$;
 revoke all on function public.kw_mat_access() from public, anon;
 grant execute on function public.kw_mat_access() to authenticated;
 
 -- Weeks run Sunday to Saturday in Phnom Penh. The server decides the week.
+-- Only the definer bodies below call this, so no client role may execute it.
 create function kw_private.mat_week() returns date
   language sql set search_path='' as $$
   select (date_trunc('week',(clock_timestamp() at time zone 'Asia/Phnom_Penh')+interval '1 day')::date-1)
 $$;
-revoke all on function kw_private.mat_week() from public, anon;
-grant execute on function kw_private.mat_week() to authenticated;
+revoke all on function kw_private.mat_week() from public, anon, authenticated;
 
 -- Data. `data` holds the imported source cells; `edits` holds what people typed,
 -- keyed by cell, so a corrected workbook can be re-imported without losing edits.
@@ -66,7 +75,7 @@ grant select on table public.kw_mat_items, public.kw_mat_remarks to authenticate
 -- One package: items changed since p_items_since (all when null) and the remarks
 -- of this week and last week changed since p_remarks_since (all when null).
 -- `now` is the value to send back as the next *_since.
-create function public.kw_mat_load(p_package text, p_items_since timestamptz default null, p_remarks_since timestamptz default null)
+create function kw_private.mat_load(p_package text, p_items_since timestamptz, p_remarks_since timestamptz)
   returns jsonb language plpgsql security definer set search_path='' as $$
 declare
   v_week date;
@@ -93,12 +102,18 @@ begin
       and (p_remarks_since is null or r.updated_at > p_remarks_since);
   return jsonb_build_object('week', v_week, 'now', now(), 'items', v_items, 'remarks', v_remarks);
 end $$;
+revoke all on function kw_private.mat_load(text, timestamptz, timestamptz) from public, anon;
+grant execute on function kw_private.mat_load(text, timestamptz, timestamptz) to authenticated;
+create function public.kw_mat_load(p_package text, p_items_since timestamptz default null, p_remarks_since timestamptz default null)
+  returns jsonb language sql security invoker set search_path='' as $$
+  select kw_private.mat_load(p_package, p_items_since, p_remarks_since)
+$$;
 revoke all on function public.kw_mat_load(text, timestamptz, timestamptz) from public, anon;
 grant execute on function public.kw_mat_load(text, timestamptz, timestamptz) to authenticated;
 
 -- Set or remove (JSON or SQL null) one key in `edits`. Merging a single key means
 -- two people editing different cells of the same row do not overwrite each other.
-create function public.kw_mat_set_cell(p_id text, p_cell text, p_value jsonb)
+create function kw_private.mat_set_cell(p_id text, p_cell text, p_value jsonb)
   returns jsonb language plpgsql security definer set search_path='' as $$
 declare
   v_at timestamptz;
@@ -121,12 +136,18 @@ begin
   if not found then raise exception 'Item not found' using errcode='P0002'; end if;
   return jsonb_build_object('updated_at', v_at);
 end $$;
+revoke all on function kw_private.mat_set_cell(text, text, jsonb) from public, anon;
+grant execute on function kw_private.mat_set_cell(text, text, jsonb) to authenticated;
+create function public.kw_mat_set_cell(p_id text, p_cell text, p_value jsonb)
+  returns jsonb language sql security invoker set search_path='' as $$
+  select kw_private.mat_set_cell(p_id, p_cell, p_value)
+$$;
 revoke all on function public.kw_mat_set_cell(text, text, jsonb) from public, anon;
 grant execute on function public.kw_mat_set_cell(text, text, jsonb) to authenticated;
 
 -- Upsert this week's remark for one team. An empty body is stored as '' (not
 -- deleted) so delta loads see the change.
-create function public.kw_mat_set_remark(p_id text, p_team text, p_body text)
+create function kw_private.mat_set_remark(p_id text, p_team text, p_body text)
   returns jsonb language plpgsql security definer set search_path='' as $$
 declare
   v_week date;
@@ -136,7 +157,9 @@ begin
   if not public.kw_mat_access() then raise exception 'Not found' using errcode='42501'; end if;
   if p_team is null or p_team not in ('pm','purchase') then raise exception 'Invalid team' using errcode='22023'; end if;
   if length(v_body) > 2000 then raise exception 'Remark is too long' using errcode='22023'; end if;
-  if not exists (select 1 from public.kw_mat_items where id = p_id) then raise exception 'Item not found' using errcode='P0002'; end if;
+  if not exists (select 1 from public.kw_mat_items where id = p_id and kind = 'item') then
+    raise exception 'Item not found' using errcode='P0002';
+  end if;
   v_week := kw_private.mat_week();
   insert into public.kw_mat_remarks as r (item_id, team, week_start, body, updated_at, updated_by)
     values (p_id, p_team, v_week, v_body, now(), auth.uid())
@@ -145,5 +168,11 @@ begin
     returning r.updated_at into v_at;
   return jsonb_build_object('week', v_week, 'updated_at', v_at);
 end $$;
+revoke all on function kw_private.mat_set_remark(text, text, text) from public, anon;
+grant execute on function kw_private.mat_set_remark(text, text, text) to authenticated;
+create function public.kw_mat_set_remark(p_id text, p_team text, p_body text)
+  returns jsonb language sql security invoker set search_path='' as $$
+  select kw_private.mat_set_remark(p_id, p_team, p_body)
+$$;
 revoke all on function public.kw_mat_set_remark(text, text, text) from public, anon;
 grant execute on function public.kw_mat_set_remark(text, text, text) to authenticated;
