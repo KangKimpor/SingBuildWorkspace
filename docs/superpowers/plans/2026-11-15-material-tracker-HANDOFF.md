@@ -18,6 +18,8 @@ Branch `feat/material-tracker`, merged to `main`. Read the spec (`../specs/2026-
 
 Afterwards, at the owner's request (16 November), the page lost the workbook's note tabs (`Change Log` for BP03, `Review` for BP04) and was rebuilt on the workspace's own chrome so `/admin` looks like the rest of the app: `page-heading`, `view-tabs`, `search-field`, `btn-secondary`, `.pill`, `quiet-empty` and `section-title`. The note rows are still in `kw_mat_items`; only the tabs are gone. D-38 records both.
 
+A second pass (16 November) finished the toolbar in the same idiom: the three filters are `GlassSelect` like Tasks and NBC, `/` with the app's `kbd` chip focuses the search, the expand button takes the table full height (hiding heading and tabs through `.mat-page[data-expanded]`), and icon buttons expand or collapse every section. The count and legend moved from the toolbar to a `mat-key-bar` beneath the table, an empty result keeps the table frame with "0 materials" and the legend, and the per-cell "Use formula" control became an icon-only `RotateCcw` so it no longer crowds the 32 px cells. `MaterialTracker.test.tsx` covers the count, the `/` key, expand and the section controls.
+
 ## Live database (already done; do not redo)
 
 - Migrations applied, `20261115021338_material_tracker` included (`supabase migration list --linked` shows local and remote versions matching).

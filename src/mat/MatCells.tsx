@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
+import { RotateCcw } from 'lucide-react'
 import { formatCell, parseInput } from './formulas'
 import type { CellKey, Scalar, Team } from './types'
 
@@ -96,7 +97,9 @@ export function NumberCell({ id, cell, label, value, override, calculated, note,
       onChange={(e) => edit.setDraft(e.target.value)} onBlur={edit.commit} onKeyDown={onKeyDown}/>
     {override && <span className="mat-dot" aria-hidden="true"/>}
     {override && edit.draft === null && !edit.failure &&
-      <button type="button" className="mat-formula" aria-label={`Use formula for ${label}`} onClick={() => void edit.save('', () => onCell(id, cell, null))}>Use formula</button>}
+      <button type="button" className="mat-formula" aria-label={`Use formula for ${label}`} title="Use formula" onClick={() => void edit.save('', () => onCell(id, cell, null))}>
+        <RotateCcw size={11} strokeWidth={2.2} aria-hidden="true"/>
+      </button>}
     <Retry label={label} failure={edit.failure}/>
   </div>
 }

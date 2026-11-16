@@ -156,16 +156,20 @@ export interface MatTableProps {
   /** Items to keep while a search or filter is on; a section stays while any of its items is kept. */
   match?: ((item: MatItem) => boolean) | null
   caption: string
+  collapsed?: ReadonlySet<string>
+  onToggle?: (id: string) => void
 }
 
-export function MatTable({ items, state, onCell, onRemark, match = null, caption }: MatTableProps) {
-  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
+export function MatTable({ items, state, onCell, onRemark, match = null, caption, collapsed: controlledCollapsed, onToggle: controlledToggle }: MatTableProps) {
+  const [localCollapsed, setLocalCollapsed] = useState<ReadonlySet<string>>(() => new Set())
   const [picture, setPicture] = useState<Picture | null>(null)
-  const toggle = useCallback((id: string) => setCollapsed((old) => {
+  const collapsed = controlledCollapsed ?? localCollapsed
+  const localToggle = useCallback((id: string) => setLocalCollapsed((old) => {
     const next = new Set(old)
     if (!next.delete(id)) next.add(id)
     return next
   }), [])
+  const toggle = controlledToggle ?? localToggle
   // Averages follow the workbook's SUBTOTAL rows: all of a section's items, whatever is filtered.
   const sums = useMemo(() => {
     const byId = new Map<string, Averages>()

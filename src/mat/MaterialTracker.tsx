@@ -1,7 +1,8 @@
 import './mat.css'
-import { useDeferredValue, useEffect, useMemo, useState } from 'react'
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { RefreshCw, Search } from 'lucide-react'
+import { ChevronsDown, ChevronsUp, Maximize2, Minimize2, RefreshCw, Search } from 'lucide-react'
+import { GlassSelect } from '@/components/glass/GlassSelect'
 import { NotFound } from '@/components/NotFound'
 import { Tile } from '@/components/WorkspaceUI'
 import { weekLabel } from '@/nbc/submissions'
@@ -58,22 +59,27 @@ function MaterialList() {
   const [params, setParams] = useSearchParams()
   const pkg: Pkg = params.get('p') === 'bp04' ? 'bp04' : 'bp03'
   const tab = SHEETS.find((t) => t.id === params.get('s'))?.id ?? 'id'
+  const [expanded, setExpanded] = useState(false)
   const { state, loading, error, saveStatus, refresh, setCell, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams({ p: nextPkg, s: nextTab })
+  const isExpanded = expanded && tab !== 'summary'
 
   let body
   if (!state) {
     body = error
       ? <p className="mat-error" role="alert">Could not load the material list. {error}{' '}
         <button type="button" className="text-link" onClick={() => void refresh()}>Try again</button></p>
-      : <div className="skeleton mat-skeleton" aria-hidden="true"/>
+      : <div className="mat-loading" aria-hidden="true">
+          <div className="skeleton mat-skeleton-bar"/>
+          <div className="skeleton mat-skeleton"/>
+        </div>
   } else if (tab === 'summary') {
     body = <MatSummary items={state.items}/>
   } else {
-    body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`} onCell={setCell} onRemark={setRemark}/>
+    body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`} expanded={isExpanded} onToggleExpand={() => setExpanded((e) => !e)} onCell={setCell} onRemark={setRemark}/>
   }
 
-  return <div className="mat-page">
+  return <div className="mat-page" data-expanded={isExpanded || undefined}>
     <header className="page-heading mat-heading">
       <div className="mat-heading-main">
         <Tile name="hard-hat" color="orange"/>
@@ -88,7 +94,7 @@ function MaterialList() {
       </div>
       <div className="heading-actions">
         <button type="button" className="btn-secondary" onClick={() => void refresh()} disabled={loading}>
-          <RefreshCw size={15} aria-hidden="true" className={loading ? 'mat-spin' : undefined}/>{loading ? 'Refreshing…' : 'Refresh'}
+          <RefreshCw size={14} aria-hidden="true" className={loading ? 'mat-spin' : undefined}/>{loading ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
     </header>
@@ -109,13 +115,25 @@ function MaterialList() {
 const text = (item: MatItem, key: 'pic' | 'msStatus') => formatCol(item.data.cols[key]).trim()
 const distinct = (values: string[]) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 
-interface SheetViewProps { sheet: Sheet; state: MatState; caption: string; onCell: OnCell; onRemark: OnRemark }
+interface SheetViewProps { sheet: Sheet; state: MatState; caption: string; expanded: boolean; onToggleExpand: () => void; onCell: OnCell; onRemark: OnRemark }
 
-/** One material sheet: search, filters and the mark legend above its table. */
-function SheetView({ sheet, state, caption, onCell, onRemark }: SheetViewProps) {
+/** One material sheet: search, filters and expand controls above its table; item count and legend beneath it. */
+function SheetView({ sheet, state, caption, expanded, onToggleExpand, onCell, onRemark }: SheetViewProps) {
   const items = state.items
   const rows = useMemo(() => items.filter((item) => item.sheet === sheet), [items, sheet])
   const [query, setQuery] = useState(''), [pic, setPic] = useState(''), [status, setStatus] = useState(''), [mark, setMark] = useState('')
+  const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
+  const searchRef = useRef<HTMLInputElement>(null)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable=true]')) return
+      e.preventDefault()
+      searchRef.current?.focus()
+    }
+    addEventListener('keydown', onKey)
+    return () => removeEventListener('keydown', onKey)
+  }, [])
   const q = useDeferredValue(query).trim().toLowerCase()
   const options = useMemo(() => {
     const materials = rows.filter((row) => row.kind === 'item')
@@ -124,6 +142,7 @@ function SheetView({ sheet, state, caption, onCell, onRemark }: SheetViewProps) 
       pics: distinct(materials.map((row) => text(row, 'pic'))),
       statuses: distinct(materials.map((row) => text(row, 'msStatus'))),
       marks, unmarked: materials.some((row) => !row.data.mark),
+      totalCount: materials.length,
     }
   }, [rows])
   const active = !!(q || pic || status || mark)
@@ -131,32 +150,62 @@ function SheetView({ sheet, state, caption, onCell, onRemark }: SheetViewProps) 
     (!q || `${codeOf(row)} ${formatCol(row.data.cols.description)}`.toLowerCase().includes(q))
     && (!pic || text(row, 'pic') === pic) && (!status || text(row, 'msStatus') === status)
     && (!mark || (row.data.mark ?? 'none') === mark), [active, q, pic, status, mark])
+  const shownCount = useMemo(
+    () => active ? rows.filter((row) => row.kind === 'item' && match?.(row)).length : options.totalCount,
+    [active, rows, match, options.totalCount],
+  )
+  const toggleSection = useCallback((id: string) => setCollapsed((old) => {
+    const next = new Set(old)
+    if (!next.delete(id)) next.add(id)
+    return next
+  }), [])
+  const expandAll = () => setCollapsed(new Set())
+  const collapseAll = () => setCollapsed(new Set(rows.filter((r) => r.kind === 'section').map((r) => r.id)))
   const clear = () => { setQuery(''); setPic(''); setStatus(''); setMark('') }
 
   return <>
     <div className="mat-toolbar">
       <label className="search-field mat-search">
         <Search size={15} aria-hidden="true"/>
-        <input type="search" aria-label="Search materials" placeholder="Search code or description" value={query} onChange={(e) => setQuery(e.target.value)}/>
+        <input ref={searchRef} type="search" aria-label="Search materials" placeholder="Search code or description" value={query} onChange={(e) => setQuery(e.target.value)}/>
+        <kbd className="kbd" aria-hidden="true">/</kbd>
       </label>
-      <select className="mat-filter" aria-label="Person in charge" value={pic} onChange={(e) => setPic(e.target.value)}>
+      <GlassSelect aria-label="Person in charge" value={pic} onChange={(e) => setPic(e.target.value)}>
         <option value="">All people</option>{options.pics.map((v) => <option key={v}>{v}</option>)}
-      </select>
-      <select className="mat-filter" aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+      </GlassSelect>
+      <GlassSelect aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
         <option value="">All statuses</option>{options.statuses.map((v) => <option key={v}>{v}</option>)}
-      </select>
-      <select className="mat-filter" aria-label="Mark" value={mark} onChange={(e) => setMark(e.target.value)}>
+      </GlassSelect>
+      <GlassSelect aria-label="Mark" value={mark} onChange={(e) => setMark(e.target.value)}>
         <option value="">All marks</option>
         {options.marks.map((m) => <option key={m} value={m}>{MARKS[m]}</option>)}
         {options.unmarked && <option value="none">No mark</option>}
-      </select>
-      {active && <button type="button" className="text-link mat-clear" onClick={clear}>Clear filters</button>}
-      <ul className="mat-legend" aria-label="Row marks">
+      </GlassSelect>
+      {active && shownCount > 0 && <button type="button" className="text-link small mat-clear" onClick={clear}>Clear filters</button>}
+      <div className="mat-toolbar-actions">
+        <button type="button" className="btn-secondary" onClick={onToggleExpand}>
+          {expanded ? <Minimize2 size={14} aria-hidden="true"/> : <Maximize2 size={14} aria-hidden="true"/>}
+          <span className="mat-expand-label">{expanded ? 'Collapse' : 'Expand'}</span>
+        </button>
+        <button type="button" className="ibtn" title="Expand all sections" aria-label="Expand all sections" onClick={expandAll}><ChevronsDown size={16} aria-hidden="true"/></button>
+        <button type="button" className="ibtn" title="Collapse all sections" aria-label="Collapse all sections" onClick={collapseAll}><ChevronsUp size={16} aria-hidden="true"/></button>
+      </div>
+    </div>
+    {active && shownCount === 0
+      ? <div className="mat-scroll mat-empty-scroll">
+          <p className="quiet-empty">No materials match these filters.{' '}
+            <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
+        </div>
+      : <MatTable items={rows} state={state} match={match} caption={caption} collapsed={collapsed} onToggle={toggleSection} onCell={onCell} onRemark={onRemark}/>}
+    <div className="mat-key-bar">
+      <span role="status" aria-live="polite">
+        {shownCount} {shownCount === 1 ? 'material' : 'materials'}
+        {active && shownCount !== options.totalCount ? ` of ${options.totalCount}` : ''}
+      </span>
+      <ul className="mat-legend" aria-label="Legend">
         {(Object.keys(MARKS) as Mark[]).map((m) => <li key={m}><span className="mat-swatch" data-mark={m} aria-hidden="true"/>{MARKS[m]}</li>)}
+        <li><span className="mat-swatch" data-mark="override" aria-hidden="true"/>Manual override</li>
       </ul>
     </div>
-    {active && !rows.some((row) => row.kind === 'item' && match?.(row))
-      ? <p className="quiet-empty">No materials match these filters. <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
-      : <MatTable items={rows} state={state} match={match} caption={caption} onCell={onCell} onRemark={onRemark}/>}
   </>
 }

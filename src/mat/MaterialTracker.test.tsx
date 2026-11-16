@@ -223,6 +223,51 @@ test('search keeps the matching materials and their section', async () => {
   expect(screen.getByRole('button', { name: 'Collapse Wall Finishing' })).toBeInTheDocument()
 })
 
+test('the key bar counts the materials and follows the search', async () => {
+  await openList()
+  expect(screen.getByText('2 materials')).toBeInTheDocument()
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search materials' }), { target: { value: 'xx-02' } })
+  await waitFor(() => expect(screen.getByText('1 material of 2')).toBeInTheDocument())
+})
+
+test('no match keeps the table frame, the zero count and the legend', async () => {
+  await openList()
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search materials' }), { target: { value: 'zzz' } })
+  expect(await screen.findByText(/No materials match these filters/)).toBeInTheDocument()
+  expect(screen.getByText('0 materials of 2')).toBeInTheDocument()
+  expect(document.querySelector('.mat-empty-scroll')).not.toBeNull()
+  expect(screen.getByRole('list', { name: 'Legend' })).toBeInTheDocument()
+  // The toolbar hides its own "Clear filters"; the one inside the frame does the work.
+  expect(screen.getAllByRole('button', { name: 'Clear filters' })).toHaveLength(1)
+  fireEvent.click(screen.getByRole('button', { name: 'Clear filters' }))
+  expect(await screen.findByText('Sample panel XX-01')).toBeInTheDocument()
+})
+
+test('the "/" key focuses the search box without typing into it', async () => {
+  await openList()
+  const search = screen.getByRole('searchbox', { name: 'Search materials' })
+  fireEvent.keyDown(document.body, { key: '/' })
+  expect(search).toHaveFocus()
+  expect(search).toHaveValue('')
+})
+
+test('Expand drops the page header and tabs, and Collapse puts them back', async () => {
+  await openList()
+  fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+  expect(document.querySelector('.mat-page')).toHaveAttribute('data-expanded')
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
+  expect(document.querySelector('.mat-page')).not.toHaveAttribute('data-expanded')
+})
+
+test('the section controls collapse every section and expand them again', async () => {
+  await openList()
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse all sections' }))
+  expect(screen.queryByText('Sample panel XX-01')).toBeNull()
+  expect(screen.getByRole('button', { name: 'Expand all sections' })).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Expand all sections' }))
+  expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
+})
+
 test('a picture opens larger in a dialog', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([material('x1', 1, 'XX-01', 4, {
     data: { ...material('x1', 1, 'XX-01', 4).data, images: { image: ['a1b2c3.webp'] } },

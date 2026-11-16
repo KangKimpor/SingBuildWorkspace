@@ -34,12 +34,12 @@
 :where(.mat-tabs) .view-tab { border: 0; background: transparent; cursor: pointer; }
 .mat-tabs-rule { align-self: stretch; width: 1px; min-height: var(--space-20); background: var(--border-subtle); }
 
-/* Toolbar: search, three filters, the mark legend on the right. */
+/* Toolbar: search, three glass filters, the expand controls; the count and legend sit under the table. */
 .mat-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8); min-width: 0; }
 .mat-search { flex: 0 1 260px; min-width: 190px; }
-.mat-filter { height: var(--h-input); max-width: 190px; font-size: var(--fs-label); }
+.mat-toolbar .glass-select { max-width: 190px; }
 .mat-clear { border: 0; padding: 0; background: none; cursor: pointer; }
-.mat-legend { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4) var(--space-12); margin: 0 0 0 auto; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--text-secondary); }
+.mat-legend { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4) var(--space-12); margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--text-secondary); }
 .mat-legend li { display: inline-flex; align-items: center; gap: var(--space-6); }
 .mat-swatch { width: 14px; height: 14px; border-radius: var(--radius-chip); border: 1px solid var(--border-strong); }
 :is(.mat-swatch, .mat-table tr) { --mat-mark: transparent; }
@@ -49,7 +49,23 @@
 .mat-swatch { background: var(--mat-mark); }
 
 .mat-error { margin: 0; padding-block: var(--space-12); font-size: var(--fs-small); color: var(--danger-text); }
+.mat-empty-scroll { display: grid; place-items: center; }
 .mat-skeleton { height: 240px; }
+.mat-loading { display: grid; gap: var(--space-8); }
+.mat-skeleton-bar { height: 32px; width: min(520px, 100%); }
+
+/* The "/" hint uses the app's kbd chip and steps out of the way once the field has focus. */
+.mat-search .kbd { flex: none; }
+.mat-search:focus-within .kbd { visibility: hidden; }
+.mat-toolbar-actions { display: inline-flex; align-items: center; gap: var(--space-4); margin-inline-start: auto; }
+.mat-key-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4) var(--space-16); font-size: var(--fs-small); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.mat-swatch[data-mark='override'] { position: relative; background: var(--pp-l3); }
+.mat-swatch[data-mark='override']::after { content: ''; position: absolute; top: 3px; left: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); }
+
+/* Expanded editor: the heading and the pickers step aside so the table gets the whole height. */
+.mat-page[data-expanded] { padding-block: var(--space-12); }
+.mat-page[data-expanded] > :is(.mat-heading, .mat-tabs) { display: none; }
+@media (max-width: 900px) { .mat-expand-label { display: none; } }
 
 /* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
 .mat-scroll { flex: 1 1 auto; min-height: 8rem; overflow: auto; border: 1px solid var(--pp-line-strong); border-radius: var(--radius-card); background: var(--pp-l3); }
@@ -119,7 +135,7 @@
 .mat-num[data-source='override'] input { font-weight: 600; }
 .mat-dot { position: absolute; top: 7px; left: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); pointer-events: none; }
 .mat-formula, .mat-retry { position: absolute; left: 4px; bottom: 4px; padding: 0 3px; border: 0; border-radius: 3px; background: var(--pp-l3); font: inherit; font-size: 10.5px; line-height: 14px; cursor: pointer; }
-.mat-formula { color: var(--pp-accent-ink); opacity: 0; }
+.mat-formula { display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; color: var(--pp-accent-ink); opacity: 0; }
 .mat-num:is(:hover, :focus-within) .mat-formula { opacity: 1; }
 .mat-retry { color: var(--danger-text); font-weight: 600; text-decoration: underline; }
 .mat-retry:hover { text-decoration: none; }
