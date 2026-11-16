@@ -1,6 +1,5 @@
 import { render, screen, within } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
-import { MatNotes, noteBlocks } from './MatNotes'
 import { MatSummary, summaryRows } from './MatSummary'
 import type { MatData, MatItem, Scalar } from './types'
 
@@ -48,26 +47,5 @@ describe('MatSummary', () => {
     expect(within(loose).getAllByRole('cell').map((cell) => cell.textContent)).toEqual(['0', '', '', '', '', '', ''])
     expect(within(block).getByRole('row', { name: /Wall finishing/ })).toHaveTextContent('40%')
     expect(screen.getByRole('region', { name: 'MEP Material' })).toBeInTheDocument()
-  })
-})
-
-describe('notes', () => {
-  const note = (cells: string[]) => make('note', { note: cells }, 'changelog')
-  it('groups a heading, its column header and its rows', () => {
-    row = 0
-    const items = [note(['Change log']), note(['1. Copied values']), note(['Row', 'Material', 'New value']), note(['12', 'X-1']), note(['2. Other']), note(['Row', 'Remark']), note(['3', 'Checked'])]
-    const blocks = noteBlocks(items, 'changelog')
-    expect(blocks.map((b) => [b.heading, b.header, b.rows.length])).toEqual([
-      [['Change log', '1. Copied values'], ['Row', 'Material', 'New value'], 1],
-      [['2. Other'], ['Row', 'Remark'], 1],
-    ])
-    render(<MatNotes items={items} sheet="changelog" />)
-    expect(screen.getByRole('heading', { name: 'Change log' })).toBeInTheDocument()
-    // A short row is padded to the header's width.
-    expect(within(screen.getByRole('row', { name: /12 X-1/ })).getAllByRole('cell')).toHaveLength(3)
-  })
-  it('says so when the sheet is empty', () => {
-    render(<MatNotes items={[]} sheet="review" />)
-    expect(screen.getByText('Nothing was recorded on this sheet.')).toBeInTheDocument()
   })
 })

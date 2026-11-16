@@ -11,10 +11,12 @@ Branch `feat/material-tracker`, merged to `main`. Read the spec (`../specs/2026-
 | 3 Importer | done, real run clean: exit 0, 0 mismatches on 4,365 formula cells | adc995e, 88e8492 |
 | 4 Data module | done, reviewed | 7e464a5 |
 | 5 `/admin` page and table | done, reviewed | 407644b |
-| 6 Summary and notes tabs | done, wired into the page; D-38 written | 5d5f43b |
+| 6 Summary tab | done, wired into the page; D-38 written | 5d5f43b |
 | 7 Import and verify | migration and seed applied, checks passed; thumbnails committed | adc995e, 7b4f310 |
 
 `corepack pnpm typecheck`, `lint`, `test` (311 passed, 5 skipped) and `build` all pass at 5d5f43b.
+
+Afterwards, at the owner's request (16 November), the page lost the workbook's note tabs (`Change Log` for BP03, `Review` for BP04) and was rebuilt on the workspace's own chrome so `/admin` looks like the rest of the app: `page-heading`, `view-tabs`, `search-field`, `btn-secondary`, `.pill`, `quiet-empty` and `section-title`. The note rows are still in `kw_mat_items`; only the tabs are gone. D-38 records both.
 
 ## Live database (already done; do not redo)
 

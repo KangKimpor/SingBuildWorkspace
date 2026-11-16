@@ -30,9 +30,6 @@ const material = (id: string, pos: number, code: string, po: number, over: Parti
   },
   edits: {}, updatedAt: NOW, ...over,
 })
-const note = (id: string, pos: number, cells: string[], sheet: MatItem['sheet'] = 'review', pkg: MatItem['package'] = 'bp04'): MatItem => ({
-  id, package: pkg, sheet, pos, kind: 'note', data: { cols: {}, cells: {}, note: cells }, edits: {}, updatedAt: NOW,
-})
 
 function load(items: MatItem[] = [section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 4), material('x2', 3, 'XX-02', 8)]): MatPackage {
   return {
@@ -110,9 +107,11 @@ test('package and sheet come from the query string', async () => {
   open('/admin?p=bp04&s=mep')
   expect(await screen.findByText('Sample panel MP-01')).toBeInTheDocument()
   expect(fetchPackage).toHaveBeenCalledWith('bp04', null, null)
-  expect(screen.getByRole('button', { name: 'BP04' })).toHaveAttribute('aria-pressed', 'true')
-  expect(screen.getByRole('button', { name: 'MEP Material' })).toHaveAttribute('aria-pressed', 'true')
-  expect(screen.getByRole('button', { name: 'Review' })).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: 'BP04' })).toHaveAttribute('aria-current', 'page')
+  expect(screen.getByRole('button', { name: 'MEP Material' })).toHaveAttribute('aria-current', 'page')
+  // The workbook's note sheets are not offered as tabs.
+  expect(screen.queryByRole('button', { name: 'Review' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Change Log' })).toBeNull()
 })
 
 test('typing a remark and leaving the field saves it for that team', async () => {
@@ -242,25 +241,5 @@ test('the Summary tab shows a block for each sheet instead of the placeholder', 
   expect(await screen.findByRole('heading', { name: 'ID Material' })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: 'MEP Material' })).toBeInTheDocument()
   expect(screen.queryByText(/is not ready yet/)).toBeNull()
-  expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-pressed', 'true')
-})
-
-test('the Review tab lists the workbook notes as a table', async () => {
-  vi.mocked(fetchPackage).mockResolvedValue(load([
-    note('r1', 1, ['Review notes']),
-    note('r2', 2, ['Row', 'Material', 'Note']),
-    note('r3', 3, ['9', 'ZZ-09', 'Sample remark']),
-  ]))
-  open('/admin?p=bp04&s=review')
-  expect(await screen.findByRole('heading', { name: 'Review notes' })).toBeInTheDocument()
-  const table = screen.getByRole('table')
-  expect(within(table).getByRole('columnheader', { name: 'Material' })).toBeInTheDocument()
-  const row = within(table).getByRole('row', { name: /ZZ-09/ })
-  expect(within(row).getByRole('cell', { name: 'Sample remark' })).toBeInTheDocument()
-})
-
-test('an empty Change Log says nothing was recorded on the sheet', async () => {
-  open('/admin?p=bp03&s=changelog')
-  expect(await screen.findByText('Nothing was recorded on this sheet.')).toBeInTheDocument()
-  expect(screen.queryByText(/is not ready yet/)).toBeNull()
+  expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-current', 'page')
 })

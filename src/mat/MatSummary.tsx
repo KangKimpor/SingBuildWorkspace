@@ -48,12 +48,13 @@ export function MatSummary({ items }: { items: MatItem[] }) {
   )
   return (
     <div className="mat-summary">
-      <p className="mat-summary-note">Averages of the materials that have a figure, the same way the workbook's Summary sheet works them out.</p>
+      <p className="small muted mat-summary-note">Averages of the materials that have a figure, worked out the same way as the workbook's Summary sheet.</p>
       {blocks.map(({ sheet, title, rows }) => (
         <section key={sheet} aria-label={title}>
-          <h2 className="mat-summary-title">{title}</h2>
+          <div className="section-title"><h2>{title}</h2></div>
           <div className="mat-plain-scroll">
             <table className="mat-plain">
+              <caption className="sr-only">{title} summary</caption>
               <thead>
                 <tr>
                   <th scope="col">Description</th>
