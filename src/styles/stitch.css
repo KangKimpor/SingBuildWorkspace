@@ -164,7 +164,7 @@ html[data-nbc] .glass.drawer { background-color: #f5f5f7; }
 .nav-progress { gap: 3px; }
 .nav-progress > li { padding: 0; margin: 0; border-bottom: 0; position: relative; }
 
-/* Project disclosure row with 18px SVG progress ring */
+/* Project header row with 18px SVG progress ring */
 .nav-project-toggle {
   min-height: 44px !important;
   align-items: center;
@@ -172,10 +172,13 @@ html[data-nbc] .glass.drawer { background-color: #f5f5f7; }
   padding: 7px 8px 7px 6px !important;
   border-radius: 8px;
   color: var(--text-primary) !important;
-  transition: background 130ms ease, transform 90ms ease;
+  cursor: default;
 }
-.nav-project-toggle:hover { background: var(--bg-hover) !important; }
-.nav-project-toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+.sidebar-body .nav-project-toggle:hover,
+.sidebar-body .nav-project-toggle:active {
+  background: transparent !important;
+  transform: none !important;
+}
 .project-ring-wrap { width: 24px; height: 24px; flex: none; display: grid; place-items: center; }
 .proj-ring { width: 18px; height: 18px; transform: rotate(-90deg); display: block; }
 .proj-ring-track { fill: none; stroke: var(--ring-track); stroke-width: 2.3; }
@@ -223,24 +226,12 @@ html[data-nbc] .glass.drawer { background-color: #f5f5f7; }
   font-variant-numeric: tabular-nums;
 }
 .nav-progress > li[data-current='true'] .nav-meta { color: var(--text-secondary); font-weight: 600; }
-.nav-project-toggle .project-chevron {
-  width: 12px;
-  height: 12px;
-  color: var(--text-muted);
-  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), color 140ms ease;
-}
-.nav-progress > li[data-expanded='true'] > .nav-project-toggle .project-chevron {
-  transform: rotate(90deg);
-  color: var(--text-secondary);
-}
 
 /* Sub-tabs: full-width NSOutlineView pills with indented optical content (no left border line) */
 .nav-project-views-wrap {
   display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  grid-template-rows: 1fr;
 }
-.nav-project-views-wrap[data-expanded='true'] { grid-template-rows: 1fr; }
 .nav-project-views-wrap > .nav-project-views { min-height: 0; overflow: hidden; }
 .sidebar-body .nav-project-views {
   gap: 2px;

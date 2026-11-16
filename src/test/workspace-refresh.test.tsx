@@ -69,25 +69,26 @@ test('opening screen defaults to Projects Progress and remembers a progress proj
   expect(workspaceStart('account-b', [])).toBe('/projects-progress')
 })
 
-test('sidebar lists progress projects by BP number, lowest first', () => {
+test('sidebar lists progress projects by BP number, lowest first, with all project views visible', () => {
   const projects = ['04', '02', '03'].map((n) => ({ ...fixtureProject, id: `nbc-bp${n}`, name: `NBC BP${n} – Pan Pacific Hotel`, progress: 0.5 }))
   useWorkspace.setState({ ...initial, projects })
   render(<MemoryRouter><SidebarContent /></MemoryRouter>)
-  const names = screen.getAllByRole('button', { name: /NBC BP0/ }).map((button) => button.querySelector('.project-name')?.textContent)
+  const names = Array.from(document.querySelectorAll('.nav-progress .project-name'), (el) => el.textContent)
   expect(names).toEqual(['NBC BP02', 'NBC BP03', 'NBC BP04'])
-  expect(screen.getByRole('button', { name: 'Collapse NBC BP02 – Pan Pacific Hotel' })).toHaveAttribute('aria-expanded', 'true')
+  for (const project of projects) {
+    const views = screen.getByRole('list', { name: `${project.name} views` })
+    expect(views).toBeVisible()
+  }
+  expect(screen.getAllByRole('link', { name: 'Overview' })).toHaveLength(3)
+  expect(screen.getAllByRole('link', { name: 'Project Progress' })).toHaveLength(3)
+  expect(screen.getAllByRole('link', { name: 'Update Progress' })).toHaveLength(3)
 })
 
-test('sidebar shows live project progress and remembers collapsible groups', () => {
+test('sidebar shows live project progress without project collapse toggles', () => {
   const project = { ...fixtureProject, id: 'nbc-bp02', name: 'NBC BP02 – Pan Pacific Hotel', progress: 0.81 }
   useWorkspace.setState({ ...initial, projects: [project] })
   render(<MemoryRouter initialEntries={['/projects-progress/nbc-bp02/activities']}><SidebarContent /></MemoryRouter>)
   expect(screen.getByText('81%')).toBeInTheDocument()
   expect(screen.getByRole('link', { name: 'Project Progress' })).toHaveAttribute('aria-current', 'page')
-  const toggle = screen.getByRole('button', { name: 'Collapse NBC BP02 – Pan Pacific Hotel' })
-  fireEvent.click(toggle)
-  expect(toggle).toHaveAttribute('aria-expanded', 'false')
-  expect(JSON.parse(localStorage.getItem('kw-sidebar-expanded-projects')!)).toEqual([])
-  fireEvent.click(toggle)
-  expect(toggle).toHaveAttribute('aria-expanded', 'true')
+  expect(screen.queryByRole('button', { name: /Collapse NBC BP02|Expand NBC BP02/ })).not.toBeInTheDocument()
 })

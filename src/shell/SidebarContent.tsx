@@ -1,6 +1,5 @@
 import {
   BarChart3,
-  ChevronRight,
   Eye,
   PanelLeft,
   Search,
@@ -15,7 +14,6 @@ import { attentionItems } from '@/nbc/overview/insights'
 import { useShell } from './store'
 
 const ic = { size: 15, strokeWidth: 1.75 } as const
-const expandedKey = 'kw-sidebar-expanded-projects'
 const bpNumber = (name: string) => Number(/BP\s*0*(\d+)/i.exec(name)?.[1] ?? Number.MAX_SAFE_INTEGER)
 const shortCode = (name: string) => /BP\s*0*(\d+)/i.exec(name)?.[0]?.replace(/\s+/g, '').toUpperCase() ?? name.slice(0, 4).toUpperCase()
 
@@ -90,20 +88,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const [query, setQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
 
-  const [expanded, setExpanded] = useState<Set<string>>(() => {
-    try {
-      const stored: unknown = JSON.parse(localStorage.getItem(expandedKey) ?? 'null')
-      if (Array.isArray(stored)) {
-        return new Set(stored.filter((id): id is string => typeof id === 'string' && projects.some((p) => p.id === id)))
-      }
-    } catch {
-      // Ignore an unavailable or stale preference.
-    }
-    const active = projects.find((p) => pathname.startsWith(`/projects-progress/${p.id}/`))?.id
-    const first = active ?? progressProjects[0]?.id
-    return new Set(first ? [first] : [])
-  })
-
   const attentionCounts = useMemo(() => {
     const counts = new Map<string, number>()
     if (!nbcActivities?.length) return counts
@@ -124,18 +108,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
     if (!q) return progressProjects
     return progressProjects.filter((p) => p.name.toLowerCase().includes(q))
   }, [progressProjects, query])
-
-  const toggleProject = (id: string) => setExpanded((current) => {
-    const next = new Set(current)
-    if (next.has(id)) next.delete(id)
-    else next.add(id)
-    try {
-      localStorage.setItem(expandedKey, JSON.stringify([...next]))
-    } catch {
-      // Keep the in-memory state when storage is unavailable.
-    }
-    return next
-  })
 
   const toggleSearch = () => {
     setSearchOpen((open) => {
@@ -223,23 +195,16 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           <div className="t-caption">Projects</div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">
             {filteredProjects.map((project) => {
-              const isExpanded = expanded.has(project.id)
               const isCurrent = pathname.startsWith(`/projects-progress/${project.id}/`)
               const [name, subtitle] = project.name.split(' – ')
               const pct = Math.round(project.progress * 100)
-              const viewsId = `sidebar-views-${project.id}`
               const attentionCount = attentionCounts.get(project.id)
               return (
-                <li key={project.id} data-current={isCurrent} data-expanded={isExpanded}>
-                  <button
-                    type="button"
+                <li key={project.id} data-current={isCurrent}>
+                  <div
                     className="nav-item nav-project-toggle"
-                    aria-expanded={isExpanded}
-                    aria-controls={viewsId}
-                    aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${project.name}`}
                     title={project.name}
                     style={{ '--pct': pct } as React.CSSProperties}
-                    onClick={() => toggleProject(project.id)}
                   >
                     <span className="project-ring-wrap">
                       <ProgressRing percent={pct} />
@@ -250,11 +215,8 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     </span>
                     <span className="project-trailing">
                       <span className="nav-meta">{pct}%</span>
-                      <span className="nav-icon project-chevron" aria-hidden="true">
-                        <ChevronRight size={12} strokeWidth={2.4} />
-                      </span>
                     </span>
-                  </button>
+                  </div>
 
                   <NavLink
                     to={`/projects-progress/${project.id}/overview`}
@@ -269,13 +231,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                     {project.name} · {pct}%
                   </div>
 
-                  <div
-                    id={viewsId}
-                    className="nav-project-views-wrap"
-                    data-expanded={isExpanded}
-                    aria-hidden={!isExpanded}
-                    inert={!isExpanded}
-                  >
+                  <div className="nav-project-views-wrap">
                     <ul className="nav-list nav-project-views" aria-label={`${project.name} views`}>
                       <Item to={`/projects-progress/${project.id}/overview`} icon={<Eye {...ic} />} label="Overview" badge={attentionCount} onNavigate={onNavigate} />
                       <Item to={`/projects-progress/${project.id}/activities`} icon={<BarChart3 {...ic} />} label="Project Progress" onNavigate={onNavigate} />
