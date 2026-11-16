@@ -1,0 +1,157 @@
+/* Material list (/admin). A dense working table in the Project Progress family: colors from the `--pp-*` tokens, light mode only. Everything is under `.mat-`; the one rule outside it drops the canvas padding while this page is open. */
+.canvas:has(> .mat-page) { padding-block: 0; }
+.mat-page {
+  --mat-h1: 28px; /* first header row; the second row sticks below it */
+  --mat-h2: 44px;
+  --mat-head-group: color-mix(in srgb, var(--pp-band) 50%, var(--pp-l3));
+  --mat-head-work: color-mix(in srgb, var(--pp-l2) 75%, var(--pp-l3));
+  --mat-section: var(--pp-l2);
+  --mat-section-nested: color-mix(in srgb, var(--pp-l2) 40%, var(--pp-l3));
+  display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  height: calc(100dvh - var(--h-topbar) - var(--safe-top));
+  padding: 12px 24px 16px; color: var(--pp-ink);
+}
+.mat-page > * { flex-shrink: 0; }
+.mat-page :focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: 2px; }
+
+/* Header: title, week and save state, Refresh. */
+.mat-header { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.mat-header h1 { margin: 0; font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.02em; }
+.mat-meta { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 13px; color: var(--pp-ink-2); }
+.mat-save:empty { display: none; }
+.mat-save::before { content: '·'; margin-inline-end: 8px; }
+.mat-save[data-status='error'] { color: var(--danger-text); font-weight: 500; }
+.mat-button { display: inline-flex; align-items: center; gap: 6px; margin-inline-start: auto; min-height: 32px; padding: 0 12px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.mat-button:hover:not(:disabled) { background: var(--pp-wash); }
+.mat-button:disabled { color: var(--pp-ink-2); cursor: default; }
+.mat-link { border: 0; padding: 0; background: transparent; color: var(--pp-accent-ink); font: inherit; font-size: 13px; cursor: pointer; }
+.mat-link:hover { text-decoration: underline; }
+
+/* Package and sheet pickers: the Project Progress segmented control. */
+.mat-tabs { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.mat-seg { display: inline-flex; gap: 2px; padding: 2px; border: 1px solid var(--pp-line); border-radius: 8px; background: var(--bg-sidebar); }
+.mat-seg button { min-height: 28px; padding: 0 11px; border: 1px solid transparent; border-radius: 6px; background: transparent; color: var(--pp-ink-2); font: inherit; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.mat-seg button:hover { color: var(--pp-ink); background: var(--pp-wash); }
+.mat-seg button[aria-pressed='true'] { background: var(--pp-l3); color: var(--pp-ink); border-color: var(--pp-line-strong); font-weight: 600; }
+
+/* Toolbar: search, three filters, the mark legend on the right. */
+.mat-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.mat-search { display: inline-flex; align-items: center; gap: 6px; flex: 0 1 260px; min-width: 180px; height: 32px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink-2); }
+.mat-search:focus-within { border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
+.mat-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pp-ink); font: inherit; font-size: 13px; }
+.mat-search input:focus-visible { outline: 0; }
+.mat-search input::placeholder { color: var(--pp-ink-muted); opacity: 1; }
+.mat-select { height: 32px; max-width: 200px; padding: 0 8px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font: inherit; font-size: 13px; }
+.mat-legend { display: flex; align-items: center; gap: 6px 14px; margin: 0 0 0 auto; padding: 0; list-style: none; font-size: 12px; color: var(--pp-ink); }
+.mat-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.mat-swatch { width: 16px; height: 12px; border-radius: 3px; border: 1px solid var(--pp-line-strong); }
+:is(.mat-swatch, .mat-table tr) { --mat-mark: transparent; }
+:is(.mat-swatch, .mat-table tr)[data-mark='done'] { --mat-mark: var(--chip-green); }
+:is(.mat-swatch, .mat-table tr)[data-mark='tracking'] { --mat-mark: var(--chip-brown); }
+:is(.mat-swatch, .mat-table tr)[data-mark='omit'] { --mat-mark: var(--chip-yellow); }
+.mat-swatch { background: var(--mat-mark); }
+
+.mat-empty { margin: 0; padding: 16px 0; font-size: 13px; color: var(--pp-ink-2); }
+.mat-error { margin: 0; font-size: 13px; color: var(--danger-text); }
+.mat-skeleton { height: 240px; }
+
+/* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
+.mat-scroll { flex: 1 1 auto; min-height: 8rem; overflow: auto; border: 1px solid var(--pp-line-strong); border-radius: 8px; background: var(--pp-l3); }
+.mat-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 16px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
+.mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 1px solid var(--pp-line-cell); border-bottom: 1px solid var(--pp-line); }
+.mat-table td { height: var(--pp-row); padding: 4px 8px; vertical-align: middle; background-color: var(--pp-l3); }
+.mat-table tbody th { padding: 4px 8px; text-align: start; font-weight: 400; background-color: var(--pp-l3); }
+
+.mat-table thead th { position: sticky; top: 0; z-index: 3; padding: 0 8px; background: var(--pp-band); color: var(--pp-ink); font-size: 11px; font-weight: 600; line-height: 13px; letter-spacing: .03em; text-transform: uppercase; text-align: start; vertical-align: middle; border-bottom: 1px solid var(--pp-line-strong); border-right-color: var(--pp-line-strong); }
+.mat-table .mat-head-1 th { height: var(--mat-h1); }
+.mat-table .mat-head-1 th[rowspan] { height: calc(var(--mat-h1) + var(--mat-h2)); border-bottom-width: 2px; }
+.mat-table .mat-head-1 th[scope='colgroup'] { text-align: center; }
+.mat-table .mat-head-2 th { top: var(--mat-h1); height: var(--mat-h2); border-bottom-width: 2px; font-size: 10.5px; letter-spacing: .02em; }
+.mat-table .mat-head-2 th.mat-num-head { text-align: end; }
+.mat-table thead th[data-band='group'] { background: var(--mat-head-group); }
+.mat-table thead th[data-band='work'] { background: var(--mat-head-work); }
+
+.mat-table .mat-f { position: sticky; z-index: 2; }
+.mat-table thead .mat-f { z-index: 5; }
+.mat-f1, .mat-f-span { left: 0; }
+.mat-f2 { left: 48px; }
+.mat-f3 { left: 144px; }
+.mat-table :is(.mat-f3, .mat-f-span) { border-right: 1px solid var(--pp-line-strong); }
+/* Row marks tint only the frozen cells, so every other cell keeps its contrast. */
+.mat-table tbody tr[data-mark] > .mat-f { background-color: var(--mat-mark); }
+.mat-table tbody th.mat-f2 { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-2); }
+/* Hover is a wash over the opaque cell color, so frozen cells never turn see-through. */
+.mat-table tbody tr:hover > :is(td, th) { background-image: linear-gradient(var(--pp-wash), var(--pp-wash)); }
+
+/* Long text stops at three lines; the whole text is in the title. */
+.mat-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
+.mat-last { color: var(--pp-ink-2); font-size: 12.5px; }
+
+/* Section bands and the sheet-average row. */
+.mat-table tr.mat-section > :is(td, th) { background-color: var(--mat-section-nested); border-bottom-color: var(--pp-l2-line); }
+.mat-table tr.mat-section[data-level='0'] > :is(td, th) { background-color: var(--mat-section); }
+.mat-table tr.mat-total > :is(td, th) { background-color: var(--pp-band); border-bottom: 1px solid var(--pp-line-strong); }
+.mat-table :is(.mat-section, .mat-total) th { font-weight: 600; }
+.mat-section[data-level='0'] th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+.mat-section-label { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.mat-total .mat-section-label { padding-inline-start: 28px; }
+.mat-toggle { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--pp-ink-2); cursor: pointer; }
+.mat-toggle:hover { background: var(--pp-wash); color: var(--pp-ink); }
+.mat-avg { text-align: end; font-weight: 600; white-space: nowrap; }
+
+/* Pictures. */
+.mat-pictures { display: flex; flex-wrap: wrap; gap: 4px; }
+.mat-thumb { display: block; width: 32px; height: 32px; padding: 0; border: 1px solid var(--pp-line); border-radius: 4px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
+.mat-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mat-scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
+.mat-picture { position: fixed; top: 50%; left: 50%; z-index: 41; translate: -50% -50%; display: grid; gap: 8px; max-width: min(720px, 92vw); padding: 12px; border: 1px solid var(--pp-line-strong); border-radius: 8px; background: var(--pp-l3); }
+.mat-picture img { display: block; max-width: 100%; max-height: 76vh; object-fit: contain; }
+.mat-picture-title { margin: 0; padding-inline-end: 32px; font-size: 13px; font-weight: 600; color: var(--pp-ink); }
+.mat-picture-close { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--pp-ink-2); cursor: pointer; }
+.mat-picture-close:hover { background: var(--pp-wash); color: var(--pp-ink); }
+
+/* Editable cells: the field fills the cell. */
+.mat-table td.mat-edit { padding: 0; }
+.mat-num, .mat-remark { position: absolute; inset: 0; }
+.mat-num input, .mat-remark textarea { position: absolute; inset: 3px; box-sizing: border-box; width: auto; margin: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--pp-ink); font: inherit; }
+.mat-num input { padding: 0 6px; text-align: end; font-variant-numeric: tabular-nums; }
+.mat-num input:hover { border-color: var(--pp-line); }
+.mat-num input:focus { border-color: var(--pp-accent-ink); background: var(--pp-l3); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
+/* Calculated values are quieter; a typed override is full ink with a dot, and offers "Use formula". */
+.mat-num[data-source='formula'] input { color: var(--pp-ink-2); }
+.mat-num[data-source='override'] input { font-weight: 600; }
+.mat-dot { position: absolute; top: 7px; left: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); pointer-events: none; }
+.mat-formula, .mat-retry { position: absolute; left: 4px; bottom: 4px; padding: 0 3px; border: 0; border-radius: 3px; background: var(--pp-l3); font: inherit; font-size: 10.5px; line-height: 14px; cursor: pointer; }
+.mat-formula { color: var(--pp-accent-ink); opacity: 0; }
+.mat-num:is(:hover, :focus-within) .mat-formula { opacity: 1; }
+.mat-retry { color: var(--danger-text); font-weight: 600; text-decoration: underline; }
+.mat-retry:hover { text-decoration: none; }
+:is(.mat-num input, .mat-remark textarea)[aria-invalid='true'] { border-color: var(--danger-text); }
+
+.mat-remark textarea { padding: 3px 6px; border-color: var(--pp-line-strong); background: var(--pp-l3); font-size: 12.5px; line-height: 16px; resize: none; overflow: hidden; }
+.mat-remark textarea:hover { border-color: var(--pp-ink-muted); }
+/* While focused the remark grows over the rows below instead of stretching its own row. */
+.mat-remark textarea:focus { bottom: auto; z-index: 1; min-height: 112px; max-height: 240px; field-sizing: content; overflow: auto; border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
+.mat-remark .mat-retry { left: auto; right: 6px; }
+
+/* Summary and notes tabs: plain read-only tables. */
+.mat-summary, .mat-notes { flex: 1 1 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.mat-summary > section, .mat-notes > section { flex-shrink: 0; }
+.mat-summary-note { margin: 0; font-size: 13px; line-height: 18px; color: var(--pp-ink-2); max-width: 72ch; }
+.mat-summary-title { margin: 0 0 8px; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--pp-ink); }
+.mat-notes .mat-summary-title + .mat-summary-note { margin-bottom: 8px; }
+.mat-plain-scroll { overflow-x: auto; border: 1px solid var(--pp-line-strong); border-radius: 8px; background: var(--pp-l3); }
+.mat-plain { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
+.mat-plain th, .mat-plain td { padding: 7px 12px; text-align: start; vertical-align: top; border-bottom: 1px solid var(--pp-line); border-right: 1px solid var(--pp-line-cell); }
+.mat-plain tr > :last-child { border-right: 0; }
+.mat-plain tbody tr:last-child > * { border-bottom: 0; }
+.mat-plain thead th { background: var(--pp-band); font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; border-bottom: 1px solid var(--pp-line-strong); vertical-align: bottom; }
+.mat-plain tbody th { font-weight: 400; }
+.mat-plain .mat-plain-num { text-align: end; white-space: nowrap; width: 1%; }
+.mat-summary tr[data-level='-1'] > :is(td, th) { background: var(--pp-band); font-weight: 600; }
+.mat-summary tr[data-level='0'] > :is(td, th) { background: var(--mat-section); }
+.mat-summary tr[data-level='0'] th { font-weight: 600; }
+.mat-plain tbody tr:hover > :is(td, th) { background-image: linear-gradient(var(--pp-wash), var(--pp-wash)); }
+.mat-plain-text td { min-width: 96px; max-width: 420px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.mat-plain-text { width: auto; min-width: 100%; }
