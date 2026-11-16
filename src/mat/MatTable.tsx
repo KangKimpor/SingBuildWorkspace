@@ -67,8 +67,9 @@ export function formatCol(value: Scalar | undefined): string {
 
 /** The words a material is known by in labels: its code, else its number. */
 export const codeOf = (item: MatItem) => formatCol(item.data.cols.code) || formatCol(item.data.cols.no) || `Row ${item.pos}`
+/** A section's name is the first five columns joined; the Summary tab must name it the same way. */
 export const sectionLabel = (item: MatItem) =>
-  (['no', 'pic', 'bp02', 'code', 'description'] as const).map((k) => formatCol(item.data.cols[k])).filter(Boolean).join(' ')
+  (['no', 'pic', 'bp02', 'code', 'description'] as const).map((k) => formatCol(item.data.cols[k])).filter(Boolean).join(' ') || 'Section'
 
 /** The last pos a section covers: `data.end`, else the row before the next section. */
 function sectionEnd(rows: MatItem[], section: MatItem) {

@@ -7,6 +7,8 @@ import { weekLabel } from '@/nbc/submissions'
 import { usePhone } from '@/shell/usePhone'
 import { fetchAccess } from './api'
 import { MatTable, codeOf, formatCol } from './MatTable'
+import { MatNotes } from './MatNotes'
+import { MatSummary } from './MatSummary'
 import type { OnCell, OnRemark } from './MatCells'
 import { useMat } from './store'
 import type { MatState, SaveStatus } from './store'
@@ -58,8 +60,10 @@ function MaterialList() {
     body = error
       ? <div className="mat-empty" role="alert">Could not load the material list. {error} <button type="button" className="mat-link" onClick={() => void refresh()}>Try again</button></div>
       : <div className="skeleton mat-skeleton" aria-hidden="true"/>
-  } else if (tab === 'summary' || tab === 'review' || tab === 'changelog') {
-    body = <p className="mat-empty">{tabs.find((t) => t.id === tab)!.label} is not ready yet.</p>
+  } else if (tab === 'summary') {
+    body = <MatSummary items={state.items}/>
+  } else if (tab === 'review' || tab === 'changelog') {
+    body = <MatNotes items={state.items} sheet={tab}/>
   } else {
     body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} caption={`${pkg.toUpperCase()} ${tabs.find((t) => t.id === tab)!.label}`} onCell={setCell} onRemark={setRemark}/>
   }

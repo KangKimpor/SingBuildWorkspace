@@ -30,6 +30,9 @@ const material = (id: string, pos: number, code: string, po: number, over: Parti
   },
   edits: {}, updatedAt: NOW, ...over,
 })
+const note = (id: string, pos: number, cells: string[], sheet: MatItem['sheet'] = 'review', pkg: MatItem['package'] = 'bp04'): MatItem => ({
+  id, package: pkg, sheet, pos, kind: 'note', data: { cols: {}, cells: {}, note: cells }, edits: {}, updatedAt: NOW,
+})
 
 function load(items: MatItem[] = [section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 4), material('x2', 3, 'XX-02', 8)]): MatPackage {
   return {
@@ -232,4 +235,32 @@ test('a picture opens larger in a dialog', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'XX-01 Image 1' }))
   const dialog = await screen.findByRole('dialog')
   expect(within(dialog).getByRole('img')).toHaveAttribute('src', '/mat/a1b2c3.webp')
+})
+
+test('the Summary tab shows a block for each sheet instead of the placeholder', async () => {
+  open('/admin?p=bp03&s=summary')
+  expect(await screen.findByRole('heading', { name: 'ID Material' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'MEP Material' })).toBeInTheDocument()
+  expect(screen.queryByText(/is not ready yet/)).toBeNull()
+  expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-pressed', 'true')
+})
+
+test('the Review tab lists the workbook notes as a table', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    note('r1', 1, ['Review notes']),
+    note('r2', 2, ['Row', 'Material', 'Note']),
+    note('r3', 3, ['9', 'ZZ-09', 'Sample remark']),
+  ]))
+  open('/admin?p=bp04&s=review')
+  expect(await screen.findByRole('heading', { name: 'Review notes' })).toBeInTheDocument()
+  const table = screen.getByRole('table')
+  expect(within(table).getByRole('columnheader', { name: 'Material' })).toBeInTheDocument()
+  const row = within(table).getByRole('row', { name: /ZZ-09/ })
+  expect(within(row).getByRole('cell', { name: 'Sample remark' })).toBeInTheDocument()
+})
+
+test('an empty Change Log says nothing was recorded on the sheet', async () => {
+  open('/admin?p=bp03&s=changelog')
+  expect(await screen.findByText('Nothing was recorded on this sheet.')).toBeInTheDocument()
+  expect(screen.queryByText(/is not ready yet/)).toBeNull()
 })

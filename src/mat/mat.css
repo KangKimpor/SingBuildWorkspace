@@ -134,3 +134,24 @@
 /* While focused the remark grows over the rows below instead of stretching its own row. */
 .mat-remark textarea:focus { bottom: auto; z-index: 1; min-height: 112px; max-height: 240px; field-sizing: content; overflow: auto; border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
 .mat-remark .mat-retry { left: auto; right: 6px; }
+
+/* Summary and notes tabs: plain read-only tables. */
+.mat-summary, .mat-notes { flex: 1 1 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 20px; padding-bottom: 8px; }
+.mat-summary > section, .mat-notes > section { flex-shrink: 0; }
+.mat-summary-note { margin: 0; font-size: 13px; line-height: 18px; color: var(--pp-ink-2); max-width: 72ch; }
+.mat-summary-title { margin: 0 0 8px; font-size: 15px; line-height: 20px; font-weight: 600; color: var(--pp-ink); }
+.mat-notes .mat-summary-title + .mat-summary-note { margin-bottom: 8px; }
+.mat-plain-scroll { overflow-x: auto; border: 1px solid var(--pp-line-strong); border-radius: 8px; background: var(--pp-l3); }
+.mat-plain { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 18px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
+.mat-plain th, .mat-plain td { padding: 7px 12px; text-align: start; vertical-align: top; border-bottom: 1px solid var(--pp-line); border-right: 1px solid var(--pp-line-cell); }
+.mat-plain tr > :last-child { border-right: 0; }
+.mat-plain tbody tr:last-child > * { border-bottom: 0; }
+.mat-plain thead th { background: var(--pp-band); font-size: 11px; line-height: 14px; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; border-bottom: 1px solid var(--pp-line-strong); vertical-align: bottom; }
+.mat-plain tbody th { font-weight: 400; }
+.mat-plain .mat-plain-num { text-align: end; white-space: nowrap; width: 1%; }
+.mat-summary tr[data-level='-1'] > :is(td, th) { background: var(--pp-band); font-weight: 600; }
+.mat-summary tr[data-level='0'] > :is(td, th) { background: var(--mat-section); }
+.mat-summary tr[data-level='0'] th { font-weight: 600; }
+.mat-plain tbody tr:hover > :is(td, th) { background-image: linear-gradient(var(--pp-wash), var(--pp-wash)); }
+.mat-plain-text td { min-width: 96px; max-width: 420px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.mat-plain-text { width: auto; min-width: 100%; }
