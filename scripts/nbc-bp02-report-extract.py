@@ -10,7 +10,8 @@ The report's formulas (P.sum!E7 and the floor sheets) become leaf weights:
     Guestroom, MEP  floors weigh by their room count ('F<n> (ID)'!D6); the corridor weighs floors equally
     Guestroom       groups by D; rooms equally within a group; a room's tasks by E re-weighted over the tasks it has (N/A drops out)
     Corridor        groups by D, tasks by E
-    MEP             systems and subsystems equally, tasks by D, rooms equally over the cells that hold a number;
+    MEP             systems and subsystems equally, tasks by D, rooms equally over the cells that hold a number, the corridor (CRD)
+                    column excluded since Weekly 64 (AVERAGE(E:last room)); its leaf stays at weight 0;
                     "Installation Water Closet, Lavatory and Shower" is two half-weight leaves (Chhorvaon and Tola)
 
 The extract recomputes every floor and the overall figure and must match the report's cached values (P.sum!E7, P.sum!G7:Q7).
@@ -172,13 +173,17 @@ def main(source, output):
                     t_wbs = f'{u_wbs}.{ti}'
                     task = add(id=PREFIX + t_wbs, wbs=t_wbs, parentId=sub_row['id'], name=t['name'], area='MEP WORKS', item=t['item'], relativeWeight=t['D'])
                     shared = t['name'].startswith('Installation Water Closet')
+                    # Weekly 64: the corridor (CRD) column no longer counts toward a task's floor average, so its cell stays on the
+                    # sheet (and editable) with weight 0 and the rooms share the task.
+                    counted = [r for r in t['cells'] if r != 'CRD']
                     for k, (room, value) in enumerate(t['cells'].items(), start=1):
-                        gw = 0.45 * n / total_rooms / len(f['C']) / len(system['subs']) * t['D'] / len(t['cells'])
+                        weigh = room != 'CRD'
+                        gw = 0.45 * n / total_rooms / len(f['C']) / len(system['subs']) * t['D'] / len(counted) if weigh else 0
                         if shared:
-                            first = leaf(t_wbs, task, k, room, value, 0.5, gw / 2, 'MEP WORKS', 'Chhorvaon')
-                            leaf(t_wbs, task, f'{k}.2', room, value, 0.5, gw / 2, 'MEP WORKS', 'Tola', coOf=first['id'])
+                            first = leaf(t_wbs, task, k, room, value, 0.5 * weigh, gw / 2, 'MEP WORKS', 'Chhorvaon')
+                            leaf(t_wbs, task, f'{k}.2', room, value, 0.5 * weigh, gw / 2, 'MEP WORKS', 'Tola', coOf=first['id'])
                         else:
-                            leaf(t_wbs, task, k, room, value, 1, gw, 'MEP WORKS', by_task.get(t['name'][:14].lower(), 'Tola'))
+                            leaf(t_wbs, task, k, room, value, 1 if weigh else 0, gw, 'MEP WORKS', by_task.get(t['name'][:14].lower(), 'Tola'))
 
     # Parents carry the weight of their leaves; progress rolls up exactly as calculate() does.
     kids = {}

@@ -103,7 +103,7 @@ function weekly(): NbcActivity[] {
   const base = { projectId: 'nbc-bp02', description: '', area: '', location: '', trade: '', handler: '', remark: '', history: [], duration: null, boqValue: null, schedule: null, sourcePrevious: 0, sourceWeekly: 0, baseline: 0, progress: 0 }
   const node = (wbs: string, parent: string | null, name: string, extra: Partial<NbcActivity>) => out.push({ ...base, id: `nbc-bp02:${wbs}`, wbs, parentId: parent ? `nbc-bp02:${parent}` : null, order: ++order, name, editable: false, relativeWeight: 1, globalWeight: 0, ...extra } as NbcActivity)
   const leaf = (wbs: string, parent: string, room: string, handler: string, progress: number, share: number, gw: number) => node(wbs, parent, room, { room, editable: true, handler, progress, baseline: progress, relativeWeight: share, globalWeight: gw })
-  node('x', null, 'Floor 23', { roomList: ['a', 'b'] })
+  node('x', null, 'Floor 23', { roomList: ['a', 'b', 'CRD'] })
   node('x.1', 'x', 'GUESTROOM', { item: 'A', relativeWeight: 0.6 }); node('x.1.1', 'x.1', 'Group', { item: 'I' })
   node('x.1.1.1', 'x.1.1', 'T1', { relativeWeight: 0.75 }); node('x.1.1.2', 'x.1.1', 'T2', { relativeWeight: 0.25 })
   // Room a has both tasks; room b has no T2, so its T1 carries the whole room: 0.5 / (2 rooms x 0.5).
@@ -112,6 +112,8 @@ function weekly(): NbcActivity[] {
   node('x.2', 'x', 'MEP WORKS', { item: 'C', relativeWeight: 0.4 }); node('x.2.1', 'x.2', 'SYSTEM', { item: 'I' }); node('x.2.1.1', 'x.2.1', 'Sub', { item: '1' })
   node('x.2.1.1.1', 'x.2.1.1', 'Task', { item: '1.1' })
   leaf('x.2.1.1.1.1', 'x.2.1.1.1', 'a', 'Tola', 0.5, 1, 0.4 * (2 / 3) / 2); leaf('x.2.1.1.1.2', 'x.2.1.1.1', 'b', 'Tola', 1, 1, 0.4 * (2 / 3) / 2)
+  // Weekly 64: the corridor cell stays on the sheet with weight 0; the MEP task averages the rooms only.
+  leaf('x.2.1.1.1.3', 'x.2.1.1.1', 'CRD', 'Tola', 0.1, 0, 0)
   node('y', null, 'Floor 22', { roomList: ['c'] })
   node('y.1', 'y', 'GUESTROOM', { item: 'A', relativeWeight: 0.6 }); node('y.1.1', 'y.1', 'Group', { item: 'I' })
   node('y.1.1.1', 'y.1.1', 'T1', { relativeWeight: 0.5 }); node('y.1.1.2', 'y.1.1', 'T2', { relativeWeight: 0.5 })
@@ -136,6 +138,11 @@ describe('the report formulas', () => {
     expect(overall).toContain('<c r="E5"')
     expect(overall).toMatch(/<f>SUMPRODUCT\(\$E\$5:\$F\$5,E\d+:F\d+\)\/SUM\(\$E\$5:\$F\$5\)<\/f>/)
     expect(overall).toMatch(/<c r="D6"[^>]*><f>\$C\$\d+\*D\d+\+\$C\$\d+\*D\d+<\/f>/)
+  })
+  test('a MEP task averages the rooms and leaves the corridor column out (Weekly 64)', () => {
+    const floor = strFromU8(unzipSync(roomWorkbook(weekly(), [], '2026-11-08').bytes)['xl/worksheets/sheet2.xml']!)
+    expect(floor).toMatch(/\$C\d+\*AVERAGE\(D\d+:E\d+\)/)
+    expect(floor).not.toMatch(/\$C\d+\*AVERAGE\(D\d+:F\d+\)/)
   })
   test('a room scores the tasks it has: the floor sheet re-weights over the cells that hold a number', () => {
     const files = unzipSync(roomWorkbook(weekly(), [], '2026-11-08').bytes), floor = strFromU8(files['xl/worksheets/sheet2.xml']!)

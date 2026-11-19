@@ -106,6 +106,8 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
   const overallValues = new Map<string, Num>(), overallFormulas = new Map<string, string>()
   const floorSheets = floors.map((floor, floorIndex) => {
     const sheet = new Sheet(floor.root.name), last = 3 + floor.rooms.length, lastName = columnName(last)
+    // The last column that counts toward a MEP task's average: the rooms, without the corridor (CRD).
+    const lastRoomName = columnName(4 + Math.max(0, ...floor.rooms.map((room, i) => room === 'CRD' ? -1 : i)))
     head(sheet)
     sheet.widths.push({ from: 1, to: 1, width: 6 }, { from: 2, to: 2, width: 58 }, { from: 3, to: 3, width: 11 }, { from: 4, to: Math.max(last, 17), width: 10.51 })
     sheet.freeze = 'D5'
@@ -155,7 +157,8 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
           const refs = halves.map((l) => place.get(l.id)).map((at) => at ? `${at.sheet}!${col(i)}${at.row}` : '')
           sheet.set(r, 4 + i, v, style, refs.every(Boolean) ? refs.length > 1 ? `AVERAGE(${refs.join(',')})` : refs[0] : undefined)
         })
-        node.c = mean(node.cols)
+        // Weekly 64: a MEP task's floor figure averages the rooms only; the corridor (CRD) cell stays on the sheet but is not counted.
+        node.c = mean(mep ? node.cols.filter((_, i) => floor.rooms[i] !== 'CRD') : node.cols)
         sheet.set(r, 1, a.item || '', st({})); sheet.set(r, 2, (a.item ? a.name : `    ${a.name}`), st({})); sheet.set(r, 3, w(node), st({ format: '0.00%' }))
         return
       }
@@ -190,7 +193,7 @@ export function roomWorkbook(activities: NbcActivity[], submissions: NbcSubmissi
         sheet.set(r, 3, node.c, progressC(fill), `IFERROR((${kids.map((k) => `$C${k.sheetRow}*IFERROR(AVERAGE(${range(k)}),0)`).join('+')})/(${kids.map((k) => `$C${k.sheetRow}*(COUNT(${range(k)})>0)`).join('+')}),"")`)
       } else if (leafGroup && mep) {
         node.c = kids.reduce((s, k) => s + weight(k) * (k.c === '' ? 0 : k.c as number), 0)
-        sheet.set(r, 3, node.c, progressC(fill), kids.map((k) => `$C${k.sheetRow}*AVERAGE(D${k.sheetRow}:${lastName}${k.sheetRow})`).join('+'))
+        sheet.set(r, 3, node.c, progressC(fill), kids.map((k) => `$C${k.sheetRow}*AVERAGE(D${k.sheetRow}:${lastRoomName}${k.sheetRow})`).join('+'))
       } else if (mep) {
         node.c = mean(kids.map((k) => k.c))
         sheet.set(r, 3, node.c, progressC(fill), `AVERAGE(${kids.map((k) => `C${k.sheetRow}`).join(',')})`)

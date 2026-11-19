@@ -1,5 +1,9 @@
 # NBC BP02 progress tracker
 
+## 19 November 2026 - Weekly 64: the corridor no longer counts toward MEP (D-41)
+
+`2. & 5. BP-02 Weekly 64 - 15 Nov - 21 Nov 2026.xlsx` changes the `<n>F(MEP)` sheets only: a task's floor figure is `AVERAGE(E:last room) * D` (it ran to the CRD column before). Nothing else moved: the ID sheets, `P.sum` and the 50/5/45 weights are as in Weekly 63, and the two room-type sheets became one (*ID & MEP Room Type Progress*). The corridor cell is still on the sheet, so it stays an editable activity at weight 0; the other cells of its task share the weight (220 tasks, 4,720 leaves). Overall with the app's percentages 85.8635 % (85.2759 % before), report 85.46249 % on its own values. Migration `20261119083053_nbc_bp02_weekly64_mep_corridor` (applied to production on 19 November 2026; backups `kw_private.*_bk_20261119_*`). The tracker export averages MEP tasks over the rooms only. Rebuild the dataset with `python scripts/nbc-bp02-report-extract.py REPORT.xlsx`.
+
 ## 12 November 2026 - Weekly 63 structure and formulas
 
 `2. & 5. BP-02 Weekly 63 - 08 Nov - 14 Nov 2026.xlsx` reworked the report. Before the change the database matched Weekly 62 cell for cell (leaf counts and room sets per floor and section, compared by hash). Applied by migration `20261112052435_nbc_bp02_weekly63_structure` (D-28); **every percentage the team entered was kept** (0 progress values changed).
