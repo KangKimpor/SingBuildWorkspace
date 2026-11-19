@@ -18,12 +18,8 @@ import { activityTags } from '../tags'
 import { projectHandlers } from '../types'
 import { activityHandlers } from '../handlers'
 import type { NbcActivity } from '../types'
+import { Avatar } from '../ui/Avatar'
 import { Issues } from './Issues'
-
-/** Two-letter initials of the first handler in a label such as "Kheng, Sitha". */
-function Avatar({ name }: { name: string }) {
-  return <span className="nbc-av" aria-hidden="true" data-initials={name.split(',')[0]!.trim().slice(0, 2).toUpperCase()}/>
-}
 
 /** Handlers are shown in full; reassigning is not offered from this screen. */
 function HandlerLabel({ a, activities }: { a: NbcActivity; activities: NbcActivity[] }) {

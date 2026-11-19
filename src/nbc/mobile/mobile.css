@@ -714,26 +714,17 @@
     font-size: 13px;
     line-height: 18px;
   }
+  /* One white panel of rows (D-43): the rows share the panel, so they carry no border or radius of their own. */
   .shell .ph-update-gate .nbc-gate-list {
-    grid-template-columns: 1fr;
-    gap: var(--space-8);
     margin: var(--space-16) 0;
   }
   .shell .ph-update-gate .nbc-gate-list button {
     min-height: 56px;
     padding: var(--space-8) var(--space-16);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    box-shadow: none;
     text-align: start;
   }
-  .shell .ph-update-gate .nbc-gate-list button:hover {
-    transform: none;
-    box-shadow: none;
-  }
-  .shell .ph-update-gate .nbc-gate-list button[aria-pressed='true'] {
-    border-color: var(--accent);
-    box-shadow: inset 0 0 0 1px var(--accent);
+  .shell .ph-update-gate .nbc-gate-list button + button::before {
+    left: 72px;
   }
   .shell .ph-update-gate .nbc-gate-list strong {
     font-size: 15px;

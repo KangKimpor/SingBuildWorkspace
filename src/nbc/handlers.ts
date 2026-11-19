@@ -25,3 +25,19 @@ export function activityHandlers(activity: NbcActivity, activities: NbcActivity[
   if (activity.editable) return activity.handler || 'Unassigned'
   return [...new Set(activities.filter((a) => a.editable && a.wbs.startsWith(`${activity.wbs}.`)).map((a) => a.handler || 'Unassigned'))].join(', ') || 'Unassigned'
 }
+
+/** The prototype's handler palette (Apple system colors); unknown names hash onto the same palette. */
+const HANDLER_COLORS: Readonly<Record<string, string>> = {
+  Sitha: '#5e5ce6', Lychhinh: '#ff9f0a', Chhorvaon: '#30b0c7', Srun: '#ff375f', Kheng: '#0a84ff', Vuth: '#bf5af2', Tola: '#32a852',
+}
+const FALLBACK_COLORS = ['#5e5ce6', '#30b0c7', '#ff375f', '#0a84ff', '#bf5af2', '#32a852', '#ff9f0a'] as const
+
+/** One color per handler, so the same person reads the same on every screen. A shared task ("Kheng, Sitha") takes the first name's color. */
+export function handlerColor(name: string) {
+  const first = name.split(',')[0]!.trim()
+  const known = HANDLER_COLORS[first]
+  if (known) return known
+  let hash = 0
+  for (const ch of first) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0
+  return FALLBACK_COLORS[hash % FALLBACK_COLORS.length]!
+}

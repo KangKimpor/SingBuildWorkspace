@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { handlerComplete } from '../handlers'
 import { canUpdate, submissionId, weekLabel } from '../submissions'
 import { projectHandlers } from '../types'
+import { Avatar } from '../ui/Avatar'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
 
 interface Props { projectId: string; week: string; activities: NbcActivity[]; submissions: NbcSubmission[]; onChoose: (handler: Handler) => void }
@@ -14,12 +15,15 @@ export function HandlerGate({ projectId, week, activities, submissions, onChoose
     <p className="muted">Choose your handler name before you update progress. You will see and edit only your own activities. Week of {weekLabel(week)}.</p>
     <div className="nbc-gate-list" role="group" aria-label="Handler">
       {projectHandlers(projectId).map((h) => {
-        const done = submissions.find((s) => s.id === submissionId(projectId, week, h))?.status === 'confirmed'
+        const submission = submissions.find((s) => s.id === submissionId(projectId, week, h))
         const complete = handlerComplete(activities, h)
         const count = activities.filter((a) => canUpdate(a, h)).length
+        const status = complete ? 'Complete' : submission?.status === 'confirmed' ? 'Updated' : submission?.status === 'draft' ? 'Draft' : 'Not yet'
         return <button key={h} aria-pressed={picked === h} disabled={complete} onClick={() => setPicked(h)}>
-          <span><strong>{h}</strong><small>{count} activities</small></span>
-          <span className="nbc-pill" data-status={complete ? 'Complete' : done ? 'Updated' : 'Not yet'}>{complete ? 'Complete' : done ? 'Updated' : 'Not yet'}</span>
+          <span className="nbc-radio" aria-hidden="true"/>
+          <Avatar name={h} size="lg"/>
+          <span className="nbc-gate-name"><strong>{h}</strong><small>{count} activities</small></span>
+          <span className="nbc-pill" data-status={status}>{status}</span>
         </button>
       })}
     </div>

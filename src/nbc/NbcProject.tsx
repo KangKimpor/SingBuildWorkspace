@@ -1,4 +1,5 @@
 import './nbc.css'
+import '@/styles/apple-controls.css'
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Download, X } from 'lucide-react'

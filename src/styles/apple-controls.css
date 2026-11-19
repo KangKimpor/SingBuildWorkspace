@@ -1,0 +1,182 @@
+/* Apple-style controls for Project Progress, Update Progress and the Material list (D-43).
+   Ported from docs/prototypes/mat-nbc-apple-redesign.html: soft gray fills instead of outlines, pill buttons,
+   a white raised segment, system blue for the active state. Scoped to the two toolbars, the Export button,
+   the handler avatar and the handler gate, so the sidebar, shell and other screens keep their look.
+   The app is light-only, so these tokens have no dark counterpart. */
+:root {
+  --ap-fill: rgb(120 120 128 / .14);
+  --ap-fill-2: rgb(120 120 128 / .09);
+  --ap-raised: #ffffff;
+  --ap-label: #1d1d1f;
+  --ap-label-2: #5f5f64;
+  --ap-label-3: #737378;
+  --ap-label-4: #b0b0b5;
+  --ap-sep: rgb(60 60 67 / .12);
+  --ap-sep-2: rgb(60 60 67 / .2);
+  --ap-hover: rgb(0 0 0 / .03);
+  --ap-blue: #0071e3;
+  --ap-blue-hover: #0062c4;
+  --ap-blue-text: #0066cc;
+  --ap-blue-fill: rgb(0 113 227 / .09);
+  --ap-green: #248a3d;
+  --ap-green-fill: rgb(52 199 89 / .13);
+  --ap-orange: #b25000;
+  --ap-orange-fill: rgb(255 149 0 / .14);
+  --ap-ring: 0 0 0 3.5px color-mix(in srgb, var(--ap-blue) 32%, transparent), 0 0 0 .5px var(--ap-sep-2);
+  --ap-chevrons: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14' fill='none' stroke='%23000' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3'/%3E%3C/svg%3E");
+}
+
+/* ── Search field ── */
+html .nbc-project .nbc-filters .search-field,
+.mat-toolbar.mat-toolbar .search-field {
+  height: 32px; min-height: 32px; gap: 8px; padding: 0 8px 0 11px;
+  border: 0; border-radius: 9px; background: var(--ap-fill-2); color: var(--ap-label-3);
+  transition: box-shadow 200ms ease, background 200ms ease;
+}
+html .nbc-project .nbc-filters .search-field:hover,
+.mat-toolbar.mat-toolbar .search-field:hover { background: var(--ap-fill-2); }
+html .nbc-project .nbc-filters .search-field:focus-within,
+.mat-toolbar.mat-toolbar .search-field:focus-within { background: var(--ap-raised); box-shadow: var(--ap-ring); }
+html .nbc-project .nbc-filters .search-field input,
+.mat-toolbar.mat-toolbar .search-field input { color: var(--ap-label); font-size: 13px; }
+html .nbc-project .nbc-filters .search-field input::placeholder,
+.mat-toolbar.mat-toolbar .search-field input::placeholder { color: var(--ap-label-3); opacity: 1; }
+html .nbc-project .nbc-filters .search-field kbd,
+.mat-toolbar.mat-toolbar .search-field kbd {
+  font: 500 11px/1 -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
+  color: var(--ap-label-3); background: var(--ap-raised); border: .5px solid var(--ap-sep-2); border-radius: 5px; padding: 3px 6px;
+}
+
+/* The longer placeholder needs room beside the "/" hint. */
+.mat-toolbar.mat-toolbar .mat-search { flex: 0 1 270px; min-width: 220px; }
+
+/* ── Segmented control: NBC "Needs update / Changed / All" and floors, Material column views ── */
+html .nbc-project .nbc-filters .nbc-seg,
+.mat-toolbar.mat-toolbar .mat-col-tabs {
+  display: inline-flex; gap: 0; padding: 2px; border: 0; border-radius: 9px; background: var(--ap-fill-2);
+}
+html .nbc-project .nbc-filters .nbc-seg button,
+.mat-toolbar.mat-toolbar .mat-col-tabs .view-tab {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 14px;
+  border: 0; border-radius: 7px; background: transparent; box-shadow: none;
+  color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+html .nbc-project .nbc-filters .nbc-seg button:hover:not(:disabled):not([aria-pressed='true']),
+.mat-toolbar.mat-toolbar .mat-col-tabs .view-tab:hover:not([aria-pressed='true']) { background: var(--ap-fill-2); color: var(--ap-label); }
+html .nbc-project .nbc-filters .nbc-seg button[aria-pressed='true'],
+.mat-toolbar.mat-toolbar .mat-col-tabs .view-tab[aria-pressed='true'] {
+  background: var(--ap-raised); color: var(--ap-label); font-weight: 500;
+  box-shadow: 0 1px 3px rgb(0 0 0 / .1), 0 0 0 .5px rgb(0 0 0 / .05);
+}
+html .nbc-project .nbc-filters .nbc-seg .nbc-count {
+  margin: 0; padding: 0; font-family: inherit; font-size: 11.5px; font-weight: 500; color: var(--ap-label-3); font-variant-numeric: tabular-nums;
+}
+
+/* ── Chips: "Changed this week" and removable filters ── */
+html .nbc-project .nbc-filters .nbc-chip:not(.nbc-expand-editor):not(.nbc-filters-toggle),
+.mat-toolbar.mat-toolbar .mat-chip {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; min-height: 32px; padding: 0 14px;
+  border: 0; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+html .nbc-project .nbc-filters .nbc-chip:not(.nbc-expand-editor):not(.nbc-filters-toggle):hover,
+.mat-toolbar.mat-toolbar .mat-chip:hover { background: var(--ap-fill); color: var(--ap-label); }
+html .nbc-project .nbc-filters .nbc-chip[aria-pressed='true']:not(.nbc-expand-editor),
+.mat-toolbar.mat-toolbar .mat-chip[aria-pressed='true'] { background: var(--ap-blue); color: #fff; }
+html .nbc-project .nbc-filters .nbc-chip[aria-pressed='true']:not(.nbc-expand-editor):hover,
+.mat-toolbar.mat-toolbar .mat-chip[aria-pressed='true']:hover { background: var(--ap-blue-hover); }
+html .nbc-project .nbc-filters .nbc-chip[aria-label^='Remove'] { background: var(--ap-blue-fill); color: var(--ap-blue-text); }
+html .nbc-project .nbc-filters .nbc-chip[aria-label^='Remove']:hover { background: color-mix(in srgb, var(--ap-blue) 16%, transparent); }
+
+/* ── "Clear all" / "Clear filters" ── */
+html .nbc-project .nbc-filters .text-link,
+.mat-toolbar.mat-toolbar .text-link { padding: 2px 4px; border-radius: 5px; color: var(--ap-blue-text); font-size: 13px; font-weight: 500; }
+html .nbc-project .nbc-filters .text-link:hover,
+.mat-toolbar.mat-toolbar .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ── Filter popups ("All people", "All statuses", "All marks", "All handlers") ── */
+html .nbc-project .nbc-filters .glass-select,
+.mat-toolbar.mat-toolbar .glass-select {
+  position: relative; height: 32px; min-height: 32px; padding: 0 28px 0 12px;
+  border: 0; border-radius: 9px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px;
+}
+html .nbc-project .nbc-filters .glass-select:hover,
+html .nbc-project .nbc-filters .glass-select[aria-expanded='true'],
+.mat-toolbar.mat-toolbar .glass-select:hover,
+.mat-toolbar.mat-toolbar .glass-select[aria-expanded='true'] { background: var(--ap-fill); }
+html .nbc-project .nbc-filters .glass-select > svg,
+.mat-toolbar.mat-toolbar .glass-select > svg { display: none; }
+html .nbc-project .nbc-filters .glass-select::after,
+.mat-toolbar.mat-toolbar .glass-select::after {
+  content: ''; position: absolute; top: 50%; right: 10px; width: 10px; height: 14px; margin-top: -7px; background: var(--ap-label-3);
+  -webkit-mask: var(--ap-chevrons) no-repeat center / contain; mask: var(--ap-chevrons) no-repeat center / contain;
+}
+/* A filter that is set turns blue, like the prototype's popups. */
+.mat-toolbar.mat-toolbar .glass-select.is-on { background: var(--ap-blue-fill); color: var(--ap-blue-text); font-weight: 500; }
+.mat-toolbar.mat-toolbar .glass-select.is-on::after { background: var(--ap-blue-text); }
+
+/* ── Pill buttons: Expand, Export XLSX ── */
+html .nbc-project .nbc-filters .nbc-expand-editor,
+.mat-toolbar.mat-toolbar .btn-secondary,
+html .nbc-project .nbc-project-actions .nbc-export-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; min-height: 32px; padding: 0 14px;
+  border: 0; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: background 150ms ease, transform 120ms ease, opacity 150ms ease;
+}
+html .nbc-project .nbc-filters .nbc-expand-editor:hover,
+.mat-toolbar.mat-toolbar .btn-secondary:hover,
+html .nbc-project .nbc-project-actions .nbc-export-button:hover:not(:disabled) { background: var(--ap-fill); }
+html .nbc-project .nbc-project-actions .nbc-export-button:disabled { opacity: .38; }
+.nbc-filters .nbc-expand-editor[aria-pressed='true'] { background: var(--ap-fill); }
+
+/* ── Round icon buttons: expand / collapse all ── */
+html .nbc-project .nbc-filters .ibtn,
+.mat-toolbar.mat-toolbar .ibtn { width: 30px; height: 30px; min-height: 30px; border-radius: 50%; color: var(--ap-label-2); }
+html .nbc-project .nbc-filters .ibtn:hover,
+.mat-toolbar.mat-toolbar .ibtn:hover { background: var(--ap-fill-2); color: var(--ap-label); }
+
+/* ── Handler avatar: the person's initial on their own color ── */
+:is(.nbc-activities, .nbc-update, .nbc-gate) .nbc-av {
+  width: 22px; height: 22px; background: #8e8e93; color: #fff; font-size: 11.5px; font-weight: 600; letter-spacing: 0;
+}
+:is(.nbc-activities, .nbc-update, .nbc-gate) .nbc-av[data-size='lg'] { width: 36px; height: 36px; font-size: 15px; }
+.nbc-activities .nbc-handler { gap: 8px; font-size: 13px; }
+
+/* ── "Who is updating?" ── */
+.nbc-gate { max-width: 560px; margin: 24px auto 0; }
+.nbc-gate h2 { margin: 0 0 8px; font-size: 28px; line-height: 1.15; font-weight: 700; letter-spacing: -.028em; color: var(--ap-label); }
+.nbc-gate > p { max-width: 440px; margin: 0 auto 22px; color: var(--ap-label-2); }
+.nbc-gate .nbc-gate-list {
+  display: block; margin: 0 0 22px; padding: 6px 0; text-align: start; overflow: hidden;
+  border-radius: 18px; background: var(--ap-raised); box-shadow: 0 1px 2px rgb(0 0 0 / .04), 0 0 0 .5px rgb(0 0 0 / .03);
+}
+.nbc-gate .nbc-gate-list button {
+  position: relative; display: flex; align-items: center; justify-content: flex-start; gap: 12px; width: 100%; padding: 11px 18px;
+  border: 0; border-radius: 0; background: transparent; box-shadow: none; transform: none; text-align: start; color: var(--ap-label);
+  transition: background 120ms ease;
+}
+.nbc-gate .nbc-gate-list button + button::before { content: ''; position: absolute; top: 0; left: 88px; right: 0; height: .5px; background: var(--ap-sep); }
+.nbc-gate .nbc-gate-list button:hover:not(:disabled) { background: var(--ap-hover); transform: none; box-shadow: none; }
+.nbc-gate .nbc-gate-list button:disabled { opacity: .5; }
+.nbc-gate .nbc-gate-list button[aria-pressed='true'] { box-shadow: none; }
+.nbc-gate .nbc-gate-name { flex: 1; min-width: 0; }
+.nbc-gate .nbc-gate-list strong { display: block; font-size: 15px; font-weight: 500; line-height: 1.3; }
+.nbc-gate .nbc-gate-list small { display: block; font-size: 12.5px; color: var(--ap-label-2); }
+.nbc-gate .nbc-radio {
+  flex: none; width: 20px; height: 20px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--ap-label-4); transition: box-shadow 200ms ease;
+}
+.nbc-gate [aria-pressed='true'] .nbc-radio { box-shadow: inset 0 0 0 6px var(--ap-blue); }
+.nbc-gate .nbc-pill {
+  height: 24px; padding: 0 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; background: var(--ap-fill-2); color: var(--ap-label-2);
+}
+.nbc-gate .nbc-pill[data-status='Updated'] { background: var(--ap-green-fill); color: var(--ap-green); }
+.nbc-gate .nbc-pill[data-status='Draft'] { background: var(--ap-blue-fill); color: var(--ap-blue-text); }
+.nbc-gate .nbc-pill[data-status='Not yet'] { background: var(--ap-orange-fill); color: var(--ap-orange); }
+.nbc-gate .btn-accent.nbc-gate-go {
+  height: 40px; min-height: 40px; padding: 0 22px; border-radius: 999px; background: var(--ap-blue); color: #fff; font-size: 14px; font-weight: 500;
+}
+.nbc-gate .btn-accent.nbc-gate-go:hover:not(:disabled) { background: var(--ap-blue-hover); }
+.nbc-gate .btn-accent.nbc-gate-go:disabled { opacity: .38; }
+@media (max-width: 767px) { .nbc-gate h2 { font-size: 24px; } }
+@media (prefers-reduced-motion: reduce) {
+  .nbc-gate .nbc-radio, .nbc-gate .nbc-gate-list button, .nbc-filters .search-field, .mat-toolbar .search-field { transition: none; }
+}

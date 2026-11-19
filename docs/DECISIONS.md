@@ -280,3 +280,13 @@ The updated BP03/BP04 submission workbooks (19 November 2026) moved purchase rem
 
 Migration `20261119120000_material_tracker_three_week_remarks.sql`; seed regenerated from the two workbooks with pictures in `public/mat`.
 
+
+## D-43 Apple-style controls from the prototype on Project Progress, Update Progress and the Material list - November 19, 2026
+
+Six elements of `docs/prototypes/mat-nbc-apple-redesign.html` replace their counterparts in the app. Visual only: no data, Supabase, routing or behavior changes.
+
+1. **Shared stylesheet.** `src/styles/apple-controls.css` (imported by `NbcProject.tsx` and `MaterialTracker.tsx`) holds `--ap-*` tokens (light only, like the rest of the app) and styles the search field, the segmented control (`Needs update / Changed / All`, floors, Material column views), the "Changed this week" chip (blue when pressed), removable filter chips, "Clear all" / "Clear filters" links, the filter popups (up/down chevrons through a CSS mask on `GlassSelect`, blue when a filter is set via an `is-on` class), the Expand and Export XLSX pills and the round expand/collapse-all buttons. Selectors are scoped to `.nbc-filters`, `.mat-toolbar`, `.nbc-project-actions` and `.nbc-gate`, with `html` or a doubled class to outrank the existing `html[data-nbc]` rules without `!important`.
+2. **Handler avatar.** `src/nbc/ui/Avatar.tsx` shows the first handler's initial in white on a per-handler color from `handlerColor()` in `handlers.ts` (the prototype palette; unknown names hash onto it). It replaces the two-letter tinted chip in Project Progress and is reused by the gate.
+3. **"Who is updating?" gate.** One white panel of rows (radio, avatar, name and activity count, status pill) instead of a grid of cards. The status pill gains "Draft" for a handler whose submission is a saved draft. The phone gate keeps its own spacing but drops the per-row border and radius.
+
+The Material "Person in charge" filter keeps its existing behavior; only its look changed.

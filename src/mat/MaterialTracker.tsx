@@ -1,4 +1,5 @@
 import './mat.css'
+import '@/styles/apple-controls.css'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { ChevronsDown, ChevronsUp, Maximize2, Minimize2, RefreshCw, Search } from 'lucide-react'
@@ -209,13 +210,13 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         <input ref={searchRef} type="search" aria-label="Search materials" placeholder="Search code or description" value={query} onChange={(e) => setQuery(e.target.value)}/>
         <kbd className="kbd" aria-hidden="true">/</kbd>
       </label>
-      {sheet !== 'mep' && <GlassSelect aria-label="Person in charge" value={pic} onChange={(e) => setPic(e.target.value)}>
+      {sheet !== 'mep' && <GlassSelect aria-label="Person in charge" className={pic ? 'is-on' : ''} value={pic} onChange={(e) => setPic(e.target.value)}>
         <option value="">All people</option>{options.pics.map((v) => <option key={v}>{v}</option>)}
       </GlassSelect>}
-      <GlassSelect aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
+      <GlassSelect aria-label="Status" className={status ? 'is-on' : ''} value={status} onChange={(e) => setStatus(e.target.value)}>
         <option value="">All statuses</option>{options.statuses.map((v) => <option key={v}>{v}</option>)}
       </GlassSelect>
-      <GlassSelect aria-label="Mark" value={mark} onChange={(e) => setMark(e.target.value)}>
+      <GlassSelect aria-label="Mark" className={mark ? 'is-on' : ''} value={mark} onChange={(e) => setMark(e.target.value)}>
         <option value="">All marks</option>
         {options.marks.map((m) => <option key={m} value={m}>{MARKS[m]}</option>)}
         {options.unmarked && <option value="none">No mark</option>}
