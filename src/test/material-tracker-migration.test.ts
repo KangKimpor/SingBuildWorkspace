@@ -4,6 +4,7 @@ import { expect, test } from 'vitest'
 
 const sql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261115021338_material_tracker.sql'), 'utf8')
 const editSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261119043547_material_tracker_editing.sql'), 'utf8')
+const weeksSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261119120000_material_tracker_three_week_remarks.sql'), 'utf8')
 
 test('creates both tracker tables with row level security', () => {
   expect(sql).toContain('create table public.kw_mat_items')
@@ -71,4 +72,17 @@ test('editing migration creates private kw-mat-images bucket gated by kw_mat_acc
   for (const op of ['select', 'insert', 'update', 'delete']) {
     expect(editSql).toMatch(new RegExp(`create policy kw_mat_images_${op} on storage\\.objects[\\s\\S]*?bucket_id = 'kw-mat-images' and \\(select public\\.kw_mat_access\\(\\)\\)`))
   }
+})
+
+test('three-week migration loads this week, last week and the week before last', () => {
+  expect(weeksSql).toMatch(/r\.week_start in \(v_week, v_week - 7, v_week - 14\)/)
+  expect(weeksSql).toMatch(/create or replace function kw_private\.mat_load\(p_package text, p_items_since timestamptz, p_remarks_since timestamptz\)/)
+})
+
+test('changed_week marks edits and remarks but not a workbook re-import', () => {
+  expect(weeksSql).toContain('add column if not exists changed_week date')
+  expect(weeksSql).toMatch(/set changed_week = v_week, updated_at = now\(\), updated_by = auth\.uid\(\) where id = p_id/)
+  expect(weeksSql.match(/changed_week = kw_private\.mat_week\(\)/g)).toHaveLength(2)
+  expect(weeksSql).toMatch(/'changed_week', i\.changed_week/)
+  expect(weeksSql).not.toMatch(/set changed_week = now\(\)/)
 })

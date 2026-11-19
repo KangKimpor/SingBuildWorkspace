@@ -18,9 +18,10 @@ vi.mock('./images', () => ({
   useMatImageSrc: (ref: string) => (ref.startsWith('storage:') ? `https://signed.test/${ref.slice(8)}` : `/mat/${ref}`),
 }))
 
-// The reporting week of Sunday 15 November 2026; "Last week" starts on the 8th.
+// The reporting week of Sunday 15 November 2026; "Last week" starts on the 8th, "2 weeks ago" the 1st.
 const WEEK = '2026-11-15'
 const LAST = '2026-11-08'
+const BEFORE = '2026-11-01'
 const NOW = '2026-11-15T03:00:00.000Z'
 
 const section = (id: string, pos: number, label: string, nest: { end?: number; level?: number } = {}): MatItem => ({
@@ -45,6 +46,8 @@ function load(items: MatItem[] = [section('s1', 1, 'Wall Finishing'), material('
     remarks: [
       { itemId: 'x1', team: 'pm', weekStart: LAST, body: 'Waiting for supplier quote' },
       { itemId: 'x1', team: 'pm', weekStart: WEEK, body: 'Quote received' },
+      { itemId: 'x1', team: 'purchase', weekStart: BEFORE, body: 'Budget checked' },
+      { itemId: 'x1', team: 'purchase', weekStart: LAST, body: 'Lead time 3 weeks' },
     ],
   }
 }
@@ -120,7 +123,9 @@ test('the header shows the week label, an item shows last week as text and this 
   const last = screen.getByText('Waiting for supplier quote')
   expect(last.closest('textarea, input')).toBeNull()
   expect(cellButton('XX-01 PM Remarks This week')).toHaveTextContent('Quote received')
-  expect(cellButton('XX-01 Purchase Remarks This week')).toHaveTextContent('')
+  expect(cellButton('XX-01 Procurement Remarks')).toHaveTextContent('')
+  expect(screen.getByText('Budget checked')).toBeInTheDocument()
+  expect(screen.getByText('Lead time 3 weeks')).toBeInTheDocument()
   // ISO dates read as day, month and year inside the idle cell button.
   expect(cellButton('XX-01 Material Submission Plan Submit')).toHaveTextContent('7 Oct 2025')
   expect(document.querySelectorAll('.mat-table input, .mat-table select, .mat-table textarea')).toHaveLength(0)
@@ -296,7 +301,7 @@ test('the section controls collapse every section and expand them again', async 
   expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
 })
 
-test('a picture opens larger in a dialog', async () => {
+test('a picture opens larger in a dialog, and the Image cell has no pencil of its own', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([material('x1', 1, 'XX-01', 4, {
     data: { ...material('x1', 1, 'XX-01', 4).data, images: { image: ['a1b2c3.webp'] } },
   })]))
@@ -304,9 +309,39 @@ test('a picture opens larger in a dialog', async () => {
   const thumb = screen.getByRole('img', { name: 'XX-01 Image 1' })
   expect(thumb).toHaveAttribute('src', '/mat/a1b2c3.webp')
   expect(thumb).toHaveAttribute('loading', 'lazy')
+  expect(screen.queryByRole('button', { name: 'Edit XX-01 Image' })).toBeNull()
+  expect(screen.queryByRole('button', { name: 'Edit XX-01 Approved Sample' })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'XX-01 Image 1' }))
   const dialog = await screen.findByRole('dialog')
   expect(within(dialog).getByRole('img')).toHaveAttribute('src', '/mat/a1b2c3.webp')
+})
+
+test('Changed this week outlines only the rows changed in the tracker and filters to them', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    material('x1', 2, 'XX-01', 4, { changedWeek: WEEK }),
+    material('x2', 3, 'XX-02', 8, { changedWeek: LAST }),
+  ]))
+  await openList()
+  expect(screen.getByText('Sample panel XX-01').closest('tr')).toHaveAttribute('data-changed', 'true')
+  expect(screen.getByText('Sample panel XX-02').closest('tr')).not.toHaveAttribute('data-changed')
+  fireEvent.click(screen.getByRole('button', { name: 'Changed this week' }))
+  expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
+  expect(screen.queryByText('Sample panel XX-02')).toBeNull()
+  expect(screen.getByText('1 material of 2')).toBeInTheDocument()
+})
+
+test('MEP keeps no Person In Charge column, filter or source field', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([{
+    ...material('m1', 1, 'MP-01', 4), sheet: 'mep',
+  }]))
+  open('/admin?p=bp03&s=mep')
+  expect(await screen.findByText('Sample panel MP-01')).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Person In Charge' })).toBeNull()
+  expect(screen.queryByRole('combobox', { name: 'Person in charge' })).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'MP-01 — Edit material source' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Material Source' })
+  expect(within(dialog).queryByLabelText('Person In Charge')).toBeNull()
 })
 
 test('the Summary tab is removed and ?s=summary falls back to ID Material', async () => {
@@ -316,12 +351,13 @@ test('the Summary tab is removed and ?s=summary falls back to ID Material', asyn
   expect(screen.getByRole('button', { name: 'ID Material' })).toHaveAttribute('aria-current', 'page')
 })
 
-test('Purchase Remarks columns appear before PM Remarks columns', async () => {
+test('the Procurement group carries three remark weeks, ending in the editable Remarks column', async () => {
   await openList()
+  expect(screen.getByRole('columnheader', { name: '2 weeks ago' })).toBeInTheDocument()
+  expect(screen.getAllByRole('columnheader', { name: 'Last week' }).length).toBeGreaterThan(0)
   const headers = screen.getAllByRole('columnheader').map((el) => el.textContent)
-  expect(headers.indexOf('Purchase Remarks')).toBeGreaterThan(-1)
-  expect(headers.indexOf('PM Remarks')).toBeGreaterThan(-1)
-  expect(headers.indexOf('Purchase Remarks')).toBeLessThan(headers.indexOf('PM Remarks'))
+  expect(headers.indexOf('Procurement')).toBeLessThan(headers.indexOf('PM Remarks'))
+  expect(headers.indexOf('Procurement')).toBeLessThan(headers.lastIndexOf('Remarks'))
 })
 
 test('Material Submission, Sample Submission, Procurement, and Quantity Unit are editable, with a Status selector', async () => {
@@ -359,11 +395,6 @@ test('Material Submission, Sample Submission, Procurement, and Quantity Unit are
   fireEvent.keyDown(poPlan, { key: 'Enter' })
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'poPlan', '2026-02-01'))
 
-  const procRemarks = activate('XX-01 Procurement Remarks')
-  fireEvent.change(procRemarks, { target: { value: 'Lead time 3w' } })
-  fireEvent.blur(procRemarks)
-  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'procRemarks', 'Lead time 3w'))
-
   const unit = activate('XX-01 Quantity Unit')
   fireEvent.change(unit, { target: { value: 'm2' } })
   fireEvent.keyDown(unit, { key: 'Enter' })
@@ -391,8 +422,9 @@ test('column view pills filter column groups while keeping No, Code, Description
   expect(screen.queryByRole('columnheader', { name: 'Material Submission' })).toBeNull()
 
   fireEvent.click(within(colsGroup).getByRole('button', { name: 'Remarks & %' }))
-  expect(screen.getByRole('columnheader', { name: 'Purchase Remarks' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'PM Remarks' })).toBeInTheDocument()
   expect(screen.getByRole('columnheader', { name: 'Percentage' })).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Procurement' })).toBeNull()
 
   fireEvent.click(within(colsGroup).getByRole('button', { name: 'All' }))
   expect(screen.getByRole('columnheader', { name: 'Material Submission' })).toBeInTheDocument()

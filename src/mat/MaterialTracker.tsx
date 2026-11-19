@@ -8,6 +8,7 @@ import { Tile } from '@/components/WorkspaceUI'
 import { weekLabel } from '@/nbc/submissions'
 import { usePhone } from '@/shell/usePhone'
 import { fetchAccess } from './api'
+import { changedItemIds } from './changes'
 import { codeOf, effectiveCol, formatCol } from './formulas'
 import type { OnCell, OnFields, OnRemark } from './MatCells'
 import { MatSourcePanel } from './MatSourcePanel'
@@ -16,6 +17,7 @@ import { COLUMN_VIEWS, MatPictureDialog, MatTable } from './MatTable'
 import type { ColumnView } from './MatTable'
 import { useMat } from './store'
 import type { MatState, SaveStatus } from './store'
+import { MARK_LABELS } from './types'
 import type { MatItem, Pkg, Sheet } from './types'
 
 type Tab = Extract<Sheet, 'id' | 'mep'>
@@ -26,8 +28,10 @@ const PACKAGES: { id: Pkg; label: string }[] = [{ id: 'bp03', label: 'BP03' }, {
 const SHEETS: { id: Tab; label: string }[] = [
   { id: 'id', label: 'ID Material' }, { id: 'mep', label: 'MEP Material' },
 ]
+/** MEP rows carry no Person In Charge: the workbook hides the column and the tracker leaves it out. */
+const MEP_OMIT: ReadonlySet<string> = new Set(['pic'])
 /** The workbook legend (W1:W3): green, beige and yellow rows. */
-export const MARKS: Record<Mark, string> = { done: 'Completed', tracking: 'On tracking', omit: 'Omitted' }
+export const MARKS: Record<Mark, string> = MARK_LABELS
 const SAVE_TEXT: Record<SaveStatus, string> = { idle: '', saving: 'Saving…', saved: 'Saved', error: 'Could not save' }
 /** The app's pill carries the dot color; this page adds the error chip on top of it. */
 const SAVE_TONE: Record<SaveStatus, string> = { idle: 'success', saving: 'busy', saved: 'success', error: 'error' }
@@ -147,6 +151,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
   const items = state.items
   const rows = useMemo(() => items.filter((item) => item.sheet === sheet), [items, sheet])
   const [query, setQuery] = useState(''), [pic, setPic] = useState(''), [status, setStatus] = useState(''), [mark, setMark] = useState('')
+  const [changedOnly, setChangedOnly] = useState(false)
   const [view, setView] = useState<ColumnView>('all')
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
   const [sourceItemId, setSourceItemId] = useState<string | null>(null)
@@ -163,21 +168,23 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
     return () => removeEventListener('keydown', onKey)
   }, [])
   const q = useDeferredValue(query).trim().toLowerCase()
+  const changedIds = useMemo(() => changedItemIds(rows, state.remarks, state.week), [rows, state.remarks, state.week])
   const options = useMemo(() => {
     const materials = rows.filter((row) => row.kind === 'item')
     const marks = (Object.keys(MARKS) as Mark[]).filter((m) => materials.some((row) => row.data.mark === m))
     return {
-      pics: distinct(materials.map((row) => text(row, 'pic'))),
+      pics: sheet === 'mep' ? [] : distinct(materials.map((row) => text(row, 'pic'))),
       statuses: distinct(materials.map((row) => text(row, 'msStatus'))),
       marks, unmarked: materials.some((row) => !row.data.mark),
       totalCount: materials.length,
     }
-  }, [rows])
-  const active = !!(q || pic || status || mark)
+  }, [rows, sheet])
+  const active = !!(q || pic || status || mark || changedOnly)
   const match = useMemo(() => !active ? null : (row: MatItem) =>
     (!q || `${codeOf(row)} ${formatCol(effectiveCol(row, 'description'))}`.toLowerCase().includes(q))
     && (!pic || text(row, 'pic') === pic) && (!status || text(row, 'msStatus') === status)
-    && (!mark || (row.data.mark ?? 'none') === mark), [active, q, pic, status, mark])
+    && (!mark || (row.data.mark ?? 'none') === mark) && (!changedOnly || changedIds.has(row.id)),
+  [active, q, pic, status, mark, changedOnly, changedIds])
   const shownCount = useMemo(
     () => active ? rows.filter((row) => row.kind === 'item' && match?.(row)).length : options.totalCount,
     [active, rows, match, options.totalCount],
@@ -193,7 +200,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
   }), [])
   const expandAll = () => setCollapsed(new Set())
   const collapseAll = () => setCollapsed(new Set(rows.filter((r) => r.kind === 'section').map((r) => r.id)))
-  const clear = () => { setQuery(''); setPic(''); setStatus(''); setMark('') }
+  const clear = () => { setQuery(''); setPic(''); setStatus(''); setMark(''); setChangedOnly(false) }
 
   return <>
     <div className="mat-toolbar">
@@ -202,9 +209,9 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         <input ref={searchRef} type="search" aria-label="Search materials" placeholder="Search code or description" value={query} onChange={(e) => setQuery(e.target.value)}/>
         <kbd className="kbd" aria-hidden="true">/</kbd>
       </label>
-      <GlassSelect aria-label="Person in charge" value={pic} onChange={(e) => setPic(e.target.value)}>
+      {sheet !== 'mep' && <GlassSelect aria-label="Person in charge" value={pic} onChange={(e) => setPic(e.target.value)}>
         <option value="">All people</option>{options.pics.map((v) => <option key={v}>{v}</option>)}
-      </GlassSelect>
+      </GlassSelect>}
       <GlassSelect aria-label="Status" value={status} onChange={(e) => setStatus(e.target.value)}>
         <option value="">All statuses</option>{options.statuses.map((v) => <option key={v}>{v}</option>)}
       </GlassSelect>
@@ -213,6 +220,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         {options.marks.map((m) => <option key={m} value={m}>{MARKS[m]}</option>)}
         {options.unmarked && <option value="none">No mark</option>}
       </GlassSelect>
+      <button type="button" className="mat-chip" aria-pressed={changedOnly} onClick={() => setChangedOnly((v) => !v)}>Changed this week</button>
       {active && shownCount > 0 && <button type="button" className="text-link small mat-clear" onClick={clear}>Clear filters</button>}
       <div className="view-tabs mat-col-tabs" role="group" aria-label="Columns">
         {COLUMN_VIEWS.map((v) => (
@@ -237,6 +245,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
             <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
         </div>
       : <MatTable items={rows} week={state.week} remarks={state.remarks} view={view} match={match} caption={caption} collapsed={collapsed}
+          omit={sheet === 'mep' ? MEP_OMIT : undefined} changed={changedIds}
           onToggle={toggleSection} onCell={onCell} onRemark={onRemark}
           onOpenSource={setSourceItemId} onPicture={setPicture}/>}
     <div className="mat-key-bar">
@@ -246,6 +255,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
       </span>
       <ul className="mat-legend" aria-label="Legend">
         {(Object.keys(MARKS) as Mark[]).map((m) => <li key={m}><span className="mat-swatch" data-mark={m} aria-hidden="true"/>{MARKS[m]}</li>)}
+        <li><span className="mat-swatch" data-mark="changed" aria-hidden="true"/>Changed this week</li>
         <li><span className="mat-swatch" data-mark="override" aria-hidden="true"/>Manual override</li>
       </ul>
     </div>

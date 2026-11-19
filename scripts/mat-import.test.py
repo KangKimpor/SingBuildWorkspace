@@ -130,7 +130,7 @@ def inject_cached(path, cached_by_sheet):
                 t, v = 'str', value
             else:
                 t, v = 'n', repr(float(value))
-            pattern = re.compile(r'<c r="%s"([^>]*)><f>(.*?)</f><v\s*/>' % coord)
+            pattern = re.compile(r'<c r="%s"([^>]*)><f>(.*?)</f><v(?:\s*/>|></v>)' % coord)
             xml, count = pattern.subn(lambda m: '<c r="%s"%s t="%s"><f>%s</f><v>%s</v>' % (coord, re.sub(r' t="\w+"', '', m.group(1)), t, m.group(2), v), xml)
             assert count == 1, (sheet_file, coord)
         files[sheet_file] = xml.encode('utf-8')
@@ -178,10 +178,10 @@ def build(folder, pkg, change=None, pictures=False):
     return path
 
 
-def run(folder, *extra, change03=None, pictures=False, images=True):
+def run(folder, *extra, change03=None, change04=None, pictures=False, images=True):
     folder = Path(folder)
     bp03 = build(folder, 'bp03', change03, pictures)
-    bp04 = build(folder, 'bp04')
+    bp04 = build(folder, 'bp04', change04)
     sql = folder / 'seed.sql'
     args = [sys.executable, '-I', str(SCRIPT), '--bp03', str(bp03), '--bp04', str(bp04), '--sql', str(sql), '--images', str(folder / 'mat')]
     if not images:
@@ -208,6 +208,7 @@ class ImporterTest(unittest.TestCase):
             self.assertNotIn('edits', text)
             self.assertIn('on conflict (id) do update set', text)
             self.assertIn('is distinct from', text)
+            self.assertIn('update public.kw_mat_items set hidden = true', text)
             self.assertNotIn('delete', text.lower())
             got = rows(text)
             self.assertEqual(got['bp03-id-0009']['kind'], 'section')
@@ -330,6 +331,71 @@ class ImporterTest(unittest.TestCase):
             self.assertIn('given to the material below: G9 -> row 10', done.stdout)
             self.assertEqual(len(images['sample']), 1)
             self.assertEqual(got['bp03-id-0011']['data']['images'], {'sample': images['sample']})  # same picture, same file
+
+
+    def test_hidden_rows_and_columns_are_skipped(self):
+        def change(wb, cached):
+            sheet = wb['ID Material']
+            sheet.row_dimensions[11].hidden = True  # WF-02
+            sheet.column_dimensions['B'].hidden = True  # Person In Charge
+            sheet.column_dimensions['W'].hidden = True  # Procurement Remarks
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            self.assertIn('hidden columns skipped: B, W', done.stdout)
+            self.assertIn('1 hidden rows skipped', done.stdout)
+            got = rows(sql.read_text(encoding='utf-8'))
+            self.assertIn('bp03-id-0010', got)
+            self.assertIn('bp03-id-0012', got)
+            self.assertNotIn('bp03-id-0011', got)
+            self.assertNotIn('pic', got['bp03-id-0010']['data']['cols'])
+            self.assertNotIn('procRemarks', got['bp03-id-0010']['data']['cols'])
+            self.assertEqual(got['bp03-id-0009']['data']['end'], 12)
+
+    def test_hidden_sheet_is_not_imported(self):
+        def change(wb, cached):
+            wb['MEP Material'].sheet_state = 'hidden'
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            got = rows(sql.read_text(encoding='utf-8'))
+            self.assertFalse(any(row['package'] == 'bp03' and row['sheet'] == 'mep' for row in got.values()))
+            self.assertTrue(any(row['package'] == 'bp04' and row['sheet'] == 'mep' for row in got.values()))
+
+    def test_numbered_sections_on_a_sheet_without_percentage_subtotals(self):
+        """BP04 MEP Material numbers sections 1, 2, 3 and items 1.1, 1.2; with no SUBTOTAL rows that numbering is the only cue."""
+        def change(wb, cached):
+            ws = wb['MEP Material']
+            ws['A9'], ws['D9'] = '1', 'ACMV SYSTEM'
+            ws['A10'] = '1.1'
+            cached['MEP Material'].pop('A10')
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change04=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            got = rows(sql.read_text(encoding='utf-8'))
+            self.assertEqual(got['bp04-mep-0009']['kind'], 'section')
+            self.assertEqual(got['bp04-mep-0009']['data']['cols']['no'], '1')
+            self.assertEqual(got['bp04-mep-0009']['data']['cols']['code'], 'ACMV SYSTEM')
+            self.assertEqual((got['bp04-mep-0009']['data']['end'], got['bp04-mep-0009']['data']['level']), (10, 0))
+            self.assertEqual(got['bp04-mep-0010']['kind'], 'item')
+
+    def test_mep_items_keep_no_person_in_charge(self):
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            got = rows(sql.read_text(encoding='utf-8'))
+            self.assertNotIn('pic', got['bp03-mep-0010']['data']['cols'])
+            self.assertIn('pic', got['bp03-id-0010']['data']['cols'])
+
+    def test_section_marks_stay_on_materials_only(self):
+        def change(wb, cached):
+            wb['ID Material']['D9'].fill = PatternFill('solid', fgColor=GREEN)  # the section row
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            got = rows(sql.read_text(encoding='utf-8'))
+            self.assertNotIn('mark', got['bp03-id-0009']['data'])
+            self.assertEqual(got['bp03-id-0010']['data']['mark'], 'done')
 
 
 if __name__ == '__main__':

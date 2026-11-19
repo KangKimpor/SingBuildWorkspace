@@ -88,13 +88,14 @@ test('a failed load reports the error', async () => {
   expect(result.current.state).toBeNull()
 })
 
-test('setCell shows the value before the save resolves', async () => {
+test('setCell shows the value and this week\'s change mark before the save resolves', async () => {
   const { result } = await mount()
   const save = deferred<void>()
   vi.mocked(saveCell).mockReturnValue(save.promise)
   let done!: Promise<void>
   act(() => { done = result.current.setCell('a', 'po', 7) })
   expect(edits(result.current.state, 'a')).toEqual({ po: 7 })
+  expect(result.current.state?.items.find((i) => i.id === 'a')?.changedWeek).toBe(WEEK)
   expect(result.current.saveStatus).toBe('saving')
   expect(saveCell).toHaveBeenCalledWith('a', 'po', 7)
   await act(async () => { save.resolve(); await done })
@@ -170,15 +171,24 @@ test('saveRemark returning another week refreshes with remarksSince null', async
   expect(result.current.state?.remarks).toEqual({ [remarkKey('a', 'pm', WEEK)]: 'Delivered' })
 })
 
-test('a week change drops remarks older than last week', async () => {
+test('a week change drops remarks older than two weeks', async () => {
   stored.set('bp03', {
     week: '2026-11-08', syncedAt: '2026-11-13T00:00:00.000Z', items: [item('a', 1)],
-    remarks: { [remarkKey('a', 'pm', '2026-11-01')]: 'Old', [remarkKey('a', 'pm', '2026-11-08')]: 'Last week', [remarkKey('a', 'purchase', '2026-11-08')]: '' },
+    remarks: {
+      [remarkKey('a', 'pm', '2026-10-25')]: 'Older',
+      [remarkKey('a', 'pm', '2026-11-01')]: 'Two weeks ago',
+      [remarkKey('a', 'pm', '2026-11-08')]: 'Last week',
+      [remarkKey('a', 'purchase', '2026-11-08')]: '',
+    },
   })
   const { result } = await mount()
   expect(fetchPackage).toHaveBeenCalledExactlyOnceWith('bp03', '2026-11-12T23:59:50.000Z', null)
   expect(result.current.state?.week).toBe(WEEK)
-  expect(result.current.state?.remarks).toEqual({ [remarkKey('a', 'pm', '2026-11-08')]: 'Last week', [remarkKey('a', 'purchase', '2026-11-08')]: '' })
+  expect(result.current.state?.remarks).toEqual({
+    [remarkKey('a', 'pm', '2026-11-01')]: 'Two weeks ago',
+    [remarkKey('a', 'pm', '2026-11-08')]: 'Last week',
+    [remarkKey('a', 'purchase', '2026-11-08')]: '',
+  })
 })
 
 test('the page refreshes when it becomes visible after more than five minutes hidden', async () => {

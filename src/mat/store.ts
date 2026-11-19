@@ -9,7 +9,7 @@ export interface MatState { week: string; items: MatItem[]; remarks: Record<stri
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const DB_NAME = 'kw-mat'
-const DB_VERSION = 2
+const DB_VERSION = 3
 const STORE = 'packages'
 // A write that starts just before a load can commit just after it. Asking again for this
 // overlap catches it; merging by id and by remark key makes the repeated rows harmless.
@@ -83,7 +83,7 @@ function mergeItems(items: MatItem[], changed: MatItem[]) {
 function applyLoad(base: MatState | null, loaded: MatPackage): MatState {
   let remarks = { ...base?.remarks }
   if (base && base.week !== loaded.week) {
-    const oldest = addDays(loaded.week, -7)
+    const oldest = addDays(loaded.week, -14)
     remarks = Object.fromEntries(Object.entries(remarks).filter(([key]) => key.slice(key.lastIndexOf(':') + 1) >= oldest))
   }
   for (const r of loaded.remarks) remarks[remarkKey(r.itemId, r.team, r.weekStart)] = r.body
@@ -99,7 +99,7 @@ function withFields(state: MatState, id: string, patch: Partial<Record<FieldKey,
         if (value === null || value === undefined) delete edits[key]
         else edits[key] = value
       }
-      return { ...item, edits: edits as MatEdits }
+      return { ...item, edits: edits as MatEdits, changedWeek: state.week, updatedAt: new Date().toISOString() }
     }),
   }
 }

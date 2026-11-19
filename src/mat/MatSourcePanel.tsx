@@ -71,6 +71,8 @@ interface SourceFormProps {
 
 function SourceForm({ item, picOptions, onClose, onFields, onPicture }: SourceFormProps) {
   const code = codeOf(item)
+  // MEP rows keep no Person In Charge: the sheet hides the column and the tracker leaves it out.
+  const cols = item.sheet === 'mep' ? SOURCE_COLS.filter((c) => c !== 'pic') : SOURCE_COLS
   const [initial] = useState<DraftCols>(() => initialCols(item))
   const [initialImages] = useState<{ image: string[]; sample: string[] }>(() => ({
     image: effectiveImages(item, 'image'),
@@ -98,7 +100,7 @@ function SourceForm({ item, picOptions, onClose, onFields, onPicture }: SourceFo
   }, [])
 
   const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((v, i) => v === b[i])
-  const hasChanges = SOURCE_COLS.some((c) => draft[c].trim() !== initial[c])
+  const hasChanges = cols.some((c) => draft[c].trim() !== initial[c])
     || !sameList(images.image, initialImages.image)
     || !sameList(images.sample, initialImages.sample)
 
@@ -142,7 +144,7 @@ function SourceForm({ item, picOptions, onClose, onFields, onPicture }: SourceFo
     if (!hasChanges || saving || uploading) return
     const patch: Partial<Record<FieldKey, FieldValue>> = {}
     try {
-      for (const col of SOURCE_COLS) {
+      for (const col of cols) {
         const limit = col === 'description' || col === 'spec' ? MAX_LONG_TEXT : MAX_SHORT_TEXT
         const next = parseTextInput(draft[col], limit)
         if (next !== initial[col]) {
@@ -211,11 +213,13 @@ function SourceForm({ item, picOptions, onClose, onFields, onPicture }: SourceFo
         <textarea rows={3} value={draft.description} maxLength={MAX_LONG_TEXT} onChange={(e) => setCol('description', e.target.value)}/>
       </label>
       <div className="mat-source-grid">
-        <label className="mat-field">
-          <span>Person In Charge</span>
-          <input list={picListId} value={draft.pic} maxLength={MAX_SHORT_TEXT} onChange={(e) => setCol('pic', e.target.value)}/>
-        </label>
-        <datalist id={picListId}>{picOptions.map((p) => <option key={p} value={p}>{p}</option>)}</datalist>
+        {item.sheet !== 'mep' && <>
+          <label className="mat-field">
+            <span>Person In Charge</span>
+            <input list={picListId} value={draft.pic} maxLength={MAX_SHORT_TEXT} onChange={(e) => setCol('pic', e.target.value)}/>
+          </label>
+          <datalist id={picListId}>{picOptions.map((p) => <option key={p} value={p}>{p}</option>)}</datalist>
+        </>}
         <label className="mat-field">
           <span>BP02 Mat Approval</span>
           <input value={draft.bp02} maxLength={MAX_SHORT_TEXT} onChange={(e) => setCol('bp02', e.target.value)}/>

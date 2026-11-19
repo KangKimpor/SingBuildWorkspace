@@ -18,7 +18,7 @@ import { DateTextCell, NumberCell, RemarkCell, StatusCell, TextCell } from './Ma
 import type { CellFailure, OnCell, OnRemark } from './MatCells'
 import type { MatPicture } from './MatSourcePanel'
 import { remarkKey } from './store'
-import { PCT_CELLS } from './types'
+import { MARK_LABELS, PCT_CELLS } from './types'
 import type { CellKey, ColKey, EditableColKey, MatItem, Team } from './types'
 
 export { codeOf, formatCol } from './formulas'
@@ -34,14 +34,15 @@ export const COLUMN_VIEWS: { id: ColumnView; label: string }[] = [
 
 type ViewTag = Exclude<ColumnView, 'all'>
 type EditMode = 'date' | 'status' | 'text' | 'longtext'
+type RemarkWeek = 'before' | 'last' | 'now'
 
 type Column = { key: string; label: string; width: number; group?: string; view?: ViewTag } & (
   | { type: 'col'; col: ColKey; long?: boolean; source?: boolean; edit?: EditMode }
   | { type: 'pictures'; set: 'image' | 'sample' }
   | { type: 'cell'; cell: CellKey }
-  | { type: 'remark'; team: Team; now: boolean })
+  | { type: 'remark'; team: Team; week: RemarkWeek })
 
-const DATE = 112, NUM = 76, REMARK = 220
+const DATE = 112, NUM = 76, REMARK = 220, REMARK_HISTORY = 190
 const col = (
   key: ColKey,
   label: string,
@@ -51,11 +52,15 @@ const col = (
 ): Column => ({ type: 'col', key, col: key, label, width, group, ...options })
 const cell = (key: CellKey, label: string, group: string, view: ViewTag): Column =>
   ({ type: 'cell', key, cell: key, label, width: NUM, group, view })
-const remark = (team: Team, now: boolean, group: string): Column =>
-  ({ type: 'remark', key: `${team}-${now ? 'now' : 'last'}`, team, now, label: now ? 'This week' : 'Last week', width: REMARK, group, view: 'remarks' })
+const remark = (team: Team, week: RemarkWeek, group: string): Column =>
+  ({ type: 'remark', key: `${team}-${week}`, team, week, group, view: group === PROC ? 'procurement' : 'remarks',
+    label: group === PROC
+      ? week === 'now' ? 'Remarks' : week === 'last' ? 'Last week' : '2 weeks ago'
+      : week === 'now' ? 'This week' : 'Last week',
+    width: week === 'now' ? REMARK : REMARK_HISTORY })
 
 const MS = 'Material Submission', SS = 'Sample Submission', PROC = 'Procurement', QTY = 'Quantity', PCT = 'Percentage'
-const PM = 'PM Remarks', BUY = 'Purchase Remarks'
+const PM = 'PM Remarks'
 /** The workbook's columns, left to right. The first three stay frozen while scrolling sideways. */
 export const COLUMNS: Column[] = [
   col('no', 'No', 48, undefined, { source: true }),
@@ -80,14 +85,14 @@ export const COLUMNS: Column[] = [
   col('poActual', 'Actual Place Order', DATE, PROC, { edit: 'date', view: 'procurement' }),
   col('arrPlan', 'Plan Arrived', DATE, PROC, { edit: 'date', view: 'procurement' }),
   col('arrActual', 'Actual Arrived', DATE, PROC, { edit: 'date', view: 'procurement' }),
-  col('procRemarks', 'Remarks', REMARK, PROC, { long: true, edit: 'longtext', view: 'procurement' }),
+  remark('purchase', 'before', PROC), remark('purchase', 'last', PROC), remark('purchase', 'now', PROC),
   col('unit', 'Unit', 72, QTY, { edit: 'text', view: 'procurement' }),
   cell('total', 'Total by QS', QTY, 'procurement'),
   cell('po', 'PO by Purchase', QTY, 'procurement'),
   cell('shd', 'Approved SHD', QTY, 'procurement'),
   cell('onsite', 'On site', QTY, 'procurement'),
   cell('remaining', 'Remaining', QTY, 'procurement'),
-  remark('purchase', false, BUY), remark('purchase', true, BUY), remark('pm', false, PM), remark('pm', true, PM),
+  remark('pm', 'last', PM), remark('pm', 'now', PM),
   cell('notYetPo', 'Not Yet PO', PCT, 'remarks'),
   cell('placed', 'Placed Order', PCT, 'remarks'),
   cell('production', 'Production In Progress', PCT, 'remarks'),
@@ -97,11 +102,11 @@ export const COLUMNS: Column[] = [
   col('lastUpdated', 'Last Updated', DATE, undefined, { view: 'remarks' }),
 ]
 const FROZEN = 3
-const WORK_GROUPS = new Set([PM, BUY])
+const WORK_GROUPS = new Set([PM])
 const ROW_HEIGHT = 40
 const VIRTUAL_THRESHOLD = 40
 
-const isEditableCol = (c: Column) => (c.type === 'col' && !!c.edit) || c.type === 'cell' || (c.type === 'remark' && c.now)
+const isEditableCol = (c: Column) => (c.type === 'col' && !!c.edit) || c.type === 'cell' || (c.type === 'remark' && c.week === 'now')
 
 interface ViewConfig {
   columns: readonly Column[]
@@ -114,8 +119,9 @@ interface ViewConfig {
   colSet: ReadonlySet<string>
 }
 
-function buildViewConfig(view: ColumnView): ViewConfig {
-  const columns = view === 'all' ? COLUMNS : COLUMNS.filter((c) => !c.view || c.view === view)
+function buildViewConfig(view: ColumnView, omit?: ReadonlySet<string>): ViewConfig {
+  const columns = (view === 'all' ? COLUMNS : COLUMNS.filter((c) => !c.view || c.view === view))
+    .filter((c) => !omit?.has(c.key))
   const groups = columns.reduce<{ group?: string; columns: Column[] }[]>((runs, c) => {
     const last = runs.at(-1)
     if (c.group && last?.group === c.group) last.columns.push(c)
@@ -137,14 +143,6 @@ function buildViewConfig(view: ColumnView): ViewConfig {
     editableKeys: columns.filter(isEditableCol).map((c) => c.key),
     colSet: new Set(columns.map((c) => c.key)),
   }
-}
-
-const VIEW_CONFIG: Record<ColumnView, ViewConfig> = {
-  all: buildViewConfig('all'),
-  details: buildViewConfig('details'),
-  submission: buildViewConfig('submission'),
-  procurement: buildViewConfig('procurement'),
-  remarks: buildViewConfig('remarks'),
 }
 
 /** A section's name is the first five columns joined. */
@@ -225,7 +223,8 @@ function PictureDialogBody({
 interface ItemRowProps {
   item: MatItem
   columns: readonly Column[]
-  remarks: Record<`${Team}-${'last' | 'now'}`, string>
+  remarks: Record<string, string>
+  changed: boolean
   activeCol: string | null
   rowFailures?: ReadonlyMap<string, CellFailure>
   dataIndex?: number
@@ -245,6 +244,7 @@ const ItemRow = memo(function ItemRow({
   item,
   columns,
   remarks,
+  changed,
   activeCol,
   rowFailures,
   dataIndex,
@@ -262,7 +262,7 @@ const ItemRow = memo(function ItemRow({
   const values = effective(item)
   const code = codeOf(item)
   const { cols, cells, notes } = item.data
-  return <tr ref={measureRef} data-index={dataIndex} data-mark={item.data.mark}>
+  return <tr ref={measureRef} data-index={dataIndex} data-mark={item.data.mark} data-changed={changed ? 'true' : undefined}>
     {columns.map((c, index) => {
       const frozen = index < FROZEN ? `mat-f mat-f${index + 1}` : undefined
       const failure = rowFailures?.get(c.key)
@@ -273,12 +273,16 @@ const ItemRow = memo(function ItemRow({
         const text = formatCol(raw)
         const title = notes?.[c.col] ?? (c.long && text ? text : undefined)
         if (c.col === 'code') {
+          const mark = item.data.mark
           return <th key={c.key} scope="row" className={frozen} title={notes?.code ?? (text || undefined)}>
             {onOpenSource
               ? <button type="button" className="mat-source-btn"
                   aria-label={text ? `${text} — Edit material source` : `Edit material source for ${code}`}
                   onClick={() => onOpenSource(item.id)}>
-                  <span className="mat-source-code">{text || 'Edit'}</span>
+                  <span className="mat-source-main">
+                    {mark && <span className="mat-mark-dot" data-mark={mark} title={MARK_LABELS[mark]} aria-hidden="true"/>}
+                    <span className="mat-source-code">{text || 'Edit'}</span>
+                  </span>
                   <Pencil size={12} className="mat-source-icon" aria-hidden="true"/>
                 </button>
               : text}
@@ -330,7 +334,7 @@ const ItemRow = memo(function ItemRow({
 
       if (c.type === 'pictures') {
         const list = effectiveImages(item, c.set)
-        return <td key={c.key}>
+        return <td key={c.key} className="mat-pic-cell">
           <div className="mat-pictures">
             {list.map((ref, i) => {
               const alt = `${code} ${c.label} ${i + 1}`
@@ -339,10 +343,6 @@ const ItemRow = memo(function ItemRow({
                 <MatImg srcRef={ref} alt={alt}/>
               </button>
             })}
-            {onOpenSource && <button type="button" className="mat-pic-edit" aria-label={`Edit ${code} ${c.label}`}
-              title={`Edit ${c.label}`} onClick={() => onOpenSource(item.id)}>
-              <Pencil size={11} aria-hidden="true"/>
-            </button>}
           </div>
         </td>
       }
@@ -376,9 +376,9 @@ const ItemRow = memo(function ItemRow({
         </td>
       }
 
-      const body = remarks[`${c.team}-${c.now ? 'now' : 'last'}`]
+      const body = remarks[`${c.team}-${c.week}`] ?? ''
       const label = `${code} ${c.group} ${c.label}`
-      if (!c.now) {
+      if (c.week !== 'now') {
         return <td key={c.key} className="mat-last"><div className="mat-clamp" title={body || undefined}>{body}</div></td>
       }
       if (isActive) {
@@ -402,13 +402,14 @@ const ItemRow = memo(function ItemRow({
       </td>
     })}
   </tr>
-}, (a, b) => a.item === b.item && a.columns === b.columns && a.activeCol === b.activeCol
+}, (a, b) => a.item === b.item && a.columns === b.columns && a.changed === b.changed && a.activeCol === b.activeCol
   && a.rowFailures === b.rowFailures && a.dataIndex === b.dataIndex
   && a.onCell === b.onCell && a.onRemark === b.onRemark && a.onPicture === b.onPicture && a.onOpenSource === b.onOpenSource
   && a.onActivate === b.onActivate && a.onCloseCell === b.onCloseCell && a.onFailCell === b.onFailCell
   && a.onClearFailCell === b.onClearFailCell && a.onTabCell === b.onTabCell
-  && a.remarks['pm-last'] === b.remarks['pm-last'] && a.remarks['pm-now'] === b.remarks['pm-now']
-  && a.remarks['purchase-last'] === b.remarks['purchase-last'] && a.remarks['purchase-now'] === b.remarks['purchase-now'])
+  && a.remarks['pm-before'] === b.remarks['pm-before'] && a.remarks['pm-last'] === b.remarks['pm-last'] && a.remarks['pm-now'] === b.remarks['pm-now']
+  && a.remarks['purchase-before'] === b.remarks['purchase-before'] && a.remarks['purchase-last'] === b.remarks['purchase-last']
+  && a.remarks['purchase-now'] === b.remarks['purchase-now'])
 
 interface SummaryRowProps {
   id?: string
@@ -462,6 +463,10 @@ export interface MatTableProps {
   week: string
   remarks: Record<string, string>
   view?: ColumnView
+  /** Column keys this sheet leaves out (MEP keeps no Person In Charge). */
+  omit?: ReadonlySet<string>
+  /** Item ids changed since Sunday: the row gets an accent outline. */
+  changed?: ReadonlySet<string>
   onCell: OnCell
   onRemark: OnRemark
   /** Items to keep while a search or filter is on; a section stays while any of its items is kept. */
@@ -478,6 +483,8 @@ export const MatTable = memo(function MatTable({
   week,
   remarks,
   view = 'all',
+  omit,
+  changed,
   onCell,
   onRemark,
   match = null,
@@ -501,7 +508,7 @@ export const MatTable = memo(function MatTable({
   }), [])
   const toggle = controlledToggle ?? localToggle
   const openPicture = controlledPicture ?? setLocalPicture
-  const viewConfig = VIEW_CONFIG[view]
+  const viewConfig = useMemo(() => buildViewConfig(view, omit), [view, omit])
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollLeft = 0
@@ -599,6 +606,7 @@ export const MatTable = memo(function MatTable({
   const measureRef = virtual ? virtualizer.measureElement : undefined
 
   const last = addDays(week, -7)
+  const before = addDays(week, -14)
   const remarkOf = (id: string, team: Team, wk: string) => remarks[remarkKey(id, team, wk)] ?? ''
 
   return <div className="mat-scroll" ref={scrollRef}>
@@ -630,13 +638,15 @@ export const MatTable = memo(function MatTable({
               dataIndex={virtual ? index : undefined} measureRef={measureRef}/>
           : <ItemRow key={row.id} item={row} columns={viewConfig.columns}
               activeCol={activeCell?.itemId === row.id ? activeCell.colKey : null}
+              changed={changed?.has(row.id) ?? false}
               rowFailures={failuresByItem.get(row.id)}
               dataIndex={virtual ? index : undefined} measureRef={measureRef}
               onCell={onCell} onRemark={onRemark} onPicture={openPicture} onOpenSource={onOpenSource}
               onActivate={onActivate} onCloseCell={onCloseCell} onFailCell={onFailCell} onClearFailCell={onClearFailCell} onTabCell={onTabCell}
               remarks={{
-                'pm-last': remarkOf(row.id, 'pm', last), 'pm-now': remarkOf(row.id, 'pm', week),
-                'purchase-last': remarkOf(row.id, 'purchase', last), 'purchase-now': remarkOf(row.id, 'purchase', week),
+                'pm-before': remarkOf(row.id, 'pm', before), 'pm-last': remarkOf(row.id, 'pm', last), 'pm-now': remarkOf(row.id, 'pm', week),
+                'purchase-before': remarkOf(row.id, 'purchase', before), 'purchase-last': remarkOf(row.id, 'purchase', last),
+                'purchase-now': remarkOf(row.id, 'purchase', week),
               }}/>)}
         {padBottom > 0 && <tr className="mat-spacer" aria-hidden="true"><td aria-hidden="true" colSpan={viewConfig.columns.length} style={{ height: padBottom }}/></tr>}
       </tbody>

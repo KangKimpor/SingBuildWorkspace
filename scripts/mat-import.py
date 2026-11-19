@@ -41,7 +41,7 @@ import xml.etree.ElementTree as ET
 import zipfile
 
 import openpyxl
-from openpyxl.utils import get_column_letter
+from openpyxl.utils import column_index_from_string, get_column_letter
 from PIL import Image
 
 MATERIAL_SHEETS = {'ID Material': 'id', 'MEP Material': 'mep'}
@@ -293,8 +293,25 @@ def norm(text):
     return re.sub(r'\s+', ' ', str(text)).strip().lower() if text is not None else ''
 
 
-def find_columns(ws, where):
-    """{role: column index} from the header text in rows 6 and 7."""
+def hidden_columns(ws):
+    """Column indexes hidden in the sheet. A grouped <col> entry hides every column in its range."""
+    out = set()
+    for key, dim in ws.column_dimensions.items():
+        if not dim.hidden:
+            continue
+        first = dim.min or column_index_from_string(key)
+        last = dim.max or first
+        out.update(range(first, last + 1))
+    return out
+
+
+def hidden_rows(ws):
+    """Row numbers hidden in the sheet."""
+    return {int(getattr(dim, 'index', None) or key) for key, dim in ws.row_dimensions.items() if dim.hidden}
+
+
+def find_columns(ws, where, hidden_cols=frozenset()):
+    """{role: column index} from the header text in rows 6 and 7. Hidden columns are left out."""
     group_of = {}  # column -> (group text, is first column of the merge)
     for c in range(1, ws.max_column + 1):
         group_of[c] = (ws.cell(GROUP_ROW, c).value, True)
@@ -303,7 +320,7 @@ def find_columns(ws, where):
             text = ws.cell(rng.min_row, rng.min_col).value
             for c in range(rng.min_col, rng.max_col + 1):
                 group_of[c] = (text, c == rng.min_col)
-    roles, ignored = {}, []
+    roles, ignored, hidden_roles = {}, [], set()
     for c in range(1, ws.max_column + 1):
         top, first = group_of[c]
         top, sub = norm(top), norm(ws.cell(SUB_ROW, c).value)
@@ -322,13 +339,17 @@ def find_columns(ws, where):
                 raise Failure(f'{where}!{letter}{GROUP_ROW}: unrecognised header {top!r}')
         else:
             role = None
+        if c in hidden_cols:
+            if role is not None:
+                hidden_roles.add(role)
+            continue
         if role is None:
             ignored.append(c)
             continue
         if role in roles:
             raise Failure(f'{where}!{letter}{GROUP_ROW}: second column for {role!r}')
         roles[role] = c
-    missing = REQUIRED - set(roles)
+    missing = REQUIRED - set(roles) - hidden_roles
     if missing:
         raise Failure(f'{where}: no column found for {sorted(missing)}')
     return roles, ignored
@@ -413,7 +434,13 @@ class Sheet:
 def read_material(pkg, wf, wv, title, legend_fallback):
     sheet = Sheet(pkg, title, MATERIAL_SHEETS[title])
     ws, vs = wf[title], wv[title]
-    roles, ignored = find_columns(ws, f"{pkg} '{title}'")
+    hidden_cols = hidden_columns(ws)
+    hidden = hidden_rows(ws)
+    roles, ignored = find_columns(ws, f"{pkg} '{title}'", hidden_cols)
+    if hidden_cols:
+        sheet.warnings.append(f"hidden columns skipped: {', '.join(get_column_letter(c) for c in sorted(hidden_cols))}")
+    if hidden:
+        sheet.warnings.append(f'{len(hidden)} hidden rows skipped')
     sheet.role_col = roles
     role_of = {get_column_letter(c): r for r, c in roles.items()}
     marks = legend(ws) or legend_fallback
@@ -442,21 +469,31 @@ def read_material(pkg, wf, wv, title, legend_fallback):
     def is_subtotal(value):
         return isinstance(value, str) and 'SUBTOTAL(' in value.upper()
 
+    def numbered_section(value):
+        """BP04 MEP Material has no SUBTOTAL rows, so its section rows are the ones numbered 1, 2, 3 (items are 1.1, 2.3)."""
+        return empty_pct and re.fullmatch(r'\d+', str(clean(value) if clean(value) is not None else '')) is not None
+
     subtotals = []  # (coord, cell key, first row, last row, cached, section row or None for row 8)
     checks = []     # (coord, cell key, row data or None for a constant, cached, constant's value)
     for r in range(FIRST_ROW, max_row + 1):
         raw = {c: grid[(r, c)].value for c in range(1, max_col + 1)}
         if all(clean(v) is None for v in raw.values()):
             continue
-        at = lambda role: raw[roles[role]]
+        at = lambda role: raw[roles[role]] if role in roles else None
         pct_raw = [at(k) for k in PCT_CELLS]
-        has_label = any(clean(raw[roles[k]]) is not None for k in ('no', 'pic', 'bp02', 'code'))
+        has_label = any(clean(at(k)) is not None for k in ('no', 'pic', 'bp02', 'code'))
         pct_sections = all(v in (None, '') or is_subtotal(v) for v in pct_raw)
         is_section = (clean(at('total')) is None and pct_sections and has_label and
-                      (any(is_subtotal(v) for v in pct_raw) or (clean(at('code')) is None and clean(at('description')) is None)))
+                      (any(is_subtotal(v) for v in pct_raw)
+                       or (clean(at('code')) is None and clean(at('description')) is None)
+                       or (numbered_section(at('no')) and clean(at('description')) is None)))
         kind = 'section' if is_section else 'item'
         data = dict(cols={}, cells={})
         for key in COL_KEYS:
+            if key not in roles:
+                continue
+            if key == 'pic' and sheet.key == 'mep':  # MEP sheets keep no Person In Charge
+                continue
             c = roles[key]
             value = raw[c]
             if isinstance(value, str) and value.startswith('='):
@@ -507,11 +544,13 @@ def read_material(pkg, wf, wv, title, legend_fallback):
                     data['cells'][key] = {'f': DEFAULT_PCT[key]}
                     sheet.defaulted += 1
         mark = marks.get(fill_key(grid[(r, roles['code'])]))
-        if mark:
+        if mark and kind == 'item':
             data['mark'] = mark
         if notes:
             data['notes'] = notes
         item = dict(id=f'{pkg}-{sheet.key}-{r:04d}', sheet=sheet.key, pos=r, kind=kind, data=data)
+        if r in hidden:
+            item['hidden'] = True
         sheet.rows.append(item)
         if kind == 'item':
             sheet.item_rows[r] = item
@@ -572,11 +611,24 @@ def read_material(pkg, wf, wv, title, legend_fallback):
         for s in sections
         if str(s['data']['cols'].get('code') or '').strip().upper() in EXCLUDED_SECTIONS
     ]
-    if excluded:
-        def is_excluded(pos):
-            return any(start <= pos <= end for start, end in excluded)
-        sheet.rows = [row for row in sheet.rows if not is_excluded(row['pos'])]
-        sheet.item_rows = {r: row for r, row in sheet.item_rows.items() if not is_excluded(r)}
+
+    def is_excluded(pos):
+        return any(start <= pos <= end for start, end in excluded)
+
+    # Hidden rows took part in the formula checks above (Excel's SUBTOTAL counts them) but stay out of the seed and the app.
+    sheet.rows = [row for row in sheet.rows if not row.pop('hidden', False) and not is_excluded(row['pos'])]
+    kept = {row['pos'] for row in sheet.rows}
+    sheet.item_rows = {r: row for r, row in sheet.item_rows.items() if r in kept}
+    # Levels over the rows that remain, so a dropped hidden section does not leave its children one level too deep.
+    sections = [row for row in sheet.rows if row['kind'] == 'section']
+    sheet.nested = sheet.nested_in = 0
+    for section in sections:
+        level = sum(1 for other in sections if other is not section and other['pos'] < section['pos'] <= other['data']['end'])
+        section['data']['level'] = level
+        if level:
+            sheet.nested_in += 1
+        if any(section['pos'] < other['pos'] <= section['data']['end'] for other in sections):
+            sheet.nested += 1
     return sheet
 
 
@@ -598,12 +650,13 @@ def read_workbook(pkg, path):
     wf = openpyxl.load_workbook(path, data_only=False)
     wv = openpyxl.load_workbook(path, data_only=True)
     sheets = []
-    material = [t for t in wf.sheetnames if t in MATERIAL_SHEETS]
-    if sorted(material) != sorted(MATERIAL_SHEETS):
-        raise Failure(f'{pkg}: expected sheets {sorted(MATERIAL_SHEETS)}, found {wf.sheetnames}')
+    visible = [t for t in wf.sheetnames if wf[t].sheet_state == 'visible']
+    material = [t for t in visible if t in MATERIAL_SHEETS]
+    if not material:
+        raise Failure(f'{pkg}: no visible material sheet in {wf.sheetnames}')
     legends = [legend(wf[t]) for t in material]
     fallback = next((m for m in legends if m), {})
-    for title in wf.sheetnames:
+    for title in visible:
         if title in MATERIAL_SHEETS:
             sheets.append(read_material(pkg, wf, wv, title, fallback))
         elif title in NOTE_SHEETS:
@@ -747,8 +800,12 @@ def attach_pictures(pkg, path, sheets, folder):
 SAFE = re.compile(r'^[a-z0-9-]+$')
 HEAD = 'insert into public.kw_mat_items (id, package, sheet, pos, kind, data) values\n'
 TAIL = ('\non conflict (id) do update set package = excluded.package, sheet = excluded.sheet, pos = excluded.pos, '
-        'kind = excluded.kind, data = excluded.data, updated_at = now()\n'
-        'where (kw_mat_items.package, kw_mat_items.sheet, kw_mat_items.pos, kw_mat_items.kind, kw_mat_items.data)\n'
+        'kind = excluded.kind, data = excluded.data, hidden = false,\n'
+        '  updated_at = case when (kw_mat_items.package, kw_mat_items.sheet, kw_mat_items.pos, kw_mat_items.kind, kw_mat_items.data)\n'
+        '    is distinct from (excluded.package, excluded.sheet, excluded.pos, excluded.kind, excluded.data) then now()\n'
+        '    else kw_mat_items.updated_at end\n'
+        'where kw_mat_items.hidden\n'
+        '  or (kw_mat_items.package, kw_mat_items.sheet, kw_mat_items.pos, kw_mat_items.kind, kw_mat_items.data)\n'
         '  is distinct from (excluded.package, excluded.sheet, excluded.pos, excluded.kind, excluded.data);\n')
 
 
@@ -779,9 +836,20 @@ def seed(sheets):
         size += length
     if chunk:
         statements.append(HEAD + ',\n'.join(chunk) + TAIL)
+    # A row that is hidden in the workbook, or inside a dropped section, is absent from this seed.
+    # Keep the row for history but take it out of the app, matching the workbook.
+    packages = sorted({pkg for pkg, _, _ in rows})
+    package_sql = ', '.join("'" + p + "'" for p in packages)
+    ids = ', '.join(f"'{row['id']}'" for _, _, row in rows)
+    hide = (f'-- Rows the workbooks no longer show stay in the table but leave the app.\n'
+            f'update public.kw_mat_items set hidden = true, updated_at = now()\n'
+            f'where package in ({package_sql}) and not hidden\n'
+            f'  and id not in ({ids});\n')
+    if len(hide.encode('utf-8')) > MAX_STATEMENT:
+        raise Failure(f'the hide statement is larger than {MAX_STATEMENT} bytes')
     header = ('-- Material tracker seed, generated by scripts/mat-import.py. Local only: never commit this file.\n'
-              f'-- {len(values)} rows in {len(statements)} statements. Upserts only; rows missing from the workbooks are left alone.\n')
-    return header + 'begin;\n' + '\n'.join(statements) + 'commit;\n', len(statements)
+              f'-- {len(values)} rows in {len(statements) + 1} statements. Upserts only; rows missing from the workbooks are hidden.\n')
+    return header + 'begin;\n' + '\n'.join(statements) + hide + 'commit;\n', len(statements) + 1
 
 
 # ---- main ------------------------------------------------------------------------------------------------------------------------

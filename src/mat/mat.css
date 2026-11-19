@@ -5,8 +5,6 @@ html[data-mat] .canvas { padding-block: 0; }
   --mat-h2: 44px;
   --mat-head-group: color-mix(in srgb, var(--pp-band) 50%, var(--pp-l3));
   --mat-head-work: color-mix(in srgb, var(--pp-l2) 75%, var(--pp-l3));
-  --mat-section: var(--pp-l2);
-  --mat-section-nested: color-mix(in srgb, var(--pp-l2) 40%, var(--pp-l3));
   --mat-row-hover: #f5f5f3;
   display: flex; flex-direction: column; gap: var(--space-12); min-width: 0;
   height: calc(100dvh - var(--h-topbar) - var(--safe-top));
@@ -52,6 +50,10 @@ html[data-mat] .canvas { padding-block: 0; }
 :is(.mat-swatch, .mat-table tr)[data-mark='tracking'] { --mat-mark: var(--chip-brown); }
 :is(.mat-swatch, .mat-table tr)[data-mark='omit'] { --mat-mark: var(--chip-yellow); }
 .mat-swatch { background: var(--mat-mark); }
+.mat-swatch[data-mark='changed'] { border-color: var(--pp-accent); background: var(--pp-l3); box-shadow: inset 0 0 0 1px var(--pp-accent); }
+.mat-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font: inherit; font-size: var(--fs-small); cursor: pointer; }
+.mat-chip:hover { border-color: var(--pp-accent); color: var(--pp-ink); }
+.mat-chip[aria-pressed='true'] { border-color: var(--pp-accent); background: var(--pp-wash); color: var(--pp-accent-ink); }
 
 .mat-error { margin: 0; padding-block: var(--space-12); font-size: var(--fs-small); color: var(--danger-text); }
 .mat-empty-scroll { display: grid; place-items: center; }
@@ -104,13 +106,15 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-f2 { left: 48px; }
 .mat-f3 { left: 144px; }
 .mat-table :is(.mat-f3, .mat-f-span) { border-right: 1px solid var(--pp-line-strong); }
-/* Row marks tint only the frozen cells, so every other cell keeps its contrast. */
-.mat-table tbody tr[data-mark] > .mat-f { background-color: var(--mat-mark); }
+/* Rows keep one plain background. The workbook's status marks live in the small dot on the Code cell and in the legend. */
 .mat-table tbody th.mat-f2 { padding: 0; font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-2); }
 /* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
 .mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
-.mat-table tbody tr[data-mark]:hover > .mat-f { background-color: color-mix(in srgb, var(--mat-mark) 90%, #000); }
+/* Changed this week: the accent outline Project Progress puts around a moved row. */
+.mat-table tbody tr[data-changed='true'] > :is(td, th) { box-shadow: inset 0 0 0 1px var(--pp-accent); }
+.mat-mark-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--mat-mark); }
+.mat-source-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
 /* Material Source trigger on the Code cell. */
 .mat-source-btn { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 8px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
@@ -124,9 +128,8 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
 .mat-last { color: var(--pp-ink-2); font-size: 12.5px; }
 
-/* Section bands and the sheet-average row. */
-.mat-table tr.mat-section > :is(td, th) { background-color: var(--mat-section-nested); border-bottom-color: var(--pp-l2-line); }
-.mat-table tr.mat-section[data-level='0'] > :is(td, th) { background-color: var(--mat-section); }
+/* Section bands and the sheet-average row. Sections share one plain background at every level; the rule above them carries the hierarchy. */
+.mat-table tr.mat-section > :is(td, th) { background-color: var(--pp-l3); border-top: 1px solid var(--pp-line-strong); }
 .mat-table tr.mat-total > :is(td, th) { background-color: var(--pp-band); border-bottom: 1px solid var(--pp-line-strong); }
 .mat-table :is(.mat-section, .mat-total) th { font-weight: 600; }
 .mat-section[data-level='0'] th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
@@ -137,14 +140,11 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-avg { text-align: end; font-weight: 600; white-space: nowrap; }
 
 /* Pictures and lightbox (lightbox sits above the Material Source panel so previewing from inside it works). */
-.mat-pictures { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
-.mat-thumb { display: block; width: 32px; height: 32px; padding: 0; border: 1px solid var(--pp-line); border-radius: 4px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
+.mat-table td.mat-pic-cell { padding: 1px; }
+.mat-pictures { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 3px; height: 100%; }
+.mat-thumb { display: block; width: 36px; height: 36px; padding: 0; border: 1px solid var(--pp-line); border-radius: 4px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
 .mat-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .mat-img-loading { display: block; width: 100%; height: 100%; background: var(--pp-band); }
-.mat-pic-edit { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--pp-ink-2); opacity: 0; cursor: pointer; }
-.mat-table tbody tr:hover .mat-pic-edit,
-.mat-pic-edit:focus-visible { opacity: 1; }
-.mat-pic-edit:hover { border-color: var(--pp-line-strong); background: var(--pp-l3); color: var(--pp-accent-ink); }
 .mat-scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
 .mat-picture-scrim { z-index: 60; }
 .mat-picture { position: fixed; top: 50%; left: 50%; z-index: 61; translate: -50% -50%; display: grid; gap: 8px; max-width: min(720px, 92vw); padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-modal); background: var(--bg-raised); box-shadow: var(--shadow-popover); }

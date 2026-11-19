@@ -34,6 +34,7 @@ export const MS_STATUS_OPTIONS = [
 
 export type EditableColKey = Exclude<ColKey, 'lastUpdated'>
 export type ImageSet = 'image' | 'sample'
+export const MARK_LABELS = { done: 'Completed', tracking: 'On tracking', omit: 'Omitted' } as const
 export type FieldKey = CellKey | EditableColKey | ImageSet
 export type FieldValue = number | string | string[] | null
 export type MatEdits = Partial<Record<CellKey, number | string>>
@@ -59,4 +60,6 @@ export interface MatItem {
   data: MatData
   edits: MatEdits
   updatedAt: string
+  /** Reporting week (Sunday) of the last edit made in the tracker; the workbook import leaves it null. */
+  changedWeek?: string | null
 }
