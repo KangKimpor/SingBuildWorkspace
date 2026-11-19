@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { handlerComplete } from '../handlers'
-import { canUpdate, submissionId, weekLabel } from '../submissions'
+import { canUpdate, changedEntries, submissionId, weekLabel } from '../submissions'
 import { projectHandlers } from '../types'
 import { Avatar } from '../ui/Avatar'
 import type { Handler, NbcActivity, NbcSubmission } from '../types'
@@ -18,7 +18,7 @@ export function HandlerGate({ projectId, week, activities, submissions, onChoose
         const submission = submissions.find((s) => s.id === submissionId(projectId, week, h))
         const complete = handlerComplete(activities, h)
         const count = activities.filter((a) => canUpdate(a, h)).length
-        const status = complete ? 'Complete' : submission?.status === 'confirmed' ? 'Updated' : submission?.status === 'draft' ? 'Draft' : 'Not yet'
+        const status = complete ? 'Complete' : submission?.status === 'confirmed' ? 'Updated' : submission?.status === 'draft' && changedEntries(submission.entries).length > 0 ? 'Draft' : 'Not yet'
         return <button key={h} aria-pressed={picked === h} disabled={complete} onClick={() => setPicked(h)}>
           <span className="nbc-radio" aria-hidden="true"/>
           <Avatar name={h} size="lg"/>
