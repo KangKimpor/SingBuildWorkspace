@@ -1,5 +1,5 @@
 import { initializeSupabase } from '@/lib/supabase'
-import type { CellKey, MatItem, Pkg, Team } from './types'
+import type { FieldKey, FieldValue, MatItem, Pkg, Team } from './types'
 
 export interface MatRemark { itemId: string; team: Team; weekStart: string; body: string }
 export interface MatPackage { week: string; now: string; items: MatItem[]; remarks: MatRemark[] }
@@ -37,9 +37,14 @@ export async function fetchPackage(pkg: Pkg, itemsSince: string | null, remarksS
   }
 }
 
-// A null value removes the override, so the cell falls back to its imported source.
-export async function saveCell(id: string, cell: CellKey, value: number | string | null): Promise<void> {
+// A null value removes the override, so the field falls back to its imported source.
+export async function saveCell(id: string, cell: FieldKey, value: FieldValue): Promise<void> {
   await rpc('kw_mat_set_cell', { p_id: id, p_cell: cell, p_value: value })
+}
+
+// Updates multiple fields in `edits` atomically in one RPC; null removes that key's override.
+export async function saveFields(id: string, patch: Partial<Record<FieldKey, FieldValue>>): Promise<void> {
+  await rpc('kw_mat_set_fields', { p_id: id, p_patch: patch })
 }
 
 // The server files the remark under its own current week, which is returned.

@@ -1,13 +1,25 @@
 import { useRef, useState } from 'react'
 import type { KeyboardEvent } from 'react'
-import { RotateCcw } from 'lucide-react'
-import { formatCell, parseInput } from './formulas'
-import type { CellKey, Scalar, Team } from './types'
+import { Calendar, RotateCcw } from 'lucide-react'
+import {
+  formatCell,
+  formatCol,
+  isIsoDate,
+  MAX_LONG_TEXT,
+  MAX_SHORT_TEXT,
+  parseDateTextInput,
+  parseInput,
+  parseTextInput,
+  patchForSource,
+} from './formulas'
+import { MS_STATUS_OPTIONS } from './types'
+import type { CellKey, EditableColKey, FieldKey, FieldValue, Scalar, Team } from './types'
 
-export type OnCell = (id: string, cell: CellKey, value: number | string | null) => Promise<void>
+export type OnCell = (id: string, cell: FieldKey, value: FieldValue) => Promise<void>
+export type OnFields = (id: string, patch: Partial<Record<FieldKey, FieldValue>>) => Promise<void>
 export type OnRemark = (id: string, team: Team, body: string) => Promise<void>
 
-export const REMARK_LIMIT = 2000
+export const REMARK_LIMIT = MAX_LONG_TEXT
 
 interface Failure { message: string; retry?: () => void }
 const reason = (e: unknown) => (e instanceof Error && e.message ? e.message : 'Could not save.')
@@ -100,6 +112,157 @@ export function NumberCell({ id, cell, label, value, override, calculated, note,
       <button type="button" className="mat-formula" aria-label={`Use formula for ${label}`} title="Use formula" onClick={() => void edit.save('', () => onCell(id, cell, null))}>
         <RotateCcw size={11} strokeWidth={2.2} aria-hidden="true"/>
       </button>}
+    <Retry label={label} failure={edit.failure}/>
+  </div>
+}
+
+export interface DateTextCellProps {
+  id: string
+  col: EditableColKey
+  label: string
+  raw: Scalar
+  sourceRaw: Scalar
+  onCell: OnCell
+}
+
+/** A date or text cell ("7 Oct 2025", "TBC", "-/-"): supports free typing and a calendar picker. */
+export function DateTextCell({ id, col, label, raw, sourceRaw, onCell }: DateTextCellProps) {
+  const shown = formatCol(raw)
+  const edit = useDraft(shown, (text, { save, reject, cancel }) => {
+    let next: string
+    try {
+      next = parseDateTextInput(text)
+    } catch (e) {
+      return reject(reason(e))
+    }
+    const currentRaw = raw === null || raw === undefined ? '' : String(raw)
+    if (next === currentRaw) return cancel()
+    const patch = patchForSource(sourceRaw, next)
+    void save(text, () => onCell(id, col, patch))
+  })
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      edit.commit()
+    } else if (e.key === 'Escape') edit.cancel()
+  }
+  const text = edit.draft ?? shown
+  return <div className="mat-date">
+    <input aria-label={label} value={text} title={edit.failure?.message ?? (text || undefined)}
+      aria-invalid={edit.failure ? true : undefined} autoComplete="off" spellCheck={false}
+      onChange={(e) => edit.setDraft(e.target.value)} onBlur={edit.commit} onKeyDown={onKeyDown}/>
+    <label className="mat-date-pick" title="Choose date">
+      <Calendar size={12} aria-hidden="true"/>
+      <input type="date" tabIndex={-1} aria-label={`Pick date for ${label}`}
+        value={isIsoDate(raw) ? raw : ''}
+        onChange={(e) => {
+          const picked = e.target.value
+          const currentRaw = raw === null || raw === undefined ? '' : String(raw)
+          if (picked === currentRaw) return
+          const display = formatCol(picked || null)
+          const patch = patchForSource(sourceRaw, picked)
+          edit.setDraft(display)
+          void edit.save(display, () => onCell(id, col, patch))
+        }}/>
+    </label>
+    <Retry label={label} failure={edit.failure}/>
+  </div>
+}
+
+export interface StatusCellProps {
+  id: string
+  label: string
+  raw: Scalar
+  sourceRaw: Scalar
+  onCell: OnCell
+}
+
+/** Material Submission status selector: standard statuses plus any existing workbook custom value. */
+export function StatusCell({ id, label, raw, sourceRaw, onCell }: StatusCellProps) {
+  const current = raw === null || raw === undefined ? '' : String(raw)
+  const [pending, setPending] = useState<string | null>(null)
+  const [failure, setFailure] = useState<Failure | null>(null)
+  const shown = pending ?? current
+  const custom = current !== '' && !(MS_STATUS_OPTIONS as readonly string[]).includes(current)
+
+  async function save(next: string) {
+    if (next === current && !failure) return
+    const patch = patchForSource(sourceRaw, next)
+    setPending(next)
+    try {
+      await onCell(id, 'msStatus', patch)
+      setPending((p) => (p === next ? null : p))
+      setFailure(null)
+    } catch (e) {
+      setFailure({ message: reason(e), retry: () => void save(next) })
+    }
+  }
+
+  return <div className="mat-select-wrap">
+    <select className="mat-select" aria-label={label} value={shown}
+      title={failure?.message ?? (shown ? formatCol(shown) : undefined)}
+      aria-invalid={failure ? true : undefined}
+      onChange={(e) => void save(e.target.value)}>
+      <option value="" aria-label="Clear status"/>
+      {custom && <option value={current}>{formatCol(current).replace(/\s+/g, ' ').trim()}</option>}
+      {MS_STATUS_OPTIONS.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+    </select>
+    <Retry label={label} failure={failure}/>
+  </div>
+}
+
+export interface TextCellProps {
+  id: string
+  col: EditableColKey
+  label: string
+  raw: Scalar
+  sourceRaw: Scalar
+  long?: boolean
+  maxLength?: number
+  onCell: OnCell
+}
+
+/** Inline editable text cell (`Unit` or `Procurement Remarks`). */
+export function TextCell({ id, col, label, raw, sourceRaw, long, maxLength, onCell }: TextCellProps) {
+  const shown = formatCol(raw)
+  const limit = maxLength ?? (long ? MAX_LONG_TEXT : MAX_SHORT_TEXT)
+  const edit = useDraft(shown, (text, { save, reject, cancel }) => {
+    let next: string
+    try {
+      next = parseTextInput(text, limit)
+    } catch (e) {
+      return reject(reason(e))
+    }
+    const currentRaw = raw === null || raw === undefined ? '' : String(raw)
+    if (next === currentRaw) return cancel()
+    const patch = patchForSource(sourceRaw, next)
+    void save(text, () => onCell(id, col, patch))
+  })
+  const text = edit.draft ?? shown
+  if (long) {
+    function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault()
+        edit.commit()
+      } else if (e.key === 'Escape') edit.cancel()
+    }
+    return <div className="mat-remark">
+      <textarea aria-label={label} value={text} maxLength={limit} title={edit.failure?.message ?? (text || undefined)}
+        aria-invalid={edit.failure ? true : undefined}
+        onChange={(e) => edit.setDraft(e.target.value)} onBlur={edit.commit} onKeyDown={onKeyDown}/>
+      <Retry label={label} failure={edit.failure}/>
+    </div>
+  }
+  function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      edit.commit()
+    } else if (e.key === 'Escape') edit.cancel()
+  }
+  return <div className="mat-text">
+    <input aria-label={label} value={text} maxLength={limit} title={edit.failure?.message ?? (text || undefined)}
+      aria-invalid={edit.failure ? true : undefined} autoComplete="off" spellCheck={false}
+      onChange={(e) => edit.setDraft(e.target.value)} onBlur={edit.commit} onKeyDown={onKeyDown}/>
     <Retry label={label} failure={edit.failure}/>
   </div>
 }

@@ -1,4 +1,4 @@
-/* Material list (/admin). A dense working table in the Project Progress family: colors from the `--pp-*` tokens, light mode only. Page chrome (heading, tabs, search, buttons, pills) uses the app's shared classes, so everything this page adds is under `.mat-`; the one rule outside it drops the canvas padding while the page is open. */
+/* Material list (/admin). A dense working table in the Project Progress family: colors from the `--pp-*` tokens, light mode only. Page chrome (heading, tabs, search, buttons, pills) uses the app's shared classes, so everything this page adds is under `.mat-`; the two rules outside it drop the canvas padding while the page is open and hide the shell chrome in full-screen expand mode. */
 .canvas:has(> .mat-page) { padding-block: 0; }
 .mat-page {
   --mat-h1: 28px; /* first header row; the second row sticks below it */
@@ -62,9 +62,18 @@
 .mat-swatch[data-mark='override'] { position: relative; background: var(--pp-l3); }
 .mat-swatch[data-mark='override']::after { content: ''; position: absolute; top: 3px; left: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); }
 
-/* Expanded editor: the heading and the pickers step aside so the table gets the whole height. */
-.mat-page[data-expanded] { padding-block: var(--space-12); }
+/* Expanded editor: full-screen viewport overlay above the sidebar and topbar. */
+.mat-page[data-expanded] {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  height: 100dvh;
+  padding: var(--space-12) var(--space-16);
+  background: var(--bg-canvas);
+}
 .mat-page[data-expanded] > :is(.mat-heading, .mat-tabs) { display: none; }
+.shell:has(.mat-page[data-expanded]) > .sidebar-slot,
+.shell:has(.mat-page[data-expanded]) .topbar { visibility: hidden; }
 @media (max-width: 900px) { .mat-expand-label { display: none; } }
 
 /* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
@@ -91,10 +100,18 @@
 .mat-table :is(.mat-f3, .mat-f-span) { border-right: 1px solid var(--pp-line-strong); }
 /* Row marks tint only the frozen cells, so every other cell keeps its contrast. */
 .mat-table tbody tr[data-mark] > .mat-f { background-color: var(--mat-mark); }
-.mat-table tbody th.mat-f2 { font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mat-table tbody th.mat-f2 { padding: 0; font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-2); }
 /* Hover is a wash over the opaque cell color, so frozen cells never turn see-through. */
 .mat-table tbody tr:hover > :is(td, th) { background-image: linear-gradient(var(--pp-wash), var(--pp-wash)); }
+
+/* Material Source trigger on the Code cell. */
+.mat-source-btn { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 8px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.mat-source-code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mat-source-icon { flex: none; color: var(--pp-accent-ink); opacity: 0; }
+.mat-table tbody tr:hover .mat-source-icon,
+.mat-source-btn:focus-visible .mat-source-icon { opacity: 1; }
+.mat-source-btn:hover { color: var(--pp-accent-ink); }
 
 /* Long text stops at three lines; the whole text is in the title. */
 .mat-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
@@ -112,24 +129,47 @@
 .mat-toggle:hover { background: var(--pp-wash); color: var(--pp-ink); }
 .mat-avg { text-align: end; font-weight: 600; white-space: nowrap; }
 
-/* Pictures. */
-.mat-pictures { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Pictures and lightbox (lightbox sits above the Material Source panel so previewing from inside it works). */
+.mat-pictures { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
 .mat-thumb { display: block; width: 32px; height: 32px; padding: 0; border: 1px solid var(--pp-line); border-radius: 4px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
 .mat-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mat-img-loading { display: block; width: 100%; height: 100%; background: var(--pp-band); }
+.mat-pic-edit { display: inline-grid; place-items: center; width: 22px; height: 22px; padding: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--pp-ink-2); opacity: 0; cursor: pointer; }
+.mat-table tbody tr:hover .mat-pic-edit,
+.mat-pic-edit:focus-visible { opacity: 1; }
+.mat-pic-edit:hover { border-color: var(--pp-line-strong); background: var(--pp-l3); color: var(--pp-accent-ink); }
 .mat-scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
-.mat-picture { position: fixed; top: 50%; left: 50%; z-index: 41; translate: -50% -50%; display: grid; gap: 8px; max-width: min(720px, 92vw); padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-modal); background: var(--bg-raised); box-shadow: var(--shadow-popover); }
+.mat-picture-scrim { z-index: 60; }
+.mat-picture { position: fixed; top: 50%; left: 50%; z-index: 61; translate: -50% -50%; display: grid; gap: 8px; max-width: min(720px, 92vw); padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-modal); background: var(--bg-raised); box-shadow: var(--shadow-popover); }
 .mat-picture img { display: block; max-width: 100%; max-height: 76vh; object-fit: contain; }
-.mat-picture-title { margin: 0; padding-inline-end: 32px; font-size: var(--fs-label); font-weight: 600; color: var(--text-primary); }
+.mat-picture-head { display: flex; align-items: center; gap: 8px; padding-inline-end: 32px; }
+.mat-picture-title { margin: 0; font-size: var(--fs-label); font-weight: 600; color: var(--text-primary); }
+.mat-picture-edit { min-height: 26px; padding: 2px 8px; font-size: var(--fs-small); }
 .mat-picture-close { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); cursor: pointer; }
 .mat-picture-close:hover { background: var(--bg-hover); color: var(--text-primary); }
 
 /* Editable cells: the field fills the cell. */
 .mat-table td.mat-edit { padding: 0; }
-.mat-num, .mat-remark { position: absolute; inset: 0; }
-.mat-num input, .mat-remark textarea { position: absolute; inset: 3px; box-sizing: border-box; width: auto; margin: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--pp-ink); font: inherit; }
+.mat-num, .mat-remark, .mat-text, .mat-date, .mat-select-wrap { position: absolute; inset: 0; }
+.mat-num input, .mat-remark textarea, .mat-text input, .mat-date input:not([type='date']), .mat-select {
+  position: absolute; inset: 3px; box-sizing: border-box; width: auto; margin: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--pp-ink); font: inherit;
+}
 .mat-num input { padding: 0 6px; text-align: end; font-variant-numeric: tabular-nums; }
-.mat-num input:hover { border-color: var(--pp-line); }
-.mat-num input:focus { border-color: var(--pp-accent-ink); background: var(--pp-l3); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
+.mat-text input { padding: 0 6px; }
+.mat-date input:not([type='date']) { padding: 0 22px 0 6px; }
+.mat-select { width: calc(100% - 6px); padding: 0 4px; font-size: 12.5px; cursor: pointer; }
+:is(.mat-num input, .mat-text input, .mat-date input:not([type='date']), .mat-select):hover { border-color: var(--pp-line); }
+:is(.mat-num input, .mat-text input, .mat-date input:not([type='date']), .mat-select):focus {
+  border-color: var(--pp-accent-ink); background: var(--pp-l3); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px;
+}
+.mat-date-pick {
+  position: absolute; top: 50%; right: 6px; translate: 0 -50%; display: grid; place-items: center; width: 18px; height: 18px;
+  border-radius: 3px; color: var(--pp-ink-muted); opacity: 0; cursor: pointer; overflow: hidden;
+}
+.mat-date:is(:hover, :focus-within) .mat-date-pick { opacity: 1; }
+.mat-date-pick:hover { background: var(--pp-wash); color: var(--pp-ink); }
+.mat-date-pick input[type='date'] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+
 /* Calculated values are quieter; a typed override is full ink with a dot, and offers "Use formula". */
 .mat-num[data-source='formula'] input { color: var(--pp-ink-2); }
 .mat-num[data-source='override'] input { font-weight: 600; }
@@ -137,9 +177,9 @@
 .mat-formula, .mat-retry { position: absolute; left: 4px; bottom: 4px; padding: 0 3px; border: 0; border-radius: 3px; background: var(--pp-l3); font: inherit; font-size: 10.5px; line-height: 14px; cursor: pointer; }
 .mat-formula { display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; color: var(--pp-accent-ink); opacity: 0; }
 .mat-num:is(:hover, :focus-within) .mat-formula { opacity: 1; }
-.mat-retry { color: var(--danger-text); font-weight: 600; text-decoration: underline; }
+.mat-retry { color: var(--danger-text); font-weight: 600; text-decoration: underline; z-index: 1; }
 .mat-retry:hover { text-decoration: none; }
-:is(.mat-num input, .mat-remark textarea)[aria-invalid='true'] { border-color: var(--danger-text); }
+:is(.mat-num input, .mat-remark textarea, .mat-text input, .mat-date input:not([type='date']), .mat-select)[aria-invalid='true'] { border-color: var(--danger-text); }
 
 .mat-remark textarea { padding: 3px 6px; border-color: var(--pp-line-strong); background: var(--pp-l3); font-size: 12.5px; line-height: 16px; resize: none; overflow: hidden; }
 .mat-remark textarea:hover { border-color: var(--pp-ink-muted); }
@@ -147,17 +187,55 @@
 .mat-remark textarea:focus { bottom: auto; z-index: 1; min-height: 112px; max-height: 240px; field-sizing: content; overflow: auto; border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
 .mat-remark .mat-retry { left: auto; right: 6px; }
 
-/* Summary tab: the app's plain report table, one block per material sheet. */
-.mat-summary { flex: 1 1 0; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: var(--space-24); padding-bottom: var(--space-8); }
-.mat-summary > section { flex-shrink: 0; }
-.mat-summary-note { margin: 0; max-width: 72ch; }
-.mat-plain-scroll { overflow-x: auto; border: 1px solid var(--border-subtle); border-radius: var(--radius-card); background: var(--bg-raised); }
-.mat-plain { width: 100%; border-collapse: collapse; font-size: var(--fs-label); line-height: var(--lh-label); color: var(--text-primary); }
-.mat-plain th, .mat-plain td { padding: var(--space-8) var(--space-12); text-align: start; vertical-align: baseline; border-bottom: 1px solid var(--border-subtle); }
-.mat-plain tbody tr:last-child > * { border-bottom: 0; }
-.mat-plain thead th { font-size: var(--fs-small); font-weight: 500; color: var(--text-secondary); vertical-align: bottom; background: var(--bg-sidebar); }
-.mat-plain tbody th { font-weight: 400; }
-.mat-plain .mat-plain-num { text-align: end; white-space: nowrap; width: 1%; font-variant-numeric: tabular-nums; }
-.mat-summary tr[data-level='-1'] > * { font-weight: 600; background: var(--bg-sidebar); }
-.mat-summary tr[data-level='0'] > th { font-weight: 600; }
-.mat-plain tbody tr:hover > * { background: var(--bg-hover); }
+/* Material Source slide-over side panel. */
+.mat-source-panel {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 50;
+  display: flex; flex-direction: column; width: min(500px, 94vw);
+  background: var(--bg-raised); border-left: 1px solid var(--border-subtle); box-shadow: var(--shadow-popover);
+  color: var(--text-primary);
+}
+.mat-source-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12);
+  padding: var(--space-16) var(--space-20); border-bottom: 1px solid var(--border-subtle);
+}
+.mat-source-title { margin: 0; font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: 600; }
+.mat-source-sub { margin: 2px 0 0; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); }
+.mat-source-close {
+  display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0;
+  border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); cursor: pointer;
+}
+.mat-source-close:hover { background: var(--bg-hover); color: var(--text-primary); }
+.mat-source-body {
+  flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-12);
+  padding: var(--space-16) var(--space-20);
+}
+.mat-source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); }
+.mat-field { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-small); font-weight: 500; color: var(--text-secondary); }
+.mat-field input, .mat-field textarea {
+  box-sizing: border-box; width: 100%; padding: 6px 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-control);
+  background: var(--bg-raised); color: var(--text-primary);
+  font: inherit; font-size: var(--fs-label); line-height: var(--lh-label); font-weight: 400;
+}
+.mat-field textarea { resize: vertical; }
+.mat-field input:focus, .mat-field textarea:focus { border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
+.mat-source-mono { font-family: var(--font-mono) !important; }
+.mat-source-photos { margin: 0; padding: var(--space-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); }
+.mat-source-photos legend { padding: 0 4px; font-size: var(--fs-small); font-weight: 500; color: var(--text-secondary); }
+.mat-source-thumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
+.mat-source-thumb { position: relative; width: 64px; height: 64px; border: 1px solid var(--border-strong); border-radius: var(--radius-chip); overflow: hidden; background: var(--bg-sidebar); }
+.mat-source-thumb-img { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
+.mat-source-thumb-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mat-source-thumb-remove {
+  position: absolute; top: 2px; right: 2px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0;
+  border: 0; border-radius: 50%; background: rgb(15 15 15 / 0.72); color: #ffffff; cursor: pointer;
+}
+.mat-source-thumb-remove:hover { background: var(--danger); }
+.mat-upload-btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
+.mat-source-error { margin: 0; font-size: var(--fs-small); color: var(--danger-text); }
+.mat-source-foot {
+  display: flex; flex-direction: column; gap: var(--space-8);
+  padding: var(--space-12) var(--space-20); border-top: 1px solid var(--border-subtle); background: var(--bg-sidebar);
+}
+.mat-source-actions { display: flex; justify-content: flex-end; gap: var(--space-8); }
+.mat-source-actions :is(.btn-accent, .btn-secondary):disabled { opacity: 0.45; cursor: not-allowed; }

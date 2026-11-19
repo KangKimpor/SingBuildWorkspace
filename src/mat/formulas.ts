@@ -1,10 +1,16 @@
-import { PCT_CELLS, QTY_CELLS, type CellKey, type FormulaKey, type MatItem, type Scalar } from './types'
+import { PCT_CELLS, QTY_CELLS, type CellKey, type ColKey, type EditableColKey, type FormulaKey, type ImageSet, type MatItem, type Scalar } from './types'
 
 const CELLS: readonly CellKey[] = [...QTY_CELLS, ...PCT_CELLS]
 const PERCENT = new Set<CellKey>(PCT_CELLS)
 const MAX_INPUT = 60
+export const MAX_SHORT_TEXT = 200
+export const MAX_LONG_TEXT = 2000
 // Plain (12, 12.5, .5) or with thousands commas (1,200 or 1,200.5).
 const NUMBER = /^[-+]?(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d*)?|\.\d+)$/
+const ISO_DATE = /^(\d{4})-(\d{2})-(\d{2})$/
+const DISPLAY_DATE = /^(\d{1,2})\s+([A-Za-z]{3})\s+(\d{4})$/
+const MONTH_NAMES = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec']
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 type Get = (cell: CellKey) => Scalar
 
@@ -112,4 +118,86 @@ export function formatCell(cell: CellKey, value: Scalar): string {
   return PERCENT.has(cell)
     ? `${Math.round(value * 100)}%`
     : value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+}
+
+/** Effective value of a column: typed edit (empty string clears imported value to null), else source `data.cols`. */
+export function effectiveCol(item: MatItem, col: ColKey): Scalar {
+  if (col !== 'lastUpdated') {
+    const edit = item.edits[col]
+    if (edit !== undefined) return edit === '' ? null : edit
+  }
+  return item.data.cols[col] ?? null
+}
+
+/** ISO dates as "7 Oct 2025"; free text ("TBC", "-/-") as typed. */
+export function formatCol(value: Scalar | undefined): string {
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'number') return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
+  const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  return date ? `${Number(date[3])} ${MONTHS[Number(date[2]) - 1]} ${date[1]}` : value
+}
+
+/** The words a material is known by in labels: its code, else its number. */
+export const codeOf = (item: MatItem) => formatCol(effectiveCol(item, 'code')) || formatCol(effectiveCol(item, 'no')) || `Row ${item.pos}`
+
+/** Effective image refs for one picture column: edited list if present, else imported `data.images`. */
+export function effectiveImages(item: MatItem, set: ImageSet): string[] {
+  return item.edits[set] ?? item.data.images?.[set] ?? []
+}
+
+function validCalendarDate(year: number, month: number, day: number): boolean {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return false
+  const dt = new Date(Date.UTC(year, month - 1, day))
+  return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day
+}
+
+/** True when `value` is a real calendar date formatted as YYYY-MM-DD. */
+export function isIsoDate(value: Scalar | undefined): value is string {
+  if (typeof value !== 'string') return false
+  const match = ISO_DATE.exec(value)
+  if (!match) return false
+  return validCalendarDate(Number(match[1]), Number(match[2]), Number(match[3]))
+}
+
+/** Parse a date/text column input: normalizes "YYYY-MM-DD" and "7 Oct 2025" to ISO, or keeps free text verbatim. */
+export function parseDateTextInput(text: string): string {
+  const trimmed = text.trim()
+  if (!trimmed) return ''
+  if (trimmed.length > MAX_SHORT_TEXT) throw new Error(`Use at most ${MAX_SHORT_TEXT} characters.`)
+  if (isIsoDate(trimmed)) return trimmed
+  const display = DISPLAY_DATE.exec(trimmed)
+  if (display) {
+    const day = Number(display[1])
+    const month = MONTH_NAMES.indexOf(display[2]!.toLowerCase()) + 1
+    const year = Number(display[3])
+    if (month > 0 && validCalendarDate(year, month, day)) {
+      return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    }
+  }
+  return trimmed
+}
+
+/** Parse a text column input, enforcing its server-side character cap. */
+export function parseTextInput(text: string, maxLength = MAX_SHORT_TEXT): string {
+  const trimmed = text.trim()
+  if (trimmed.length > maxLength) throw new Error(`Use at most ${maxLength} characters.`)
+  return trimmed
+}
+
+/** Patch value for a text/date/status column relative to a raw source value. */
+export function patchForSource(sourceRaw: Scalar | undefined, next: string): string | null {
+  const source = sourceRaw === null || sourceRaw === undefined ? '' : String(sourceRaw)
+  return next === source ? null : next
+}
+
+/** Patch value for a text/date/status column: null clears the override when matching `data.cols`, otherwise stores `next` (including ""). */
+export function colPatchValue(item: MatItem, col: EditableColKey, next: string): string | null {
+  return patchForSource(item.data.cols[col], next)
+}
+
+/** Patch value for an image list: null clears the override when matching `data.images`, otherwise stores `next` (including []). */
+export function imagesPatchValue(item: MatItem, set: ImageSet, next: string[]): string[] | null {
+  const source = item.data.images?.[set] ?? []
+  const same = source.length === next.length && source.every((v, i) => v === next[i])
+  return same ? null : next
 }

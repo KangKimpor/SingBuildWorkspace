@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, reportingDate, weekStart } from '@/nbc/submissions'
-import { fetchPackage, saveCell, saveRemark } from './api'
+import { fetchPackage, saveCell, saveFields, saveRemark } from './api'
 import type { MatPackage } from './api'
-import type { CellKey, MatItem, Pkg, Team } from './types'
+import type { FieldKey, FieldValue, MatEdits, MatItem, Pkg, Team } from './types'
 
 export const remarkKey = (itemId: string, team: Team, week: string) => `${itemId}:${team}:${week}`
 export interface MatState { week: string; items: MatItem[]; remarks: Record<string, string>; syncedAt: string }
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const DB_NAME = 'kw-mat'
+const DB_VERSION = 2
 const STORE = 'packages'
 // A write that starts just before a load can commit just after it. Asking again for this
 // overlap catches it; merging by id and by remark key makes the repeated rows harmless.
@@ -22,8 +23,12 @@ function request<T>(req: IDBRequest<T>) {
   })
 }
 async function withStore<T>(mode: IDBTransactionMode, run: (store: IDBObjectStore) => IDBRequest<T>) {
-  const open = indexedDB.open(DB_NAME, 1)
-  open.onupgradeneeded = () => open.result.createObjectStore(STORE)
+  const open = indexedDB.open(DB_NAME, DB_VERSION)
+  open.onupgradeneeded = (e) => {
+    const db = open.result
+    if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE)
+    else if (e.oldVersion < DB_VERSION) open.transaction?.objectStore(STORE).clear()
+  }
   const db = await request(open)
   try {
     return await request(run(db.transaction(STORE, mode).objectStore(STORE)))
@@ -84,15 +89,17 @@ function applyLoad(base: MatState | null, loaded: MatPackage): MatState {
   for (const r of loaded.remarks) remarks[remarkKey(r.itemId, r.team, r.weekStart)] = r.body
   return { week: loaded.week, items: mergeItems(base?.items ?? [], loaded.items), remarks, syncedAt: loaded.now }
 }
-function withCell(state: MatState, id: string, cell: CellKey, value: number | string | null | undefined): MatState {
+function withFields(state: MatState, id: string, patch: Partial<Record<FieldKey, FieldValue | undefined>>): MatState {
   return {
     ...state,
     items: state.items.map((item) => {
       if (item.id !== id) return item
-      const edits = { ...item.edits }
-      if (value === null || value === undefined) delete edits[cell]
-      else edits[cell] = value
-      return { ...item, edits }
+      const edits: Record<string, number | string | string[] | undefined> = { ...item.edits }
+      for (const [key, value] of Object.entries(patch)) {
+        if (value === null || value === undefined) delete edits[key]
+        else edits[key] = value
+      }
+      return { ...item, edits: edits as MatEdits }
     }),
   }
 }
@@ -188,9 +195,18 @@ export function useMat(pkg: Pkg) {
     }
   }, [pkg, commit, loaded])
 
-  const setCell = useCallback(async (id: string, cell: CellKey, value: number | string | null) => {
-    const before = loaded().items.find((i) => i.id === id)?.edits[cell]
-    await edit(`cell:${id}:${cell}`, (s) => withCell(s, id, cell, value), (s) => withCell(s, id, cell, before), () => saveCell(id, cell, value))
+  const setCell = useCallback(async (id: string, cell: FieldKey, value: FieldValue) => {
+    const before = (loaded().items.find((i) => i.id === id)?.edits as Record<string, FieldValue | undefined> | undefined)?.[cell]
+    await edit(`cell:${id}:${cell}`, (s) => withFields(s, id, { [cell]: value }), (s) => withFields(s, id, { [cell]: before }), () => saveCell(id, cell, value))
+  }, [edit, loaded])
+
+  const setFields = useCallback(async (id: string, patch: Partial<Record<FieldKey, FieldValue>>) => {
+    const keys = Object.keys(patch) as FieldKey[]
+    if (keys.length === 0) return
+    const currentEdits = (loaded().items.find((i) => i.id === id)?.edits ?? {}) as Record<string, FieldValue | undefined>
+    const before: Partial<Record<FieldKey, FieldValue | undefined>> = {}
+    for (const k of keys) before[k] = currentEdits[k]
+    await edit(`fields:${id}`, (s) => withFields(s, id, patch), (s) => withFields(s, id, before), () => saveFields(id, patch))
   }, [edit, loaded])
 
   const setRemark = useCallback(async (id: string, team: Team, body: string) => {
@@ -227,5 +243,5 @@ export function useMat(pkg: Pkg) {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [refresh])
 
-  return { state, loading, error, saveStatus, refresh, setCell, setRemark }
+  return { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark }
 }

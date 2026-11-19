@@ -56,6 +56,7 @@ COL_KEYS = ('no', 'pic', 'bp02', 'code', 'description', 'location', 'spec', 'bra
 PICTURE_COLS = ('image', 'sample')
 # Percentage cells of a sheet whose whole percentage group is empty (BP04 MEP Material) get the formulas of the other sheets.
 DEFAULT_PCT = {'notYetPo': 'notYetPo', 'placed': 'placedPoOverTotal', 'waiting': 'waiting', 'arrived': 'arrived'}
+EXCLUDED_SECTIONS = {'COMMONLY MATERIALS USES'}
 MARKS = ('done', 'tracking', 'omit')  # legend rows 1, 2, 3
 THUMB_SIDE, THUMB_QUALITY = 480, 70
 MAX_STATEMENT = 500_000  # bytes
@@ -566,6 +567,16 @@ def read_material(pkg, wf, wv, title, legend_fallback):
         sheet.checked += 1
         if not same(computed, cached):
             sheet.mismatches.append(f'{sheet.where(coord)}: average of {len(items)} materials gives {show(computed)}, Excel has {show(cached)}')
+    excluded = [
+        (s['pos'], s['data']['end'])
+        for s in sections
+        if str(s['data']['cols'].get('code') or '').strip().upper() in EXCLUDED_SECTIONS
+    ]
+    if excluded:
+        def is_excluded(pos):
+            return any(start <= pos <= end for start, end in excluded)
+        sheet.rows = [row for row in sheet.rows if not is_excluded(row['pos'])]
+        sheet.item_rows = {r: row for r, row in sheet.item_rows.items() if not is_excluded(r)}
     return sheet
 
 

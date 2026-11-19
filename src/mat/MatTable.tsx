@@ -1,23 +1,45 @@
 import { memo, useCallback, useMemo, useState } from 'react'
 import * as Dialog from '@radix-ui/react-dialog'
-import { ChevronDown, ChevronRight, X } from 'lucide-react'
+import { ChevronDown, ChevronRight, Pencil, X } from 'lucide-react'
 import { addDays } from '@/nbc/submissions'
-import { average, effective, formatCell, isOverride, sectionItems } from './formulas'
-import { NumberCell, RemarkCell } from './MatCells'
+import {
+  average,
+  codeOf,
+  effective,
+  effectiveCol,
+  effectiveImages,
+  formatCell,
+  formatCol,
+  isOverride,
+  sectionItems,
+} from './formulas'
+import { useMatImageSrc } from './images'
+import { DateTextCell, NumberCell, RemarkCell, StatusCell, TextCell } from './MatCells'
 import type { OnCell, OnRemark } from './MatCells'
+import type { MatPicture } from './MatSourcePanel'
 import { remarkKey } from './store'
 import type { MatState } from './store'
 import { PCT_CELLS } from './types'
-import type { CellKey, ColKey, MatItem, Scalar, Team } from './types'
+import type { CellKey, ColKey, EditableColKey, MatItem, Team } from './types'
+
+export { codeOf, formatCol } from './formulas'
+
+type EditMode = 'date' | 'status' | 'text' | 'longtext'
 
 type Column = { key: string; label: string; width: number; group?: string } & (
-  | { type: 'col'; col: ColKey; long?: boolean }
+  | { type: 'col'; col: ColKey; long?: boolean; source?: boolean; edit?: EditMode }
   | { type: 'pictures'; set: 'image' | 'sample' }
   | { type: 'cell'; cell: CellKey }
   | { type: 'remark'; team: Team; now: boolean })
 
-const DATE = 96, NUM = 76, REMARK = 220
-const col = (key: ColKey, label: string, width: number, group?: string, long?: boolean): Column => ({ type: 'col', key, col: key, label, width, group, long })
+const DATE = 112, NUM = 76, REMARK = 220
+const col = (
+  key: ColKey,
+  label: string,
+  width: number,
+  group?: string,
+  options?: { long?: boolean; source?: boolean; edit?: EditMode },
+): Column => ({ type: 'col', key, col: key, label, width, group, ...options })
 const cell = (key: CellKey, label: string, group: string): Column => ({ type: 'cell', key, cell: key, label, width: NUM, group })
 const remark = (team: Team, now: boolean, group: string): Column => ({ type: 'remark', key: `${team}-${now ? 'now' : 'last'}`, team, now, label: now ? 'This week' : 'Last week', width: REMARK, group })
 
@@ -25,18 +47,33 @@ const MS = 'Material Submission', SS = 'Sample Submission', PROC = 'Procurement'
 const PM = 'PM Remarks', BUY = 'Purchase Remarks'
 /** The workbook's columns, left to right. The first three stay frozen while scrolling sideways. */
 export const COLUMNS: Column[] = [
-  col('no', 'No', 48), col('code', 'Code', 96), col('description', 'Description', 240, undefined, true),
-  col('pic', 'Person In Charge', 120), col('bp02', 'BP02 Mat Approval', 104), col('location', 'Location', 140),
+  col('no', 'No', 48, undefined, { source: true }),
+  col('code', 'Code', 96, undefined, { source: true }),
+  col('description', 'Description', 240, undefined, { long: true, source: true }),
+  col('pic', 'Person In Charge', 120, undefined, { source: true }),
+  col('bp02', 'BP02 Mat Approval', 104, undefined, { source: true }),
+  col('location', 'Location', 140, undefined, { source: true }),
   { type: 'pictures', key: 'image', set: 'image', label: 'Image', width: 84 },
   { type: 'pictures', key: 'sample', set: 'sample', label: 'Approved Sample', width: 84 },
-  col('spec', 'Specification', 220, undefined, true), col('brand', 'Brand', 120), col('source', 'Source Location', 120),
-  col('msPlan', 'Plan Submit', DATE, MS), col('msActual', 'Actual Submit', DATE, MS), col('msApproved', 'Approved Date', DATE, MS), col('msStatus', 'Status', 104, MS),
-  col('ssPlan', 'Plan Submit', DATE, SS), col('ssActual', 'Actual Submit', DATE, SS), col('ssApproved', 'Approved Date', DATE, SS),
-  col('poPlan', 'Plan Place Order', DATE, PROC), col('poActual', 'Actual Place Order', DATE, PROC), col('arrPlan', 'Plan Arrived', DATE, PROC),
-  col('arrActual', 'Actual Arrived', DATE, PROC), col('procRemarks', 'Remarks', REMARK, PROC, true),
-  col('unit', 'Unit', 64, QTY), cell('total', 'Total by QS', QTY), cell('po', 'PO by Purchase', QTY), cell('shd', 'Approved SHD', QTY),
+  col('spec', 'Specification', 220, undefined, { long: true, source: true }),
+  col('brand', 'Brand', 120, undefined, { source: true }),
+  col('source', 'Source Location', 120, undefined, { source: true }),
+  col('msPlan', 'Plan Submit', DATE, MS, { edit: 'date' }),
+  col('msActual', 'Actual Submit', DATE, MS, { edit: 'date' }),
+  col('msApproved', 'Approved Date', DATE, MS, { edit: 'date' }),
+  col('msStatus', 'Status', 168, MS, { edit: 'status' }),
+  col('ssPlan', 'Plan Submit', DATE, SS, { edit: 'date' }),
+  col('ssActual', 'Actual Submit', DATE, SS, { edit: 'date' }),
+  col('ssApproved', 'Approved Date', DATE, SS, { edit: 'date' }),
+  col('poPlan', 'Plan Place Order', DATE, PROC, { edit: 'date' }),
+  col('poActual', 'Actual Place Order', DATE, PROC, { edit: 'date' }),
+  col('arrPlan', 'Plan Arrived', DATE, PROC, { edit: 'date' }),
+  col('arrActual', 'Actual Arrived', DATE, PROC, { edit: 'date' }),
+  col('procRemarks', 'Remarks', REMARK, PROC, { long: true, edit: 'longtext' }),
+  col('unit', 'Unit', 72, QTY, { edit: 'text' }),
+  cell('total', 'Total by QS', QTY), cell('po', 'PO by Purchase', QTY), cell('shd', 'Approved SHD', QTY),
   cell('onsite', 'On site', QTY), cell('remaining', 'Remaining', QTY),
-  remark('pm', false, PM), remark('pm', true, PM), remark('purchase', false, BUY), remark('purchase', true, BUY),
+  remark('purchase', false, BUY), remark('purchase', true, BUY), remark('pm', false, PM), remark('pm', true, PM),
   cell('notYetPo', 'Not Yet PO', PCT), cell('placed', 'Placed Order', PCT), cell('production', 'Production In Progress', PCT),
   cell('waiting', 'Waiting For Shipment', PCT), cell('shipping', 'Shipping On The Way', PCT), cell('arrived', 'Arrived WH & Site', PCT),
   col('lastUpdated', 'Last Updated', DATE),
@@ -56,18 +93,7 @@ const GROUPS = COLUMNS.reduce<{ group?: string; columns: Column[] }[]>((runs, c)
   return runs
 }, [])
 
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-/** ISO dates as "7 Oct 2025"; free text ("TBC", "-/-") as typed. */
-export function formatCol(value: Scalar | undefined): string {
-  if (value === null || value === undefined) return ''
-  if (typeof value === 'number') return value.toLocaleString('en-US', { maximumFractionDigits: 2 })
-  const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
-  return date ? `${Number(date[3])} ${MONTHS[Number(date[2]) - 1]} ${date[1]}` : value
-}
-
-/** The words a material is known by in labels: its code, else its number. */
-export const codeOf = (item: MatItem) => formatCol(item.data.cols.code) || formatCol(item.data.cols.no) || `Row ${item.pos}`
-/** A section's name is the first five columns joined; the Summary tab must name it the same way. */
+/** A section's name is the first five columns joined. */
 export const sectionLabel = (item: MatItem) =>
   (['no', 'pic', 'bp02', 'code', 'description'] as const).map((k) => formatCol(item.data.cols[k])).filter(Boolean).join(' ') || 'Section'
 
@@ -81,34 +107,123 @@ function sectionEnd(rows: MatItem[], section: MatItem) {
 type Averages = Record<string, number | null>
 const averages = (items: MatItem[]): Averages => Object.fromEntries(PCT_CELLS.map((c) => [c, average(items, c)]))
 
-interface Picture { src: string; alt: string }
+function MatImg({ srcRef, alt }: { srcRef: string; alt: string }) {
+  const src = useMatImageSrc(srcRef)
+  if (!src) return <span className="mat-img-loading" aria-hidden="true"/>
+  return <img loading="lazy" src={src} alt={alt}/>
+}
+
+export function MatPictureDialog({
+  picture,
+  onClose,
+  onEditPhotos,
+}: {
+  picture: MatPicture | null
+  onClose: () => void
+  onEditPhotos?: (itemId: string) => void
+}) {
+  return picture ? <PictureDialogBody picture={picture} onClose={onClose} onEditPhotos={onEditPhotos}/> : null
+}
+
+function PictureDialogBody({
+  picture,
+  onClose,
+  onEditPhotos,
+}: {
+  picture: MatPicture
+  onClose: () => void
+  onEditPhotos?: (itemId: string) => void
+}) {
+  const src = useMatImageSrc(picture.ref)
+  return <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
+    <Dialog.Portal>
+      <Dialog.Overlay className="mat-scrim mat-picture-scrim"/>
+      <Dialog.Content className="mat-picture" aria-describedby={undefined}>
+        <div className="mat-picture-head">
+          <Dialog.Title className="mat-picture-title">{picture.alt}</Dialog.Title>
+          {picture.itemId && onEditPhotos &&
+            <button type="button" className="btn-secondary mat-picture-edit" onClick={() => onEditPhotos(picture.itemId!)}>
+              <Pencil size={12} aria-hidden="true"/>Edit photos
+            </button>}
+        </div>
+        {src ? <img src={src} alt={picture.alt}/> : <p className="small muted">Loading image…</p>}
+        <Dialog.Close className="mat-picture-close" aria-label="Close picture"><X size={16} aria-hidden="true"/></Dialog.Close>
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
+}
 
 interface ItemRowProps {
   item: MatItem
   remarks: Record<`${Team}-${'last' | 'now'}`, string>
   onCell: OnCell
   onRemark: OnRemark
-  onPicture: (picture: Picture) => void
+  onPicture: (picture: MatPicture) => void
+  onOpenSource?: (id: string) => void
 }
 
-const ItemRow = memo(function ItemRow({ item, remarks, onCell, onRemark, onPicture }: ItemRowProps) {
+const ItemRow = memo(function ItemRow({ item, remarks, onCell, onRemark, onPicture, onOpenSource }: ItemRowProps) {
   const values = useMemo(() => effective(item), [item])
   const code = codeOf(item)
-  const { cols, cells, notes, images } = item.data
+  const { cols, cells, notes } = item.data
   return <tr data-mark={item.data.mark}>
     {COLUMNS.map((c, index) => {
       const frozen = index < FROZEN ? `mat-f mat-f${index + 1}` : undefined
       if (c.type === 'col') {
-        const text = formatCol(cols[c.col])
+        const raw = effectiveCol(item, c.col)
+        const text = formatCol(raw)
         const title = notes?.[c.col] ?? (c.long && text ? text : undefined)
-        if (c.col === 'code') return <th key={c.key} scope="row" className={frozen} title={notes?.code ?? (text || undefined)}>{text}</th>
-        return <td key={c.key} className={frozen}><div className="mat-clamp" title={title}>{text}</div></td>
+        if (c.col === 'code') {
+          return <th key={c.key} scope="row" className={frozen} title={notes?.code ?? (text || undefined)}>
+            {onOpenSource
+              ? <button type="button" className="mat-source-btn"
+                  aria-label={text ? `${text} — Edit material source` : `Edit material source for ${code}`}
+                  onClick={() => onOpenSource(item.id)}>
+                  <span className="mat-source-code">{text || 'Edit'}</span>
+                  <Pencil size={12} className="mat-source-icon" aria-hidden="true"/>
+                </button>
+              : text}
+          </th>
+        }
+        if (c.edit) {
+          const label = `${code} ${c.group ? `${c.group} ` : ''}${c.label}`
+          const editCol = c.col as EditableColKey
+          const sourceRaw = cols[c.col] ?? null
+          if (c.edit === 'date') {
+            return <td key={c.key} className="mat-edit">
+              <DateTextCell id={item.id} col={editCol} label={label} raw={raw} sourceRaw={sourceRaw} onCell={onCell}/>
+            </td>
+          }
+          if (c.edit === 'status') {
+            return <td key={c.key} className="mat-edit">
+              <StatusCell id={item.id} label={label} raw={raw} sourceRaw={sourceRaw} onCell={onCell}/>
+            </td>
+          }
+          return <td key={c.key} className="mat-edit">
+            <TextCell id={item.id} col={editCol} label={label} raw={raw} sourceRaw={sourceRaw} long={c.edit === 'longtext'} onCell={onCell}/>
+          </td>
+        }
+        return <td key={c.key} className={frozen} onDoubleClick={c.source && onOpenSource ? () => onOpenSource(item.id) : undefined}>
+          <div className="mat-clamp" title={title}>{text}</div>
+        </td>
       }
       if (c.type === 'pictures') {
-        return <td key={c.key}><div className="mat-pictures">{(images?.[c.set] ?? []).map((name, i) => {
-          const picture = { src: `/mat/${name}`, alt: `${code} ${c.label} ${i + 1}` }
-          return <button key={name} type="button" className="mat-thumb" onClick={() => onPicture(picture)}><img loading="lazy" src={picture.src} alt={picture.alt}/></button>
-        })}</div></td>
+        const list = effectiveImages(item, c.set)
+        return <td key={c.key}>
+          <div className="mat-pictures">
+            {list.map((ref, i) => {
+              const alt = `${code} ${c.label} ${i + 1}`
+              return <button key={`${ref}-${i}`} type="button" className="mat-thumb"
+                onClick={() => onPicture({ ref, alt, itemId: item.id })}>
+                <MatImg srcRef={ref} alt={alt}/>
+              </button>
+            })}
+            {onOpenSource && <button type="button" className="mat-pic-edit" aria-label={`Edit ${code} ${c.label}`}
+              title={`Edit ${c.label}`} onClick={() => onOpenSource(item.id)}>
+              <Pencil size={11} aria-hidden="true"/>
+            </button>}
+          </div>
+        </td>
       }
       if (c.type === 'cell') {
         const source = cells[c.cell]
@@ -124,7 +239,7 @@ const ItemRow = memo(function ItemRow({ item, remarks, onCell, onRemark, onPictu
         : <td key={c.key} className="mat-last"><div className="mat-clamp" title={body || undefined}>{body}</div></td>
     })}
   </tr>
-}, (a, b) => a.item === b.item && a.onCell === b.onCell && a.onRemark === b.onRemark && a.onPicture === b.onPicture
+}, (a, b) => a.item === b.item && a.onCell === b.onCell && a.onRemark === b.onRemark && a.onPicture === b.onPicture && a.onOpenSource === b.onOpenSource
   && a.remarks['pm-last'] === b.remarks['pm-last'] && a.remarks['pm-now'] === b.remarks['pm-now']
   && a.remarks['purchase-last'] === b.remarks['purchase-last'] && a.remarks['purchase-now'] === b.remarks['purchase-now'])
 
@@ -158,11 +273,24 @@ export interface MatTableProps {
   caption: string
   collapsed?: ReadonlySet<string>
   onToggle?: (id: string) => void
+  onOpenSource?: (id: string) => void
+  onPicture?: (picture: MatPicture) => void
 }
 
-export function MatTable({ items, state, onCell, onRemark, match = null, caption, collapsed: controlledCollapsed, onToggle: controlledToggle }: MatTableProps) {
+export function MatTable({
+  items,
+  state,
+  onCell,
+  onRemark,
+  match = null,
+  caption,
+  collapsed: controlledCollapsed,
+  onToggle: controlledToggle,
+  onOpenSource,
+  onPicture: controlledPicture,
+}: MatTableProps) {
   const [localCollapsed, setLocalCollapsed] = useState<ReadonlySet<string>>(() => new Set())
-  const [picture, setPicture] = useState<Picture | null>(null)
+  const [localPicture, setLocalPicture] = useState<MatPicture | null>(null)
   const collapsed = controlledCollapsed ?? localCollapsed
   const localToggle = useCallback((id: string) => setLocalCollapsed((old) => {
     const next = new Set(old)
@@ -170,6 +298,7 @@ export function MatTable({ items, state, onCell, onRemark, match = null, caption
     return next
   }), [])
   const toggle = controlledToggle ?? localToggle
+  const openPicture = controlledPicture ?? setLocalPicture
   // Averages follow the workbook's SUBTOTAL rows: all of a section's items, whatever is filtered.
   const sums = useMemo(() => {
     const byId = new Map<string, Averages>()
@@ -214,21 +343,12 @@ export function MatTable({ items, state, onCell, onRemark, match = null, caption
         {rows.map((row) => row.kind === 'section'
           ? <SummaryRow key={row.id} id={row.id} label={sectionLabel(row)} values={sums.byId.get(row.id)!} level={row.data.level ?? 0}
             open={!collapsed.has(row.id)} onToggle={toggle}/>
-          : <ItemRow key={row.id} item={row} onCell={onCell} onRemark={onRemark} onPicture={setPicture} remarks={{
+          : <ItemRow key={row.id} item={row} onCell={onCell} onRemark={onRemark} onPicture={openPicture} onOpenSource={onOpenSource} remarks={{
             'pm-last': remarkOf(row.id, 'pm', last), 'pm-now': remarkOf(row.id, 'pm', state.week),
             'purchase-last': remarkOf(row.id, 'purchase', last), 'purchase-now': remarkOf(row.id, 'purchase', state.week),
           }}/>)}
       </tbody>
     </table>
-    {picture && <Dialog.Root open onOpenChange={(open) => { if (!open) setPicture(null) }}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="mat-scrim"/>
-        <Dialog.Content className="mat-picture" aria-describedby={undefined}>
-          <Dialog.Title className="mat-picture-title">{picture.alt}</Dialog.Title>
-          <img src={picture.src} alt={picture.alt}/>
-          <Dialog.Close className="mat-picture-close" aria-label="Close picture"><X size={16} aria-hidden="true"/></Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>}
+    {!controlledPicture && <MatPictureDialog picture={localPicture} onClose={() => setLocalPicture(null)} onEditPhotos={onOpenSource ? (id) => { setLocalPicture(null); onOpenSource(id) } : undefined}/>}
   </div>
 }

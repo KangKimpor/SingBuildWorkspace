@@ -1,11 +1,11 @@
 import { act, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
-import { fetchPackage, saveCell, saveRemark } from './api'
+import { fetchPackage, saveCell, saveFields, saveRemark } from './api'
 import { cache, remarkKey, useMat } from './store'
 import type { MatState } from './store'
 import type { MatItem } from './types'
 
-vi.mock('./api', () => ({ fetchAccess: vi.fn(), fetchPackage: vi.fn(), saveCell: vi.fn(), saveRemark: vi.fn() }))
+vi.mock('./api', () => ({ fetchAccess: vi.fn(), fetchPackage: vi.fn(), saveCell: vi.fn(), saveFields: vi.fn(), saveRemark: vi.fn() }))
 
 // Sunday 15 November 2026, 10:00 in Phnom Penh: the reporting week starts 2026-11-15.
 const WEEK = '2026-11-15'
@@ -31,9 +31,10 @@ beforeEach(() => {
   vi.spyOn(cache, 'write').mockImplementation(async (pkg, state) => { stored.set(pkg, structuredClone(state)) })
   vi.mocked(fetchPackage).mockResolvedValue(response({ items: [item('a', 1), item('b', 2)] }))
   vi.mocked(saveCell).mockResolvedValue()
+  vi.mocked(saveFields).mockResolvedValue()
   vi.mocked(saveRemark).mockResolvedValue({ week: WEEK })
 })
-afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.mocked(fetchPackage).mockReset(); vi.mocked(saveCell).mockReset(); vi.mocked(saveRemark).mockReset() })
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.mocked(fetchPackage).mockReset(); vi.mocked(saveCell).mockReset(); vi.mocked(saveFields).mockReset(); vi.mocked(saveRemark).mockReset() })
 
 async function mount() {
   const hook = renderHook(() => useMat('bp03'))
@@ -189,4 +190,28 @@ test('the page refreshes when it becomes visible after more than five minutes hi
   expect(fetchPackage).toHaveBeenCalledTimes(1)
   flip('hidden'); vi.setSystemTime(Date.parse(NOW) + 10 * 60000); act(() => flip('visible'))
   await waitFor(() => expect(fetchPackage).toHaveBeenCalledTimes(2))
+})
+
+test('setCell accepts editable column keys including empty string overrides', async () => {
+  const { result } = await mount()
+  await act(() => result.current.setCell('a', 'msStatus', 'Approved'))
+  expect(edits(result.current.state, 'a')).toEqual({ msStatus: 'Approved' })
+  await act(() => result.current.setCell('a', 'msPlan', ''))
+  expect(edits(result.current.state, 'a')).toEqual({ msStatus: 'Approved', msPlan: '' })
+  expect(saveCell).toHaveBeenLastCalledWith('a', 'msPlan', '')
+})
+
+test('setFields applies optimistic updates, clears null keys, and rolls back on error', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(response({ items: [item('a', 1, { brand: 'Old', po: 4 })] }))
+  const { result } = await mount()
+  await act(() => result.current.setFields('a', { code: 'XX-99', brand: null, image: ['storage:a/image/1.webp'] }))
+  expect(edits(result.current.state, 'a')).toEqual({ po: 4, code: 'XX-99', image: ['storage:a/image/1.webp'] })
+  expect(saveFields).toHaveBeenCalledWith('a', { code: 'XX-99', brand: null, image: ['storage:a/image/1.webp'] })
+
+  vi.mocked(saveFields).mockRejectedValueOnce(new Error('Save failed'))
+  await act(async () => {
+    await expect(result.current.setFields('a', { code: 'BAD', pic: 'Dara' })).rejects.toThrow('Save failed')
+  })
+  expect(edits(result.current.state, 'a')).toEqual({ po: 4, code: 'XX-99', image: ['storage:a/image/1.webp'] })
+  expect(result.current.saveStatus).toBe('error')
 })

@@ -2,13 +2,21 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, expect, test, vi } from 'vitest'
 import { PHONE_QUERY } from '@/shell/usePhone'
-import { fetchAccess, fetchPackage, saveCell, saveRemark } from './api'
+import { fetchAccess, fetchPackage, saveCell, saveFields, saveRemark } from './api'
 import type { MatPackage } from './api'
+import { deleteMatImages, uploadMatImage } from './images'
 import { cache } from './store'
 import type { MatItem } from './types'
 import MaterialTracker from './MaterialTracker'
 
-vi.mock('./api', () => ({ fetchAccess: vi.fn(), fetchPackage: vi.fn(), saveCell: vi.fn(), saveRemark: vi.fn() }))
+vi.mock('./api', () => ({ fetchAccess: vi.fn(), fetchPackage: vi.fn(), saveCell: vi.fn(), saveFields: vi.fn(), saveRemark: vi.fn() }))
+vi.mock('./images', () => ({
+  MAX_IMAGES_PER_SET: 10,
+  isStorageRef: (ref: string) => ref.startsWith('storage:'),
+  uploadMatImage: vi.fn(),
+  deleteMatImages: vi.fn(),
+  useMatImageSrc: (ref: string) => (ref.startsWith('storage:') ? `https://signed.test/${ref.slice(8)}` : `/mat/${ref}`),
+}))
 
 // The reporting week of Sunday 15 November 2026; "Last week" starts on the 8th.
 const WEEK = '2026-11-15'
@@ -47,11 +55,14 @@ beforeEach(() => {
   vi.mocked(fetchAccess).mockResolvedValue(true)
   vi.mocked(fetchPackage).mockResolvedValue(load())
   vi.mocked(saveCell).mockResolvedValue()
+  vi.mocked(saveFields).mockResolvedValue()
   vi.mocked(saveRemark).mockResolvedValue({ week: WEEK })
+  vi.mocked(uploadMatImage).mockResolvedValue('storage:x1/image/new.webp')
+  vi.mocked(deleteMatImages).mockResolvedValue()
 })
 afterEach(() => {
   vi.restoreAllMocks()
-  for (const fn of [fetchAccess, fetchPackage, saveCell, saveRemark]) vi.mocked(fn).mockReset()
+  for (const fn of [fetchAccess, fetchPackage, saveCell, saveFields, saveRemark, uploadMatImage, deleteMatImages]) vi.mocked(fn).mockReset()
 })
 
 function open(path = '/admin') {
@@ -98,8 +109,8 @@ test('the header shows the week label, and an item shows last week as text and t
   expect(last.closest('textarea, input')).toBeNull()
   expect(field('XX-01 PM Remarks This week')).toHaveValue('Quote received')
   expect(field('XX-01 Purchase Remarks This week')).toHaveValue('')
-  // ISO dates read as day, month and year.
-  expect(screen.getAllByText('7 Oct 2025').length).toBeGreaterThan(0)
+  // ISO dates read as day, month and year inside the editable submission cell.
+  expect(field('XX-01 Material Submission Plan Submit')).toHaveValue('7 Oct 2025')
 })
 
 test('package and sheet come from the query string', async () => {
@@ -251,10 +262,14 @@ test('the "/" key focuses the search box without typing into it', async () => {
   expect(search).toHaveValue('')
 })
 
-test('Expand drops the page header and tabs, and Collapse puts them back', async () => {
+test('Expand sets full-screen mode, keeps SaveState visible, and Collapse restores layout', async () => {
   await openList()
   fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
   expect(document.querySelector('.mat-page')).toHaveAttribute('data-expanded')
+  const unit = field('XX-01 Quantity Unit')
+  fireEvent.change(unit, { target: { value: 'set' } })
+  fireEvent.keyDown(unit, { key: 'Enter' })
+  await waitFor(() => expect(within(document.querySelector('.mat-toolbar-actions') as HTMLElement).getByText('Saved')).toBeInTheDocument())
   fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
   expect(document.querySelector('.mat-page')).not.toHaveAttribute('data-expanded')
 })
@@ -281,10 +296,111 @@ test('a picture opens larger in a dialog', async () => {
   expect(within(dialog).getByRole('img')).toHaveAttribute('src', '/mat/a1b2c3.webp')
 })
 
-test('the Summary tab shows a block for each sheet instead of the placeholder', async () => {
+test('the Summary tab is removed and ?s=summary falls back to ID Material', async () => {
   open('/admin?p=bp03&s=summary')
-  expect(await screen.findByRole('heading', { name: 'ID Material' })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: 'MEP Material' })).toBeInTheDocument()
-  expect(screen.queryByText(/is not ready yet/)).toBeNull()
-  expect(screen.getByRole('button', { name: 'Summary' })).toHaveAttribute('aria-current', 'page')
+  expect(await screen.findByText('Sample panel XX-01')).toBeInTheDocument()
+  expect(screen.queryByRole('button', { name: 'Summary' })).toBeNull()
+  expect(screen.getByRole('button', { name: 'ID Material' })).toHaveAttribute('aria-current', 'page')
+})
+
+test('Purchase Remarks columns appear before PM Remarks columns', async () => {
+  await openList()
+  const headers = screen.getAllByRole('columnheader').map((el) => el.textContent)
+  expect(headers.indexOf('Purchase Remarks')).toBeGreaterThan(-1)
+  expect(headers.indexOf('PM Remarks')).toBeGreaterThan(-1)
+  expect(headers.indexOf('Purchase Remarks')).toBeLessThan(headers.indexOf('PM Remarks'))
+})
+
+test('Material Submission, Sample Submission, Procurement, and Quantity Unit are editable, with a Status selector', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    material('x1', 2, 'XX-01', 4, {
+      data: {
+        ...material('x1', 2, 'XX-01', 4).data,
+        cols: { no: 2, code: 'XX-01', description: 'Sample panel XX-01', pic: 'Dara', msStatus: 'Waiting Client', msPlan: '2025-10-07' },
+      },
+    }),
+  ]))
+  await openList()
+
+  const msPlan = field('XX-01 Material Submission Plan Submit')
+  fireEvent.change(msPlan, { target: { value: '2026-01-15' } })
+  fireEvent.keyDown(msPlan, { key: 'Enter' })
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'msPlan', '2026-01-15'))
+  expect(msPlan).toHaveValue('15 Jan 2026')
+
+  const status = screen.getByRole('combobox', { name: 'XX-01 Material Submission Status' }) as HTMLSelectElement
+  expect(status).toHaveValue('Waiting Client')
+  expect(within(status).getByRole('option', { name: 'Waiting Client' })).toBeInTheDocument()
+  expect(within(status).getByRole('option', { name: 'Revise & Resubmit' })).toBeInTheDocument()
+  fireEvent.change(status, { target: { value: 'Revise & Resubmit' } })
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'msStatus', 'Revise & Resubmit'))
+  expect(status).toHaveValue('Revise & Resubmit')
+
+  const ssPlan = field('XX-01 Sample Submission Plan Submit')
+  fireEvent.change(ssPlan, { target: { value: 'TBC' } })
+  fireEvent.blur(ssPlan)
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'ssPlan', 'TBC'))
+
+  const poPlan = field('XX-01 Procurement Plan Place Order')
+  fireEvent.change(poPlan, { target: { value: '2026-02-01' } })
+  fireEvent.keyDown(poPlan, { key: 'Enter' })
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'poPlan', '2026-02-01'))
+
+  const procRemarks = field('XX-01 Procurement Remarks')
+  fireEvent.change(procRemarks, { target: { value: 'Lead time 3w' } })
+  fireEvent.blur(procRemarks)
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'procRemarks', 'Lead time 3w'))
+
+  const unit = field('XX-01 Quantity Unit')
+  fireEvent.change(unit, { target: { value: 'm2' } })
+  fireEvent.keyDown(unit, { key: 'Enter' })
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'unit', 'm2'))
+})
+
+test('Material Source panel edits all source fields and photos via saveFields, and Cancel cleans up uploaded photos', async () => {
+  const base = material('x1', 1, 'XX-01', 4)
+  vi.mocked(fetchPackage).mockResolvedValue(load([{
+    ...base,
+    data: {
+      ...base.data,
+      cols: {
+        no: 2, code: 'XX-01', description: 'Sample panel XX-01', pic: 'Dara',
+        bp02: 'Yes', location: 'Lobby', spec: 'Spec A', brand: 'Brand A', source: 'Local',
+        msStatus: 'Approved', msPlan: '2025-10-07',
+      },
+      images: { image: ['a1b2c3.webp'] },
+    },
+  }]))
+  await openList()
+
+  fireEvent.click(screen.getByRole('button', { name: 'XX-01 — Edit material source' }))
+  const dialog = await screen.findByRole('dialog', { name: 'Material Source' })
+  for (const label of ['No', 'Code', 'Description', 'Person In Charge', 'BP02 Mat Approval', 'Location', 'Specification', 'Brand', 'Source Location']) {
+    expect(within(dialog).getByLabelText(label)).toBeInTheDocument()
+  }
+  expect(within(dialog).getByText('Image')).toBeInTheDocument()
+  expect(within(dialog).getByText('Approved Sample')).toBeInTheDocument()
+
+  fireEvent.change(within(dialog).getByLabelText('Brand'), { target: { value: 'Brand B' } })
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Remove Image 1' }))
+  const file = new File(['img'], 'photo.png', { type: 'image/png' })
+  fireEvent.change(within(dialog).getByLabelText('Add Image photo'), { target: { files: [file] } })
+  await waitFor(() => expect(uploadMatImage).toHaveBeenCalledWith('x1', 'image', file))
+
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', {
+    brand: 'Brand B',
+    image: ['storage:x1/image/new.webp'],
+  }))
+  await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Material Source' })).toBeNull())
+  expect(screen.getByText('Brand B')).toBeInTheDocument()
+
+  vi.mocked(uploadMatImage).mockResolvedValueOnce('storage:x1/sample/temp.webp')
+  fireEvent.click(screen.getByRole('button', { name: 'XX-01 — Edit material source' }))
+  const reopened = await screen.findByRole('dialog', { name: 'Material Source' })
+  fireEvent.change(within(reopened).getByLabelText('Add Approved Sample photo'), { target: { files: [file] } })
+  await waitFor(() => expect(uploadMatImage).toHaveBeenCalledWith('x1', 'sample', file))
+  fireEvent.click(within(reopened).getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(deleteMatImages).toHaveBeenCalledWith(['storage:x1/sample/temp.webp']))
+  expect(saveFields).toHaveBeenCalledTimes(1)
 })

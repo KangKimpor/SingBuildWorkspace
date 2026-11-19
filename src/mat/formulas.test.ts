@@ -1,5 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import { average, effective, formatCell, isOverride, n, parseInput, sectionItems } from './formulas'
+import {
+  average,
+  colPatchValue,
+  effective,
+  effectiveCol,
+  effectiveImages,
+  formatCell,
+  imagesPatchValue,
+  isIsoDate,
+  isOverride,
+  n,
+  parseDateTextInput,
+  parseInput,
+  parseTextInput,
+  sectionItems,
+} from './formulas'
 import type { CellKey, MatItem, Scalar, Source } from './types'
 
 const make = (cells: Partial<Record<CellKey, Source>>, edits: MatItem['edits'] = {}): MatItem => ({
@@ -254,5 +269,65 @@ describe('formatCell', () => {
     expect(formatCell('total', 'Pending')).toBe('Pending')
     expect(formatCell('placed', 'N/A')).toBe('N/A')
     expect(formatCell('placed', null)).toBe('')
+  })
+})
+
+describe('effectiveCol and effectiveImages', () => {
+  it('prefers edits over data.cols and treats empty string edit as cleared null', () => {
+    const base = make({})
+    base.data.cols = { pic: 'Alice', msPlan: '2025-10-07', lastUpdated: '2026-01-01' }
+    expect(effectiveCol(base, 'pic')).toBe('Alice')
+    base.edits = { pic: 'Bob', msPlan: '' }
+    expect(effectiveCol(base, 'pic')).toBe('Bob')
+    expect(effectiveCol(base, 'msPlan')).toBeNull()
+    expect(effectiveCol(base, 'lastUpdated')).toBe('2026-01-01')
+  })
+
+  it('prefers edited image lists including empty array over data.images', () => {
+    const base = make({})
+    base.data.images = { image: ['a.webp'], sample: ['b.webp'] }
+    expect(effectiveImages(base, 'image')).toEqual(['a.webp'])
+    base.edits = { image: [], sample: ['storage:x/sample/1.webp'] }
+    expect(effectiveImages(base, 'image')).toEqual([])
+    expect(effectiveImages(base, 'sample')).toEqual(['storage:x/sample/1.webp'])
+  })
+})
+
+describe('date and text parsers and patch helpers', () => {
+  it('validates real ISO dates', () => {
+    expect(isIsoDate('2025-10-07')).toBe(true)
+    expect(isIsoDate('2025-02-29')).toBe(false)
+    expect(isIsoDate('TBC')).toBe(false)
+  })
+
+  it('parses display dates, ISO dates, blanks, and free text', () => {
+    expect(parseDateTextInput('2025-10-07')).toBe('2025-10-07')
+    expect(parseDateTextInput('7 Oct 2025')).toBe('2025-10-07')
+    expect(parseDateTextInput(' 15 nov 2026 ')).toBe('2026-11-15')
+    expect(parseDateTextInput('31 Feb 2026')).toBe('31 Feb 2026')
+    expect(parseDateTextInput('TBC')).toBe('TBC')
+    expect(parseDateTextInput('-/-')).toBe('-/-')
+    expect(parseDateTextInput('   ')).toBe('')
+    expect(() => parseDateTextInput('x'.repeat(201))).toThrow('Use at most 200 characters.')
+  })
+
+  it('trims text and enforces cap', () => {
+    expect(parseTextInput('  set  ')).toBe('set')
+    expect(() => parseTextInput('x'.repeat(201))).toThrow('Use at most 200 characters.')
+    expect(parseTextInput('x'.repeat(2000), 2000)).toHaveLength(2000)
+  })
+
+  it('returns null when matching source and stores empty override when clearing imported value', () => {
+    const item = make({})
+    item.data.cols = { pic: 'Alice', no: 5 }
+    item.data.images = { image: ['a.webp'] }
+    expect(colPatchValue(item, 'pic', 'Alice')).toBeNull()
+    expect(colPatchValue(item, 'pic', '')).toBe('')
+    expect(colPatchValue(item, 'no', '5')).toBeNull()
+    expect(colPatchValue(item, 'no', '5A')).toBe('5A')
+    expect(colPatchValue(item, 'brand', '')).toBeNull()
+    expect(imagesPatchValue(item, 'image', ['a.webp'])).toBeNull()
+    expect(imagesPatchValue(item, 'image', [])).toEqual([])
+    expect(imagesPatchValue(item, 'sample', [])).toBeNull()
   })
 })

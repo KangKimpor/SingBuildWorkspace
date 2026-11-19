@@ -8,20 +8,22 @@ import { Tile } from '@/components/WorkspaceUI'
 import { weekLabel } from '@/nbc/submissions'
 import { usePhone } from '@/shell/usePhone'
 import { fetchAccess } from './api'
-import { MatTable, codeOf, formatCol } from './MatTable'
-import { MatSummary } from './MatSummary'
-import type { OnCell, OnRemark } from './MatCells'
+import { codeOf, effectiveCol, formatCol } from './formulas'
+import type { OnCell, OnFields, OnRemark } from './MatCells'
+import { MatSourcePanel } from './MatSourcePanel'
+import type { MatPicture } from './MatSourcePanel'
+import { MatPictureDialog, MatTable } from './MatTable'
 import { useMat } from './store'
 import type { MatState, SaveStatus } from './store'
 import type { MatItem, Pkg, Sheet } from './types'
 
-type Tab = Extract<Sheet, 'id' | 'mep'> | 'summary'
+type Tab = Extract<Sheet, 'id' | 'mep'>
 type Mark = NonNullable<MatItem['data']['mark']>
 
 const PACKAGES: { id: Pkg; label: string }[] = [{ id: 'bp03', label: 'BP03' }, { id: 'bp04', label: 'BP04' }]
-/** The two material sheets and the summary they roll up to. The workbook's note sheets are not shown. */
+/** The two material sheets. The workbook's note sheets are not shown. */
 const SHEETS: { id: Tab; label: string }[] = [
-  { id: 'id', label: 'ID Material' }, { id: 'mep', label: 'MEP Material' }, { id: 'summary', label: 'Summary' },
+  { id: 'id', label: 'ID Material' }, { id: 'mep', label: 'MEP Material' },
 ]
 /** The workbook legend (W1:W3): green, beige and yellow rows. */
 export const MARKS: Record<Mark, string> = { done: 'Completed', tracking: 'On tracking', omit: 'Omitted' }
@@ -60,9 +62,8 @@ function MaterialList() {
   const pkg: Pkg = params.get('p') === 'bp04' ? 'bp04' : 'bp03'
   const tab = SHEETS.find((t) => t.id === params.get('s'))?.id ?? 'id'
   const [expanded, setExpanded] = useState(false)
-  const { state, loading, error, saveStatus, refresh, setCell, setRemark } = useMat(pkg)
+  const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams({ p: nextPkg, s: nextTab })
-  const isExpanded = expanded && tab !== 'summary'
 
   let body
   if (!state) {
@@ -73,13 +74,14 @@ function MaterialList() {
           <div className="skeleton mat-skeleton-bar"/>
           <div className="skeleton mat-skeleton"/>
         </div>
-  } else if (tab === 'summary') {
-    body = <MatSummary items={state.items}/>
   } else {
-    body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`} expanded={isExpanded} onToggleExpand={() => setExpanded((e) => !e)} onCell={setCell} onRemark={setRemark}/>
+    body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} saveStatus={saveStatus}
+      caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`}
+      expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)}
+      onCell={setCell} onFields={setFields} onRemark={setRemark}/>
   }
 
-  return <div className="mat-page" data-expanded={isExpanded || undefined}>
+  return <div className="mat-page" data-expanded={expanded || undefined}>
     <header className="page-heading mat-heading">
       <div className="mat-heading-main">
         <Tile name="hard-hat" color="orange"/>
@@ -112,17 +114,29 @@ function MaterialList() {
   </div>
 }
 
-const text = (item: MatItem, key: 'pic' | 'msStatus') => formatCol(item.data.cols[key]).trim()
+const text = (item: MatItem, key: 'pic' | 'msStatus') => formatCol(effectiveCol(item, key)).trim()
 const distinct = (values: string[]) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 
-interface SheetViewProps { sheet: Sheet; state: MatState; caption: string; expanded: boolean; onToggleExpand: () => void; onCell: OnCell; onRemark: OnRemark }
+interface SheetViewProps {
+  sheet: Sheet
+  state: MatState
+  saveStatus: SaveStatus
+  caption: string
+  expanded: boolean
+  onToggleExpand: () => void
+  onCell: OnCell
+  onFields: OnFields
+  onRemark: OnRemark
+}
 
 /** One material sheet: search, filters and expand controls above its table; item count and legend beneath it. */
-function SheetView({ sheet, state, caption, expanded, onToggleExpand, onCell, onRemark }: SheetViewProps) {
+function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand, onCell, onFields, onRemark }: SheetViewProps) {
   const items = state.items
   const rows = useMemo(() => items.filter((item) => item.sheet === sheet), [items, sheet])
   const [query, setQuery] = useState(''), [pic, setPic] = useState(''), [status, setStatus] = useState(''), [mark, setMark] = useState('')
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
+  const [sourceItemId, setSourceItemId] = useState<string | null>(null)
+  const [picture, setPicture] = useState<MatPicture | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -147,12 +161,16 @@ function SheetView({ sheet, state, caption, expanded, onToggleExpand, onCell, on
   }, [rows])
   const active = !!(q || pic || status || mark)
   const match = useMemo(() => !active ? null : (row: MatItem) =>
-    (!q || `${codeOf(row)} ${formatCol(row.data.cols.description)}`.toLowerCase().includes(q))
+    (!q || `${codeOf(row)} ${formatCol(effectiveCol(row, 'description'))}`.toLowerCase().includes(q))
     && (!pic || text(row, 'pic') === pic) && (!status || text(row, 'msStatus') === status)
     && (!mark || (row.data.mark ?? 'none') === mark), [active, q, pic, status, mark])
   const shownCount = useMemo(
     () => active ? rows.filter((row) => row.kind === 'item' && match?.(row)).length : options.totalCount,
     [active, rows, match, options.totalCount],
+  )
+  const sourceItem = useMemo(
+    () => sourceItemId ? rows.find((r) => r.id === sourceItemId && r.kind === 'item') ?? null : null,
+    [rows, sourceItemId],
   )
   const toggleSection = useCallback((id: string) => setCollapsed((old) => {
     const next = new Set(old)
@@ -183,6 +201,7 @@ function SheetView({ sheet, state, caption, expanded, onToggleExpand, onCell, on
       </GlassSelect>
       {active && shownCount > 0 && <button type="button" className="text-link small mat-clear" onClick={clear}>Clear filters</button>}
       <div className="mat-toolbar-actions">
+        {expanded && <SaveState status={saveStatus}/>}
         <button type="button" className="btn-secondary" onClick={onToggleExpand}>
           {expanded ? <Minimize2 size={14} aria-hidden="true"/> : <Maximize2 size={14} aria-hidden="true"/>}
           <span className="mat-expand-label">{expanded ? 'Collapse' : 'Expand'}</span>
@@ -196,7 +215,9 @@ function SheetView({ sheet, state, caption, expanded, onToggleExpand, onCell, on
           <p className="quiet-empty">No materials match these filters.{' '}
             <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
         </div>
-      : <MatTable items={rows} state={state} match={match} caption={caption} collapsed={collapsed} onToggle={toggleSection} onCell={onCell} onRemark={onRemark}/>}
+      : <MatTable items={rows} state={state} match={match} caption={caption} collapsed={collapsed}
+          onToggle={toggleSection} onCell={onCell} onRemark={onRemark}
+          onOpenSource={setSourceItemId} onPicture={setPicture}/>}
     <div className="mat-key-bar">
       <span role="status" aria-live="polite">
         {shownCount} {shownCount === 1 ? 'material' : 'materials'}
@@ -207,5 +228,9 @@ function SheetView({ sheet, state, caption, expanded, onToggleExpand, onCell, on
         <li><span className="mat-swatch" data-mark="override" aria-hidden="true"/>Manual override</li>
       </ul>
     </div>
+    <MatSourcePanel item={sourceItem} picOptions={options.pics} pictureOpen={!!picture}
+      onClose={() => setSourceItemId(null)} onFields={onFields} onPicture={setPicture}/>
+    <MatPictureDialog picture={picture} onClose={() => setPicture(null)}
+      onEditPhotos={sourceItem ? undefined : (id) => { setPicture(null); setSourceItemId(id) }}/>
   </>
 }
