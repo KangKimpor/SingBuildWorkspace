@@ -12,7 +12,8 @@ import { codeOf, effectiveCol, formatCol } from './formulas'
 import type { OnCell, OnFields, OnRemark } from './MatCells'
 import { MatSourcePanel } from './MatSourcePanel'
 import type { MatPicture } from './MatSourcePanel'
-import { MatPictureDialog, MatTable } from './MatTable'
+import { COLUMN_VIEWS, MatPictureDialog, MatTable } from './MatTable'
+import type { ColumnView } from './MatTable'
 import { useMat } from './store'
 import type { MatState, SaveStatus } from './store'
 import type { MatItem, Pkg, Sheet } from './types'
@@ -64,6 +65,18 @@ function MaterialList() {
   const [expanded, setExpanded] = useState(false)
   const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams({ p: nextPkg, s: nextTab })
+  const toggleExpand = useCallback(() => setExpanded((e) => !e), [])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-mat', '')
+    return () => {
+      document.documentElement.removeAttribute('data-mat')
+      document.documentElement.removeAttribute('data-mat-expanded')
+    }
+  }, [])
+  useEffect(() => {
+    document.documentElement.toggleAttribute('data-mat-expanded', expanded)
+  }, [expanded])
 
   let body
   if (!state) {
@@ -77,7 +90,7 @@ function MaterialList() {
   } else {
     body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} saveStatus={saveStatus}
       caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`}
-      expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)}
+      expanded={expanded} onToggleExpand={toggleExpand}
       onCell={setCell} onFields={setFields} onRemark={setRemark}/>
   }
 
@@ -129,11 +142,12 @@ interface SheetViewProps {
   onRemark: OnRemark
 }
 
-/** One material sheet: search, filters and expand controls above its table; item count and legend beneath it. */
+/** One material sheet: search, filters, column view pills and expand controls above its table; item count and legend beneath it. */
 function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand, onCell, onFields, onRemark }: SheetViewProps) {
   const items = state.items
   const rows = useMemo(() => items.filter((item) => item.sheet === sheet), [items, sheet])
   const [query, setQuery] = useState(''), [pic, setPic] = useState(''), [status, setStatus] = useState(''), [mark, setMark] = useState('')
+  const [view, setView] = useState<ColumnView>('all')
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
   const [sourceItemId, setSourceItemId] = useState<string | null>(null)
   const [picture, setPicture] = useState<MatPicture | null>(null)
@@ -200,6 +214,13 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         {options.unmarked && <option value="none">No mark</option>}
       </GlassSelect>
       {active && shownCount > 0 && <button type="button" className="text-link small mat-clear" onClick={clear}>Clear filters</button>}
+      <div className="view-tabs mat-col-tabs" role="group" aria-label="Columns">
+        {COLUMN_VIEWS.map((v) => (
+          <button key={v.id} type="button" className="view-tab" aria-pressed={v.id === view} onClick={() => setView(v.id)}>
+            {v.label}
+          </button>
+        ))}
+      </div>
       <div className="mat-toolbar-actions">
         {expanded && <SaveState status={saveStatus}/>}
         <button type="button" className="btn-secondary" onClick={onToggleExpand}>
@@ -215,7 +236,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
           <p className="quiet-empty">No materials match these filters.{' '}
             <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
         </div>
-      : <MatTable items={rows} state={state} match={match} caption={caption} collapsed={collapsed}
+      : <MatTable items={rows} week={state.week} remarks={state.remarks} view={view} match={match} caption={caption} collapsed={collapsed}
           onToggle={toggleSection} onCell={onCell} onRemark={onRemark}
           onOpenSource={setSourceItemId} onPicture={setPicture}/>}
     <div className="mat-key-bar">

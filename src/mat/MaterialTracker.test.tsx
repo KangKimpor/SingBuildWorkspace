@@ -50,6 +50,9 @@ function load(items: MatItem[] = [section('s1', 1, 'Wall Finishing'), material('
 }
 
 beforeEach(() => {
+  // jsdom has no layout; give scroll containers a viewport size so @tanstack/react-virtual renders rows.
+  Object.defineProperty(HTMLElement.prototype, 'clientHeight', { configurable: true, value: 800 })
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', { configurable: true, value: 1200 })
   vi.spyOn(cache, 'read').mockResolvedValue(null)
   vi.spyOn(cache, 'write').mockResolvedValue()
   vi.mocked(fetchAccess).mockResolvedValue(true)
@@ -73,6 +76,15 @@ async function openList(path?: string) {
   await screen.findByText('Sample panel XX-01')
 }
 const field = (name: string) => screen.getByRole('textbox', { name }) as HTMLInputElement
+const cellButton = (name: string) => screen.getByRole('button', { name })
+function activate(name: string) {
+  fireEvent.click(cellButton(name))
+  return field(name)
+}
+function activateSelect(name: string) {
+  fireEvent.click(cellButton(name))
+  return screen.getByRole('combobox', { name }) as HTMLSelectElement
+}
 
 test('a visitor without access sees Not found and nothing is loaded', async () => {
   vi.mocked(fetchAccess).mockResolvedValue(false)
@@ -100,17 +112,18 @@ test('a phone shows one line instead of the table', async () => {
   }
 })
 
-test('the header shows the week label, and an item shows last week as text and this week in a textbox', async () => {
+test('the header shows the week label, an item shows last week as text and this week in a click-to-edit cell, and no controls mount at rest', async () => {
   await openList()
   expect(screen.getByRole('heading', { name: 'Material list' })).toBeInTheDocument()
   expect(screen.getByText('Week 15 Nov – 21 Nov')).toBeInTheDocument()
   expect(fetchPackage).toHaveBeenCalledWith('bp03', null, null)
   const last = screen.getByText('Waiting for supplier quote')
   expect(last.closest('textarea, input')).toBeNull()
-  expect(field('XX-01 PM Remarks This week')).toHaveValue('Quote received')
-  expect(field('XX-01 Purchase Remarks This week')).toHaveValue('')
-  // ISO dates read as day, month and year inside the editable submission cell.
-  expect(field('XX-01 Material Submission Plan Submit')).toHaveValue('7 Oct 2025')
+  expect(cellButton('XX-01 PM Remarks This week')).toHaveTextContent('Quote received')
+  expect(cellButton('XX-01 Purchase Remarks This week')).toHaveTextContent('')
+  // ISO dates read as day, month and year inside the idle cell button.
+  expect(cellButton('XX-01 Material Submission Plan Submit')).toHaveTextContent('7 Oct 2025')
+  expect(document.querySelectorAll('.mat-table input, .mat-table select, .mat-table textarea')).toHaveLength(0)
 })
 
 test('package and sheet come from the query string', async () => {
@@ -127,45 +140,43 @@ test('package and sheet come from the query string', async () => {
 
 test('typing a remark and leaving the field saves it for that team', async () => {
   await openList()
-  const remark = field('XX-01 PM Remarks This week')
-  fireEvent.focus(remark)
+  const remark = activate('XX-01 PM Remarks This week')
   fireEvent.change(remark, { target: { value: 'Quote approved' } })
   fireEvent.blur(remark)
   await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
   expect(saveRemark).toHaveBeenCalledExactlyOnceWith('x1', 'pm', 'Quote approved')
-  expect(remark).toHaveValue('Quote approved')
+  expect(cellButton('XX-01 PM Remarks This week')).toHaveTextContent('Quote approved')
 })
 
 test('typing 50 in Placed Order saves 0.5 and Not Yet PO follows', async () => {
   await openList()
-  expect(field('XX-01 Not Yet PO')).toHaveValue('60%')
-  const placed = field('XX-01 Placed Order')
-  expect(placed).toHaveValue('40%')
-  fireEvent.focus(placed)
+  expect(cellButton('XX-01 Not Yet PO')).toHaveTextContent('60%')
+  expect(cellButton('XX-01 Placed Order')).toHaveTextContent('40%')
+  const placed = activate('XX-01 Placed Order')
   fireEvent.change(placed, { target: { value: '50' } })
   fireEvent.keyDown(placed, { key: 'Enter' })
   await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
   expect(saveCell).toHaveBeenCalledExactlyOnceWith('x1', 'placed', 0.5)
-  expect(field('XX-01 Not Yet PO')).toHaveValue('50%')
-  expect(placed).toHaveValue('50%')
+  expect(cellButton('XX-01 Not Yet PO')).toHaveTextContent('50%')
+  expect(cellButton('XX-01 Placed Order')).toHaveTextContent('50%')
 })
 
 test('Escape puts back the stored value without saving', async () => {
   await openList()
-  const placed = field('XX-01 Placed Order')
+  const placed = activate('XX-01 Placed Order')
   fireEvent.change(placed, { target: { value: '90' } })
   fireEvent.keyDown(placed, { key: 'Escape' })
-  fireEvent.blur(placed)
-  expect(placed).toHaveValue('40%')
+  expect(cellButton('XX-01 Placed Order')).toHaveTextContent('40%')
   expect(saveCell).not.toHaveBeenCalled()
 })
 
 test('Use formula clears the override', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([material('x1', 1, 'XX-01', 4, { edits: { placed: 0.5 } })]))
   await openList()
-  expect(field('XX-01 Placed Order')).toHaveValue('50%')
+  expect(cellButton('XX-01 Placed Order')).toHaveTextContent('50%')
+  fireEvent.click(cellButton('XX-01 Placed Order'))
   fireEvent.click(screen.getByRole('button', { name: 'Use formula for XX-01 Placed Order' }))
-  await waitFor(() => expect(field('XX-01 Placed Order')).toHaveValue('40%'))
+  await waitFor(() => expect(cellButton('XX-01 Placed Order')).toHaveTextContent('40%'))
   expect(saveCell).toHaveBeenCalledExactlyOnceWith('x1', 'placed', null)
   await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
   expect(screen.queryByRole('button', { name: 'Use formula for XX-01 Placed Order' })).toBeNull()
@@ -174,17 +185,17 @@ test('Use formula clears the override', async () => {
 test('a failed save keeps the typed text, marks the cell invalid and offers Retry', async () => {
   vi.mocked(saveCell).mockRejectedValueOnce(new Error('Network down'))
   await openList()
-  const placed = field('XX-01 Placed Order')
+  const placed = activate('XX-01 Placed Order')
   fireEvent.change(placed, { target: { value: '50' } })
   fireEvent.blur(placed)
   const retry = await screen.findByRole('button', { name: 'Retry XX-01 Placed Order' })
-  expect(placed).toHaveValue('50')
-  expect(placed).toHaveAttribute('aria-invalid', 'true')
+  expect(cellButton('XX-01 Placed Order')).toHaveTextContent('50')
+  expect(cellButton('XX-01 Placed Order')).toHaveAttribute('data-invalid', 'true')
   expect(screen.getByText('Could not save')).toBeInTheDocument()
   fireEvent.click(retry)
-  await waitFor(() => expect(placed).toHaveValue('50%'))
+  await waitFor(() => expect(cellButton('XX-01 Placed Order')).toHaveTextContent('50%'))
   expect(saveCell).toHaveBeenLastCalledWith('x1', 'placed', 0.5)
-  expect(placed).not.toHaveAttribute('aria-invalid')
+  expect(cellButton('XX-01 Placed Order')).not.toHaveAttribute('data-invalid')
   await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
 })
 
@@ -266,12 +277,14 @@ test('Expand sets full-screen mode, keeps SaveState visible, and Collapse restor
   await openList()
   fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
   expect(document.querySelector('.mat-page')).toHaveAttribute('data-expanded')
-  const unit = field('XX-01 Quantity Unit')
+  expect(document.documentElement).toHaveAttribute('data-mat-expanded')
+  const unit = activate('XX-01 Quantity Unit')
   fireEvent.change(unit, { target: { value: 'set' } })
   fireEvent.keyDown(unit, { key: 'Enter' })
   await waitFor(() => expect(within(document.querySelector('.mat-toolbar-actions') as HTMLElement).getByText('Saved')).toBeInTheDocument())
   fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
   expect(document.querySelector('.mat-page')).not.toHaveAttribute('data-expanded')
+  expect(document.documentElement).not.toHaveAttribute('data-mat-expanded')
 })
 
 test('the section controls collapse every section and expand them again', async () => {
@@ -322,39 +335,82 @@ test('Material Submission, Sample Submission, Procurement, and Quantity Unit are
   ]))
   await openList()
 
-  const msPlan = field('XX-01 Material Submission Plan Submit')
+  const msPlan = activate('XX-01 Material Submission Plan Submit')
   fireEvent.change(msPlan, { target: { value: '2026-01-15' } })
   fireEvent.keyDown(msPlan, { key: 'Enter' })
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'msPlan', '2026-01-15'))
-  expect(msPlan).toHaveValue('15 Jan 2026')
+  expect(cellButton('XX-01 Material Submission Plan Submit')).toHaveTextContent('15 Jan 2026')
 
-  const status = screen.getByRole('combobox', { name: 'XX-01 Material Submission Status' }) as HTMLSelectElement
+  const status = activateSelect('XX-01 Material Submission Status')
   expect(status).toHaveValue('Waiting Client')
   expect(within(status).getByRole('option', { name: 'Waiting Client' })).toBeInTheDocument()
   expect(within(status).getByRole('option', { name: 'Revise & Resubmit' })).toBeInTheDocument()
   fireEvent.change(status, { target: { value: 'Revise & Resubmit' } })
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'msStatus', 'Revise & Resubmit'))
-  expect(status).toHaveValue('Revise & Resubmit')
+  expect(cellButton('XX-01 Material Submission Status')).toHaveTextContent('Revise & Resubmit')
 
-  const ssPlan = field('XX-01 Sample Submission Plan Submit')
+  const ssPlan = activate('XX-01 Sample Submission Plan Submit')
   fireEvent.change(ssPlan, { target: { value: 'TBC' } })
   fireEvent.blur(ssPlan)
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'ssPlan', 'TBC'))
 
-  const poPlan = field('XX-01 Procurement Plan Place Order')
+  const poPlan = activate('XX-01 Procurement Plan Place Order')
   fireEvent.change(poPlan, { target: { value: '2026-02-01' } })
   fireEvent.keyDown(poPlan, { key: 'Enter' })
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'poPlan', '2026-02-01'))
 
-  const procRemarks = field('XX-01 Procurement Remarks')
+  const procRemarks = activate('XX-01 Procurement Remarks')
   fireEvent.change(procRemarks, { target: { value: 'Lead time 3w' } })
   fireEvent.blur(procRemarks)
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'procRemarks', 'Lead time 3w'))
 
-  const unit = field('XX-01 Quantity Unit')
+  const unit = activate('XX-01 Quantity Unit')
   fireEvent.change(unit, { target: { value: 'm2' } })
   fireEvent.keyDown(unit, { key: 'Enter' })
   await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'unit', 'm2'))
+})
+
+test('Tab advances focus to the next editable cell in the same row', async () => {
+  await openList()
+  const msPlan = activate('XX-01 Material Submission Plan Submit')
+  fireEvent.keyDown(msPlan, { key: 'Tab' })
+  expect(screen.getByRole('textbox', { name: 'XX-01 Material Submission Actual Submit' })).toHaveFocus()
+})
+
+test('column view pills filter column groups while keeping No, Code, Description frozen', async () => {
+  await openList()
+  const colsGroup = screen.getByRole('group', { name: 'Columns' })
+  fireEvent.click(within(colsGroup).getByRole('button', { name: 'Submission' }))
+  expect(screen.getByRole('columnheader', { name: 'Material Submission' })).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Procurement' })).toBeNull()
+  expect(screen.queryByRole('columnheader', { name: 'PM Remarks' })).toBeNull()
+  expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
+
+  fireEvent.click(within(colsGroup).getByRole('button', { name: 'Procurement' }))
+  expect(screen.getByRole('columnheader', { name: 'Procurement' })).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Material Submission' })).toBeNull()
+
+  fireEvent.click(within(colsGroup).getByRole('button', { name: 'Remarks & %' }))
+  expect(screen.getByRole('columnheader', { name: 'Purchase Remarks' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Percentage' })).toBeInTheDocument()
+
+  fireEvent.click(within(colsGroup).getByRole('button', { name: 'All' }))
+  expect(screen.getByRole('columnheader', { name: 'Material Submission' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Procurement' })).toBeInTheDocument()
+})
+
+test('spacer-row virtualization mounts only a window of rows for large sheets', async () => {
+  const many: MatItem[] = [section('s1', 1, 'Wall Finishing')]
+  for (let i = 1; i <= 100; i++) {
+    many.push(material(`m${i}`, i + 1, `XX-${String(i).padStart(3, '0')}`, 4))
+  }
+  vi.mocked(fetchPackage).mockResolvedValue(load(many))
+  open()
+  await screen.findByText('Sample panel XX-001')
+  const rendered = document.querySelectorAll('.mat-table tbody tr[data-index]').length
+  expect(rendered).toBeGreaterThan(0)
+  expect(rendered).toBeLessThan(60)
+  expect(document.querySelectorAll('.mat-table tbody tr.mat-spacer').length).toBeGreaterThanOrEqual(1)
 })
 
 test('Material Source panel edits all source fields and photos via saveFields, and Cancel cleans up uploaded photos', async () => {

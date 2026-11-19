@@ -1,5 +1,5 @@
-/* Material list (/admin). A dense working table in the Project Progress family: colors from the `--pp-*` tokens, light mode only. Page chrome (heading, tabs, search, buttons, pills) uses the app's shared classes, so everything this page adds is under `.mat-`; the two rules outside it drop the canvas padding while the page is open and hide the shell chrome in full-screen expand mode. */
-.canvas:has(> .mat-page) { padding-block: 0; }
+/* Material list (/admin). A dense working table in the Project Progress family: colors from the `--pp-*` tokens, light mode only. Page chrome (heading, tabs, search, buttons, pills) uses the app's shared classes, so everything this page adds is under `.mat-`; the two rules outside it use `html[data-mat*]` attributes to drop canvas padding and hide shell chrome in full-screen expand mode without root `:has()`. */
+html[data-mat] .canvas { padding-block: 0; }
 .mat-page {
   --mat-h1: 28px; /* first header row; the second row sticks below it */
   --mat-h2: 44px;
@@ -7,6 +7,7 @@
   --mat-head-work: color-mix(in srgb, var(--pp-l2) 75%, var(--pp-l3));
   --mat-section: var(--pp-l2);
   --mat-section-nested: color-mix(in srgb, var(--pp-l2) 40%, var(--pp-l3));
+  --mat-row-hover: #f5f5f3;
   display: flex; flex-direction: column; gap: var(--space-12); min-width: 0;
   height: calc(100dvh - var(--h-topbar) - var(--safe-top));
   padding: var(--space-24) var(--space-32);
@@ -34,11 +35,15 @@
 :where(.mat-tabs) .view-tab { border: 0; background: transparent; cursor: pointer; }
 .mat-tabs-rule { align-self: stretch; width: 1px; min-height: var(--space-20); background: var(--border-subtle); }
 
-/* Toolbar: search, three glass filters, the expand controls; the count and legend sit under the table. */
+/* Toolbar: search, three glass filters, column-group view pills, and expand controls. */
 .mat-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8); min-width: 0; }
-.mat-search { flex: 0 1 260px; min-width: 190px; }
-.mat-toolbar .glass-select { max-width: 190px; }
+.mat-search { flex: 0 1 240px; min-width: 180px; }
+.mat-toolbar .glass-select { max-width: 180px; }
 .mat-clear { border: 0; padding: 0; background: none; cursor: pointer; }
+.mat-col-tabs { flex: none; }
+:where(.mat-col-tabs) .view-tab { border: 0; background: transparent; cursor: pointer; }
+.mat-col-tabs .view-tab[aria-pressed='true'] { color: var(--text-primary); background: var(--bg-pressed); }
+
 .mat-legend { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4) var(--space-12); margin: 0; padding: 0; list-style: none; font-size: var(--fs-small); color: var(--text-secondary); }
 .mat-legend li { display: inline-flex; align-items: center; gap: var(--space-6); }
 .mat-swatch { width: 14px; height: 14px; border-radius: var(--radius-chip); border: 1px solid var(--border-strong); }
@@ -72,8 +77,8 @@
   background: var(--bg-canvas);
 }
 .mat-page[data-expanded] > :is(.mat-heading, .mat-tabs) { display: none; }
-.shell:has(.mat-page[data-expanded]) > .sidebar-slot,
-.shell:has(.mat-page[data-expanded]) .topbar { visibility: hidden; }
+html[data-mat-expanded] .sidebar-slot,
+html[data-mat-expanded] .topbar { visibility: hidden; }
 @media (max-width: 900px) { .mat-expand-label { display: none; } }
 
 /* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
@@ -82,6 +87,7 @@
 .mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 1px solid var(--pp-line-cell); border-bottom: 1px solid var(--pp-line); }
 .mat-table td { height: var(--pp-row); padding: 4px 8px; vertical-align: middle; background-color: var(--pp-l3); }
 .mat-table tbody th { padding: 4px 8px; text-align: start; font-weight: 400; background-color: var(--pp-l3); }
+.mat-table tr.mat-spacer > td { height: auto; padding: 0; border: 0; background: transparent; pointer-events: none; }
 
 .mat-table thead th { position: sticky; top: 0; z-index: 3; padding: 0 8px; background: var(--pp-band); color: var(--pp-ink); font-size: 11px; font-weight: 600; line-height: 13px; letter-spacing: .03em; text-transform: uppercase; text-align: start; vertical-align: middle; border-bottom: 1px solid var(--pp-line-strong); border-right-color: var(--pp-line-strong); }
 .mat-table .mat-head-1 th { height: var(--mat-h1); }
@@ -102,8 +108,9 @@
 .mat-table tbody tr[data-mark] > .mat-f { background-color: var(--mat-mark); }
 .mat-table tbody th.mat-f2 { padding: 0; font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-2); }
-/* Hover is a wash over the opaque cell color, so frozen cells never turn see-through. */
-.mat-table tbody tr:hover > :is(td, th) { background-image: linear-gradient(var(--pp-wash), var(--pp-wash)); }
+/* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
+.mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
+.mat-table tbody tr[data-mark]:hover > .mat-f { background-color: color-mix(in srgb, var(--mat-mark) 90%, #000); }
 
 /* Material Source trigger on the Code cell. */
 .mat-source-btn { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 8px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
@@ -148,25 +155,46 @@
 .mat-picture-close { position: absolute; top: 8px; right: 8px; display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); cursor: pointer; }
 .mat-picture-close:hover { background: var(--bg-hover); color: var(--text-primary); }
 
-/* Editable cells: the field fills the cell. */
+/* Idle click-to-edit cell buttons (zero form controls or SVGs at rest). */
 .mat-table td.mat-edit { padding: 0; }
-.mat-num, .mat-remark, .mat-text, .mat-date, .mat-select-wrap { position: absolute; inset: 0; }
+.mat-cell-btn {
+  display: flex; align-items: center; gap: 4px; width: 100%; height: 100%; min-height: calc(var(--pp-row) - 1px);
+  padding: 4px 8px; border: 1px solid transparent; border-radius: 4px;
+  background: transparent; color: var(--pp-ink); font: inherit; text-align: start; cursor: pointer;
+}
+.mat-cell-btn:hover { border-color: var(--pp-line); }
+.mat-cell-btn[data-invalid='true'] { border-color: var(--danger-text); }
+.mat-cell-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mat-cell-num { justify-content: flex-end; text-align: end; font-variant-numeric: tabular-nums; }
+.mat-cell-num[data-source='formula'] { color: var(--pp-ink-2); }
+.mat-cell-num[data-source='override'] { position: relative; font-weight: 600; }
+.mat-cell-num[data-source='override']::before {
+  content: ''; position: absolute; top: 6px; left: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent);
+}
+.mat-cell-status { justify-content: space-between; font-size: 12.5px; }
+.mat-cell-status::after {
+  content: ''; flex: none; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent; border-top: 4px solid var(--pp-ink-muted); opacity: 0;
+}
+.mat-cell-status:is(:hover, :focus-visible)::after { opacity: 1; }
+.mat-cell-remark { align-items: flex-start; font-size: 12.5px; }
+
+/* Active cell editors: mounted only for the single active cell. */
+.mat-active-cell { position: absolute; inset: 0; }
 .mat-num input, .mat-remark textarea, .mat-text input, .mat-date input:not([type='date']), .mat-select {
-  position: absolute; inset: 3px; box-sizing: border-box; width: auto; margin: 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: var(--pp-ink); font: inherit;
+  position: absolute; inset: 3px; box-sizing: border-box; width: auto; margin: 0; border: 1px solid var(--pp-accent-ink); border-radius: 4px; background: var(--pp-l3); color: var(--pp-ink); font: inherit;
 }
 .mat-num input { padding: 0 6px; text-align: end; font-variant-numeric: tabular-nums; }
 .mat-text input { padding: 0 6px; }
 .mat-date input:not([type='date']) { padding: 0 22px 0 6px; }
 .mat-select { width: calc(100% - 6px); padding: 0 4px; font-size: 12.5px; cursor: pointer; }
-:is(.mat-num input, .mat-text input, .mat-date input:not([type='date']), .mat-select):hover { border-color: var(--pp-line); }
 :is(.mat-num input, .mat-text input, .mat-date input:not([type='date']), .mat-select):focus {
-  border-color: var(--pp-accent-ink); background: var(--pp-l3); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px;
+  outline: 2px solid var(--pp-accent-ink); outline-offset: -1px;
 }
 .mat-date-pick {
   position: absolute; top: 50%; right: 6px; translate: 0 -50%; display: grid; place-items: center; width: 18px; height: 18px;
-  border-radius: 3px; color: var(--pp-ink-muted); opacity: 0; cursor: pointer; overflow: hidden;
+  border-radius: 3px; color: var(--pp-ink-muted); cursor: pointer; overflow: hidden;
 }
-.mat-date:is(:hover, :focus-within) .mat-date-pick { opacity: 1; }
 .mat-date-pick:hover { background: var(--pp-wash); color: var(--pp-ink); }
 .mat-date-pick input[type='date'] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
@@ -175,17 +203,14 @@
 .mat-num[data-source='override'] input { font-weight: 600; }
 .mat-dot { position: absolute; top: 7px; left: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); pointer-events: none; }
 .mat-formula, .mat-retry { position: absolute; left: 4px; bottom: 4px; padding: 0 3px; border: 0; border-radius: 3px; background: var(--pp-l3); font: inherit; font-size: 10.5px; line-height: 14px; cursor: pointer; }
-.mat-formula { display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; color: var(--pp-accent-ink); opacity: 0; }
-.mat-num:is(:hover, :focus-within) .mat-formula { opacity: 1; }
+.mat-formula { display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; color: var(--pp-accent-ink); }
 .mat-retry { color: var(--danger-text); font-weight: 600; text-decoration: underline; z-index: 1; }
 .mat-retry:hover { text-decoration: none; }
 :is(.mat-num input, .mat-remark textarea, .mat-text input, .mat-date input:not([type='date']), .mat-select)[aria-invalid='true'] { border-color: var(--danger-text); }
 
-.mat-remark textarea { padding: 3px 6px; border-color: var(--pp-line-strong); background: var(--pp-l3); font-size: 12.5px; line-height: 16px; resize: none; overflow: hidden; }
-.mat-remark textarea:hover { border-color: var(--pp-ink-muted); }
+.mat-remark textarea { padding: 3px 6px; font-size: 12.5px; line-height: 16px; resize: none; overflow: hidden; }
 /* While focused the remark grows over the rows below instead of stretching its own row. */
-.mat-remark textarea:focus { bottom: auto; z-index: 1; min-height: 112px; max-height: 240px; field-sizing: content; overflow: auto; border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
-.mat-remark .mat-retry { left: auto; right: 6px; }
+.mat-remark textarea:focus { bottom: auto; z-index: 1; min-height: 112px; max-height: 240px; field-sizing: content; overflow: auto; outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
 
 /* Material Source slide-over side panel. */
 .mat-source-panel {

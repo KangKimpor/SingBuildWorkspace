@@ -1,4 +1,4 @@
-import { PCT_CELLS, QTY_CELLS, type CellKey, type ColKey, type EditableColKey, type FormulaKey, type ImageSet, type MatItem, type Scalar } from './types'
+import { PCT_CELLS, QTY_CELLS, type CellKey, type ColKey, type EditableColKey, type FormulaKey, type ImageSet, type MatData, type MatEdits, type MatItem, type Scalar } from './types'
 
 const CELLS: readonly CellKey[] = [...QTY_CELLS, ...PCT_CELLS]
 const PERCENT = new Set<CellKey>(PCT_CELLS)
@@ -59,8 +59,18 @@ function resolve(item: MatItem, cell: CellKey, get: Get): Scalar {
   return result !== null && Number.isFinite(result) ? result : null
 }
 
+const effectiveCache = new WeakMap<MatData, WeakMap<MatEdits, Record<CellKey, Scalar>>>()
+
 /** Every cell's value: the typed edit, else the source value or its formula over the other effective values. */
 export function effective(item: MatItem): Record<CellKey, Scalar> {
+  let byEdits = effectiveCache.get(item.data)
+  if (byEdits) {
+    const cached = byEdits.get(item.edits)
+    if (cached) return cached
+  } else {
+    byEdits = new WeakMap()
+    effectiveCache.set(item.data, byEdits)
+  }
   const values = new Map<CellKey, Scalar>()
   const resolving = new Set<CellKey>()
   const get = (cell: CellKey): Scalar => {
@@ -72,7 +82,9 @@ export function effective(item: MatItem): Record<CellKey, Scalar> {
     values.set(cell, value)
     return value
   }
-  return Object.fromEntries(CELLS.map(cell => [cell, get(cell)])) as Record<CellKey, Scalar>
+  const out = Object.fromEntries(CELLS.map(cell => [cell, get(cell)])) as Record<CellKey, Scalar>
+  byEdits.set(item.edits, out)
+  return out
 }
 
 export function isOverride(item: MatItem, cell: CellKey): boolean {
@@ -110,6 +122,74 @@ export function average(items: MatItem[], cell: CellKey): number | null {
     .map(item => effective(item)[cell])
     .filter((value): value is number => typeof value === 'number')
   return numbers.length ? numbers.reduce((sum, value) => sum + value, 0) / numbers.length : null
+}
+
+function upperBound(arr: number[], target: number): number {
+  let lo = 0, hi = arr.length
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1
+    if (arr[mid]! <= target) lo = mid + 1
+    else hi = mid
+  }
+  return lo
+}
+
+function sortedByPos(list: MatItem[]): MatItem[] {
+  for (let i = 1; i < list.length; i++) {
+    if (list[i]!.pos < list[i - 1]!.pos) return [...list].sort((a, b) => a.pos - b.pos)
+  }
+  return list
+}
+
+/** Single-pass sheet & section percentage averages for one sheet's rows via prefix sums + binary search. */
+export function computeSheetAverages(rows: MatItem[]): { sheet: Record<string, number | null>; byId: Map<string, Record<string, number | null>> } {
+  const items = sortedByPos(rows.filter((r) => r.kind === 'item'))
+  const sections = sortedByPos(rows.filter((r) => r.kind === 'section'))
+  const nItems = items.length
+  const posArr: number[] = []
+  const sums = PCT_CELLS.map(() => new Float64Array(nItems + 1))
+  const counts = PCT_CELLS.map(() => new Int32Array(nItems + 1))
+
+  for (let i = 0; i < nItems; i++) {
+    const item = items[i]!
+    posArr.push(item.pos)
+    const vals = effective(item)
+    for (let k = 0; k < PCT_CELLS.length; k++) {
+      const v = vals[PCT_CELLS[k]!]
+      const numeric = typeof v === 'number'
+      sums[k]![i + 1] = sums[k]![i]! + (numeric ? v : 0)
+      counts[k]![i + 1] = counts[k]![i]! + (numeric ? 1 : 0)
+    }
+  }
+
+  const sheet: Record<string, number | null> = {}
+  for (let k = 0; k < PCT_CELLS.length; k++) {
+    const cnt = counts[k]![nItems]!
+    sheet[PCT_CELLS[k]!] = cnt > 0 ? sums[k]![nItems]! / cnt : null
+  }
+
+  const byId = new Map<string, Record<string, number | null>>()
+  for (let i = 0; i < sections.length; i++) {
+    const sec = sections[i]!
+    let end = sec.data.end
+    if (end === undefined) {
+      let nextPos = Infinity
+      for (let j = i + 1; j < sections.length; j++) {
+        if (sections[j]!.pos > sec.pos) { nextPos = sections[j]!.pos; break }
+      }
+      end = nextPos - 1
+    }
+    const firstIdx = upperBound(posArr, sec.pos)
+    const afterIdx = end === Infinity ? nItems : upperBound(posArr, end)
+    const avg: Record<string, number | null> = {}
+    for (let k = 0; k < PCT_CELLS.length; k++) {
+      const cnt = afterIdx > firstIdx ? counts[k]![afterIdx]! - counts[k]![firstIdx]! : 0
+      avg[PCT_CELLS[k]!] = cnt > 0 ? (sums[k]![afterIdx]! - sums[k]![firstIdx]!) / cnt : null
+    }
+    byId.set(sec.id, avg)
+  }
+
+  return { sheet, byId }
 }
 
 export function formatCell(cell: CellKey, value: Scalar): string {

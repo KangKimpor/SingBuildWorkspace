@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   average,
   colPatchValue,
+  computeSheetAverages,
   effective,
   effectiveCol,
   effectiveImages,
@@ -329,5 +330,39 @@ describe('date and text parsers and patch helpers', () => {
     expect(imagesPatchValue(item, 'image', ['a.webp'])).toBeNull()
     expect(imagesPatchValue(item, 'image', [])).toEqual([])
     expect(imagesPatchValue(item, 'sample', [])).toBeNull()
+  })
+})
+
+describe('computeSheetAverages and effective cache', () => {
+  it('computes sheet and nested section averages in one pass matching sectionItems', () => {
+    const row = (pos: number, kind: MatItem['kind'], placed?: Scalar, nest: { end?: number; level?: number } = {}): MatItem => ({
+      ...make(placed === undefined ? {} : { placed: v(placed), arrived: v(placed) }),
+      id: `bp03-id-${pos}`,
+      pos,
+      kind,
+      data: { cols: {}, cells: placed === undefined ? {} : { placed: v(placed), arrived: v(placed) }, ...nest },
+    })
+    const parent = row(9, 'section', undefined, { end: 15, level: 0 })
+    const child = row(11, 'section', undefined, { end: 13, level: 1 })
+    const empty = row(17, 'section', undefined, { end: 18, level: 0 })
+    const items = [
+      parent, row(10, 'item', 0.2), child, row(12, 'item', 0.6), row(13, 'item', 'N/A'),
+      row(14, 'section', undefined, { end: 15, level: 1 }), row(15, 'item', 1.0),
+      empty, row(18, 'item', 'TBC'),
+    ]
+    const sums = computeSheetAverages(items)
+    expect(sums.sheet.placed).toBeCloseTo((0.2 + 0.6 + 1.0) / 3)
+    expect(sums.byId.get(parent.id)!.placed).toBeCloseTo((0.2 + 0.6 + 1.0) / 3)
+    expect(sums.byId.get(child.id)!.placed).toBeCloseTo(0.6)
+    expect(sums.byId.get(empty.id)!.placed).toBeNull()
+  })
+
+  it('caches effective values per data+edits reference and updates on new edits', () => {
+    const base = make({ total: v(100), po: v(40), placed: { f: 'placedPoOverTotal' } })
+    const first = effective(base)
+    expect(effective(base)).toBe(first)
+    expect(first.placed).toBe(0.4)
+    const updated = { ...base, edits: { po: 80 } }
+    expect(effective(updated).placed).toBe(0.8)
   })
 })
