@@ -9,7 +9,7 @@ import { Tile } from '@/components/WorkspaceUI'
 import { weekLabel } from '@/nbc/submissions'
 import { usePhone } from '@/shell/usePhone'
 import { fetchAccess } from './api'
-import { changedItemIds } from './changes'
+import { changedCells } from './changes'
 import { codeOf, effectiveCol, formatCol } from './formulas'
 import type { OnCell, OnFields, OnRemark } from './MatCells'
 import { MatSourcePanel } from './MatSourcePanel'
@@ -81,6 +81,16 @@ function MaterialList() {
   }, [])
   useEffect(() => {
     document.documentElement.toggleAttribute('data-mat-expanded', expanded)
+    if (!expanded) return
+    // Escape leaves full screen, unless an editor, a field or a dialog took the key first.
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      if (e.target instanceof HTMLElement && e.target.closest('input,textarea,select')) return
+      if (document.querySelector('[role="dialog"]')) return
+      setExpanded(false)
+    }
+    addEventListener('keydown', onKey)
+    return () => removeEventListener('keydown', onKey)
   }, [expanded])
 
   let body
@@ -134,6 +144,17 @@ function MaterialList() {
 
 const text = (item: MatItem, key: 'pic' | 'msStatus') => formatCol(effectiveCol(item, key)).trim()
 const distinct = (values: string[]) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
+/** What the search box looks through: code, description, brand, specification and location. */
+const SEARCH_COLS = ['description', 'brand', 'spec', 'location'] as const
+const searchCache = new WeakMap<MatItem, string>()
+function searchText(item: MatItem) {
+  let hay = searchCache.get(item)
+  if (hay === undefined) {
+    hay = [codeOf(item), ...SEARCH_COLS.map((k) => formatCol(effectiveCol(item, k)))].join(' ').toLowerCase()
+    searchCache.set(item, hay)
+  }
+  return hay
+}
 
 interface SheetViewProps {
   sheet: Sheet
@@ -160,7 +181,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
   const searchRef = useRef<HTMLInputElement>(null)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+      if (e.key !== '/' || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return
       if (e.target instanceof HTMLElement && e.target.closest('input,textarea,select,[contenteditable=true]')) return
       e.preventDefault()
       searchRef.current?.focus()
@@ -169,7 +190,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
     return () => removeEventListener('keydown', onKey)
   }, [])
   const q = useDeferredValue(query).trim().toLowerCase()
-  const changedIds = useMemo(() => changedItemIds(rows, state.remarks, state.week), [rows, state.remarks, state.week])
+  const changed = useMemo(() => changedCells(rows, state.remarks, state.week), [rows, state.remarks, state.week])
   const options = useMemo(() => {
     const materials = rows.filter((row) => row.kind === 'item')
     const marks = (Object.keys(MARKS) as Mark[]).filter((m) => materials.some((row) => row.data.mark === m))
@@ -182,10 +203,10 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
   }, [rows, sheet])
   const active = !!(q || pic || status || mark || changedOnly)
   const match = useMemo(() => !active ? null : (row: MatItem) =>
-    (!q || `${codeOf(row)} ${formatCol(effectiveCol(row, 'description'))}`.toLowerCase().includes(q))
+    (!q || searchText(row).includes(q))
     && (!pic || text(row, 'pic') === pic) && (!status || text(row, 'msStatus') === status)
-    && (!mark || (row.data.mark ?? 'none') === mark) && (!changedOnly || changedIds.has(row.id)),
-  [active, q, pic, status, mark, changedOnly, changedIds])
+    && (!mark || (row.data.mark ?? 'none') === mark) && (!changedOnly || changed.has(row.id)),
+  [active, q, pic, status, mark, changedOnly, changed])
   const shownCount = useMemo(
     () => active ? rows.filter((row) => row.kind === 'item' && match?.(row)).length : options.totalCount,
     [active, rows, match, options.totalCount],
@@ -207,7 +228,9 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
     <div className="mat-toolbar">
       <label className="search-field mat-search">
         <Search size={15} aria-hidden="true"/>
-        <input ref={searchRef} type="search" aria-label="Search materials" placeholder="Search code or description" value={query} onChange={(e) => setQuery(e.target.value)}/>
+        <input ref={searchRef} type="search" aria-label="Search materials" placeholder="Search code, name, brand, spec…" value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape' && query) { e.preventDefault(); setQuery('') } }}/>
         <kbd className="kbd" aria-hidden="true">/</kbd>
       </label>
       {sheet !== 'mep' && <GlassSelect aria-label="Person in charge" className={pic ? 'is-on' : ''} value={pic} onChange={(e) => setPic(e.target.value)}>
@@ -221,7 +244,11 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         {options.marks.map((m) => <option key={m} value={m}>{MARKS[m]}</option>)}
         {options.unmarked && <option value="none">No mark</option>}
       </GlassSelect>
-      <button type="button" className="mat-chip" aria-pressed={changedOnly} onClick={() => setChangedOnly((v) => !v)}>Changed this week</button>
+      <button type="button" className="mat-chip" aria-pressed={changedOnly} onClick={() => setChangedOnly((v) => !v)}
+        aria-describedby="mat-changed-count">
+        <span className="mat-chip-dot" aria-hidden="true"/>Changed this week
+        <span className="mat-chip-count" id="mat-changed-count" aria-hidden="true">{changed.size}</span>
+      </button>
       {active && shownCount > 0 && <button type="button" className="text-link small mat-clear" onClick={clear}>Clear filters</button>}
       <div className="view-tabs mat-col-tabs" role="group" aria-label="Columns">
         {COLUMN_VIEWS.map((v) => (
@@ -246,7 +273,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
             <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
         </div>
       : <MatTable items={rows} week={state.week} remarks={state.remarks} view={view} match={match} caption={caption} collapsed={collapsed}
-          omit={sheet === 'mep' ? MEP_OMIT : undefined} changed={changedIds}
+          omit={sheet === 'mep' ? MEP_OMIT : undefined} changed={changed}
           onToggle={toggleSection} onCell={onCell} onRemark={onRemark}
           onOpenSource={setSourceItemId} onPicture={setPicture}/>}
     <div className="mat-key-bar">

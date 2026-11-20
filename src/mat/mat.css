@@ -54,6 +54,11 @@ html[data-mat] .canvas { padding-block: 0; }
 .mat-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font: inherit; font-size: var(--fs-small); cursor: pointer; }
 .mat-chip:hover { border-color: var(--pp-accent); color: var(--pp-ink); }
 .mat-chip[aria-pressed='true'] { border-color: var(--pp-accent); background: var(--pp-wash); color: var(--pp-accent-ink); }
+.mat-chip-dot { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1.5px var(--pp-accent); }
+.mat-chip-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font-size: 11px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+/* The pressed chip is solid blue (apple-controls.css): the dot and count turn white on it. */
+.mat-chip[aria-pressed='true'] .mat-chip-dot { box-shadow: inset 0 0 0 1.5px #ffffff; }
+.mat-chip[aria-pressed='true'] .mat-chip-count { background: rgb(255 255 255 / 0.24); color: #ffffff; }
 
 .mat-error { margin: 0; padding-block: var(--space-12); font-size: var(--fs-small); color: var(--danger-text); }
 .mat-empty-scroll { display: grid; place-items: center; }
@@ -84,7 +89,11 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 @media (max-width: 900px) { .mat-expand-label { display: none; } }
 
 /* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
-.mat-scroll { flex: 1 1 auto; min-height: 8rem; overflow: auto; border: 1px solid var(--pp-line-strong); border-radius: var(--radius-card); background: var(--pp-l3); }
+.mat-scroll {
+  flex: 1 1 auto; min-height: 8rem; overflow: auto; border: 1px solid var(--pp-line-strong); border-radius: var(--radius-card); background: var(--pp-l3);
+  /* A cell focused by the keyboard scrolls clear of the sticky header and the frozen columns (48 + 96 + 240). */
+  scroll-padding: calc(var(--mat-h1) + var(--mat-h2)) 0 0 384px;
+}
 .mat-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 16px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
 .mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 1px solid var(--pp-line-cell); border-bottom: 1px solid var(--pp-line); }
 .mat-table td { height: var(--pp-row); padding: 4px 8px; vertical-align: middle; background-color: var(--pp-l3); }
@@ -111,8 +120,8 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-2); }
 /* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
 .mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
-/* Changed this week: the accent outline Project Progress puts around a moved row. */
-.mat-table tbody tr[data-changed='true'] > :is(td, th) { box-shadow: inset 0 0 0 1px var(--pp-accent); }
+/* Changed this week: the accent outline Project Progress uses, on the exact cells whose value moved this week. A cell typed back to its old value loses it. */
+.mat-table tbody :is(td, th)[data-changed='true'] { box-shadow: inset 0 0 0 1.5px var(--pp-accent); }
 .mat-mark-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--mat-mark); }
 .mat-source-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
@@ -163,6 +172,8 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
   background: transparent; color: var(--pp-ink); font: inherit; text-align: start; cursor: pointer;
 }
 .mat-cell-btn:hover { border-color: var(--pp-line); }
+/* Inside the cell, so the ring is not clipped by the neighbouring cells. */
+.mat-page .mat-cell-btn:focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: -2px; }
 .mat-cell-btn[data-invalid='true'] { border-color: var(--danger-text); }
 .mat-cell-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mat-cell-num { justify-content: flex-end; text-align: end; font-variant-numeric: tabular-nums; }

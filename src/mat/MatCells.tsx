@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import type { FocusEvent, KeyboardEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import type { FocusEvent, KeyboardEvent, RefObject } from 'react'
 import { Calendar, RotateCcw } from 'lucide-react'
 import {
   formatCell,
@@ -25,12 +25,29 @@ export interface CellFailure {
   retry: () => void
 }
 
+/** Where keyboard focus goes once an editor closes: back to its own cell, or to the cell above or below. Blur passes none. */
+export type CellMove = 'stay' | 'up' | 'down'
+
 export interface ActiveCellCallbacks {
-  onClose: () => void
+  onClose: (move?: CellMove) => void
   onFail: (failure: CellFailure) => void
   onClearFail: () => void
+  /** The text of a save that failed, shown again for another try. */
   initialDraft?: string
+  /** A key typed on the idle cell: editing starts from it instead of the stored value. */
+  seed?: string
   onTab?: (shift: boolean) => void
+}
+
+/** On open, an input selects its text so typing replaces it; a seeded or long editor puts the caret at the end. */
+function useOpenSelection(ref: RefObject<HTMLInputElement | HTMLTextAreaElement | null>, selectAll: boolean) {
+  // Runs once per editor: the ref is stable and `selectAll` is fixed for an editor's lifetime.
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    if (selectAll) el.select()
+    else el.setSelectionRange(el.value.length, el.value.length)
+  }, [ref, selectAll])
 }
 
 export const REMARK_LIMIT = MAX_LONG_TEXT
@@ -77,14 +94,17 @@ export function NumberCell({
   onFail,
   onClearFail,
   initialDraft,
+  seed,
   onTab,
 }: NumberCellProps) {
   const shown = formatCell(cell, value)
-  const [text, setText] = useState(initialDraft ?? shown)
+  const [text, setText] = useState(initialDraft ?? seed ?? shown)
   const [invalid, setInvalid] = useState<string | null>(null)
   const committed = useRef(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useOpenSelection(inputRef, seed === undefined)
 
-  function commit(closeOnSuccess: boolean): boolean {
+  function commit(closeOnSuccess: boolean, move?: CellMove): boolean {
     if (committed.current) return true
     let next: number | string | null
     try {
@@ -96,24 +116,24 @@ export function NumberCell({
     if (text === shown || (next === null && !override)) {
       committed.current = true
       if (initialDraft !== undefined) onClearFail()
-      if (closeOnSuccess) onClose()
+      if (closeOnSuccess) onClose(move)
       return true
     }
     committed.current = true
-    if (closeOnSuccess) onClose()
+    if (closeOnSuccess) onClose(move)
     fireSave(text, () => onCell(id, cell, next), onFail, onClearFail)
     return true
   }
 
   function cancel() {
     committed.current = true
-    onClose()
+    onClose('stay')
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault()
-      commit(true)
+      commit(true, e.shiftKey ? 'up' : 'down')
     } else if (e.key === 'Escape') {
       e.preventDefault()
       cancel()
@@ -130,8 +150,8 @@ export function NumberCell({
 
   const source = override ? 'override' : calculated ? 'formula' : 'value'
   return <div className="mat-active-cell mat-num" data-source={source} onBlur={onBlur}>
-    <input aria-label={label} value={text} title={invalid ?? note} aria-invalid={invalid ? true : undefined}
-      autoFocus autoComplete="off" spellCheck={false}
+    <input ref={inputRef} aria-label={label} value={text} title={invalid ?? note} aria-invalid={invalid ? true : undefined}
+      inputMode="decimal" autoFocus autoComplete="off" spellCheck={false}
       onChange={(e) => { setText(e.target.value); setInvalid(null) }} onKeyDown={onKeyDown}/>
     {override && <span className="mat-dot" aria-hidden="true"/>}
     {override && text === shown && !invalid &&
@@ -139,7 +159,7 @@ export function NumberCell({
         onMouseDown={(e) => e.preventDefault()}
         onClick={() => {
           committed.current = true
-          onClose()
+          onClose('stay')
           fireSave('', () => onCell(id, cell, null), onFail, onClearFail)
         }}>
         <RotateCcw size={11} strokeWidth={2.2} aria-hidden="true"/>
@@ -168,15 +188,18 @@ export function DateTextCell({
   onFail,
   onClearFail,
   initialDraft,
+  seed,
   onTab,
 }: DateTextCellProps) {
   const shown = formatCol(raw)
-  const [text, setText] = useState(initialDraft ?? shown)
+  const [text, setText] = useState(initialDraft ?? seed ?? shown)
   const [invalid, setInvalid] = useState<string | null>(null)
   const committed = useRef(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+  useOpenSelection(inputRef, seed === undefined)
   const currentRaw = raw === null || raw === undefined ? '' : String(raw)
 
-  function commit(closeOnSuccess: boolean): boolean {
+  function commit(closeOnSuccess: boolean, move?: CellMove): boolean {
     if (committed.current) return true
     let next: string
     try {
@@ -188,25 +211,25 @@ export function DateTextCell({
     if (next === currentRaw) {
       committed.current = true
       if (initialDraft !== undefined) onClearFail()
-      if (closeOnSuccess) onClose()
+      if (closeOnSuccess) onClose(move)
       return true
     }
     const patch = patchForSource(sourceRaw, next)
     committed.current = true
-    if (closeOnSuccess) onClose()
+    if (closeOnSuccess) onClose(move)
     fireSave(text, () => onCell(id, col, patch), onFail, onClearFail)
     return true
   }
 
   function cancel() {
     committed.current = true
-    onClose()
+    onClose('stay')
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault()
-      commit(true)
+      commit(true, e.shiftKey ? 'up' : 'down')
     } else if (e.key === 'Escape') {
       e.preventDefault()
       cancel()
@@ -222,7 +245,7 @@ export function DateTextCell({
   }
 
   return <div className="mat-active-cell mat-date" onBlur={onBlur}>
-    <input aria-label={label} value={text} title={invalid ?? (text || undefined)}
+    <input ref={inputRef} aria-label={label} value={text} title={invalid ?? (text || undefined)} placeholder="7 Oct 2025"
       aria-invalid={invalid ? true : undefined} autoFocus autoComplete="off" spellCheck={false}
       onChange={(e) => { setText(e.target.value); setInvalid(null) }} onKeyDown={onKeyDown}/>
     <label className="mat-date-pick" title="Choose date">
@@ -238,7 +261,7 @@ export function DateTextCell({
           const display = formatCol(picked || null)
           const patch = patchForSource(sourceRaw, picked)
           committed.current = true
-          onClose()
+          onClose('stay')
           fireSave(display, () => onCell(id, col, patch), onFail, onClearFail)
         }}/>
     </label>
@@ -282,11 +305,11 @@ export function StatusCell({
     committed.current = true
     if (next === current) {
       if (initialDraft !== undefined) onClearFail()
-      onClose()
+      onClose('stay')
       return
     }
     const patch = patchForSource(sourceRaw, next)
-    onClose()
+    onClose('stay')
     fireSave(next, () => onCell(id, 'msStatus', patch), onFail, onClearFail)
   }
 
@@ -297,7 +320,7 @@ export function StatusCell({
     <select ref={selectRef} autoFocus className="mat-select" aria-label={label}
       value={initialDraft ?? current}
       title={current ? formatCol(current) : undefined}
-      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); committed.current = true; onClose() } }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); committed.current = true; onClose('stay') } }}
       onChange={(e) => save(e.target.value)}>
       <option value="" aria-label="Clear status"/>
       {custom && <option value={current}>{formatCol(current).replace(/\s+/g, ' ').trim()}</option>}
@@ -331,16 +354,19 @@ export function TextCell({
   onFail,
   onClearFail,
   initialDraft,
+  seed,
   onTab,
 }: TextCellProps) {
   const shown = formatCol(raw)
   const limit = maxLength ?? (long ? MAX_LONG_TEXT : MAX_SHORT_TEXT)
-  const [text, setText] = useState(initialDraft ?? shown)
+  const [text, setText] = useState(initialDraft ?? seed ?? shown)
   const [invalid, setInvalid] = useState<string | null>(null)
   const committed = useRef(false)
+  const fieldRef = useRef<HTMLInputElement & HTMLTextAreaElement>(null)
+  useOpenSelection(fieldRef, !long && seed === undefined)
   const currentRaw = raw === null || raw === undefined ? '' : String(raw)
 
-  function commit(closeOnSuccess: boolean): boolean {
+  function commit(closeOnSuccess: boolean, move?: CellMove): boolean {
     if (committed.current) return true
     let next: string
     try {
@@ -352,19 +378,19 @@ export function TextCell({
     if (next === currentRaw) {
       committed.current = true
       if (initialDraft !== undefined) onClearFail()
-      if (closeOnSuccess) onClose()
+      if (closeOnSuccess) onClose(move)
       return true
     }
     const patch = patchForSource(sourceRaw, next)
     committed.current = true
-    if (closeOnSuccess) onClose()
+    if (closeOnSuccess) onClose(move)
     fireSave(text, () => onCell(id, col, patch), onFail, onClearFail)
     return true
   }
 
   function cancel() {
     committed.current = true
-    onClose()
+    onClose('stay')
   }
 
   function onBlur(e: FocusEvent<HTMLDivElement>) {
@@ -376,14 +402,14 @@ export function TextCell({
     function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
       if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
         e.preventDefault()
-        commit(true)
+        commit(true, 'down')
       } else if (e.key === 'Escape') {
         e.preventDefault()
         cancel()
       }
     }
     return <div className="mat-active-cell mat-remark" onBlur={onBlur}>
-      <textarea autoFocus aria-label={label} value={text} maxLength={limit} title={invalid ?? (text || undefined)}
+      <textarea ref={fieldRef} autoFocus aria-label={label} value={text} maxLength={limit} title={invalid ?? (text || undefined)}
         aria-invalid={invalid ? true : undefined}
         onChange={(e) => { setText(e.target.value); setInvalid(null) }} onKeyDown={onKeyDown}/>
     </div>
@@ -392,7 +418,7 @@ export function TextCell({
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
     if (e.key === 'Enter') {
       e.preventDefault()
-      commit(true)
+      commit(true, e.shiftKey ? 'up' : 'down')
     } else if (e.key === 'Escape') {
       e.preventDefault()
       cancel()
@@ -402,7 +428,7 @@ export function TextCell({
     }
   }
   return <div className="mat-active-cell mat-text" onBlur={onBlur}>
-    <input autoFocus aria-label={label} value={text} maxLength={limit} title={invalid ?? (text || undefined)}
+    <input ref={fieldRef} autoFocus aria-label={label} value={text} maxLength={limit} title={invalid ?? (text || undefined)}
       aria-invalid={invalid ? true : undefined} autoComplete="off" spellCheck={false}
       onChange={(e) => { setText(e.target.value); setInvalid(null) }} onKeyDown={onKeyDown}/>
   </div>
@@ -427,30 +453,33 @@ export function RemarkCell({
   onFail,
   onClearFail,
   initialDraft,
+  seed,
 }: RemarkCellProps) {
-  const [text, setText] = useState(initialDraft ?? body)
+  const [text, setText] = useState(initialDraft ?? (seed !== undefined ? body + seed : body))
   const committed = useRef(false)
+  const fieldRef = useRef<HTMLTextAreaElement>(null)
+  useOpenSelection(fieldRef, false)
 
-  function commit() {
+  function commit(move?: CellMove) {
     if (committed.current) return
     committed.current = true
     if (text === body) {
       if (initialDraft !== undefined) onClearFail()
-      onClose()
+      onClose(move)
       return
     }
-    onClose()
+    onClose(move)
     fireSave(text, () => onRemark(id, team, text), onFail, onClearFail)
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault()
-      commit()
+      commit('down')
     } else if (e.key === 'Escape') {
       e.preventDefault()
       committed.current = true
-      onClose()
+      onClose('stay')
     }
   }
 
@@ -458,7 +487,7 @@ export function RemarkCell({
     if (e.currentTarget.contains(e.relatedTarget as Node | null)) return
     commit()
   }}>
-    <textarea autoFocus aria-label={label} value={text} maxLength={REMARK_LIMIT} title={text || undefined}
+    <textarea ref={fieldRef} autoFocus aria-label={label} value={text} maxLength={REMARK_LIMIT} title={text || undefined}
       onChange={(e) => setText(e.target.value)} onKeyDown={onKeyDown}/>
   </div>
 }

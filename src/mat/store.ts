@@ -9,7 +9,8 @@ export interface MatState { week: string; items: MatItem[]; remarks: Record<stri
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const DB_NAME = 'kw-mat'
-const DB_VERSION = 3
+// 4: items carry weekEdits; older caches are dropped so every row reloads with it.
+const DB_VERSION = 4
 const STORE = 'packages'
 // A write that starts just before a load can commit just after it. Asking again for this
 // overlap catches it; merging by id and by remark key makes the repeated rows harmless.
@@ -99,7 +100,9 @@ function withFields(state: MatState, id: string, patch: Partial<Record<FieldKey,
         if (value === null || value === undefined) delete edits[key]
         else edits[key] = value
       }
-      return { ...item, edits: edits as MatEdits, changedWeek: state.week, updatedAt: new Date().toISOString() }
+      // As on the server: the first edit of a week keeps the edits it replaces as that week's baseline.
+      const weekEdits = item.changedWeek === state.week ? item.weekEdits : item.edits
+      return { ...item, edits: edits as MatEdits, changedWeek: state.week, weekEdits, updatedAt: new Date().toISOString() }
     }),
   }
 }

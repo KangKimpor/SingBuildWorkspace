@@ -4,7 +4,8 @@ import type { FieldKey, FieldValue, MatItem, Pkg, Team } from './types'
 export interface MatRemark { itemId: string; team: Team; weekStart: string; body: string }
 export interface MatPackage { week: string; now: string; items: MatItem[]; remarks: MatRemark[] }
 
-type ItemRow = Omit<MatItem, 'package' | 'updatedAt' | 'changedWeek'> & { updated_at: string; changed_week: string | null }
+type ItemRow = Omit<MatItem, 'package' | 'updatedAt' | 'changedWeek' | 'weekEdits'>
+  & { updated_at: string; changed_week: string | null; week_edits?: MatItem['weekEdits'] }
 type RemarkRow = { item_id: string; team: Team; week_start: string; body: string }
 
 async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
@@ -32,7 +33,9 @@ export async function fetchPackage(pkg: Pkg, itemsSince: string | null, remarksS
   return {
     week: data.week,
     now: data.now,
-    items: data.items.map(({ updated_at, changed_week, ...row }) => ({ ...row, package: pkg, changedWeek: changed_week, updatedAt: updated_at })),
+    items: data.items.map(({ updated_at, changed_week, week_edits, ...row }) => ({
+      ...row, package: pkg, changedWeek: changed_week, weekEdits: week_edits ?? null, updatedAt: updated_at,
+    })),
     remarks: data.remarks.map((r) => ({ itemId: r.item_id, team: r.team, weekStart: r.week_start, body: r.body })),
   }
 }

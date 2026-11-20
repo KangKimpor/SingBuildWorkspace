@@ -62,4 +62,6 @@ export interface MatItem {
   updatedAt: string
   /** Reporting week (Sunday) of the last edit made in the tracker; the workbook import leaves it null. */
   changedWeek?: string | null
+  /** `edits` as they stood when the item was first edited in `changedWeek`; cells that differ from it are changed this week. */
+  weekEdits?: MatEdits | null
 }

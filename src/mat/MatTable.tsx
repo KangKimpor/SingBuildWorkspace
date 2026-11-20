@@ -15,7 +15,7 @@ import {
 } from './formulas'
 import { useMatImageSrc } from './images'
 import { DateTextCell, NumberCell, RemarkCell, StatusCell, TextCell } from './MatCells'
-import type { CellFailure, OnCell, OnRemark } from './MatCells'
+import type { CellFailure, CellMove, OnCell, OnRemark } from './MatCells'
 import type { MatPicture } from './MatSourcePanel'
 import { remarkKey } from './store'
 import { MARK_LABELS, PCT_CELLS } from './types'
@@ -224,8 +224,11 @@ interface ItemRowProps {
   item: MatItem
   columns: readonly Column[]
   remarks: Record<string, string>
-  changed: boolean
+  /** Column keys of this item changed this week: those cells get the accent outline. */
+  changedCols?: ReadonlySet<string>
   activeCol: string | null
+  /** A key typed on the idle cell that opened the active editor. */
+  activeSeed?: string
   rowFailures?: ReadonlyMap<string, CellFailure>
   dataIndex?: number
   measureRef?: (el: HTMLTableRowElement | null) => void
@@ -234,7 +237,7 @@ interface ItemRowProps {
   onPicture: (picture: MatPicture) => void
   onOpenSource?: (id: string) => void
   onActivate: (itemId: string, colKey: string) => void
-  onCloseCell: (itemId: string, colKey: string) => void
+  onCloseCell: (itemId: string, colKey: string, move?: CellMove) => void
   onFailCell: (itemId: string, colKey: string, failure: CellFailure) => void
   onClearFailCell: (itemId: string, colKey: string) => void
   onTabCell: (itemId: string, colKey: string, shift: boolean) => void
@@ -244,8 +247,9 @@ const ItemRow = memo(function ItemRow({
   item,
   columns,
   remarks,
-  changed,
+  changedCols,
   activeCol,
+  activeSeed,
   rowFailures,
   dataIndex,
   measureRef,
@@ -262,11 +266,13 @@ const ItemRow = memo(function ItemRow({
   const values = effective(item)
   const code = codeOf(item)
   const { cols, cells, notes } = item.data
-  return <tr ref={measureRef} data-index={dataIndex} data-mark={item.data.mark} data-changed={changed ? 'true' : undefined}>
+  return <tr ref={measureRef} data-index={dataIndex} data-item={item.id} data-mark={item.data.mark}>
     {columns.map((c, index) => {
       const frozen = index < FROZEN ? `mat-f mat-f${index + 1}` : undefined
       const failure = rowFailures?.get(c.key)
       const isActive = activeCol === c.key
+      const changed = changedCols?.has(c.key) ? 'true' : undefined
+      const seed = isActive ? activeSeed : undefined
 
       if (c.type === 'col') {
         const raw = effectiveCol(item, c.col)
@@ -274,7 +280,7 @@ const ItemRow = memo(function ItemRow({
         const title = notes?.[c.col] ?? (c.long && text ? text : undefined)
         if (c.col === 'code') {
           const mark = item.data.mark
-          return <th key={c.key} scope="row" className={frozen} title={notes?.code ?? (text || undefined)}>
+          return <th key={c.key} scope="row" className={frozen} title={notes?.code ?? (text || undefined)} data-changed={changed}>
             {onOpenSource
               ? <button type="button" className="mat-source-btn"
                   aria-label={text ? `${text} — Edit material source` : `Edit material source for ${code}`}
@@ -294,13 +300,14 @@ const ItemRow = memo(function ItemRow({
           const sourceRaw = cols[c.col] ?? null
           const callbacks = {
             initialDraft: failure?.draft,
-            onClose: () => onCloseCell(item.id, c.key),
+            seed,
+            onClose: (move?: CellMove) => onCloseCell(item.id, c.key, move),
             onFail: (f: CellFailure) => onFailCell(item.id, c.key, f),
             onClearFail: () => onClearFailCell(item.id, c.key),
             onTab: (shift: boolean) => onTabCell(item.id, c.key, shift),
           }
           if (isActive) {
-            return <td key={c.key} className="mat-edit">
+            return <td key={c.key} className="mat-edit" data-active="true">
               {c.edit === 'date'
                 ? <DateTextCell id={item.id} col={editCol} label={label} raw={raw} sourceRaw={sourceRaw} onCell={onCell} {...callbacks}/>
                 : c.edit === 'status'
@@ -315,8 +322,8 @@ const ItemRow = memo(function ItemRow({
             : c.edit === 'longtext'
               ? 'mat-cell-btn mat-cell-remark'
               : 'mat-cell-btn mat-cell-text'
-          return <td key={c.key} className="mat-edit">
-            <button type="button" className={btnClass} aria-label={label}
+          return <td key={c.key} className="mat-edit" data-changed={changed}>
+            <button type="button" className={btnClass} aria-label={label} data-cell={c.key}
               title={failure?.message ?? (display || undefined)}
               data-invalid={failure ? 'true' : undefined}
               onClick={() => onActivate(item.id, c.key)}>
@@ -327,14 +334,15 @@ const ItemRow = memo(function ItemRow({
             {failure && <button type="button" className="mat-retry" aria-label={`Retry ${label}`} title={failure.message} onClick={failure.retry}>Retry</button>}
           </td>
         }
-        return <td key={c.key} className={frozen} onDoubleClick={c.source && onOpenSource ? () => onOpenSource(item.id) : undefined}>
+        return <td key={c.key} className={frozen} data-changed={changed}
+          onDoubleClick={c.source && onOpenSource ? () => onOpenSource(item.id) : undefined}>
           <div className="mat-clamp" title={title}>{text}</div>
         </td>
       }
 
       if (c.type === 'pictures') {
         const list = effectiveImages(item, c.set)
-        return <td key={c.key} className="mat-pic-cell">
+        return <td key={c.key} className="mat-pic-cell" data-changed={changed}>
           <div className="mat-pictures">
             {list.map((ref, i) => {
               const alt = `${code} ${c.label} ${i + 1}`
@@ -353,11 +361,11 @@ const ItemRow = memo(function ItemRow({
         const override = isOverride(item, c.cell)
         const calculated = !!source && 'f' in source
         if (isActive) {
-          return <td key={c.key} className="mat-edit">
+          return <td key={c.key} className="mat-edit" data-active="true">
             <NumberCell id={item.id} cell={c.cell} label={label} value={values[c.cell]} override={override}
               calculated={calculated} note={notes?.[c.cell]} onCell={onCell}
-              initialDraft={failure?.draft}
-              onClose={() => onCloseCell(item.id, c.key)}
+              initialDraft={failure?.draft} seed={seed}
+              onClose={(move) => onCloseCell(item.id, c.key, move)}
               onFail={(f) => onFailCell(item.id, c.key, f)}
               onClearFail={() => onClearFailCell(item.id, c.key)}
               onTab={(shift) => onTabCell(item.id, c.key, shift)}/>
@@ -365,8 +373,8 @@ const ItemRow = memo(function ItemRow({
         }
         const shown = failure ? failure.draft : formatCell(c.cell, values[c.cell])
         const dataSource = override ? 'override' : calculated ? 'formula' : 'value'
-        return <td key={c.key} className="mat-edit">
-          <button type="button" className="mat-cell-btn mat-cell-num" data-source={dataSource}
+        return <td key={c.key} className="mat-edit" data-changed={changed}>
+          <button type="button" className="mat-cell-btn mat-cell-num" data-source={dataSource} data-cell={c.key}
             aria-label={label} title={failure?.message ?? notes?.[c.cell]}
             data-invalid={failure ? 'true' : undefined}
             onClick={() => onActivate(item.id, c.key)}>
@@ -382,17 +390,17 @@ const ItemRow = memo(function ItemRow({
         return <td key={c.key} className="mat-last"><div className="mat-clamp" title={body || undefined}>{body}</div></td>
       }
       if (isActive) {
-        return <td key={c.key} className="mat-edit">
+        return <td key={c.key} className="mat-edit" data-active="true">
           <RemarkCell id={item.id} team={c.team} label={label} body={body} onRemark={onRemark}
-            initialDraft={failure?.draft}
-            onClose={() => onCloseCell(item.id, c.key)}
+            initialDraft={failure?.draft} seed={seed}
+            onClose={(move) => onCloseCell(item.id, c.key, move)}
             onFail={(f) => onFailCell(item.id, c.key, f)}
             onClearFail={() => onClearFailCell(item.id, c.key)}/>
         </td>
       }
       const shown = failure ? failure.draft : body
-      return <td key={c.key} className="mat-edit">
-        <button type="button" className="mat-cell-btn mat-cell-remark" aria-label={label}
+      return <td key={c.key} className="mat-edit" data-changed={changed}>
+        <button type="button" className="mat-cell-btn mat-cell-remark" aria-label={label} data-cell={c.key}
           title={failure?.message ?? (shown || undefined)}
           data-invalid={failure ? 'true' : undefined}
           onClick={() => onActivate(item.id, c.key)}>
@@ -402,7 +410,8 @@ const ItemRow = memo(function ItemRow({
       </td>
     })}
   </tr>
-}, (a, b) => a.item === b.item && a.columns === b.columns && a.changed === b.changed && a.activeCol === b.activeCol
+}, (a, b) => a.item === b.item && a.columns === b.columns && a.changedCols === b.changedCols
+  && a.activeCol === b.activeCol && a.activeSeed === b.activeSeed
   && a.rowFailures === b.rowFailures && a.dataIndex === b.dataIndex
   && a.onCell === b.onCell && a.onRemark === b.onRemark && a.onPicture === b.onPicture && a.onOpenSource === b.onOpenSource
   && a.onActivate === b.onActivate && a.onCloseCell === b.onCloseCell && a.onFailCell === b.onFailCell
@@ -465,8 +474,8 @@ export interface MatTableProps {
   view?: ColumnView
   /** Column keys this sheet leaves out (MEP keeps no Person In Charge). */
   omit?: ReadonlySet<string>
-  /** Item ids changed since Sunday: the row gets an accent outline. */
-  changed?: ReadonlySet<string>
+  /** Columns changed since Sunday, by item id: each of those cells gets an accent outline. */
+  changed?: ReadonlyMap<string, ReadonlySet<string>>
   onCell: OnCell
   onRemark: OnRemark
   /** Items to keep while a search or filter is on; a section stays while any of its items is kept. */
@@ -496,9 +505,11 @@ export const MatTable = memo(function MatTable({
 }: MatTableProps) {
   const [localCollapsed, setLocalCollapsed] = useState<ReadonlySet<string>>(() => new Set())
   const [localPicture, setLocalPicture] = useState<MatPicture | null>(null)
-  const [activeCell, setActiveCell] = useState<{ itemId: string; colKey: string } | null>(null)
+  const [activeCell, setActiveCell] = useState<{ itemId: string; colKey: string; seed?: string } | null>(null)
   const [failures, setFailures] = useState<ReadonlyMap<string, CellFailure>>(() => new Map())
   const scrollRef = useRef<HTMLDivElement>(null)
+  // The idle cell to focus once the editor that closed has unmounted.
+  const focusNext = useRef<{ itemId: string; colKey: string } | null>(null)
 
   const collapsed = controlledCollapsed ?? localCollapsed
   const localToggle = useCallback((id: string) => setLocalCollapsed((old) => {
@@ -517,9 +528,6 @@ export const MatTable = memo(function MatTable({
 
   const onActivate = useCallback((itemId: string, colKey: string) => {
     setActiveCell({ itemId, colKey })
-  }, [])
-  const onCloseCell = useCallback((itemId: string, colKey: string) => {
-    setActiveCell((cur) => (cur && cur.itemId === itemId && cur.colKey === colKey ? null : cur))
   }, [])
   const onFailCell = useCallback((itemId: string, colKey: string, failure: CellFailure) => {
     const key = `${itemId}\0${colKey}`
@@ -541,6 +549,7 @@ export const MatTable = memo(function MatTable({
   const onTabCell = useCallback((itemId: string, colKey: string, shift: boolean) => {
     const idx = viewConfig.editableKeys.indexOf(colKey)
     const nextKey = idx >= 0 ? viewConfig.editableKeys[idx + (shift ? -1 : 1)] : undefined
+    if (!nextKey) focusNext.current = { itemId, colKey }
     setActiveCell(nextKey ? { itemId, colKey: nextKey } : null)
   }, [viewConfig.editableKeys])
 
@@ -605,6 +614,77 @@ export const MatTable = memo(function MatTable({
   const visibleRows = virtualItems ? virtualItems.map((v) => ({ row: rows[v.index]!, index: v.index })) : rows.map((row, index) => ({ row, index }))
   const measureRef = virtual ? virtualizer.measureElement : undefined
 
+  // Spreadsheet keys. Enter in an editor saves and moves down a row, Shift+Enter up, Escape stays;
+  // on an idle cell the arrows move between editable cells and typing starts editing it.
+  const rowsRef = useRef(rows)
+  rowsRef.current = rows
+  const virtualRef = useRef({ virtual, virtualizer })
+  virtualRef.current = { virtual, virtualizer }
+  const focusCell = useCallback((itemId: string, colKey: string) => {
+    const find = () => scrollRef.current?.querySelector<HTMLElement>(
+      `tr[data-item="${CSS.escape(itemId)}"] [data-cell="${CSS.escape(colKey)}"]`)
+    const el = find()
+    if (el) { el.focus(); return }
+    const { virtual: isVirtual, virtualizer: v } = virtualRef.current
+    const index = rowsRef.current.findIndex((r) => r.id === itemId)
+    if (!isVirtual || index < 0) return
+    v.scrollToIndex(index, { align: 'auto' })
+    requestAnimationFrame(() => requestAnimationFrame(() => find()?.focus()))
+  }, [])
+  const neighbour = useCallback((itemId: string, step: 1 | -1) => {
+    const list = rowsRef.current
+    for (let i = list.findIndex((r) => r.id === itemId) + step; i >= 0 && i < list.length; i += step) {
+      if (list[i]!.kind === 'item') return list[i]!.id
+    }
+    return null
+  }, [])
+  const onCloseCell = useCallback((itemId: string, colKey: string, move?: CellMove) => {
+    if (move) {
+      const target = move === 'stay' ? itemId : neighbour(itemId, move === 'down' ? 1 : -1) ?? itemId
+      focusNext.current = { itemId: target, colKey }
+    }
+    setActiveCell((cur) => (cur && cur.itemId === itemId && cur.colKey === colKey ? null : cur))
+  }, [neighbour])
+  useEffect(() => {
+    const next = focusNext.current
+    if (activeCell || !next) return
+    focusNext.current = null
+    focusCell(next.itemId, next.colKey)
+  }, [activeCell, focusCell])
+
+  const onGridKeyDown = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement
+    const colKey = target.dataset.cell
+    const itemId = colKey ? target.closest<HTMLElement>('tr[data-item]')?.dataset.item : undefined
+    if (!colKey || !itemId || e.altKey || e.ctrlKey || e.metaKey) return
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const next = neighbour(itemId, e.key === 'ArrowDown' ? 1 : -1)
+      e.preventDefault()
+      if (next) focusCell(next, colKey)
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+      const keys = viewConfig.editableKeys
+      const next = keys[keys.indexOf(colKey) + (e.key === 'ArrowRight' ? 1 : -1)]
+      e.preventDefault()
+      if (next) focusCell(itemId, next)
+    } else if (e.key === 'F2') {
+      e.preventDefault()
+      setActiveCell({ itemId, colKey })
+    } else if (e.key.length === 1 && e.key !== ' ' && !failures.has(`${itemId}\0${colKey}`)) {
+      e.preventDefault()
+      setActiveCell({ itemId, colKey, seed: e.key })
+    }
+  }
+  // A native listener: the scroll box is not itself a control, only a place keys from its cells pass through.
+  const gridKeys = useRef(onGridKeyDown)
+  gridKeys.current = onGridKeyDown
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onKey = (e: KeyboardEvent) => gridKeys.current(e)
+    el.addEventListener('keydown', onKey)
+    return () => el.removeEventListener('keydown', onKey)
+  }, [])
+
   const last = addDays(week, -7)
   const before = addDays(week, -14)
   const remarkOf = (id: string, team: Team, wk: string) => remarks[remarkKey(id, team, wk)] ?? ''
@@ -638,7 +718,8 @@ export const MatTable = memo(function MatTable({
               dataIndex={virtual ? index : undefined} measureRef={measureRef}/>
           : <ItemRow key={row.id} item={row} columns={viewConfig.columns}
               activeCol={activeCell?.itemId === row.id ? activeCell.colKey : null}
-              changed={changed?.has(row.id) ?? false}
+              activeSeed={activeCell?.itemId === row.id ? activeCell.seed : undefined}
+              changedCols={changed?.get(row.id)}
               rowFailures={failuresByItem.get(row.id)}
               dataIndex={virtual ? index : undefined} measureRef={measureRef}
               onCell={onCell} onRemark={onRemark} onPicture={openPicture} onOpenSource={onOpenSource}

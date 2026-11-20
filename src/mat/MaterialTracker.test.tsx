@@ -316,19 +316,69 @@ test('a picture opens larger in a dialog, and the Image cell has no pencil of it
   expect(within(dialog).getByRole('img')).toHaveAttribute('src', '/mat/a1b2c3.webp')
 })
 
-test('Changed this week outlines only the rows changed in the tracker and filters to them', async () => {
-  vi.mocked(fetchPackage).mockResolvedValue(load([
+const changedCell = (name: string) => cellButton(name).closest('td')
+
+test('Changed this week outlines only the cells changed this week and filters to their rows', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue({ ...load([
     section('s1', 1, 'Wall Finishing'),
-    material('x1', 2, 'XX-01', 4, { changedWeek: WEEK }),
-    material('x2', 3, 'XX-02', 8, { changedWeek: LAST }),
-  ]))
+    material('x1', 2, 'XX-01', 4, { changedWeek: WEEK, weekEdits: { unit: 'm2' }, edits: { unit: 'm2', po: 6 } }),
+    material('x2', 3, 'XX-02', 8, { changedWeek: LAST, edits: { po: 9 } }),
+  ]), remarks: [] })
   await openList()
-  expect(screen.getByText('Sample panel XX-01').closest('tr')).toHaveAttribute('data-changed', 'true')
-  expect(screen.getByText('Sample panel XX-02').closest('tr')).not.toHaveAttribute('data-changed')
+  // Only PO by Purchase moved this week; the unit was typed last week and the row itself is not outlined.
+  expect(changedCell('XX-01 PO by Purchase')).toHaveAttribute('data-changed', 'true')
+  expect(changedCell('XX-01 Quantity Unit')).not.toHaveAttribute('data-changed')
+  expect(changedCell('XX-01 Placed Order')).not.toHaveAttribute('data-changed')
+  expect(screen.getByText('Sample panel XX-01').closest('tr')).not.toHaveAttribute('data-changed')
+  expect(changedCell('XX-02 PO by Purchase')).not.toHaveAttribute('data-changed')
+  expect(screen.getByRole('button', { name: 'Changed this week' })).toHaveTextContent('1')
   fireEvent.click(screen.getByRole('button', { name: 'Changed this week' }))
   expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
   expect(screen.queryByText('Sample panel XX-02')).toBeNull()
   expect(screen.getByText('1 material of 2')).toBeInTheDocument()
+})
+
+test('typing a cell back to its value from the start of the week takes the outline off', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue({ ...load(), remarks: [] })
+  await openList()
+  const po = activate('XX-01 PO by Purchase')
+  fireEvent.change(po, { target: { value: '7' } })
+  fireEvent.keyDown(po, { key: 'Enter' })
+  await waitFor(() => expect(changedCell('XX-01 PO by Purchase')).toHaveAttribute('data-changed', 'true'))
+  expect(changedCell('XX-01 Total by QS')).not.toHaveAttribute('data-changed')
+  // Back to the imported 4: the value matches the start of the week again.
+  const again = activate('XX-01 PO by Purchase')
+  fireEvent.change(again, { target: { value: '4' } })
+  fireEvent.keyDown(again, { key: 'Enter' })
+  await waitFor(() => expect(saveCell).toHaveBeenLastCalledWith('x1', 'po', 4))
+  expect(changedCell('XX-01 PO by Purchase')).not.toHaveAttribute('data-changed')
+  expect(screen.getByRole('button', { name: 'Changed this week' })).toHaveTextContent('0')
+})
+
+test('Enter saves and moves to the same column one row down; Escape keeps focus on the cell', async () => {
+  await openList()
+  const po = activate('XX-01 PO by Purchase')
+  fireEvent.change(po, { target: { value: '5' } })
+  fireEvent.keyDown(po, { key: 'Enter' })
+  await waitFor(() => expect(cellButton('XX-02 PO by Purchase')).toHaveFocus())
+  const next = activate('XX-02 PO by Purchase')
+  fireEvent.keyDown(next, { key: 'Escape' })
+  await waitFor(() => expect(cellButton('XX-02 PO by Purchase')).toHaveFocus())
+})
+
+test('on a focused cell the arrows move between cells and typing starts editing from that key', async () => {
+  await openList()
+  const total = cellButton('XX-01 Total by QS')
+  total.focus()
+  fireEvent.keyDown(total, { key: 'ArrowRight' })
+  expect(cellButton('XX-01 PO by Purchase')).toHaveFocus()
+  fireEvent.keyDown(cellButton('XX-01 PO by Purchase'), { key: 'ArrowDown' })
+  expect(cellButton('XX-02 PO by Purchase')).toHaveFocus()
+  fireEvent.keyDown(cellButton('XX-02 PO by Purchase'), { key: '9' })
+  const input = screen.getByRole('textbox', { name: 'XX-02 PO by Purchase' })
+  expect(input).toHaveValue('9')
+  fireEvent.keyDown(input, { key: 'Enter' })
+  await waitFor(() => expect(saveCell).toHaveBeenCalledExactlyOnceWith('x2', 'po', 9))
 })
 
 test('MEP keeps no Person In Charge column, filter or source field', async () => {
