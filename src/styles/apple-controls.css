@@ -72,6 +72,35 @@ html .nbc-project .nbc-filters .nbc-seg .nbc-count {
   margin: 0; padding: 0; font-family: inherit; font-size: 11.5px; font-weight: 500; color: var(--ap-label-3); font-variant-numeric: tabular-nums;
 }
 
+/* ── View tabs as segments: NBC "Overview / Project Progress / Update Progress", Material "BP03 / BP04" and
+   "ID Material / MEP Material". The prototype's `.seg`: gray track, labels in full ink, the selected tab a raised white key. ── */
+html .nbc-project .view-tabs.nbc-tabs,
+html .mat-tabs .view-tabs {
+  display: inline-flex; gap: 0; width: fit-content; max-width: 100%; padding: 2px;
+  border: 0; border-radius: 9px; background: var(--ap-fill-2);
+}
+/* The NBC tabs stick under the top bar, so the gray track sits on the canvas color to stay opaque while rows scroll past. */
+html .nbc-project .view-tabs.nbc-tabs { background: linear-gradient(var(--ap-fill-2), var(--ap-fill-2)), var(--bg-canvas); }
+html .nbc-project .nbc-tabs .view-tab,
+html .mat-tabs .view-tabs .view-tab {
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 14px;
+  border: 0; border-radius: 7px; background: transparent; box-shadow: none;
+  color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+  transition: background 160ms ease, box-shadow 160ms ease;
+}
+html .nbc-project .nbc-tabs .view-tab:hover:not([aria-current='page']),
+html .mat-tabs .view-tabs .view-tab:hover:not([aria-current='page']) { background: var(--ap-fill-2); color: var(--ap-label); }
+html .nbc-project .nbc-tabs .view-tab[aria-current='page'],
+html .mat-tabs .view-tabs .view-tab[aria-current='page'] {
+  background: var(--ap-raised); color: var(--ap-label); font-weight: 500;
+  box-shadow: 0 1px 3px rgb(0 0 0 / .1), 0 0 0 .5px rgb(0 0 0 / .05);
+}
+html .nbc-project .nbc-tabs .view-tab:focus-visible,
+html .mat-tabs .view-tabs .view-tab:focus-visible { outline: 0; box-shadow: var(--ap-ring); }
+@media (prefers-reduced-motion: reduce) {
+  html .nbc-project .nbc-tabs .view-tab, html .mat-tabs .view-tabs .view-tab { transition: none; }
+}
+
 /* ── Chips: "Changed this week" and removable filters ── */
 html .nbc-project .nbc-filters .nbc-chip:not(.nbc-expand-editor):not(.nbc-filters-toggle),
 .mat-toolbar.mat-toolbar .mat-chip {
