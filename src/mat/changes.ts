@@ -1,4 +1,4 @@
-import { effective, effectiveCol, effectiveImages } from './formulas'
+import { effective, effectiveCol, effectiveImages, formatCell, formatCol } from './formulas'
 import { remarkKey } from './store'
 import { PCT_CELLS, QTY_CELLS } from './types'
 import type { CellKey, ColKey, ImageSet, MatItem } from './types'
@@ -58,4 +58,18 @@ export function changedCells(items: MatItem[], remarks: Record<string, string>, 
 /** Items with at least one change this week. */
 export function changedItemIds(items: MatItem[], remarks: Record<string, string>, week: string): ReadonlySet<string> {
   return new Set(changedCells(items, remarks, week).keys())
+}
+
+/** Formatted value a changed cell held at the start of the week (`weekEdits`), for the indicator tooltip. */
+export function previousCellValue(item: MatItem, colKey: string): string {
+  if (colKey === 'purchase-now' || colKey === 'pm-now') return 'Empty'
+  const base: MatItem = { ...item, edits: item.weekEdits ?? {} }
+  if (CELL_KEYS.has(colKey)) {
+    return formatCell(colKey as CellKey, effective(base)[colKey as CellKey]) || 'Empty'
+  }
+  if (IMAGE_KEYS.has(colKey)) {
+    const count = effectiveImages(base, colKey as ImageSet).length
+    return count === 1 ? '1 photo' : `${count} photos`
+  }
+  return formatCol(effectiveCol(base, colKey as ColKey)) || 'Empty'
 }

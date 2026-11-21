@@ -158,7 +158,6 @@
   --pp-ink: #1d1d1f;
   --pp-ink-2: #6e6e73;
   --pp-ink-muted: #86868b;
-  --pp-ink-zero: #aeaeb2;
   --pp-line: rgb(0 0 0 / 0.06); /* hairline horizontal row divider */
   --pp-line-strong: rgb(0 0 0 / 0.08); /* table frame, header bottom, sticky divider, section top */
   --pp-line-cell: transparent; /* no vertical grid lines between room/data columns */

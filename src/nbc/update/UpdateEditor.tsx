@@ -137,7 +137,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     let sig = `${busy ? 1 : 0}${confirmed ? 1 : 0}`
     for (const room of row.cells.keys()) {
       const l = mine(row.cells.get(room)!, row.co.get(room))
-      sig += `|${draft.text(l.id)}${changedIds.has(l.id) ? 'c' : ''}${problems.has(l.id) ? 'p' : ''}${(shownById.get(l.id)?.progress ?? l.progress) === 1 ? 'd' : ''}${(shownById.get(l.id)?.progress ?? l.progress) === 0 ? 'z' : ''}${draft.invalid.has(l.id) ? 'i' : ''}${confirmed ? shownById.get(l.id)?.progress ?? '' : ''}`
+      sig += `|${draft.text(l.id)}${changedIds.has(l.id) ? 'c' : ''}${problems.has(l.id) ? 'p' : ''}${(shownById.get(l.id)?.progress ?? l.progress) === 1 ? 'd' : ''}${draft.invalid.has(l.id) ? 'i' : ''}${confirmed ? shownById.get(l.id)?.progress ?? '' : ''}`
     }
     return sig
   }
@@ -167,7 +167,10 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     {roomMode && floor && roomRows.length > 0
       ? <RoomMatrix floor={floor} rowSignature={roomSignature} caption={`${handler} activities by room · ${floor.root.name} · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle} progress={nowProgress} previous={previous}
           show={showRow} cell={(l, _row, co) => roomCell(mine(l, co))}
-          cellAttrs={(first, co) => { const l = mine(first, co), prog = shownById.get(l.id)?.progress ?? l.progress; return { 'data-changed': changedIds.has(l.id) ? 'true' : undefined, 'data-problem': problems.has(l.id) ? 'true' : undefined, 'data-done': prog === 1 ? 'true' : undefined, 'data-zero': prog === 0 ? 'true' : undefined } }}/>
+          cellAttrs={(first, co) => {
+            const l = mine(first, co), e = shownById.get(l.id), prog = e?.progress ?? l.progress, moved = changedIds.has(l.id)
+            return { 'data-changed': moved ? 'true' : undefined, 'data-prev': moved && e ? `${Number((e.previous * 100).toFixed(1))}%` : undefined, 'data-problem': problems.has(l.id) ? 'true' : undefined, 'data-done': prog === 1 ? 'true' : undefined }
+          }}/>
       : rows.length === 0
       ? <div className="nbc-update-empty"><p>{emptyText}</p>{filter !== 'all' && <button className="btn-secondary" onClick={() => setFilter('all')}>Show all activities</button>}</div>
       : <WbsTable virtual={false} rows={rows} caption={`${handler} activities · ${weekLabel(week)}`} collapsed={openGroups} onToggle={toggle}

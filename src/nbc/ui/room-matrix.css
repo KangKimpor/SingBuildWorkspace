@@ -29,13 +29,12 @@
 .nbc-rooms .nbc-room-type { font-size: 10.5px; font-weight: 500; color: var(--pp-ink-muted); letter-spacing: .01em; }
 .nbc-rooms .nbc-room-no { font-size: 12px; font-weight: 600; color: var(--pp-ink); }
 
-/* Room cells: plain white background, no vertical borders. Only 100% goes green; 0% is muted; partial is semibold primary. */
+/* Room cells: plain white background, no vertical borders. Only 100% goes green; all other values keep normal ink. */
 .nbc-rooms td.nbc-room-cell {
   padding: 0 6px; text-align: center; font-size: 12.5px; font-weight: 600; min-width: var(--pp-w-room);
   color: var(--pp-ink); border-right: 0;
 }
 .nbc-rooms td.nbc-room-cell[data-done='true'] { color: var(--pp-done-ink); font-weight: 500; }
-.nbc-rooms td.nbc-room-cell[data-zero='true'] { color: var(--pp-ink-zero); font-weight: 400; }
 
 /* Not applicable cells: plain #f5f5f7 fill with centered en dash (no diagonal hatch). */
 .nbc-rooms td.nbc-room-na { background-color: var(--pp-na-bg) !important; background-image: none; border-right: 0; text-align: center; }
@@ -52,12 +51,6 @@
 .nbc-rooms td.nbc-room-cell input:focus { background: var(--pp-l3); border-color: var(--pp-accent); outline: none; box-shadow: 0 0 0 2px rgb(0 113 227 / .22); color: var(--pp-ink); }
 .nbc-rooms td.nbc-room-cell input[aria-invalid='true'] { border-color: var(--danger-text); color: var(--danger-text); }
 
-/* Changed this week, on both screens: a clean 6px Apple blue dot in the top-right corner with a screen-reader label. */
-:is(.nbc-update, .nbc-activities) .nbc-rooms td.nbc-room-cell[data-changed='true']::after {
-  content: '' / 'Changed this week'; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--pp-accent); box-shadow: 0 0 0 1.5px #ffffff; pointer-events: none;
-}
-
 .nbc-room-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--fs-small); min-height: 36px; padding: 4px 0; }
 .nbc-room-bar-label { color: var(--pp-ink-2); max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nbc-room-bar input.nbc-remark { flex: 1 1 14rem; min-width: 10rem; }
@@ -73,7 +66,6 @@
 /* Phones turn the other tables into cards (activities.css, update.css) but keep the matrix a grid, so it keeps its tier colors and drops card labels. */
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td { background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); border-right: 0; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td.nbc-room-cell[data-done='true'] { color: var(--pp-done-ink); font-weight: 500; }
-:is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td.nbc-room-cell[data-zero='true'] { color: var(--pp-ink-zero); font-weight: 400; }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td[data-label='Now %'][data-full='true'] { color: var(--pp-done-ink); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] td[data-label].nbc-num:nth-child(3) { color: var(--row-ink-2); }
 :is(.nbc-update, .nbc-activities) .nbc-rooms.nbc-wbs tr[data-wbs] :is(.nbc-name, .nbc-name-button) { color: var(--row-ink); }

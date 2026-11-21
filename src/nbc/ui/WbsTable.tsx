@@ -5,6 +5,7 @@ import type { RowActionTarget } from '@/components/RowActions'
 import type { ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown } from 'lucide-react'
+import { ChangedDot } from '@/components/ChangedDot'
 import { percent } from '../format'
 import type { WbsRow } from '../wbs-table'
 import type { NbcActivity } from '../types'
@@ -48,8 +49,9 @@ export function WbsTable({ rows, caption, collapsed, onToggle, previous, current
     <tbody>
       {before > 0 && <tr aria-hidden="true"><td aria-hidden="true" colSpan={columns} style={{ height: before, padding: 0, border: 0 }}/></tr>}
       {items.map(({ index }) => {
-        const row = rows[index]!, a = row.activity, open = !collapsed.has(a.id)
-        return <tr key={a.id} data-index={index} ref={virtual ? virtualizer.measureElement : undefined} data-level={row.level} data-group={row.group} data-wbs={a.wbs} {...rowAttrs?.(row)} onContextMenu={event => {
+        const row = rows[index]!, a = row.activity, open = !collapsed.has(a.id), attrs = rowAttrs?.(row)
+        const prev = previous(a), changed = !row.group && attrs?.['data-changed'] === 'true'
+        return <tr key={a.id} data-index={index} ref={virtual ? virtualizer.measureElement : undefined} data-level={row.level} data-group={row.group} data-wbs={a.wbs} {...attrs} onContextMenu={event => {
           if ((event.target as HTMLElement).closest('input,textarea,[contenteditable=true]')) return
           event.preventDefault()
           setMenu({ id: a.id, title: a.name, projectId: a.projectId, nbcActivityId: a.id, x: event.clientX, y: event.clientY })
@@ -59,8 +61,11 @@ export function WbsTable({ rows, caption, collapsed, onToggle, previous, current
             {row.group ? <button className="nbc-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${a.wbs}`} onClick={(e) => { e.stopPropagation(); onToggle(a.id) }}><ChevronDown size={12} aria-hidden="true"/></button> : <span className="nbc-toggle-gap" aria-hidden="true">{row.depth > 0 && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 1v8a2 2 0 002 2h8" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span>}
             {onRowClick ? <button className="nbc-name nbc-name-button" onClick={() => onRowClick(row)}>{a.name}</button> : <span className="nbc-name">{a.name}</span>}{row.group && <span className="nbc-count">{row.leafCount}</span>}{nameSuffix?.(row)}</div>
           </td>
-          <td className="nbc-num" data-label="Previous week %">{percent(previous(a))}</td>
-          <td className="nbc-num" data-label="This week %" {...nowCellProps(row.progress, previous(a))}>{row.group ? percent(row.progress) : current(row)}</td>
+          <td className="nbc-num" data-label="Previous week %">{percent(prev)}</td>
+          <td className="nbc-num" data-label="This week %" {...nowCellProps(row.progress, prev)}>
+            {row.group ? percent(row.progress) : current(row)}
+            {changed && <ChangedDot previous={percent(prev)}/>}
+          </td>
           {remark && <td data-label="Remark">{row.group ? null : remark(row)}</td>}
           {extra.map((c) => <td key={c.header} data-label={c.header}>{c.cell(row)}</td>)}
         </tr>

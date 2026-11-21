@@ -36,3 +36,15 @@ test('area panels show the full area label in each column heading', () => {
   render(<RoomMatrix floor={floor} caption="ID" collapsed={new Set()} onToggle={() => {}} progress={progress} previous={progress} show={() => true} cell={(leaf) => <span>{leaf.room}</span>}/>)
   expect(screen.getAllByRole('columnheader').slice(4).map((h) => h.textContent)).toEqual(['R1\nLobby', 'R2\nSuite'])
 })
+
+test('hovering a changed-cell indicator shows the previous value tooltip', () => {
+  const floor = roomFloors(activities)[0]!, { progress } = calculate(activities)
+  render(<RoomMatrix floor={floor} caption="Floor 9" collapsed={new Set()} onToggle={() => {}} progress={progress} previous={progress} show={() => true}
+    cell={(leaf) => <span>{leaf.room}</span>}
+    cellAttrs={(leaf) => leaf.room === 'R2' ? { 'data-changed': 'true', 'data-prev': '10%' } : {}}/>)
+  const dot = screen.getByRole('img', { name: 'Changed this week, previous: 10%' })
+  fireEvent.mouseEnter(dot)
+  expect(screen.getByRole('tooltip').textContent).toBe('Previous10%')
+  fireEvent.mouseLeave(dot)
+  expect(screen.queryByRole('tooltip')).toBeNull()
+})

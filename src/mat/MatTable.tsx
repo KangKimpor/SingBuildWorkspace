@@ -3,7 +3,9 @@ import type { UIEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
 import { ChevronDown, Pencil, X } from 'lucide-react'
+import { ChangedDot } from '@/components/ChangedDot'
 import { addDays } from '@/nbc/submissions'
+import { previousCellValue } from './changes'
 import {
   codeOf,
   computeSheetAverages,
@@ -111,7 +113,6 @@ const pctTone = (key: CellKey, val: number | string | null | undefined) => {
   if (!PCT_SET.has(key) || typeof val !== 'number') return {}
   return {
     'data-done': key !== 'notYetPo' && val >= 0.99995 ? 'true' : undefined,
-    'data-zero': Math.abs(val) < 1e-9 ? 'true' : undefined,
   }
 }
 
@@ -281,6 +282,7 @@ const ItemRow = memo(function ItemRow({
       const failure = rowFailures?.get(c.key)
       const isActive = activeCol === c.key
       const changed = changedCols?.has(c.key) ? 'true' : undefined
+      const changedDot = changed ? <ChangedDot previous={previousCellValue(item, c.key)}/> : null
       const seed = isActive ? activeSeed : undefined
 
       if (c.type === 'col') {
@@ -301,6 +303,7 @@ const ItemRow = memo(function ItemRow({
                   <Pencil size={12} className="mat-source-icon" aria-hidden="true"/>
                 </button>
               : text}
+            {changedDot}
           </th>
         }
         if (c.edit) {
@@ -341,11 +344,13 @@ const ItemRow = memo(function ItemRow({
                 : <span className="mat-cell-ellipsis">{display}</span>}
             </button>
             {failure && <button type="button" className="mat-retry" aria-label={`Retry ${label}`} title={failure.message} onClick={failure.retry}>Retry</button>}
+            {changedDot}
           </td>
         }
         return <td key={c.key} className={frozen} data-changed={changed}
           onDoubleClick={c.source && onOpenSource ? () => onOpenSource(item.id) : undefined}>
           <div className="mat-clamp" title={title}>{text}</div>
+          {changedDot}
         </td>
       }
 
@@ -361,6 +366,7 @@ const ItemRow = memo(function ItemRow({
               </button>
             })}
           </div>
+          {changedDot}
         </td>
       }
 
@@ -391,6 +397,7 @@ const ItemRow = memo(function ItemRow({
             {shown}
           </button>
           {failure && <button type="button" className="mat-retry" aria-label={`Retry ${label}`} title={failure.message} onClick={failure.retry}>Retry</button>}
+          {changedDot}
         </td>
       }
 
@@ -417,6 +424,7 @@ const ItemRow = memo(function ItemRow({
           <span className="mat-clamp">{shown}</span>
         </button>
         {failure && <button type="button" className="mat-retry" aria-label={`Retry ${label}`} title={failure.message} onClick={failure.retry}>Retry</button>}
+        {changedDot}
       </td>
     })}
   </tr>

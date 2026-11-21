@@ -3,6 +3,7 @@ import './room-matrix.css'
 import { memo, useEffect, useLayoutEffect, useRef } from 'react'
 import type { ReactNode, UIEvent } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { ChangedDot } from '@/components/ChangedDot'
 import { percent } from '../format'
 import { visibleRoomRows } from '../rooms'
 import type { RoomFloor, RoomRow } from '../rooms'
@@ -59,13 +60,23 @@ const MatrixRow = memo(function MatrixRow({ row, rooms, open, count, now, before
       {onRowClick ? <button className="nbc-name nbc-name-button" onClick={() => handlers.current.onRowClick?.(row)}>{a.name}</button> : <span className="nbc-name">{a.name}</span>}{!row.task && count !== undefined && <span className="nbc-count" title="Activities">{count}</span>}
     </div></td>
     <td className="nbc-num" data-label="Prev %">{percent(before, 1)}</td>
-    <td className="nbc-num" data-label="Now %" {...nowCellProps(now, before)}>{percent(now, 1)}</td>
+    <td className="nbc-num" data-label="Now %" {...nowCellProps(now, before)}>
+      {percent(now, 1)}
+      {row.task && Math.abs(now - before) > 1e-12 && <ChangedDot previous={percent(before, 1)}/>}
+    </td>
     {row.task
       ? <>
         {extra.map((c) => <td key={c.header} data-label={c.header}>{c.cell(row)}</td>)}
         {rooms.map((room) => {
           const leaf = row.cells.get(room), co = row.co.get(room)
-          return leaf ? <td key={room} className="nbc-room-cell" data-label={room} {...cellAttrs?.(leaf, co)}>{cell(leaf, row, co)}</td> : <td key={room} className="nbc-room-na" aria-label={`${room}: not applicable`}/>
+          if (!leaf) return <td key={room} className="nbc-room-na" aria-label={`${room}: not applicable`}/>
+          const attrs = cellAttrs?.(leaf, co)
+          const isChanged = attrs?.['data-changed'] === 'true'
+          const prevLabel = typeof attrs?.['data-prev'] === 'string' ? attrs['data-prev'] : undefined
+          return <td key={room} className="nbc-room-cell" data-label={room} {...attrs}>
+            {cell(leaf, row, co)}
+            {isChanged && <ChangedDot previous={prevLabel}/>}
+          </td>
         })}
       </>
       : span > 0 && <td colSpan={span} className="nbc-room-fill" aria-hidden="true"/>}

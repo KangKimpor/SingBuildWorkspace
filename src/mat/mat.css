@@ -136,11 +136,6 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-muted); }
 /* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
 .mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
-/* Changed this week: clean 6px Apple blue dot top-right on the exact cells whose value moved this week. */
-.mat-table tbody :is(td, th)[data-changed='true']::after {
-  content: ''; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%;
-  background: var(--pp-accent); box-shadow: 0 0 0 1.5px #ffffff; pointer-events: none;
-}
 .mat-mark-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--mat-mark); }
 .mat-source-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
@@ -176,7 +171,6 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 
 .mat-avg { text-align: end; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
 .mat-avg[data-done='true'] { color: var(--pp-done-ink); font-weight: 600; }
-.mat-avg[data-zero='true'] { color: var(--pp-ink-zero); font-weight: 400; }
 
 /* Pictures and lightbox (lightbox sits above the Material Source panel so previewing from inside it works). */
 .mat-table td.mat-pic-cell { padding: 2px; }
@@ -209,7 +203,6 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-cell-num { justify-content: flex-end; text-align: end; padding-inline-end: 13px; font-variant-numeric: tabular-nums; font-size: 12.5px; }
 .mat-cell-num[data-source='formula'] { color: var(--pp-ink-2); }
 .mat-cell-num[data-done='true'] { color: var(--pp-done-ink); font-weight: 500; }
-.mat-cell-num[data-zero='true'] { color: var(--pp-ink-zero); font-weight: 400; }
 .mat-cell-num[data-source='override'] { position: relative; font-weight: 600; }
 .mat-cell-num[data-source='override']::before {
   content: ''; position: absolute; top: 6px; left: 6px; width: 5px; height: 5px; border-radius: 50%;

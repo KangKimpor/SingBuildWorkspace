@@ -1,0 +1,88 @@
+/* Hoverable 6px Apple blue changed-this-week indicator with a portaled floating tooltip. */
+.changed-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 16px;
+  height: 16px;
+  z-index: 1;
+  cursor: default;
+}
+
+.changed-dot::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--pp-accent, #0071e3);
+  box-shadow: 0 0 0 1.5px #ffffff;
+  transition: transform 140ms ease;
+}
+
+.changed-dot:hover::after {
+  transform: scale(1.3);
+}
+
+.changed-tip {
+  position: fixed;
+  z-index: 80;
+  pointer-events: none;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  max-width: min(260px, calc(100vw - 24px));
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #1d1d1f;
+  color: #ffffff;
+  font-size: 11.5px;
+  line-height: 1.3;
+  font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.18);
+  animation: changed-tip-in 120ms ease-out;
+}
+
+.changed-tip[data-place='above'] {
+  transform: translate(-50%, -100%);
+}
+
+.changed-tip[data-place='below'] {
+  transform: translate(-50%, 0);
+}
+
+.changed-tip[data-align='end'][data-place='above'] {
+  transform: translate(-100%, -100%);
+}
+
+.changed-tip[data-align='end'][data-place='below'] {
+  transform: translate(-100%, 0);
+}
+
+.changed-tip-label {
+  color: rgb(255 255 255 / 0.68);
+  font-weight: 500;
+  flex: none;
+}
+
+.changed-tip-val {
+  color: #ffffff;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes changed-tip-in {
+  from { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .changed-dot::after,
+  .changed-tip {
+    transition: none;
+    animation: none;
+  }
+}
