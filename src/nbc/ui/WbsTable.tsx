@@ -4,7 +4,7 @@ import { RowActions } from '@/components/RowActions'
 import type { RowActionTarget } from '@/components/RowActions'
 import type { ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { percent } from '../format'
 import type { WbsRow } from '../wbs-table'
 import type { NbcActivity } from '../types'
@@ -27,7 +27,7 @@ export interface WbsTableProps {
 }
 
 /** Row height in px; keep equal to `--pp-row` in tokens.css. */
-const ROW = 40
+const ROW = 36
 
 export function WbsTable({ rows, caption, collapsed, onToggle, previous, current, remark, extra = [], rowAttrs, virtual = false, scrollToId, onRowClick, nameSuffix }: WbsTableProps) {
   const scroll = useRef<HTMLDivElement>(null)
@@ -56,7 +56,7 @@ export function WbsTable({ rows, caption, collapsed, onToggle, previous, current
         }}>
           <td className="nbc-wbs-no" data-label="WBS">{a.wbs}</td>
           <td style={{ paddingInlineStart: `${row.depth * 16 + 8}px` }} data-label="Description"><div className="nbc-desc">
-            {row.group ? <button className="nbc-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${a.wbs}`} onClick={(e) => { e.stopPropagation(); onToggle(a.id) }}>{open ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}</button> : <span className="nbc-toggle-gap" aria-hidden="true">{row.depth > 0 && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 1v8a2 2 0 002 2h8" strokeWidth="1.75" strokeLinecap="round"/></svg>}</span>}
+            {row.group ? <button className="nbc-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${a.wbs}`} onClick={(e) => { e.stopPropagation(); onToggle(a.id) }}><ChevronDown size={12} aria-hidden="true"/></button> : <span className="nbc-toggle-gap" aria-hidden="true">{row.depth > 0 && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 1v8a2 2 0 002 2h8" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span>}
             {onRowClick ? <button className="nbc-name nbc-name-button" onClick={() => onRowClick(row)}>{a.name}</button> : <span className="nbc-name">{a.name}</span>}{row.group && <span className="nbc-count">{row.leafCount}</span>}{nameSuffix?.(row)}</div>
           </td>
           <td className="nbc-num" data-label="Previous week %">{percent(previous(a))}</td>

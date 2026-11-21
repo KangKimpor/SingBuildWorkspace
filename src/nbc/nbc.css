@@ -127,7 +127,7 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project:has(.nbc-update[data-expanded=true]) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); padding: 10px 24px; gap: 6px; }
 .canvas:has(.nbc-activities-page[data-expanded=true]) { padding-bottom: 0; }
 .nbc-activities-page[data-expanded=true], .nbc-activities-page[data-expanded=true] > .nbc-activities { display: flex; flex: 1; flex-direction: column; min-height: 0; }
-.nbc-activities-page[data-expanded=true] .nbc-activities > .nbc-wbs-scroll { flex: 1; max-height: none; min-height: 8rem; border-radius: 8px; }
+.nbc-activities-page[data-expanded=true] .nbc-activities > .nbc-wbs-scroll { flex: 1; max-height: none; min-height: 8rem; border-radius: 12px; }
 .nbc-activities-page[data-expanded=true] .nbc-activities > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 
 /* Project Progress re-skin: page header and toolbar (the view tabs live in styles/apple-controls.css). Colors from the `--pp-*` tokens; the sidebar and shell are untouched. */

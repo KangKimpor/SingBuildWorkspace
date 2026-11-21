@@ -1,68 +1,99 @@
-/* Shared WBS and room-matrix table. Flat, high-contrast spreadsheet grid. Colors come from the `--pp-*` tokens in tokens.css; nothing here may reach the sidebar or app shell. */
-.nbc-wbs-scroll { overflow: auto; min-width: 0; min-height: 0; border: 1px solid var(--pp-line-strong); border-radius: 8px; background: var(--pp-l3); }
+/* Shared WBS and room-matrix table (Operate mode, D-45). Restrained hairline grid with solid header,
+   neutral hover, plain inline deltas/counts, and green completion for 100% only.
+   Colors come from `--pp-*` tokens in tokens.css; nothing here reaches the sidebar or app shell. */
+.nbc-wbs-scroll {
+  overflow: auto; min-width: 0; min-height: 0;
+  border: 1px solid var(--pp-line-strong); border-radius: 12px; background: var(--pp-l3);
+  scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.2) transparent;
+}
+.nbc-wbs-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.nbc-wbs-scroll::-webkit-scrollbar-thumb { background: rgb(0 0 0 / 0.2); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+.nbc-wbs-scroll::-webkit-scrollbar-thumb:hover { background-color: rgb(0 0 0 / 0.34); }
+.nbc-wbs-scroll ::selection { background: rgb(0 113 227 / 0.18); color: inherit; }
+
 .nbc-wbs { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
 
-/* Every row reads its colors from these variables; the tiers below only swap the values. */
+/* Every row reads its colors from these variables; the tiers below swap the values. */
 .nbc-wbs tr {
-  --row-bg: var(--pp-l3); --row-line: var(--pp-line); --row-ink: var(--pp-ink); --row-ink-2: var(--pp-ink);
-  --row-hover: var(--pp-wash); --row-focus: var(--pp-accent-ink); --row-chip: var(--pp-wash); --row-link: var(--pp-accent-ink);
-  --row-track: var(--pp-bar-track); --row-bar: var(--pp-accent); --row-bar-full: var(--pp-bar-full);
-  --name-size: 13px; --name-weight: 400; --name-case: none; --name-tracking: normal; --num-weight: 500;
+  --row-bg: var(--pp-l3); --row-line: var(--pp-line); --row-ink: var(--pp-ink); --row-ink-2: var(--pp-ink-muted);
+  --row-hover: var(--pp-wash); --row-focus: var(--pp-accent); --row-chip: var(--pp-wash); --row-link: var(--pp-accent-ink);
+  --name-size: 13px; --name-weight: 400; --num-weight: 500;
 }
-/* Level 1 (WBS) and the section row of a room matrix: navy. Level 2 and the group row of a matrix: light blue. Everything below: white. */
+/* Level 1 (WBS) and the section row of a room matrix: soft grouped gray. Level 2 and group rows: white semibold. Activities: white regular. */
 :where(.nbc-wbs:not(.nbc-rooms)) tr[data-level='1'], :where(.nbc-rooms) tr[data-level='2'] {
   --row-bg: var(--pp-l1); --row-line: var(--pp-l1-line); --row-ink: var(--pp-l1-ink); --row-ink-2: var(--pp-l1-ink-2);
-  --row-hover: rgb(255 255 255 / 0.1); --row-focus: var(--pp-l1-ink); --row-chip: var(--pp-l1-chip); --row-link: var(--pp-l1-bar);
-  --row-track: var(--pp-l1-track); --row-bar: var(--pp-l1-bar); --row-bar-full: var(--pp-l1-bar-full);
-  --name-size: 12px; --name-weight: 650; --name-case: uppercase; --name-tracking: .03em; --num-weight: 600;
+  --row-link: var(--pp-accent-ink); --name-weight: 600; --num-weight: 600;
 }
+:where(.nbc-wbs:not(.nbc-rooms)) tr[data-level='1'] td, :where(.nbc-rooms) tr[data-level='2'] td { height: var(--pp-row-l1); }
+:where(.nbc-wbs:not(.nbc-rooms)) tr[data-level='1']:not(:first-child) td, :where(.nbc-rooms) tr[data-level='2']:not(:first-child) td { border-top: 1px solid var(--pp-l1-top); }
 :where(.nbc-wbs:not(.nbc-rooms)) tr[data-level='2'], :where(.nbc-rooms) tr[data-level='3'] {
   --row-bg: var(--pp-l2); --row-line: var(--pp-l2-line); --row-link: var(--pp-l2-link); --name-weight: 600; --num-weight: 600;
 }
 
-.nbc-wbs thead th { position: sticky; top: 0; z-index: 3; height: 44px; background: var(--pp-band); color: var(--pp-ink); font-weight: 600; text-align: start; padding: 0 12px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; border-bottom: 2px solid var(--pp-line-strong); border-right: 1px solid var(--pp-line-strong); border-left: 0; border-top: 0; }
-.nbc-wbs thead th:last-child { border-right: 0; }
-.nbc-wbs td { position: relative; padding: 4px 12px; height: var(--pp-row); vertical-align: middle; background-color: var(--row-bg); color: var(--row-ink); border-bottom: 1px solid var(--row-line); border-right: 1px solid var(--row-line); border-left: 0; border-top: 0; }
-.nbc-wbs td:last-child { border-right: 0; }
+.nbc-wbs thead th {
+  position: sticky; top: 0; z-index: 3; height: 36px; padding: 0 10px;
+  background: var(--pp-band); color: var(--pp-ink-2);
+  font-size: 11px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; text-align: start; white-space: nowrap;
+  border-bottom: 1px solid var(--pp-line-strong); border-right: 0; border-left: 0; border-top: 0;
+}
+.nbc-wbs td {
+  position: relative; padding: 5px 10px; height: var(--pp-row); vertical-align: middle;
+  background-color: var(--row-bg); color: var(--row-ink);
+  border-bottom: 1px solid var(--row-line); border-right: 0; border-left: 0; border-top: 0;
+  transition: background-color 150ms ease;
+}
 /* The last row keeps its bottom border: a short table (for example the changed-only view after confirming) would otherwise end open-ended inside the taller scroll area. */
-.nbc-wbs td.nbc-num { font-weight: var(--num-weight); }
+.nbc-wbs td.nbc-num { font-size: 12.5px; font-weight: var(--num-weight); }
 .nbc-wbs td[data-label='Prev %'], .nbc-wbs td[data-label='Previous week %'] { color: var(--row-ink-2); font-weight: 400; }
+.nbc-wbs td.nbc-num[data-full='true'] { color: var(--pp-done-ink); }
 .nbc-wbs .nbc-num { text-align: end; white-space: nowrap; }
-.nbc-wbs-no { white-space: nowrap; font-family: var(--font-mono); font-size: 11.5px; color: var(--row-ink-2); }
+.nbc-wbs thead th.nbc-num:nth-child(4) { padding-inline-end: 15px; }
+.nbc-wbs-no { white-space: nowrap; font-size: 12px; font-weight: 500; color: var(--row-ink-2); }
 .nbc-wbs tr[data-level='1'] .nbc-wbs-no, .nbc-rooms tr[data-level='2'] .nbc-wbs-no { color: var(--row-ink); font-weight: 600; }
+
 .nbc-desc { display: flex; align-items: center; gap: 6px; min-width: 16rem; }
 .nbc-name { overflow-wrap: anywhere; min-width: 0; }
-.nbc-wbs .nbc-name { font-size: var(--name-size); font-weight: var(--name-weight); text-transform: var(--name-case); letter-spacing: var(--name-tracking); line-height: 16px; color: var(--row-ink); flex: 1 1 auto; }
-/* Project Progress: activity names stop at two lines; the child count sits at the end of a group's description. */
+.nbc-wbs .nbc-name { font-size: var(--name-size); font-weight: var(--name-weight); line-height: 1.3; color: var(--row-ink); flex: 0 1 auto; }
 @media (min-width: 768px) {
   .nbc-activities .nbc-wbs .nbc-name { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; white-space: normal; flex-shrink: 1; }
 }
-.nbc-count { font-size: 11px; font-weight: 500; margin-inline-start: auto; padding-inline-start: 6px; flex: none; font-family: var(--font-mono); color: var(--row-ink-2); }
-.nbc-toggle { display: inline-grid; place-items: center; width: 22px; height: 22px; border: 0; background: transparent; border-radius: 5px; cursor: pointer; padding: 0; flex: none; color: var(--row-ink-2); }
-.nbc-toggle:hover { background: var(--row-hover); color: var(--row-ink); }
-.nbc-toggle-gap { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; flex: none; color: var(--pp-ink-muted); }
+.nbc-count { font-size: 12px; font-weight: 400; margin-inline-start: 4px; flex: none; color: var(--pp-ink-muted); }
+.nbc-toggle {
+  display: inline-grid; place-items: center; width: 18px; height: 18px; border: 0; background: transparent; border-radius: 4px;
+  cursor: pointer; padding: 0; flex: none; color: var(--pp-ink-muted); transition: background-color 150ms ease, color 150ms ease;
+}
+.nbc-toggle:hover { background: rgb(0 0 0 / 0.06); color: var(--row-ink); }
+.nbc-toggle svg { transition: transform 180ms ease-out; }
+.nbc-toggle[aria-expanded='false'] svg { transform: rotate(-90deg); }
+.nbc-toggle-gap { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; flex: none; color: var(--pp-na-ink); }
 .nbc-wbs :focus-visible { outline: 2px solid var(--row-focus); outline-offset: -2px; border-radius: 4px; }
 .nbc-wbs .nbc-remark-btn:not([data-filled=true]) { color: var(--row-link); }
 .nbc-wbs tr[data-level='1'] .nbc-remark-btn:hover, .nbc-rooms tr[data-level='2'] .nbc-remark-btn:hover { background: var(--pp-l1-chip); }
 .nbc-wbs tr[data-level='1'] .nbc-unit, .nbc-rooms tr[data-level='2'] .nbc-unit { color: var(--pp-l1-ink-2); }
-/* Hover is a wash laid over the opaque row color, so frozen cells never turn see-through. */
-.nbc-wbs tbody tr:hover > td:not(.nbc-room-na) { background-image: linear-gradient(var(--row-hover), var(--row-hover)); }
-.nbc-wbs tr[data-changed=true] td { box-shadow: inset 0 0 0 1px var(--pp-accent); }
 
-/* Now % cell on Project Progress: "+x" chip before the value and a 3px bar along the bottom edge. Values come from data-delta and --pct (see now-cell.ts). */
+/* Hover is a neutral wash laid over the opaque row color, so frozen cells never turn see-through. */
+.nbc-wbs tbody tr:hover > td:not(.nbc-room-na) { background-image: linear-gradient(var(--row-hover), var(--row-hover)); }
+
+/* Now % / This week % on Project Progress: plain "+1.8" / "−0.5" inline delta text before the value, and a 6px blue dot when changed. */
 @media (min-width: 768px) {
-  .nbc-activities .nbc-wbs td.nbc-num { padding: 0 10px 5px 8px; }
-  .nbc-activities .nbc-wbs td.nbc-num[data-delta]::before { content: attr(data-delta); display: inline-block; margin-inline-end: 7px; padding: 1px 6px; border-radius: 4px; background: var(--row-chip); color: var(--row-link); font-size: 11px; font-weight: 600; line-height: 16px; vertical-align: 1px; }
-  .nbc-activities .nbc-wbs tr[data-level='1'] td.nbc-num[data-delta]::before, .nbc-activities .nbc-rooms tr[data-level='2'] td.nbc-num[data-delta]::before { color: var(--pp-l1-ink); }
-  .nbc-activities .nbc-wbs td.nbc-num[data-pct]::after { content: ''; position: absolute; inset-inline: 8px 10px; bottom: 5px; height: 3px; border-radius: 3px; background: linear-gradient(to right, var(--row-bar) calc(var(--pct) * 1%), var(--row-track) 0); pointer-events: none; }
-  .nbc-activities .nbc-wbs td.nbc-num[data-full='true']::after { background: var(--row-bar-full); }
+  .nbc-activities .nbc-wbs td.nbc-num:nth-child(4) { padding: 5px 15px 5px 10px; }
+  .nbc-activities .nbc-wbs td.nbc-num[data-delta]::before {
+    content: attr(data-delta); display: inline-block; margin-inline-end: 7px;
+    color: var(--pp-done-ink); font-size: 11.5px; font-weight: 600; line-height: 1;
+  }
+  .nbc-activities .nbc-wbs td.nbc-num[data-delta-dir='down']::before { color: var(--pp-delta-neg); }
+  .nbc-activities .nbc-wbs tr[data-group='false'] td.nbc-num[data-delta]::after,
+  .nbc-activities .nbc-wbs tr[data-changed='true'] td[data-label='This week %']::after {
+    content: ''; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--pp-accent); box-shadow: 0 0 0 1.5px #ffffff; pointer-events: none;
+  }
 }
 
-/* Frozen columns on Project Progress. Wider than 900px: Description, Prev % and Now % stay put (with the WBS code before them); at 900px and below only the code and Description do. Spacer rows of the virtualized list carry no data-wbs, so they are left alone. */
+/* Frozen columns on Project Progress (non-matrix WbsTable). Wider than 900px: WBS, Description, Prev % and Now % stay put; at 900px and below only WBS and Description do. */
 @property --pp-edge-a { syntax: '<number>'; inherits: false; initial-value: 0; }
 @keyframes pp-edge-in { from { --pp-edge-a: 0; } to { --pp-edge-a: 1; } }
 @media (min-width: 768px) {
-  .nbc-activities .nbc-wbs:not(.nbc-rooms) { --w-wbs: 116px; --pp-w-prev: 92px; }
+  .nbc-activities .nbc-wbs:not(.nbc-rooms) { --w-wbs: 112px; --pp-w-prev: 92px; }
   .nbc-activities .nbc-wbs:not(.nbc-rooms) thead th.nbc-num { white-space: normal; line-height: 1.15; }
   .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(th, td):nth-child(-n+2) { position: sticky; }
   .nbc-activities .nbc-wbs:not(.nbc-rooms) thead th:nth-child(-n+2) { z-index: 5; }
@@ -82,33 +113,35 @@
   .nbc-activities .nbc-wbs:not(.nbc-rooms) { --pp-w-desc: 220px; }
   .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(2) { border-right: 1px solid var(--pp-line-strong); }
 }
-/* Soft shadow on the last frozen column once the table has been scrolled sideways. It needs scroll-driven animations; without them the 1px divider still marks the edge. */
 @supports (animation-timeline: scroll()) {
   @media (min-width: 901px) {
-    .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(4) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
-    .nbc-activities .nbc-wbs:not(.nbc-rooms) tr[data-changed=true][data-wbs] > :nth-child(4) { box-shadow: inset 0 0 0 1px var(--pp-accent), 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
+    .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(4) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(0 0 0 / calc(0.12 * var(--pp-edge-a))); }
   }
   @media (min-width: 768px) and (max-width: 900px) {
-    .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(2) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
-    .nbc-activities .nbc-wbs:not(.nbc-rooms) tr[data-changed=true][data-wbs] > :nth-child(2) { box-shadow: inset 0 0 0 1px var(--pp-accent), 5px 0 6px -4px rgb(15 15 15 / calc(0.16 * var(--pp-edge-a))); }
+    .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(2) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(0 0 0 / calc(0.12 * var(--pp-edge-a))); }
   }
 }
 
 /* Item code chip, handler avatar, hovered room column. */
 .nbc-code { flex: none; min-width: 20px; padding: 1px 5px; border-radius: 4px; background: var(--row-chip); color: var(--row-ink); font: 600 10.5px/16px var(--font-mono); text-align: center; }
-.nbc-av { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--row-chip, color-mix(in srgb, var(--pp-ink) 11%, transparent)); color: var(--row-ink, var(--pp-ink)); font-size: 9.5px; font-weight: 700; letter-spacing: .02em; }
+.nbc-av { display: inline-grid; place-items: center; flex: none; width: 20px; height: 20px; border-radius: 50%; background: var(--row-chip, color-mix(in srgb, var(--pp-ink) 11%, transparent)); color: var(--row-ink, var(--pp-ink)); font-size: 10px; font-weight: 700; letter-spacing: .01em; }
 .nbc-av::before { content: attr(data-initials); }
-.nbc-wbs td.nbc-hot:not(.nbc-room-na), .nbc-wbs th.nbc-hot { background-image: linear-gradient(var(--pp-wash), var(--pp-wash)); }
+.nbc-wbs td.nbc-hot:not(.nbc-room-na), .nbc-wbs th.nbc-hot { background-image: linear-gradient(var(--pp-col-wash), var(--pp-col-wash)); }
+.nbc-wbs tbody tr:hover > td.nbc-hot:not(.nbc-room-na) { background-image: linear-gradient(rgb(0 0 0 / 0.045), rgb(0 0 0 / 0.045)); }
 
 /* Counter and key under the table. */
-.nbc-key-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--pp-ink); }
-.nbc-key { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin: 0; padding: 0; list-style: none; }
+.nbc-key-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 18px; font-size: 12px; color: var(--pp-ink-2); font-variant-numeric: tabular-nums; }
+.nbc-key { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; }
 .nbc-key li { display: inline-flex; align-items: center; gap: 6px; }
-.nbc-sw { position: relative; flex: none; width: 16px; height: 12px; border-radius: 3px; }
-.nbc-sw[data-kind='na'] { border: 1px solid var(--pp-line-strong); background-image: repeating-linear-gradient(135deg, transparent 0 3px, var(--pp-hatch) 3px 4px); }
-.nbc-sw[data-kind='changed']::before { content: ''; position: absolute; top: 0; right: 2px; border-style: solid; border-width: 0 9px 9px 0; border-color: transparent var(--pp-accent) transparent transparent; }
-.nbc-sw[data-kind='changed-row'] { box-shadow: inset 0 0 0 1px var(--pp-accent); }
-.nbc-sw[data-kind='problem'] { box-shadow: inset 0 0 0 1.5px var(--danger-text); }
+.nbc-sw { position: relative; flex: none; display: inline-grid; place-items: center; }
+.nbc-sw[data-kind='changed'], .nbc-sw[data-kind='changed-row'] { width: 6px; height: 6px; border-radius: 50%; background: var(--pp-accent); }
+.nbc-sw[data-kind='na'] { width: 18px; height: 14px; border-radius: 3px; border: 1px solid var(--pp-line-strong); background: var(--pp-na-bg); }
+.nbc-sw[data-kind='na']::before { content: '–'; font-style: normal; font-size: 11px; line-height: 1; color: var(--pp-na-ink); }
+.nbc-sw[data-kind='problem'] { width: 16px; height: 12px; border-radius: 3px; box-shadow: inset 0 0 0 1.5px var(--danger-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .nbc-toggle, .nbc-toggle svg, .nbc-wbs td { transition: none; }
+}
 
 .nbc-pill { display: inline-flex; align-items: center; gap: var(--space-6); padding: var(--space-2) var(--space-6); border-radius: var(--radius-control); font-size: var(--fs-caption); white-space: nowrap; background: var(--status-neutral-bg); color: var(--text-primary); }
 .nbc-pill[data-status=Updated] { background: var(--status-success-bg); }

@@ -1,7 +1,8 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { UIEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
-import { ChevronDown, ChevronRight, Pencil, X } from 'lucide-react'
+import { ChevronDown, Pencil, X } from 'lucide-react'
 import { addDays } from '@/nbc/submissions'
 import {
   codeOf,
@@ -103,8 +104,16 @@ export const COLUMNS: Column[] = [
 ]
 const FROZEN = 3
 const WORK_GROUPS = new Set([PM])
-const ROW_HEIGHT = 40
+const ROW_HEIGHT = 36
 const VIRTUAL_THRESHOLD = 40
+const PCT_SET: ReadonlySet<string> = new Set(PCT_CELLS)
+const pctTone = (key: CellKey, val: number | string | null | undefined) => {
+  if (!PCT_SET.has(key) || typeof val !== 'number') return {}
+  return {
+    'data-done': key !== 'notYetPo' && val >= 0.99995 ? 'true' : undefined,
+    'data-zero': Math.abs(val) < 1e-9 ? 'true' : undefined,
+  }
+}
 
 const isEditableCol = (c: Column) => (c.type === 'col' && !!c.edit) || c.type === 'cell' || (c.type === 'remark' && c.week === 'now')
 
@@ -373,8 +382,9 @@ const ItemRow = memo(function ItemRow({
         }
         const shown = failure ? failure.draft : formatCell(c.cell, values[c.cell])
         const dataSource = override ? 'override' : calculated ? 'formula' : 'value'
+        const tone = failure ? {} : pctTone(c.cell, values[c.cell])
         return <td key={c.key} className="mat-edit" data-changed={changed}>
-          <button type="button" className="mat-cell-btn mat-cell-num" data-source={dataSource} data-cell={c.key}
+          <button type="button" className="mat-cell-btn mat-cell-num" data-source={dataSource} data-cell={c.key} {...tone}
             aria-label={label} title={failure?.message ?? notes?.[c.cell]}
             data-invalid={failure ? 'true' : undefined}
             onClick={() => onActivate(item.id, c.key)}>
@@ -452,13 +462,13 @@ const SummaryRow = memo(function SummaryRow({
     <th scope="row" colSpan={FROZEN} className="mat-f mat-f-span">
       <div className="mat-section-label" style={onToggle ? { paddingInlineStart: level * 12 } : undefined}>
         {onToggle && id && <button type="button" className="mat-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`} onClick={() => onToggle(id)}>
-          {open ? <ChevronDown size={14} aria-hidden="true"/> : <ChevronRight size={14} aria-hidden="true"/>}
+          <ChevronDown size={12} aria-hidden="true"/>
         </button>}
         <span className="mat-clamp">{label}</span>
       </div>
     </th>
     {colSpanMiddle > 0 && <td colSpan={colSpanMiddle} aria-hidden="true"/>}
-    {hasPct && PCT_CELLS.map((c) => <td key={c} className="mat-avg">{formatCell(c, values[c] ?? null)}</td>)}
+    {hasPct && PCT_CELLS.map((c) => <td key={c} className="mat-avg" {...pctTone(c, values[c])}>{formatCell(c, values[c] ?? null)}</td>)}
     {colSpanAfter > 0 && <td colSpan={colSpanAfter} aria-hidden="true"/>}
   </tr>
 }, (a, b) => a.id === b.id && a.label === b.label && a.level === b.level && a.open === b.open
@@ -689,7 +699,15 @@ export const MatTable = memo(function MatTable({
   const before = addDays(week, -14)
   const remarkOf = (id: string, team: Team, wk: string) => remarks[remarkKey(id, team, wk)] ?? ''
 
-  return <div className="mat-scroll" ref={scrollRef}>
+  const onScroll = (event: UIEvent<HTMLDivElement>) => {
+    const el = event.currentTarget, scrolled = el.scrollLeft > 0
+    if (scrolled !== ('scrolled' in el.dataset)) {
+      if (scrolled) el.dataset.scrolled = ''
+      else delete el.dataset.scrolled
+    }
+  }
+
+  return <div className="mat-scroll" ref={scrollRef} onScroll={onScroll}>
     <table className="mat-table" style={{ width: viewConfig.width }}>
       <caption className="sr-only">{caption}</caption>
       {viewConfig.groups.map((run, i) => <colgroup key={i}>{run.columns.map((c) => <col key={c.key} style={{ width: c.width }}/>)}</colgroup>)}

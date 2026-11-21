@@ -59,17 +59,17 @@ html .nbc-project .nbc-filters .nbc-seg button,
 .mat-toolbar.mat-toolbar .mat-col-tabs .view-tab {
   display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 14px;
   border: 0; border-radius: 7px; background: transparent; box-shadow: none;
-  color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+  color: var(--ap-label); font-size: 13px; font-weight: 600; white-space: nowrap;
 }
 html .nbc-project .nbc-filters .nbc-seg button:hover:not(:disabled):not([aria-pressed='true']),
 .mat-toolbar.mat-toolbar .mat-col-tabs .view-tab:hover:not([aria-pressed='true']) { background: var(--ap-fill-2); color: var(--ap-label); }
 html .nbc-project .nbc-filters .nbc-seg button[aria-pressed='true'],
 .mat-toolbar.mat-toolbar .mat-col-tabs .view-tab[aria-pressed='true'] {
-  background: var(--ap-raised); color: var(--ap-label); font-weight: 500;
+  background: var(--ap-raised); color: var(--ap-label); font-weight: 600;
   box-shadow: 0 1px 3px rgb(0 0 0 / .1), 0 0 0 .5px rgb(0 0 0 / .05);
 }
 html .nbc-project .nbc-filters .nbc-seg .nbc-count {
-  margin: 0; padding: 0; font-family: inherit; font-size: 11.5px; font-weight: 500; color: var(--ap-label-3); font-variant-numeric: tabular-nums;
+  margin: 0; padding: 0; font-family: inherit; font-size: 11.5px; font-weight: 600; color: var(--ap-label-3); font-variant-numeric: tabular-nums;
 }
 
 /* ── View tabs as segments: NBC "Overview / Project Progress / Update Progress", Material "BP03 / BP04" and
@@ -85,14 +85,14 @@ html .nbc-project .nbc-tabs .view-tab,
 html .mat-tabs .view-tabs .view-tab {
   display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 14px;
   border: 0; border-radius: 7px; background: transparent; box-shadow: none;
-  color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+  color: var(--ap-label); font-size: 13px; font-weight: 600; white-space: nowrap;
   transition: background 160ms ease, box-shadow 160ms ease;
 }
 html .nbc-project .nbc-tabs .view-tab:hover:not([aria-current='page']),
 html .mat-tabs .view-tabs .view-tab:hover:not([aria-current='page']) { background: var(--ap-fill-2); color: var(--ap-label); }
 html .nbc-project .nbc-tabs .view-tab[aria-current='page'],
 html .mat-tabs .view-tabs .view-tab[aria-current='page'] {
-  background: var(--ap-raised); color: var(--ap-label); font-weight: 500;
+  background: var(--ap-raised); color: var(--ap-label); font-weight: 600;
   box-shadow: 0 1px 3px rgb(0 0 0 / .1), 0 0 0 .5px rgb(0 0 0 / .05);
 }
 html .nbc-project .nbc-tabs .view-tab:focus-visible,
@@ -105,20 +105,20 @@ html .mat-tabs .view-tabs .view-tab:focus-visible { outline: 0; box-shadow: var(
 html .nbc-project .nbc-filters .nbc-chip:not(.nbc-expand-editor):not(.nbc-filters-toggle),
 .mat-toolbar.mat-toolbar .mat-chip {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; min-height: 32px; padding: 0 14px;
-  border: 0; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+  border: 0; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 600; white-space: nowrap;
 }
-html .nbc-project .nbc-filters .nbc-chip:not(.nbc-expand-editor):not(.nbc-filters-toggle):hover,
-.mat-toolbar.mat-toolbar .mat-chip:hover { background: var(--ap-fill); color: var(--ap-label); }
-html .nbc-project .nbc-filters .nbc-chip[aria-pressed='true']:not(.nbc-expand-editor),
+html .nbc-project .nbc-filters .nbc-chip:not(.nbc-expand-editor):not(.nbc-filters-toggle):not([aria-pressed='true']):hover,
+.mat-toolbar.mat-toolbar .mat-chip:not([aria-pressed='true']):hover { background: var(--ap-fill); color: var(--ap-label); }
+html .nbc-project .nbc-filters .nbc-chip[aria-pressed='true']:not(.nbc-expand-editor):not(.nbc-filters-toggle),
 .mat-toolbar.mat-toolbar .mat-chip[aria-pressed='true'] { background: var(--ap-blue); color: #fff; }
-html .nbc-project .nbc-filters .nbc-chip[aria-pressed='true']:not(.nbc-expand-editor):hover,
-.mat-toolbar.mat-toolbar .mat-chip[aria-pressed='true']:hover { background: var(--ap-blue-hover); }
+html .nbc-project .nbc-filters .nbc-chip[aria-pressed='true']:not(.nbc-expand-editor):not(.nbc-filters-toggle):hover,
+.mat-toolbar.mat-toolbar .mat-chip[aria-pressed='true']:hover { background: var(--ap-blue-hover); color: #fff; }
 html .nbc-project .nbc-filters .nbc-chip[aria-label^='Remove'] { background: var(--ap-blue-fill); color: var(--ap-blue-text); }
-html .nbc-project .nbc-filters .nbc-chip[aria-label^='Remove']:hover { background: color-mix(in srgb, var(--ap-blue) 16%, transparent); }
+html .nbc-project .nbc-filters .nbc-chip[aria-label^='Remove']:hover { background: color-mix(in srgb, var(--ap-blue) 16%, transparent); color: var(--ap-blue-text); }
 
 /* ── "Clear all" / "Clear filters" ── */
 html .nbc-project .nbc-filters .text-link,
-.mat-toolbar.mat-toolbar .text-link { padding: 2px 4px; border-radius: 5px; color: var(--ap-blue-text); font-size: 13px; font-weight: 500; }
+.mat-toolbar.mat-toolbar .text-link { padding: 2px 4px; border-radius: 5px; color: var(--ap-blue-text); font-size: 13px; font-weight: 600; }
 html .nbc-project .nbc-filters .text-link:hover,
 .mat-toolbar.mat-toolbar .text-link:hover { text-decoration: underline; text-underline-offset: 3px; }
 
@@ -126,7 +126,7 @@ html .nbc-project .nbc-filters .text-link:hover,
 html .nbc-project .nbc-filters .glass-select,
 .mat-toolbar.mat-toolbar .glass-select {
   position: relative; height: 32px; min-height: 32px; padding: 0 28px 0 12px;
-  border: 0; border-radius: 9px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px;
+  border: 0; border-radius: 9px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 600;
 }
 html .nbc-project .nbc-filters .glass-select:hover,
 html .nbc-project .nbc-filters .glass-select[aria-expanded='true'],
@@ -140,19 +140,21 @@ html .nbc-project .nbc-filters .glass-select::after,
   -webkit-mask: var(--ap-chevrons) no-repeat center / contain; mask: var(--ap-chevrons) no-repeat center / contain;
 }
 /* A filter that is set turns blue, like the prototype's popups. */
-.mat-toolbar.mat-toolbar .glass-select.is-on { background: var(--ap-blue-fill); color: var(--ap-blue-text); font-weight: 500; }
+.mat-toolbar.mat-toolbar .glass-select.is-on { background: var(--ap-blue-fill); color: var(--ap-blue-text); font-weight: 600; }
 .mat-toolbar.mat-toolbar .glass-select.is-on::after { background: var(--ap-blue-text); }
 
-/* ── Pill buttons: Expand, Export XLSX ── */
+/* ── Pill buttons: Expand, Export XLSX, Refresh ── */
 html .nbc-project .nbc-filters .nbc-expand-editor,
 .mat-toolbar.mat-toolbar .btn-secondary,
+.mat-heading .btn-secondary,
 html .nbc-project .nbc-project-actions .nbc-export-button {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 32px; min-height: 32px; padding: 0 14px;
-  border: 0; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 500; white-space: nowrap;
+  border: 0; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label); font-size: 13px; font-weight: 600; white-space: nowrap;
   transition: background 150ms ease, transform 120ms ease, opacity 150ms ease;
 }
 html .nbc-project .nbc-filters .nbc-expand-editor:hover,
 .mat-toolbar.mat-toolbar .btn-secondary:hover,
+.mat-heading .btn-secondary:hover:not(:disabled),
 html .nbc-project .nbc-project-actions .nbc-export-button:hover:not(:disabled) { background: var(--ap-fill); }
 html .nbc-project .nbc-project-actions .nbc-export-button:disabled { opacity: .38; }
 .nbc-filters .nbc-expand-editor[aria-pressed='true'] { background: var(--ap-fill); }
@@ -165,10 +167,10 @@ html .nbc-project .nbc-filters .ibtn:hover,
 
 /* ── Handler avatar: the person's initial on their own color ── */
 :is(.nbc-activities, .nbc-update, .nbc-gate) .nbc-av {
-  width: 22px; height: 22px; background: #8e8e93; color: #fff; font-size: 11.5px; font-weight: 600; letter-spacing: 0;
+  width: 20px; height: 20px; background: #8e8e93; color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0;
 }
 :is(.nbc-activities, .nbc-update, .nbc-gate) .nbc-av[data-size='lg'] { width: 36px; height: 36px; font-size: 15px; }
-.nbc-activities .nbc-handler { gap: 8px; font-size: 13px; }
+.nbc-activities .nbc-handler { gap: 7px; font-size: 12.5px; }
 
 /* ── "Who is updating?" ── */
 .nbc-gate { max-width: 560px; margin: 24px auto 0; }

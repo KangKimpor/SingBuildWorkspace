@@ -108,7 +108,7 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
           cell={(l, _row, co) => percent(co ? (l.progress + co.progress) / 2 : l.progress, 0)}
           cellAttrs={(l, co) => {
             const halves = co ? [l, co] : [l], moved = halves.some((h) => Math.abs((live.progress.get(h.id) ?? 0) - (before.progress.get(h.id) ?? 0)) > 1e-12)
-            return { 'data-changed': moved ? 'true' : undefined, 'data-done': halves.every((h) => h.progress === 1) ? 'true' : undefined }
+            return { 'data-changed': moved ? 'true' : undefined, 'data-done': halves.every((h) => h.progress === 1) ? 'true' : undefined, 'data-zero': halves.every((h) => h.progress === 0) ? 'true' : undefined }
           }}
           extra={[{ header: 'Handler', cell: (row) => {
             const label = [...new Set(row.leaves.map((l) => l.handler || 'Unassigned'))].join(', ')

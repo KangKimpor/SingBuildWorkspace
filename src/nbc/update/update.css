@@ -6,7 +6,7 @@
 .nbc-update[data-expanded=true] { gap: 6px; }
 .nbc-update > .nbc-wbs-scroll { flex: 1 1 auto; min-height: 8rem; }
 /* Expanded: compact top & bottom so table fills workspace like Project Progress */
-.nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 8px; }
+.nbc-update[data-expanded=true] > .nbc-wbs-scroll { flex: 1 1 auto; max-height: none; min-height: 0; border-radius: 12px; }
 .nbc-update[data-expanded=true] > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 
 .nbc-update[data-expanded=true] .nbc-seg {
@@ -114,12 +114,20 @@
   height: var(--pp-row);
   max-height: var(--pp-row);
 }
+.nbc-update .nbc-wbs tr[data-level='1'] {
+  height: var(--pp-row-l1);
+  max-height: var(--pp-row-l1);
+}
 .nbc-update .nbc-wbs td {
   height: var(--pp-row);
   max-height: var(--pp-row);
-  padding: 0 12px;
+  padding: 0 10px;
   vertical-align: middle;
   box-sizing: border-box;
+}
+.nbc-update .nbc-wbs tr[data-level='1'] td {
+  height: var(--pp-row-l1);
+  max-height: var(--pp-row-l1);
 }
 
 /* Remove blue outline on the row being updated */
@@ -128,8 +136,8 @@
   box-shadow: none !important;
   outline: none !important;
 }
-.nbc-update .nbc-wbs tr[data-changed=true] td { background: color-mix(in srgb, var(--pp-accent) 8%, var(--pp-l3)); }
-.nbc-update .nbc-wbs tr[data-problem=true] td { background: color-mix(in srgb, var(--danger-text) 10%, var(--bg-canvas)); }
+.nbc-update .nbc-wbs tr[data-changed=true] td { background: color-mix(in srgb, var(--pp-accent) 5%, var(--pp-l3)); }
+.nbc-update .nbc-wbs tr[data-problem=true] td { background: color-mix(in srgb, var(--danger-text) 8%, var(--pp-l3)); }
 
 .nbc-update .nbc-desc {
   min-width: 0;
@@ -185,18 +193,15 @@
   line-height: 24px;
 }
 .nbc-delta {
-  border-radius: 4px;
-  padding: 0 6px;
-  height: 20px;
-  line-height: 20px;
-  font-size: 11px;
+  padding: 0 2px;
+  line-height: 1;
+  font-size: 11.5px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  box-sizing: border-box;
 }
-.nbc-delta[data-dir=up] { background: var(--status-success-bg); color: var(--success-text); }
-.nbc-delta[data-dir=down] { background: var(--status-warning-bg); color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
+.nbc-delta[data-dir=up] { color: var(--pp-done-ink); }
+.nbc-delta[data-dir=down] { color: var(--pp-delta-neg); }
 
 .nbc-cell .nbc-hint {
   position: absolute;

@@ -2,7 +2,7 @@ import './ui.css'
 import './room-matrix.css'
 import { memo, useEffect, useLayoutEffect, useRef } from 'react'
 import type { ReactNode, UIEvent } from 'react'
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { percent } from '../format'
 import { visibleRoomRows } from '../rooms'
 import type { RoomFloor, RoomRow } from '../rooms'
@@ -55,7 +55,7 @@ const MatrixRow = memo(function MatrixRow({ row, rooms, open, count, now, before
   return <tr data-level={row.level} data-group={!row.task} data-wbs={a.wbs} {...rowAttrs?.(row)}>
     <td className="nbc-wbs-no nbc-room-item" data-label="Item">{a.item || ''}</td>
     <td className="nbc-room-sticky" style={{ paddingInlineStart: `${row.depth * 14 + 8}px` }} data-label="Description"><div className="nbc-desc">
-      {!row.task ? <button className="nbc-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${a.name}`} onClick={(e) => { e.stopPropagation(); handlers.current.onToggle(a.id) }}>{open ? <ChevronDown size={14}/> : <ChevronRight size={14}/>}</button> : <span className="nbc-toggle-gap" aria-hidden="true">{row.depth > 0 && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 1v8a2 2 0 002 2h8" strokeWidth="1.75" strokeLinecap="round"/></svg>}</span>}
+      {!row.task ? <button className="nbc-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${a.name}`} onClick={(e) => { e.stopPropagation(); handlers.current.onToggle(a.id) }}><ChevronDown size={12} aria-hidden="true"/></button> : <span className="nbc-toggle-gap" aria-hidden="true">{row.depth > 0 && <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor"><path d="M3 1v8a2 2 0 002 2h8" strokeWidth="1.6" strokeLinecap="round"/></svg>}</span>}
       {onRowClick ? <button className="nbc-name nbc-name-button" onClick={() => handlers.current.onRowClick?.(row)}>{a.name}</button> : <span className="nbc-name">{a.name}</span>}{!row.task && count !== undefined && <span className="nbc-count" title="Activities">{count}</span>}
     </div></td>
     <td className="nbc-num" data-label="Prev %">{percent(before, 1)}</td>

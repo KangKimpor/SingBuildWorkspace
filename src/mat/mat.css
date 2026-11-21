@@ -1,11 +1,11 @@
 /* Material list (/admin). A dense working table in the Project Progress family: colors from the `--pp-*` tokens, light mode only. Page chrome (heading, tabs, search, buttons, pills) uses the app's shared classes, so everything this page adds is under `.mat-`; the two rules outside it use `html[data-mat*]` attributes to drop canvas padding and hide shell chrome in full-screen expand mode without root `:has()`. */
 html[data-mat] .canvas { padding-block: 0; }
 .mat-page {
-  --mat-h1: 28px; /* first header row; the second row sticks below it */
-  --mat-h2: 44px;
-  --mat-head-group: color-mix(in srgb, var(--pp-band) 50%, var(--pp-l3));
-  --mat-head-work: color-mix(in srgb, var(--pp-l2) 75%, var(--pp-l3));
-  --mat-row-hover: #f5f5f3;
+  --mat-h1: 26px; /* first header row; the second row sticks below it */
+  --mat-h2: 36px;
+  --mat-head-group: var(--pp-band);
+  --mat-head-work: var(--pp-l1);
+  --mat-row-hover: #f8f8f8;
   display: flex; flex-direction: column; gap: var(--space-12); min-width: 0;
   height: calc(100dvh - var(--h-topbar) - var(--safe-top));
   padding: var(--space-24) var(--space-32);
@@ -50,14 +50,14 @@ html[data-mat] .canvas { padding-block: 0; }
 :is(.mat-swatch, .mat-table tr)[data-mark='tracking'] { --mat-mark: var(--chip-brown); }
 :is(.mat-swatch, .mat-table tr)[data-mark='omit'] { --mat-mark: var(--chip-yellow); }
 .mat-swatch { background: var(--mat-mark); }
-.mat-swatch[data-mark='changed'] { border-color: var(--pp-accent); background: var(--pp-l3); box-shadow: inset 0 0 0 1px var(--pp-accent); }
+.mat-swatch[data-mark='changed'] { width: 6px; height: 6px; border: 0; border-radius: 50%; background: var(--pp-accent); }
 .mat-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font: inherit; font-size: var(--fs-small); cursor: pointer; }
 .mat-chip:hover { border-color: var(--pp-accent); color: var(--pp-ink); }
 .mat-chip[aria-pressed='true'] { border-color: var(--pp-accent); background: var(--pp-wash); color: var(--pp-accent-ink); }
-.mat-chip-dot { width: 10px; height: 10px; border-radius: 3px; box-shadow: inset 0 0 0 1.5px var(--pp-accent); }
+.mat-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pp-accent); }
 .mat-chip-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font-size: 11px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
 /* The pressed chip is solid blue (apple-controls.css): the dot and count turn white on it. */
-.mat-chip[aria-pressed='true'] .mat-chip-dot { box-shadow: inset 0 0 0 1.5px #ffffff; }
+.mat-chip[aria-pressed='true'] .mat-chip-dot { background: #ffffff; }
 .mat-chip[aria-pressed='true'] .mat-chip-count { background: rgb(255 255 255 / 0.24); color: #ffffff; }
 
 .mat-error { margin: 0; padding-block: var(--space-12); font-size: var(--fs-small); color: var(--danger-text); }
@@ -70,9 +70,9 @@ html[data-mat] .canvas { padding-block: 0; }
 .mat-search .kbd { flex: none; }
 .mat-search:focus-within .kbd { visibility: hidden; }
 .mat-toolbar-actions { display: inline-flex; align-items: center; gap: var(--space-4); margin-inline-start: auto; }
-.mat-key-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4) var(--space-16); font-size: var(--fs-small); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
-.mat-swatch[data-mark='override'] { position: relative; background: var(--pp-l3); }
-.mat-swatch[data-mark='override']::after { content: ''; position: absolute; top: 3px; left: 3px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); }
+.mat-key-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4) var(--space-16); font-size: 12px; color: var(--pp-ink-2); font-variant-numeric: tabular-nums; }
+.mat-swatch[data-mark='override'] { position: relative; background: var(--pp-l3); border-color: var(--pp-line-strong); }
+.mat-swatch[data-mark='override']::after { content: ''; position: absolute; top: 3px; left: 3px; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid var(--pp-accent); background: #ffffff; box-sizing: border-box; }
 
 /* Expanded editor: full-screen viewport overlay above the sidebar and topbar. */
 .mat-page[data-expanded] {
@@ -90,21 +90,35 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 
 /* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
 .mat-scroll {
-  flex: 1 1 auto; min-height: 8rem; overflow: auto; border: 1px solid var(--pp-line-strong); border-radius: var(--radius-card); background: var(--pp-l3);
+  flex: 1 1 auto; min-height: 8rem; overflow: auto;
+  border: 1px solid var(--pp-line-strong); border-radius: 12px; background: var(--pp-l3);
   /* A cell focused by the keyboard scrolls clear of the sticky header and the frozen columns (48 + 96 + 240). */
   scroll-padding: calc(var(--mat-h1) + var(--mat-h2)) 0 0 384px;
+  scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.2) transparent;
 }
+.mat-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.mat-scroll::-webkit-scrollbar-thumb { background: rgb(0 0 0 / 0.2); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+.mat-scroll::-webkit-scrollbar-thumb:hover { background-color: rgb(0 0 0 / 0.34); }
+.mat-scroll ::selection { background: rgb(0 113 227 / 0.18); color: inherit; }
+
 .mat-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 16px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
-.mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 1px solid var(--pp-line-cell); border-bottom: 1px solid var(--pp-line); }
-.mat-table td { height: var(--pp-row); padding: 4px 8px; vertical-align: middle; background-color: var(--pp-l3); }
-.mat-table tbody th { padding: 4px 8px; text-align: start; font-weight: 400; background-color: var(--pp-l3); }
+.mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 0; border-bottom: 1px solid var(--pp-line); }
+.mat-table td { height: var(--pp-row); padding: 4px 10px; vertical-align: middle; background-color: var(--pp-l3); }
+.mat-table tbody th { padding: 4px 10px; text-align: start; font-weight: 400; background-color: var(--pp-l3); }
 .mat-table tr.mat-spacer > td { height: auto; padding: 0; border: 0; background: transparent; pointer-events: none; }
 
-.mat-table thead th { position: sticky; top: 0; z-index: 3; padding: 0 8px; background: var(--pp-band); color: var(--pp-ink); font-size: 11px; font-weight: 600; line-height: 13px; letter-spacing: .03em; text-transform: uppercase; text-align: start; vertical-align: middle; border-bottom: 1px solid var(--pp-line-strong); border-right-color: var(--pp-line-strong); }
-.mat-table .mat-head-1 th { height: var(--mat-h1); }
-.mat-table .mat-head-1 th[rowspan] { height: calc(var(--mat-h1) + var(--mat-h2)); border-bottom-width: 2px; }
-.mat-table .mat-head-1 th[scope='colgroup'] { text-align: center; }
-.mat-table .mat-head-2 th { top: var(--mat-h1); height: var(--mat-h2); border-bottom-width: 2px; font-size: 10.5px; letter-spacing: .02em; }
+.mat-table thead th {
+  position: sticky; top: 0; z-index: 3; padding: 0 10px;
+  background: var(--pp-band); color: var(--pp-ink-2);
+  font-size: 11px; font-weight: 600; line-height: 13px; letter-spacing: .02em; text-transform: uppercase;
+  text-align: start; vertical-align: middle;
+  border-bottom: 1px solid var(--pp-line-strong); border-right: 0;
+}
+.mat-table .mat-head-1 th { height: var(--mat-h1); border-bottom-color: var(--pp-line); }
+.mat-table .mat-head-1 th[rowspan] { height: calc(var(--mat-h1) + var(--mat-h2)); border-bottom: 1px solid var(--pp-line-strong); }
+.mat-table .mat-head-1 th[scope='colgroup'] { text-align: center; border-right: 1px solid var(--pp-line); }
+.mat-table .mat-head-1 th[scope='colgroup']:last-child { border-right: 0; }
+.mat-table .mat-head-2 th { top: var(--mat-h1); height: var(--mat-h2); border-bottom: 1px solid var(--pp-line-strong); font-size: 10.5px; letter-spacing: .02em; }
 .mat-table .mat-head-2 th.mat-num-head { text-align: end; }
 .mat-table thead th[data-band='group'] { background: var(--mat-head-group); }
 .mat-table thead th[data-band='work'] { background: var(--mat-head-work); }
@@ -115,18 +129,23 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-f2 { left: 48px; }
 .mat-f3 { left: 144px; }
 .mat-table :is(.mat-f3, .mat-f-span) { border-right: 1px solid var(--pp-line-strong); }
+.mat-scroll[data-scrolled] .mat-table :is(.mat-f3, .mat-f-span) { box-shadow: 5px 0 6px -4px var(--pp-edge); }
+
 /* Rows keep one plain background. The workbook's status marks live in the small dot on the Code cell and in the legend. */
-.mat-table tbody th.mat-f2 { padding: 0; font-family: var(--font-mono); font-size: 11.5px; font-weight: 500; }
-.mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-2); }
+.mat-table tbody th.mat-f2 { padding: 0; font-family: inherit; font-size: 12px; font-weight: 500; }
+.mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-muted); }
 /* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
 .mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
-/* Changed this week: the accent outline Project Progress uses, on the exact cells whose value moved this week. A cell typed back to its old value loses it. */
-.mat-table tbody :is(td, th)[data-changed='true'] { box-shadow: inset 0 0 0 1.5px var(--pp-accent); }
+/* Changed this week: clean 6px Apple blue dot top-right on the exact cells whose value moved this week. */
+.mat-table tbody :is(td, th)[data-changed='true']::after {
+  content: ''; position: absolute; top: 5px; right: 5px; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--pp-accent); box-shadow: 0 0 0 1.5px #ffffff; pointer-events: none;
+}
 .mat-mark-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--mat-mark); }
 .mat-source-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
 /* Material Source trigger on the Code cell. */
-.mat-source-btn { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 8px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+.mat-source-btn { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 10px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
 .mat-source-code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mat-source-icon { flex: none; color: var(--pp-accent-ink); opacity: 0; }
 .mat-table tbody tr:hover .mat-source-icon,
@@ -137,21 +156,32 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; overflow-wrap: anywhere; }
 .mat-last { color: var(--pp-ink-2); font-size: 12.5px; }
 
-/* Section bands and the sheet-average row. Sections share one plain background at every level; the rule above them carries the hierarchy. */
-.mat-table tr.mat-section > :is(td, th) { background-color: var(--pp-l3); border-top: 1px solid var(--pp-line-strong); }
-.mat-table tr.mat-total > :is(td, th) { background-color: var(--pp-band); border-bottom: 1px solid var(--pp-line-strong); }
-.mat-table :is(.mat-section, .mat-total) th { font-weight: 600; }
-.mat-section[data-level='0'] th { font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+/* Section bands and the sheet-average row: Level 0 sections and Sheet average use soft #f5f5f7 (40px); nested sections use white semibold (36px). */
+.mat-table tr.mat-section > :is(td, th) { background-color: var(--pp-l2); border-top: 1px solid var(--pp-line); }
+.mat-table tr.mat-section[data-level='0'] > :is(td, th) { height: var(--pp-row-l1); background-color: var(--pp-l1); border-top: 1px solid var(--pp-line-strong); }
+.mat-table tr.mat-total > :is(td, th) { height: var(--pp-row-l1); background-color: var(--pp-l1); border-bottom: 1px solid var(--pp-line-strong); }
+.mat-table :is(.mat-section, .mat-total) th { font-size: 13px; font-weight: 600; color: var(--pp-ink); }
 .mat-section-label { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.mat-total .mat-section-label { padding-inline-start: 28px; }
-.mat-toggle { display: inline-grid; place-items: center; flex: none; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: transparent; color: var(--pp-ink-2); cursor: pointer; }
-.mat-toggle:hover { background: var(--pp-wash); color: var(--pp-ink); }
-.mat-avg { text-align: end; font-weight: 600; white-space: nowrap; }
+.mat-total .mat-section-label { padding-inline-start: 24px; }
+.mat-toggle {
+  display: inline-grid; place-items: center; flex: none; width: 18px; height: 18px; padding: 0;
+  border: 0; border-radius: 4px; background: transparent; color: var(--pp-ink-muted); cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+.mat-toggle:hover { background: rgb(0 0 0 / 0.06); color: var(--pp-ink); }
+.mat-toggle:focus-visible { outline: 2px solid var(--pp-accent); outline-offset: -2px; }
+.mat-toggle svg { transition: transform 180ms ease-out; }
+.mat-toggle[aria-expanded='false'] svg { transform: rotate(-90deg); }
+@media (prefers-reduced-motion: reduce) { .mat-toggle, .mat-toggle svg { transition: none; } }
+
+.mat-avg { text-align: end; font-size: 12.5px; font-weight: 600; white-space: nowrap; }
+.mat-avg[data-done='true'] { color: var(--pp-done-ink); font-weight: 600; }
+.mat-avg[data-zero='true'] { color: var(--pp-ink-zero); font-weight: 400; }
 
 /* Pictures and lightbox (lightbox sits above the Material Source panel so previewing from inside it works). */
-.mat-table td.mat-pic-cell { padding: 1px; }
+.mat-table td.mat-pic-cell { padding: 2px; }
 .mat-pictures { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 3px; height: 100%; }
-.mat-thumb { display: block; width: 36px; height: 36px; padding: 0; border: 1px solid var(--pp-line); border-radius: 4px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
+.mat-thumb { display: block; width: 30px; height: 30px; padding: 0; border: 1px solid var(--pp-line-strong); border-radius: 5px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
 .mat-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .mat-img-loading { display: block; width: 100%; height: 100%; background: var(--pp-band); }
 .mat-scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
@@ -176,11 +206,14 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-page .mat-cell-btn:focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: -2px; }
 .mat-cell-btn[data-invalid='true'] { border-color: var(--danger-text); }
 .mat-cell-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mat-cell-num { justify-content: flex-end; text-align: end; font-variant-numeric: tabular-nums; }
+.mat-cell-num { justify-content: flex-end; text-align: end; padding-inline-end: 13px; font-variant-numeric: tabular-nums; font-size: 12.5px; }
 .mat-cell-num[data-source='formula'] { color: var(--pp-ink-2); }
+.mat-cell-num[data-done='true'] { color: var(--pp-done-ink); font-weight: 500; }
+.mat-cell-num[data-zero='true'] { color: var(--pp-ink-zero); font-weight: 400; }
 .mat-cell-num[data-source='override'] { position: relative; font-weight: 600; }
 .mat-cell-num[data-source='override']::before {
-  content: ''; position: absolute; top: 6px; left: 6px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent);
+  content: ''; position: absolute; top: 6px; left: 6px; width: 5px; height: 5px; border-radius: 50%;
+  border: 1.5px solid var(--pp-accent); background: #ffffff; box-sizing: border-box;
 }
 .mat-cell-status { justify-content: space-between; font-size: 12.5px; }
 .mat-cell-status::after {
@@ -212,7 +245,7 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 /* Calculated values are quieter; a typed override is full ink with a dot, and offers "Use formula". */
 .mat-num[data-source='formula'] input { color: var(--pp-ink-2); }
 .mat-num[data-source='override'] input { font-weight: 600; }
-.mat-dot { position: absolute; top: 7px; left: 7px; width: 5px; height: 5px; border-radius: 50%; background: var(--pp-accent); pointer-events: none; }
+.mat-dot { position: absolute; top: 7px; left: 7px; width: 5px; height: 5px; border-radius: 50%; border: 1.5px solid var(--pp-accent); background: #ffffff; box-sizing: border-box; pointer-events: none; }
 .mat-formula, .mat-retry { position: absolute; left: 4px; bottom: 4px; padding: 0 3px; border: 0; border-radius: 3px; background: var(--pp-l3); font: inherit; font-size: 10.5px; line-height: 14px; cursor: pointer; }
 .mat-formula { display: inline-grid; place-items: center; width: 16px; height: 16px; padding: 0; color: var(--pp-accent-ink); }
 .mat-retry { color: var(--danger-text); font-weight: 600; text-decoration: underline; z-index: 1; }
