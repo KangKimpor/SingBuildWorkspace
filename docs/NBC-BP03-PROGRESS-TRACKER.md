@@ -1,5 +1,13 @@
 # NBC BP03 progress tracker
 
+## 21 November 2026 - Weekly 28 sync and report-patch fix (D-47)
+
+Audited `3. & 5. BP-03 Weekly 28 - 15 Nov - 21 Nov 2026.xlsx` against live `nbc-bp03` (524 nodes, 431 editable leaves: 419 printed in the report plus 9 `GF Lift Car` and 3 `AV System` leaves outside the report). All leaf percentages, weights, and N/A cells match the workbook bit-for-bit (`P.sum!E7` = `52.032632%`, tracker export `areaWorkbook` delta `0`, app `calculate()` delta `4.08e-13`).
+
+- **Report patch fix (`src/nbc/export/reportPatch.ts`).** `patchWeeklyReport` previously started scanning `BP-03(MEP)` at row 12 (the `BP-04(MEP)` header offset), skipping row 11 (`1.1 Installation EMT Conduit`) and failing row-count validation (`42` vs `43`). BP-03 now starts at row 9; verified against Weekly 28 (`unchanged: 419, updated: 0, notInReport: 0, relabeled: 0`).
+- **Database (`supabase/migrations/20261121065500_nbc_bp03_bp04_weekly28_sync.sql`).** Updated `nbc-bp03:1.4` `naTasks` (`Final Ceiling Decoration by Waterproof Paint` → `Final Ceiling Decoration`) and refreshed `kw_projects.progress` (`0.482540` → `0.520326`). Existing clean Title Case labels in the app are intentionally kept over the workbook's older typos/casing.
+- **S-curve plan (`src/nbc/plan.ts`).** Updated `NBC_PLAN.source` to Weekly 28; the 15 contract-period points through 20 June 2026 are unchanged (post-completion weeks remain at 100% through 21 November 2026).
+
 ## Updating the client's weekly report from the app (6 November 2026)
 
 **Export XLSX → Update my weekly report** takes the weekly report workbook you choose on your computer (nothing is uploaded or stored) and writes the app's percentages into the constant percentage cells of its ID and MEP sheets (BP02: every `F<n> (ID)` and `<n>F(MEP)` sheet). Formulas, labels, weights, styles and all other sheets are copied unchanged and the file is flagged to recalculate when Excel opens it. Rows are matched in order and the export refuses a report whose task rows do not line up with the project. `src/nbc/export/reportPatch.ts`; the tracker workbook is still available in the same dialog.

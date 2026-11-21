@@ -88,6 +88,36 @@ describe('weekly report update', () => {
     expect(result).toMatchObject({ updated: 6, notInReport: 0, relabeled: 1 })
     expect(patchWeeklyReport(result.bytes, out, [], '2026-11-08')).toMatchObject({ updated: 0, relabeled: 0 }) // a patched report is left as it is
   })
+  test('BP03 MEP tasks starting at row 11 are matched and write to column F (not the duplicate column E)', () => {
+    const out: NbcActivity[] = []
+    let order = 0
+    const base = { projectId: 'nbc-bp03', description: '', area: '', location: '', trade: '', handler: 'Tola', remark: '', history: [], duration: null, boqValue: null, schedule: null, sourcePrevious: 0, sourceWeekly: 0, baseline: 0, progress: 0, editable: false, relativeWeight: 1, globalWeight: 0 }
+    const node = (wbs: string, parent: string | null, name: string, extra: Partial<NbcActivity> = {}) => out.push({ ...base, id: `nbc-bp03:${wbs}`, wbs, parentId: parent ? `nbc-bp03:${parent}` : null, order: ++order, name, ...extra } as NbcActivity)
+    const leaf = (wbs: string, parent: string, room: string, progress: number) => node(wbs, parent, room, { room, editable: true, progress })
+    node('1', null, 'ID', { panel: 'ID', roomList: ['ID-33'], zone: [1] })
+    node('2', null, 'MEP', { panel: 'MEP', roomList: ['GF Lobby'] })
+    node('1.1', '1', 'Setting Out', { item: 'I' }); node('1.1.1', '1.1', 'Unit Setting Out'); leaf('1.1.1.1', '1.1.1', 'ID-33', 1)
+    node('2.1', '2', 'Electrical System', { item: 'I' }); node('2.1.1', '2.1', 'Lighting System', { item: '1' })
+    node('2.1.1.1', '2.1.1', 'Installation EMT Conduit', { item: '1.1' }); leaf('2.1.1.1.1', '2.1.1.1', 'GF Lobby', 0.95)
+    node('2.1.1.2', '2.1.1', 'Pulling Cable Wire', { item: '1.2' }); leaf('2.1.1.2.1', '2.1.1.2', 'GF Lobby', 0.85)
+    const idSheet = sheet({ 7: text('F7', 'ID-33\nLift Lobby'), 10: text('A10', 'I') + text('B10', 'Setting Out'), 11: text('B11', 'Unit setting out') + num('F11', 1) })
+    const mepSheet = sheet({
+      8: text('E8', 'Lobby') + text('F8', 'Lobby'),
+      9: text('A9', 'I') + text('B9', 'ELECTRICAL SYSTEM'),
+      10: text('A10', '1') + text('B10', 'Lighting system'),
+      11: text('A11', '1.1') + text('B11', 'Installation EMT Conduit') + num('E11', 0.5) + num('F11', 0.5),
+      12: text('A12', '1.2') + text('B12', 'Pulling cable wire') + num('E12', 0.5) + num('F12', 0.5),
+    })
+    const book = '<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="BP-03 (ID)" sheetId="1" r:id="rId1"/><sheet name="BP-03(MEP)" sheetId="2" r:id="rId2"/></sheets><calcPr calcId="181029"/></workbook>'
+    const rels = '<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="x" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="x" Target="worksheets/sheet2.xml"/></Relationships>'
+    const template = zipSync({ 'xl/workbook.xml': strToU8(book), 'xl/_rels/workbook.xml.rels': strToU8(rels), 'xl/worksheets/sheet1.xml': strToU8(idSheet), 'xl/worksheets/sheet2.xml': strToU8(mepSheet) })
+    const result = patchWeeklyReport(template, out, [], '2026-11-15'), file = read(result.bytes)
+    const mep = file('xl/worksheets/sheet2.xml')
+    expect(mep).toContain('<c r="F11"><v>0.95</v></c>')
+    expect(mep).toContain('<c r="F12"><v>0.85</v></c>')
+    expect(mep).toContain('<c r="E11"><v>0.5</v></c>')
+    expect(result).toMatchObject({ updated: 2, unchanged: 1, notInReport: 0, relabeled: 0, sheets: ['BP-03(MEP)'] })
+  })
   test('a report with a different structure is refused', () => {
     expect(() => patchWeeklyReport(report({ 16: text('A16', '1.3') + text('B16', 'Extra task') }), fixture(), [], '2026-11-01')).toThrow(/task rows/)
     expect(() => patchWeeklyReport(new Uint8Array([1, 2, 3]), fixture(), [], '2026-11-01')).toThrow(/Excel workbook/)

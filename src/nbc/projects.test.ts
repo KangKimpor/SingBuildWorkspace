@@ -35,7 +35,7 @@ test('BP04 plan is independent and uses only the approved report dates/projected
   expect(projectPlan('nbc-bp04')).toBe(BP04_PLAN)
   expect(BP04_PLAN.commencement).toBe('2026-03-18')
   expect(BP04_PLAN.completion).toBe('2026-06-20')
-  expect(BP04_PLAN.points).toHaveLength(33)
+  expect(BP04_PLAN.points).toHaveLength(36)
   expect(plannedProgress('2026-04-05', BP04_PLAN.points)).toBe(.09)
   expect(plannedProgress('2026-04-05', NBC_PLAN.points)).toBe(.3)
   expect(reportFilename('2026-10-25', 'nbc-bp04')).toContain('NBC-BP04-')

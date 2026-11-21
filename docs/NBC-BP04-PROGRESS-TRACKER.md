@@ -1,5 +1,13 @@
 # NBC BP04 progress tracker
 
+## 21 November 2026 - Weekly 28 sync: label, project progress, and S-curve plan (D-47)
+
+Audited the finalized `3. & 6. BP-04 - Weekly 28 - 15 Nov - 21 Nov 2026.xlsx` against live `nbc-bp04` (373 nodes, 243 editable leaves). All leaf percentages, weights, and N/A cells match bit-for-bit (`scripts/nbc-bp04-report-extract.py` reconciles `BP-04 (ID)!C9` `47.9278%`, `BP-04(MEP)!C10` `59.0092%`, and `P.sum!E7` `51.4665%` to `1e-16`; `patchWeeklyReport` reports `unchanged: 243, updated: 0, notInReport: 0, relabeled: 0`).
+
+- **Database (`supabase/migrations/20261121065500_nbc_bp03_bp04_weekly28_sync.sql`).** Updated `nbc-bp04:1.4.4` (`Final Ceiling Decoration by Waterproof Paint` → `Final Ceiling Decoration`) and refreshed `kw_projects.progress` (`0.499749` → `0.514665`). `nbc-bp04:2.4.3` intentionally stays `'Sanitary Equipment'` without the workbook's stray zero-width space (`U+200B`) in `BP-04(MEP)!B90`.
+- **S-curve plan (`src/nbc/plan.ts`).** Extended `BP04_PLAN` from Weekly 23 (`2026-10-24`) to Weekly 28 (`S-Curve BP04!B44:AK44`, adding `2026-10-31`, `2026-11-14`, `2026-11-21` at `1.0`).
+- **Private extract (`.private/nbc-bp04-weekly/weights.json`).** Refreshed from Weekly 28 via `scripts/nbc-bp04-report-extract.py`.
+
 ## 19 November 2026 - Weekly 28: ID-71 removed, MEP weighted by zone (D-41)
 
 `3. & 6. BP-04 - Weekly 28 - 15 Nov - 21 Nov 2026.xlsx` (the final version) differs from Weekly 27 in three ways. **ID-71 (L24 Male & Female Toilet) is gone** from the ID sheet, the Overall sheet and the zone weights; **ID-70 carries 39.9 %** (30 % + 9.9 %), ID-69 24.2999 % and ID-62 35.7973 %. **MEP column C** is now a zone-weighted average over the zones that hold a number, times the task weight, instead of a plain average, so MEP leaves carry their zone weight as `relativeWeight`; their `globalWeight` already matched `P.sum`. Install Marble, which applied to ID-71 only, remains as an N/A row.

@@ -186,7 +186,7 @@ export function patchWeeklyReport(template: Uint8Array, activities: NbcActivity[
     const idColumns = headerColumns(id, 7, 6, idCode)
     const mepColumns = number === '3' ? new Map(Object.entries(BP03_MEP_COLUMNS)) : headerColumns(mep, 10, 6, idCode)
     plans.push(planPanel(idSheet, id, idTasks(id, 9, maxRow(id)), idColumns, floorTasks(idFloor), value))
-    plans.push(planPanel(mepSheet, mep, mepTasks(mep, 12, maxRow(mep)), mepColumns, floorTasks(mepFloor), value))
+    plans.push(planPanel(mepSheet, mep, mepTasks(mep, number === '3' ? 9 : 12, maxRow(mep)), mepColumns, floorTasks(mepFloor), value))
   } else {
     for (const floor of roomFloors(activities)) {
       const n = floor.root.name.replace(/\D+/g, ''), idSheet = `F${n} (ID)`, mepSheet = `${n}F(MEP)`
