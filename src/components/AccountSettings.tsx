@@ -130,7 +130,7 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
           <button
             className="btn-secondary"
             disabled={!!busy}
-            onClick={() => void run('sync', syncWorkspace)}
+            onClick={() => void run('sync', () => syncWorkspace(true, true))}
           >
             <RefreshCw size={16} />
             Retry / reconnect

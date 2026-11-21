@@ -25,8 +25,9 @@ const versions = new Map<string, string>()
 const EPOCH = '1970-01-01T00:00:00+00:00'
 const FULL_RECONCILE_MS = 14 * 24 * 60 * 60 * 1000
 // Rows deleted on the server never reach a device that only pulls newer rows. A snapshot whose last full read is older than this
-// reads everything once more: the BP02 Weekly 63 migration (12 Nov 2026) deleted 134 activities.
-const RECONCILE_AFTER = Date.parse('2026-11-12T05:30:00Z')
+// reads everything once more: BP02 Weekly 63 (12 Nov 2026) deleted 134 activities, BP04 Weekly 28 (19 Nov 2026) deleted 25
+// activities, and D-48 fixes partial snapshots whose watermark advanced before batched fetches finished.
+const RECONCILE_AFTER = Date.parse('2026-11-21T07:00:00Z')
 const SNAPSHOT_DELAY_MS = 1200
 /**
  * Collections large enough that a full reconcile should read only a small
@@ -133,7 +134,7 @@ function compactSubmissionPayload(payload: Data): Data {
  */
 function saveRecovery(): boolean {
   const scope = useWorkspace.getState().scope
-  if (scope === 'guest') return true
+  if (restoring || scope === 'guest') return true
   const key = recoveryKey(scope)
   try {
     if (!pending.size) {
@@ -201,7 +202,7 @@ function persistSnapshot(scope: string): Promise<void> {
   return snapshotQueue
 }
 function writeChangedRows(scope: string): Promise<void> {
-  if (scope !== useWorkspace.getState().scope || scope === 'guest') return Promise.resolve()
+  if (restoring || scope !== useWorkspace.getState().scope || scope === 'guest') return Promise.resolve()
   const state = useWorkspace.getState()
   const base = written && written.scope === scope ? written : undefined
   const full = !base || base.full, dropLegacy = !!base?.dropLegacy
@@ -635,10 +636,12 @@ async function flushNotices() {
   if (!navigator.onLine) { refreshRequested = true; notices.clear(); return }
   // Pulls and fetches share one run so neither applies a collection read before the other's write.
   while (activeRun) await activeRun
+  if (!hydrated) { refreshRequested = true; notices.clear(); void syncWorkspace(); return }
   const current = generation, scope = useWorkspace.getState().scope
   const batches = [...notices.values()]
   notices.clear()
-  activeRun = (async () => {
+  let finished = false, run: Promise<void> | undefined
+  run = (async () => {
     try {
       for (const batch of batches) {
         if (current !== generation) return
@@ -648,13 +651,13 @@ async function flushNotices() {
       if (current === generation) cacheSnapshot(scope)
     } catch { refreshRequested = true }
     finally {
-      if (current === generation) {
-        activeRun = undefined
-        if (pending.size || refreshRequested) queueMicrotask(() => void syncWorkspace(false))
-      }
+      finished = true
+      if (activeRun === run) activeRun = undefined
+      if (current === generation && (pending.size || refreshRequested)) queueMicrotask(() => void syncWorkspace(false))
     }
   })()
-  return activeRun
+  if (!finished) activeRun = run
+  return run
 }
 async function fetchRows(scope: string, current: number, collection: CloudCollection, ids: string[], projectId?: string) {
   if (!ids.length) return
@@ -724,19 +727,20 @@ async function pullCloud(
       }
       let newest = watermark
       for (const row of rows) newest = laterStamp(newest, row.updated_at)
-      if (reconcile) watermarks.set(collection, newest ?? EPOCH)
-      else if (newest) watermarks.set(collection, newest)
       const key = keyFor(scope, collection, scope)
       if (!pending.has(key) && (rows.length || reconcile)) {
         const row = rows[0] ?? null
         if (row) versions.set(key, row.updated_at)
         applyRow(collection, row, scope)
       }
+      if (reconcile) watermarks.set(collection, newest ?? EPOCH)
+      else if (newest) watermarks.set(collection, newest)
       continue
     }
     const state = useWorkspace.getState()
     const merged = new Map<string, Data>(((state[collection] ?? []) as unknown as Data[]).map((row) => [String(row.id), row]))
     const useManifest = merged.size > 0 && MANIFEST_COLLECTIONS.has(collection)
+    let nextWatermark: string | undefined
 
     if (useManifest) {
       const manifest: { id: string; updated_at: string }[] = []
@@ -769,13 +773,6 @@ async function pullCloud(
         if (!local || local.updatedAt !== item.updated_at) {
           toFetch.push(item.id)
         }
-      }
-      if (reconcile) {
-        watermarks.set(watermarkKey, newest ?? EPOCH)
-        if (!projectId) watermarks.set(collection, newest ?? EPOCH)
-      } else if (newest) {
-        watermarks.set(watermarkKey, newest)
-        if (!projectId) watermarks.set(collection, newest)
       }
       if (toFetch.length > 0) {
         for (let i = 0; i < toFetch.length; i += MANIFEST_BATCH_SIZE) {
@@ -814,6 +811,7 @@ async function pullCloud(
           }
         }
       }
+      nextWatermark = reconcile ? (newest ?? EPOCH) : newest
     } else {
       const rows: Row[] = []
       for (let offset = 0; ; offset += 1000) {
@@ -830,13 +828,6 @@ async function pullCloud(
       }
       let newest = watermark
       for (const row of rows) newest = laterStamp(newest, row.updated_at)
-      if (reconcile) {
-        watermarks.set(watermarkKey, newest ?? EPOCH)
-        if (!projectId) watermarks.set(collection, newest ?? EPOCH)
-      } else if (newest) {
-        watermarks.set(watermarkKey, newest)
-        if (!projectId) watermarks.set(collection, newest)
-      }
       const present = new Set(rows.map((row) => row.id))
       for (const row of rows) {
         const key = keyFor(scope, collection, row.id)
@@ -859,12 +850,19 @@ async function pullCloud(
           }
         }
       }
+      nextWatermark = reconcile ? (newest ?? EPOCH) : newest
     }
     for (const write of pending.values()) if (write.collection === collection) {
       if (write.remove) merged.delete(write.id)
       else merged.set(write.id, write.data)
     }
     applyRemotePatch({ [collection]: [...merged.values()] } as Partial<Content>)
+    // Advance watermarks only after every fetched batch is applied to the store so a failed fetch
+    // or a pagehide/visibilitychange flush can never persist a watermark ahead of the stored rows.
+    if (nextWatermark) {
+      watermarks.set(watermarkKey, nextWatermark)
+      if (!projectId) watermarks.set(collection, nextWatermark)
+    }
   }
   if (only.length >= collections.length + 1) {
     hydrated = true
@@ -892,18 +890,19 @@ export async function refreshCollections(
   if (activeRun) await activeRun
   const current = generation, scope = useWorkspace.getState().scope
   if (current !== generation || scope !== useWorkspace.getState().scope) return
-  activeRun = (async () => {
+  let finished = false, run: Promise<void> | undefined
+  run = (async () => {
     try { await pullCloud(scope, current, names as CloudCollection[], !!options.full, options.projectId) }
     catch { refreshRequested = true }
     finally {
-      if (current === generation) {
-        activeRun = undefined
-        // A write queued while this run held the queue joined it instead of starting its own push.
-        if (pending.size) queueMicrotask(() => void syncWorkspace(false))
-      }
+      finished = true
+      if (activeRun === run) activeRun = undefined
+      // A write queued while this run held the queue joined it instead of starting its own push.
+      if (current === generation && pending.size) queueMicrotask(() => void syncWorkspace(false))
     }
   })()
-  return activeRun
+  if (!finished) activeRun = run
+  return run
 }
 
 /**
@@ -940,16 +939,18 @@ function recoverConflict(write: Write) {
   useWorkspaceUI.getState().notify('A concurrent edit was kept in the cloud. Your draft is preserved in a Recovered edit page; find it in Search.')
 }
 /** No routine workspace polling: fetch on subscribe/reconnect, change events, and explicit retry. */
-export function syncWorkspace(refresh = true): Promise<void> {
+export function syncWorkspace(refresh = true, full = false): Promise<void> {
   if (!supabase || !useAccount.getState().session || useWorkspace.getState().scope === 'guest') return Promise.resolve()
-  if (restoring) return restoring.then(() => syncWorkspace(refresh))
+  if (restoring) return restoring.then(() => syncWorkspace(refresh, full))
   refreshRequested ||= refresh
+  refreshFull ||= full
   if (activeRun) return activeRun
   if (!navigator.onLine) { useWorkspace.setState({ sync: { kind: 'offline', pending: pending.size } }); return Promise.resolve() }
   clearTimeout(retryTimer)
   const current = generation, scope = useWorkspace.getState().scope
   const valid = () => current === generation && scope === useAccount.getState().session?.user.id
-  activeRun = (async () => {
+  let finished = false, run: Promise<void> | undefined
+  run = (async () => {
     useWorkspace.setState({ sync: { kind: 'saving' } })
     try {
       const reconcileDue = lastFullPull > 0 && Date.now() - lastFullPull > FULL_RECONCILE_MS
@@ -1100,13 +1101,13 @@ export function syncWorkspace(refresh = true): Promise<void> {
       clearTimeout(retryTimer)
       retryTimer = setTimeout(() => void syncWorkspace(), Math.min(60000, 1000 * 2 ** Math.min(retry, 6)))
     } finally {
-      if (valid()) {
-        activeRun = undefined
-        if (!retry && (refreshRequested || refreshFull || pending.size)) queueMicrotask(() => void syncWorkspace(false))
-      }
+      finished = true
+      if (activeRun === run) activeRun = undefined
+      if (valid() && !retry && (refreshRequested || refreshFull || pending.size)) queueMicrotask(() => void syncWorkspace(false))
     }
   })()
-  return activeRun
+  if (!finished) activeRun = run
+  return run
 }
 export function applyRemotePatch(patch: Partial<Content>) {
   applying = true

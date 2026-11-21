@@ -1,6 +1,6 @@
 import './nbc.css'
 import '@/styles/apple-controls.css'
-import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Download, X } from 'lucide-react'
 import type { ProjectSummary } from '@/data'
@@ -27,8 +27,10 @@ const PhoneProgress = lazy(() => import('./mobile/PhoneProgress'))
 const PhoneUpdate = lazy(() => import('./mobile/PhoneUpdate'))
 
 export default function NbcProject({ project, view }: { project: ProjectSummary; view: string }) {
-  const scope = useWorkspace((s) => s.scope), [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false)
+  const scope = useWorkspace((s) => s.scope), sync = useWorkspace((s) => s.sync)
+  const [now, setNow] = useState(Date.now), [dismissed, setDismissed] = useState(false), [reloading, setReloading] = useState(false)
   const [exportOpen, setExportOpen] = useState(false), phone = usePhone()
+  const healedProject = useRef<string>('')
   // Page-wide NBC styling keys off html[data-nbc]. A document-level :has(.nbc-project) selector made the
   // browser re-check the whole page on DOM changes; layout effects keep it in place before the first paint.
   useLayoutEffect(() => {
@@ -81,6 +83,24 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
     return () => { void client.removeChannel(channel) }
   }, [scope, realtimeScope, project.id])
 
+  // A partial or stale local snapshot can make calculate() throw even though cloud data is intact.
+  // Run one manifest reconcile for this project automatically, and keep a manual reload action on the banner.
+  useEffect(() => {
+    const key = `${scope}:${project.id}`
+    if (calculation) {
+      if (healedProject.current === key) healedProject.current = ''
+      return
+    }
+    if (scope === 'guest' || !activities.length || sync.kind !== 'saved' || healedProject.current === key) return
+    healedProject.current = key
+    void refreshCollections(['nbc_activities'], { full: true, projectId: project.id })
+  }, [scope, project.id, activities.length, calculation, sync.kind])
+  async function reloadActivities() {
+    setReloading(true)
+    try { await refreshCollections(['nbc_activities'], { full: true, projectId: project.id }) }
+    finally { setReloading(false) }
+  }
+
   if (aliases[view]) return <Navigate to={`/projects-progress/${project.id}/${aliases[view]}${location.search}`} replace/>
   if (!issuesEnabled && view === 'issues') return <Navigate to={`/projects-progress/${project.id}/activities${location.search}`} replace/>
   if (!views.some(([key]) => key === view) && view !== 'issues') return <Navigate to={`/projects-progress/${project.id}/overview`} replace/>
@@ -89,7 +109,7 @@ export default function NbcProject({ project, view }: { project: ProjectSummary;
   const body = !activities.length
     ? <section><h2>BOQ data has not been initialized.</h2><p>Complete the private project setup.</p></section>
     : <>
-      {!calculation && !dismissed && <div className="nbc-banner nbc-warning" role="status"><span>Calculation needs attention. Progress editing is paused.</span><button className="ibtn" aria-label="Dismiss calculation warning" onClick={() => setDismissed(true)}><X size={16}/></button></div>}
+      {!calculation && !dismissed && <div className="nbc-banner nbc-warning" role="status"><span>Calculation needs attention. Progress editing is paused.</span>{scope !== 'guest' && <button className="text-link" disabled={reloading} onClick={() => void reloadActivities()}>{reloading ? 'Reloading…' : 'Reload from cloud'}</button>}<button className="ibtn" aria-label="Dismiss calculation warning" onClick={() => setDismissed(true)}><X size={16}/></button></div>}
       {view === 'overview' && <Overview project={project} activities={activities} submissions={submissions} summaries={summaries} baseline={baseline} overall={calculation?.overall}/>}
       {view === 'update' && calculation && (
         phone
