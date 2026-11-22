@@ -5,7 +5,7 @@ import { addDays, weekLabel } from './submissions'
 import type { NbcPlan } from './plan'
 import { daysBetween, NBC_PLAN, planDate, plannedProgress } from './plan'
 
-const H = 264, LEFT = 8, RIGHT = 46, TOP = 34, BASE = 232, PLOT = BASE - TOP
+const H = 264, LEFT = 8, RIGHT = 46, TOP = 34, BASE = 236, PLOT = BASE - TOP, AXIS_Y = BASE + 18, TICK_GAP = 44
 const month = (date: string) => new Intl.DateTimeFormat('en-GB', { month: 'short', timeZone: 'UTC' }).format(new Date(`${date}T00:00:00Z`))
 type Pt = [number, number]
 
@@ -57,8 +57,12 @@ export default function Trend({ summaries, today, plan = NBC_PLAN }: { summaries
   const actual = sorted.map((s) => ({ s, cx: x(addDays(s.weekStart, 6)), cy: y(s.overall) }))
   const ticks: string[] = []
   for (let d = `${start.slice(0, 7)}-01`; d <= end; d = new Date(Date.UTC(+d.slice(0, 4), +d.slice(5, 7), 1)).toISOString().slice(0, 10)) if (d > start) ticks.push(d)
-  // Show a month label only where the previous one has left room.
-  const shown = ticks.reduce<string[]>((kept, d) => kept.length && x(d) - x(kept.at(-1)!) < 44 ? kept : [...kept, d], [])
+  const todayX = today ? x(today) : null
+  const todayLabelX = todayX !== null ? Math.min(Math.max(todayX, LEFT + 18), width - 18) : 0
+  // Show a month label only where the previous one and the Today marker have left room.
+  const shown = ticks
+    .reduce<string[]>((kept, d) => kept.length && x(d) - x(kept.at(-1)!) < TICK_GAP ? kept : [...kept, d], [])
+    .filter((d) => todayX === null || Math.abs(x(d) - todayLabelX) >= TICK_GAP)
   const lastPoint = actual.at(-1)
   const activeIndex = hovered !== null && hovered < actual.length ? hovered : null
   const activePoint = activeIndex !== null ? actual[activeIndex] : null
@@ -86,11 +90,11 @@ export default function Trend({ summaries, today, plan = NBC_PLAN }: { summaries
       <svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={`${plan ? `Planned progress reaches 100% on ${planDate(plan.completion)}. ` : 'No planned curve is loaded for this project. '}${sorted.length ? sorted.map((s) => `${weekLabel(s.weekStart)}: ${percent(s.overall)}`).join('; ') : 'No confirmed reporting weeks'}`}>
         <defs><linearGradient id={gradient} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="var(--accent)" stopOpacity=".22"/><stop offset="1" stopColor="var(--accent)" stopOpacity="0"/></linearGradient></defs>
         {[0, .25, .5, .75, 1].map((n) => <g key={n}><line x1={LEFT} x2={LEFT + plotW} y1={y(n)} y2={y(n)} stroke="currentColor" strokeOpacity={n === 0 ? .18 : .08}/><text x={width} y={y(n) + 4} textAnchor="end" className="nbc-trend-axis">{n * 100}%</text></g>)}
-        {shown.map((d) => <text key={d} x={x(d)} y={H - 6} textAnchor="middle" className="nbc-trend-axis">{month(d)}</text>)}
+        {shown.map((d) => <text key={d} x={x(d)} y={AXIS_Y} textAnchor="middle" className="nbc-trend-axis">{month(d)}</text>)}
         {plan && <g><line x1={deadlineX} x2={deadlineX} y1={TOP - 6} y2={BASE} stroke="var(--danger-text)" strokeOpacity=".35" strokeDasharray="2 4" strokeLinecap="round"/>
           <rect x={Math.min(deadlineX - deadlineW / 2, width - RIGHT - deadlineW + 24)} y={TOP - 28} width={deadlineW} height="20" rx="10" fill="var(--status-danger-bg)"/>
           <text x={Math.min(deadlineX, width - RIGHT - deadlineW / 2 + 24)} y={TOP - 14} textAnchor="middle" className="nbc-trend-chip" fill="var(--danger-text)">{deadlineLabel}</text></g>}
-        {today && <g><line x1={x(today)} x2={x(today)} y1={TOP} y2={BASE} stroke="currentColor" strokeOpacity=".22"/><text x={x(today)} y={BASE + 16} textAnchor="middle" className="nbc-trend-axis" fontWeight="600">Today</text></g>}
+        {today && todayX !== null && <g><line x1={todayX} x2={todayX} y1={TOP} y2={BASE + 4} stroke="currentColor" strokeOpacity=".22"/><text x={todayLabelX} y={AXIS_Y} textAnchor="middle" className="nbc-trend-axis nbc-trend-today">Today</text></g>}
         {plan && <path data-series="plan" data-points={planned.map(([px, py]) => `${px},${py}`).join(' ')} d={smooth(planned)} fill="none" stroke="currentColor" strokeOpacity=".38" strokeWidth="2" strokeDasharray="1 6" strokeLinecap="round" strokeLinejoin="round"/>}
         {actual.length > 1 && <>
           <path d={`${smooth(actual.map((p) => [p.cx, p.cy]))}L${actual.at(-1)!.cx},${BASE}L${actual[0]!.cx},${BASE}Z`} fill={`url(#${gradient})`}/>

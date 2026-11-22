@@ -1,7 +1,7 @@
 # Graph Report - kimpor-workspace  (2026-11-22)
 
 ## Corpus Check
-- 707 files · ~1,171,635 words
+- 707 files · ~1,171,772 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 46 file(s) not represented in the graph (top: .css 26, (none) 9, .cmd 6)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `aaa22197`
+- Built from commit: `32d283f9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -453,16 +453,16 @@
 10. `FR()` - 40 edges
 
 ## Surprising Connections (you probably didn't know these)
-- `Narrative mapping` --references--> `section()`  [INFERRED]
-  .agents/skills/impeccable/reference/document.md → src/mat/MaterialTracker.test.tsx
-- `Narrative mapping` --references--> `section()`  [INFERRED]
-  .cursor/skills/impeccable/reference/document.md → src/mat/MaterialTracker.test.tsx
-- `Narrative mapping` --references--> `section()`  [INFERRED]
-  .github/skills/impeccable/reference/document.md → src/mat/MaterialTracker.test.tsx
-- `D-51 Remove desktop/tablet topbar breadcrumb and align Supabase migration timestamp - November 22, 2026` --references--> `TopBar()`  [INFERRED]
-  docs/DECISIONS.md → src/shell/TopBar.tsx
 - `WBS table` --references--> `Handler`  [INFERRED]
   docs/NBC-BP03-UX-PLAN.md → src/nbc/types.ts
+- `D-51 Remove desktop/tablet topbar breadcrumb and align Supabase migration timestamp - November 22, 2026` --references--> `TopBar()`  [INFERRED]
+  docs/DECISIONS.md → src/shell/TopBar.tsx
+- `5. Record the decision` --references--> `shape()`  [INFERRED]
+  .claude/skills/impeccable/reference/new-work.md → scripts/mat-import.py
+- `5. Record the decision` --references--> `shape()`  [INFERRED]
+  .cursor/skills/impeccable/reference/new-work.md → scripts/mat-import.py
+- `5. Record the decision` --references--> `shape()`  [INFERRED]
+  .gemini/skills/impeccable/reference/new-work.md → scripts/mat-import.py
 
 ## Import Cycles
 - None detected.
@@ -2155,16 +2155,16 @@ Nodes (3): Command guidance, No-argument routing: the context-aware menu, Workfl
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `shape()` connect `New visual work` to `mat-import.py`, `New visual work`, `New visual work`, `New visual work`, `New visual work`, `New visual work`?**
-  _High betweenness centrality (0.080) - this node is a cross-community bridge._
+- **Why does `Layout()` connect `.agents/skills/impeccable/reference/document.md` to `.gemini/skills/impeccable/reference/document.md`, `PhoneProgress.tsx`?**
+  _High betweenness centrality (0.060) - this node is a cross-community bridge._
 - **Should `sync.ts` be split into smaller, more focused modules?**
   _Cohesion score 0.0408193339227822 - nodes in this community are weakly interconnected._
-- **Why does `Layout()` connect `.agents/skills/impeccable/reference/document.md` to `.gemini/skills/impeccable/reference/document.md`, `PhoneProgress.tsx`?**
-  _High betweenness centrality (0.074) - this node is a cross-community bridge._
+- **Why does `shape()` connect `New visual work` to `mat-import.py`, `New visual work`, `New visual work`, `New visual work`, `New visual work`, `New visual work`?**
+  _High betweenness centrality (0.060) - this node is a cross-community bridge._
 - **Should `extract` be split into smaller, more focused modules?**
   _Cohesion score 0.1225296442687747 - nodes in this community are weakly interconnected._
-- **Why does `vitest` connect `vitest` to `sync.ts`, `react`, `contrast.test.ts`, `mat/store.ts`, `index.ts`, `TopBar.tsx`, `App.tsx`, `NbcActivity`, `NbcActivity`, `Overview.tsx`, `supabase.ts`, `formulas.ts`, `PhoneProgress.tsx`, `ExportWorkbook.tsx`, `package.json`, `figma-prep.mjs`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+- **Why does `Write` connect `$impeccable hooks` to `sync.ts`, `Operate mode depth (and Read notes)`?**
+  _High betweenness centrality (0.047) - this node is a cross-community bridge._
 - **Should `code.js` be split into smaller, more focused modules?**
   _Cohesion score 0.11340852130325814 - nodes in this community are weakly interconnected._
 - **Should `lib-doc.js` be split into smaller, more focused modules?**

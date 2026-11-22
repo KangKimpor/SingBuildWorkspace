@@ -151,6 +151,7 @@
 .nbc-trend-plot { position: relative; width: 100%; min-width: 0; }
 .nbc-trend svg { max-width: 100%; margin-top: 8px; color: var(--text-primary); }
 .nbc-trend-axis { font: 11px var(--font-sans); fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.nbc-trend-today { fill: var(--text-primary); font-weight: 600; }
 .nbc-trend-chip { font: 600 11px var(--font-sans); font-variant-numeric: tabular-nums; }
 .nbc-trend-hit { cursor: pointer; }
 .nbc-trend svg circle { cursor: pointer; transition: r 120ms ease, stroke-width 120ms ease; }
