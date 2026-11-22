@@ -83,7 +83,7 @@ test('tab bar hides while typing', async ({ page }) => {
   await expect(page.getByTestId('tabbar')).toBeVisible()
 })
 
-test('overview fits: KPIs and attention on the first screen', async ({ page }) => {
+test('overview fits: KPIs and collapsible sections on the first screen', async ({ page }) => {
   await setup(page)
   await page.goto('/projects-progress/nbc-bp03/overview')
   const kpis = page.locator('.nbc-kpi')
@@ -93,11 +93,12 @@ test('overview fits: KPIs and attention on the first screen', async ({ page }) =
     expect(box).not.toBeNull()
     expect(box!.y + box!.height).toBeLessThanOrEqual(844)
   }
-  const attention = page.getByRole('heading', { name: 'Needs attention' })
-  await expect(attention).toBeVisible()
-  const attentionBox = await attention.boundingBox()
-  expect(attentionBox).not.toBeNull()
-  expect(attentionBox!.y + attentionBox!.height).toBeLessThanOrEqual(844)
+  await expect(page.getByRole('heading', { name: 'Needs attention' })).toHaveCount(0)
+  const progressCurve = page.getByRole('button', { name: /^Progress curve/ })
+  await expect(progressCurve).toBeVisible()
+  const curveBox = await progressCurve.boundingBox()
+  expect(curveBox).not.toBeNull()
+  expect(curveBox!.y + curveBox!.height).toBeLessThanOrEqual(844)
   const height = await page.evaluate(() => document.documentElement.scrollHeight)
   expect(height).toBeLessThan(1700)
 })

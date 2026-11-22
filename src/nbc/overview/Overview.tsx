@@ -10,13 +10,11 @@ import { projectHandlers } from '../types'
 import type { NbcActivity, NbcSubmission, NbcWeekSummary } from '../types'
 import { deadlineNote } from '../update/deadline'
 import Trend from '../Trend'
-import { Attention } from './Attention'
 import { Breakdown, breakdownRows } from './Breakdown'
 import { usePhone } from '@/shell/usePhone'
 import { Collapsible } from '../mobile/Collapsible'
 import type { BreakdownField } from './Breakdown'
 import { HandlerTable } from './HandlerTable'
-import { attentionItems } from './insights'
 import { activityTags } from '../tags'
 
 const GROUPS = [['location', 'Floor'], ['area', 'Work area']] as const
@@ -42,7 +40,6 @@ export default function Overview({ project, activities, submissions, summaries, 
   const plan = projectPlan(project.id)
   const planned = plan ? plannedProgress(today, plan.points) : null, gap = planned === null ? null : overall - planned, days = plan ? daysToCompletion(today, plan.completion) : null
   const deadline = deadlineNote(current, now)
-  const attention = attentionItems({ projectId: project.id, activities, submissions, today, now })
   // Phones name the furthest-behind row on the closed breakdown; the roll-up runs only there.
   const behind = useMemo(() => phone ? breakdownRows(shown, activities, baseline, tags)[0]?.name ?? '' : '', [phone, shown, activities, baseline, tags])
   const seg = groups.length > 1 && <div className="nbc-seg" role="group" aria-label="Breakdown grouping">{groups.map(([key, label]) => <button key={key} aria-pressed={shown === key} onClick={() => setGroup(key)}>{label}</button>)}</div>
@@ -56,7 +53,6 @@ export default function Overview({ project, activities, submissions, summaries, 
       <div className="nbc-kpi"><span className="nbc-kpi-label">Completion deadline</span>{plan && days !== null ? <><strong className="nbc-kpi-value">{planDate(plan.completion)}</strong><span className="small" data-tone={days < 0 ? 'bad' : undefined}>{days < 0 ? `${-days} days overdue` : days === 0 ? 'Due today' : `${days} days left`}</span></> : <><strong className="nbc-kpi-value">Not set</strong><span className="small muted">{note('No contract dates supplied', 'No contract dates')}</span></>}</div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Weekly reporting</span><strong className="nbc-kpi-value" data-tone={deadline.late && updated.length < active.length ? 'bad' : undefined}>{deadline.late ? note('Deadline passed', 'Closed') : deadline.text.split(' · ')[1]}</strong><span className="small muted">{active.length ? note(`${updated.length} of ${active.length} handlers updated this week`, `${updated.length} of ${active.length} updated`) : note('All handler work is complete', 'All work complete')}</span></div>
     </section>
-    <Attention items={attention}/>
     {phone ? <div className="ph-group">
       <Collapsible title="Progress curve" summary={percent(overall)}><Trend summaries={summaries} today={today} plan={plan}/></Collapsible>
       <Collapsible title="Handler contributions" summary={active.length ? `${updated.length} of ${active.length} updated` : 'All complete'}><HandlerTable projectId={project.id} activities={activities} submissions={submissions} now={now}/></Collapsible>

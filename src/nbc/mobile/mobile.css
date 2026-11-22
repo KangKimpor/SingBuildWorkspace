@@ -150,7 +150,7 @@
     color: var(--text-tertiary);
   }
 
-  /* Overview: KPIs and Needs attention on the first screen, the rest folded into one grouped list. */
+  /* Overview: KPIs on the first screen, the rest folded into one grouped list. */
   .shell .nbc-overview {
     gap: var(--space-16);
   }
@@ -182,82 +182,6 @@
     font-size: 13px;
     line-height: 18px;
     font-variant-numeric: tabular-nums;
-  }
-
-  .shell .nbc-attention {
-    padding: 0 var(--space-16) var(--space-4);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    box-shadow: none;
-  }
-  .shell .nbc-attention > header {
-    align-items: baseline;
-    margin: 0;
-    padding: var(--space-12) 0 0;
-  }
-  .shell .nbc-attention h2 {
-    font-size: 17px;
-    line-height: 24px;
-    font-weight: 600;
-    letter-spacing: 0;
-  }
-  .shell .nbc-attention > header .small {
-    font-size: 13px;
-  }
-  /* Title and due line, then the count and Open on one row beneath them. */
-  .shell .nbc-attention li {
-    grid-template-columns: 8px minmax(0, 1fr) auto;
-    grid-template-areas: 'dot text text' '. impact link';
-    column-gap: var(--space-12);
-    row-gap: 0;
-    align-items: center;
-    padding: var(--space-12) 0 0;
-  }
-  .shell .nbc-attention li + li {
-    border-top: 1px solid var(--border-subtle);
-  }
-  .shell .nbc-attention li:not(:last-child) {
-    border-bottom: 0;
-  }
-  .shell .nbc-attention .nbc-dot {
-    grid-area: dot;
-    align-self: start;
-    width: 8px;
-    height: 8px;
-    margin-top: 7px;
-  }
-  .shell .nbc-attention li > span:first-of-type {
-    grid-area: text;
-    gap: 2px;
-  }
-  .shell .nbc-attention strong {
-    font-size: 15px;
-    line-height: 22px;
-  }
-  .shell .nbc-attention li > span:first-of-type > .small {
-    font-size: 13px;
-    line-height: 18px;
-  }
-  .shell .nbc-attention .nbc-impact {
-    grid-area: impact;
-    font-size: 13px;
-    line-height: 18px;
-  }
-  .shell .nbc-attention li > .text-link {
-    grid-area: link;
-    display: inline-flex;
-    align-items: center;
-    min-height: 44px;
-    margin-right: calc(var(--space-12) * -1);
-    padding: 0 var(--space-12);
-    font-size: 15px;
-    font-weight: 500;
-    text-decoration: none;
-  }
-  .shell .nbc-attention-empty {
-    padding: var(--space-8) 0 var(--space-12);
-    font-size: 15px;
-    line-height: 22px;
   }
 
   .ph-group {

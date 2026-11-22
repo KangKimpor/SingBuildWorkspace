@@ -21,12 +21,10 @@ test('headline numbers compare actual progress with the contract plan and deadli
   expect(kpis.getByText('2d left')).toBeTruthy()
 })
 
-test('attention lists handlers who have not updated', () => {
+test('omits the Needs attention and Forecast sections', () => {
   show()
   expect(screen.queryByText('Forecast')).toBeNull()
-  const attention = within(screen.getByRole('region', { name: 'Needs attention' }))
-  expect(attention.getByText('Tola has not updated')).toBeTruthy()
-  expect(attention.getByRole('link', { name: 'Open' }).getAttribute('href')).toBe('/projects-progress/nbc-bp03/update')
+  expect(screen.queryByRole('region', { name: 'Needs attention' })).toBeNull()
 })
 
 test('the breakdown groups by floor or work area only', () => {
@@ -44,11 +42,11 @@ describe('phone', () => {
   beforeEach(() => { window.matchMedia = (query: string) => ({ ...desktop(query), matches: query === '(max-width: 767px)' }) })
   afterEach(() => { window.matchMedia = desktop })
 
-  test('shows KPIs and attention, sections collapsed', () => {
+  test('shows KPIs without Needs attention, sections collapsed', () => {
     show()
     const kpis = within(screen.getByRole('region', { name: 'Project snapshot' }))
     for (const label of ['Overall progress', 'Versus plan', 'Completion deadline', 'Weekly reporting']) expect(kpis.getByText(label)).toBeTruthy()
-    expect(screen.getByRole('region', { name: 'Needs attention' })).toBeTruthy()
+    expect(screen.queryByRole('region', { name: 'Needs attention' })).toBeNull()
     for (const name of ['Progress curve', 'Handler contributions', 'Completion breakdown']) expect(screen.getByRole('button', { name: new RegExp(`^${name}`) }).getAttribute('aria-expanded')).toBe('false')
     expect(screen.getByRole('button', { name: /^Progress curve/ }).textContent).toContain('43.75%')
     expect(screen.queryByRole('region', { name: 'Handler updates' })).toBeNull()

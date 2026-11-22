@@ -76,20 +76,8 @@
 .nbc-kpi [data-tone=bad], .nbc-kpi [data-tone=bad] + span { color: var(--danger-text); }
 .nbc-kpi [data-tone=warn] { color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
 .nbc-kpi [data-tone=ok] { color: var(--success-text); }
-.nbc-attention, .nbc-trend, .nbc-execution { padding: 20px 22px; border-radius: 20px; background: var(--bg-raised); box-shadow: 0 0 0 .5px var(--border-subtle), 0 2px 12px rgb(0 0 0 / .05); min-width: 0; }
-.nbc-attention h2, .nbc-trend h2, .nbc-execution h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
-.nbc-attention header { margin-bottom: var(--space-8); }
-.nbc-attention ul { list-style: none; margin: 0; padding: 0; }
-.nbc-attention li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto auto; gap: var(--space-12); align-items: center; padding: 12px 0; border-bottom: .5px solid var(--border-subtle); }
-.nbc-attention li:last-child { border: 0; }
-.nbc-attention li > span:nth-of-type(1) { display: grid; min-width: 0; }
-.nbc-attention strong { font-weight: 600; font-size: 14px; overflow-wrap: anywhere; }
-.nbc-attention-empty { margin: 0; padding: var(--space-8) 0; }
-.nbc-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--accent); }
-.nbc-dot[data-tone=red] { background: var(--danger-text); }
-.nbc-dot[data-tone=amber] { background: var(--status-warning); }
-.nbc-impact { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; color: color-mix(in srgb, var(--status-warning) 60%, var(--text-primary)); }
-.nbc-impact[data-tone=red] { color: var(--danger-text); }
+.nbc-trend, .nbc-execution { padding: 20px 22px; border-radius: 20px; background: var(--bg-raised); box-shadow: 0 0 0 .5px var(--border-subtle), 0 2px 12px rgb(0 0 0 / .05); min-width: 0; }
+.nbc-trend h2, .nbc-execution h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -.02em; }
 .nbc-trend { border: 0; }
 .nbc-trend .row-between { margin-bottom: var(--space-8); }
 .nbc-trend .row-between > div p { margin: 0; }
@@ -104,9 +92,7 @@
 @media (max-width: 767px) {
   .nbc-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .nbc-kpi-value { font-size: 20px; }
-  .nbc-attention, .nbc-trend, .nbc-execution { padding: 16px; }
-  .nbc-attention li { grid-template-columns: 10px minmax(0, 1fr); }
-  .nbc-attention li .nbc-impact, .nbc-attention li .text-link { grid-column: 2; }
+  .nbc-trend, .nbc-execution { padding: 16px; }
 }
 
 /* The approved progress cards stack before their content becomes cramped. */
