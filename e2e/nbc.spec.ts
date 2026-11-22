@@ -80,7 +80,7 @@ test('Overview keeps last week and older history read-only', async ({ page }) =>
   await expect(olderDialog.getByRole('button', { name: 'Edit', exact: true })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(olderDialog).toBeHidden()
-  await page.getByRole('button', { name: 'View as table', exact: true }).click()
+  await page.locator('.nbc-trend').getByRole('button', { name: 'Table', exact: true }).click()
   await expect(page.locator('.nbc-trend tbody tr')).toHaveCount(3)
   await page.getByRole('navigation', { name: 'Project views' }).getByRole('link', { name: 'Update Progress', exact: true }).click()
   await expect(page.getByText(/25 Oct – 31 Oct/).first()).toBeVisible()

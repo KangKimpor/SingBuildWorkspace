@@ -81,10 +81,46 @@
 .nbc-trend { border: 0; }
 .nbc-trend .row-between { margin-bottom: var(--space-8); }
 .nbc-trend .row-between > div p { margin: 0; }
-.nbc-trend-tools { display: flex; align-items: center; gap: var(--space-16); flex-wrap: wrap; }
-.nbc-legend { display: inline-flex; align-items: center; gap: var(--space-6); font-size: 12px; color: var(--text-secondary); }
-.nbc-legend i { display: inline-block; width: 18px; border-top: 3px solid var(--accent); margin-inline-start: var(--space-8); }
-.nbc-legend i[data-line=plan] { border-top: 2.5px dashed var(--text-secondary); }
+.nbc-trend-tools { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+/* Legend: swatches repeat the chart marks exactly, a solid capsule for actual and round dots for planned. */
+.nbc-legend { display: inline-flex; align-items: center; gap: 16px; margin: 0; padding: 0; list-style: none; font-size: 12px; font-weight: 500; line-height: 1; color: var(--ap-label-2); }
+.nbc-legend li { display: inline-flex; align-items: center; gap: 7px; }
+.nbc-legend i { display: block; flex: none; width: 22px; height: 4px; border-radius: 2px; background: var(--accent); }
+.nbc-legend i[data-line=plan] { height: 4px; border-radius: 0; background: radial-gradient(circle, var(--ap-label-3) 1.5px, transparent 1.8px) 0 50% / 7.33px 4px repeat-x; }
+/* View switch: the same gray-track, white-key segmented control used across the app. */
+.nbc-trend-seg { display: inline-flex; padding: 2px; border-radius: 9px; background: var(--ap-fill); }
+.nbc-trend-seg button { min-height: 28px; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: var(--ap-label); font: 600 13px/1 var(--font-sans); cursor: pointer; transition: background 160ms ease, box-shadow 160ms ease; }
+.nbc-trend-seg button:hover:not([aria-pressed='true']) { background: rgb(120 120 128 / .1); }
+.nbc-trend-seg button[aria-pressed='true'] { background: var(--ap-raised); box-shadow: 0 1px 3px rgb(0 0 0 / .1), 0 0 0 .5px rgb(0 0 0 / .05); }
+.nbc-trend-seg button:focus-visible { outline: 0; box-shadow: var(--ap-ring); }
+@media (pointer: coarse) { .nbc-trend-seg button { min-height: 36px; } }
+@media (prefers-reduced-motion: reduce) { .nbc-trend-seg button { transition: none; } }
+
+/* Table view: hairlines only, numbers right-aligned in tabular figures, change shown as a quiet pill. */
+.nbc-trend .table-scroll { margin-top: 4px; }
+.nbc-trend-table { width: 100%; table-layout: fixed; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.nbc-trend-table th, .nbc-trend-table td { padding: 0 12px; height: 52px; text-align: start; vertical-align: middle; border-bottom: .5px solid var(--ap-sep-2); font-size: 15px; letter-spacing: -.01em; }
+.nbc-trend-table thead th { height: 40px; font-size: 12px; font-weight: 500; letter-spacing: 0; color: var(--ap-label-2); }
+.nbc-trend-table tbody th { font-weight: 500; color: var(--ap-label); }
+.nbc-trend-table tbody tr:last-child > * { border-bottom: 0; }
+.nbc-trend-table [data-num] { width: 132px; text-align: end; }
+.nbc-trend-table th:first-child, .nbc-trend-table td:first-child { padding-inline-start: 0; }
+.nbc-trend-table th:last-child, .nbc-trend-table td:last-child { padding-inline-end: 0; }
+.nbc-trend-table td[data-muted] { color: var(--ap-label-2); }
+.nbc-trend-table td[data-strong] { font-weight: 600; color: var(--ap-label); }
+.nbc-trend-change { display: inline-block; padding: 3px 10px; border-radius: 999px; background: var(--ap-fill-2); color: var(--ap-label-2); font-size: 13px; font-weight: 600; letter-spacing: -.005em; }
+.nbc-trend-change[data-sign=up] { background: var(--ap-green-fill); color: var(--ap-green); }
+.nbc-trend-change[data-sign=down] { background: var(--status-danger-bg); color: var(--danger-text); }
+@media (max-width: 767px) {
+  .nbc-trend-tools { width: 100%; justify-content: space-between; gap: 12px; }
+  .nbc-trend-table th, .nbc-trend-table td { padding-inline: 4px; height: 48px; font-size: 13px; white-space: nowrap; }
+  .nbc-trend-table tbody th { font-size: 13.5px; }
+  .nbc-trend-table thead th { font-size: 11.5px; }
+  .nbc-trend-table [data-num] { width: 68px; }
+  .nbc-trend-table th:nth-child(2) { width: 60px; }
+  .nbc-trend-table th:last-child[data-num] { width: 84px; }
+  .nbc-trend-change { padding: 3px 8px; font-size: 12px; }
+}
 .nbc-execution > .row-between { margin-bottom: var(--space-4); }
 .nbc-execution .nbc-seg { display: inline-flex; padding: 2px; border-radius: 10px; background: var(--status-neutral-bg); }
 .nbc-execution .nbc-seg button { border: 0; background: transparent; padding: 5px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; color: var(--text-primary); }

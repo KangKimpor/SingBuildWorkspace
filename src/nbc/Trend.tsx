@@ -29,6 +29,12 @@ function smooth(p: Pt[]) {
   return d
 }
 
+/** Week-on-week change as a quiet pill: green up, red down, gray when unchanged. Sign and tint carry the direction. */
+function Change({ value }: { value: number }) {
+  const sign = Math.abs(value) < 1e-10 ? 'flat' : value > 0 ? 'up' : 'down'
+  return <span className="nbc-trend-change" data-sign={sign}>{delta(value).replace(/^[▲▼] /, '')}%</span>
+}
+
 /** Cumulative progress by week against the contract plan. Actual points come only from confirmed app updates. */
 export default function Trend({ summaries, today, plan = NBC_PLAN }: { summaries: NbcWeekSummary[]; today?: string; plan?: NbcPlan | null }) {
   const [table, setTable] = useState(false), [hovered, setHovered] = useState<number | null>(null)
@@ -71,8 +77,11 @@ export default function Trend({ summaries, today, plan = NBC_PLAN }: { summaries
   const tipBelow = activePoint ? activePoint.cy < 86 : false
   return <section className="nbc-panel nbc-trend">
     <div className="row-between"><div><h2>Progress curve</h2><p className="small muted">Planned against actual · actual counts confirmed reporting weeks</p></div>
-      <div className="nbc-trend-tools"><span className="nbc-legend"><i data-line="actual"/>Actual{plan && <><i data-line="plan"/>Planned</>}</span><button className="text-link small" onClick={() => setTable(!table)}>{table ? 'View chart' : 'View as table'}</button></div></div>
-    {table ? <div className="table-scroll"><table className="task-table"><thead><tr><th>Week</th><th>Planned</th><th>Actual</th><th>Change</th></tr></thead><tbody>{sorted.map((s) => <tr key={s.id}><td>{weekLabel(s.weekStart)}</td><td>{plannedAt(addDays(s.weekStart, 6))}</td><td>{percent(s.overall)}</td><td>{delta(s.overall - s.previous)}%</td></tr>)}</tbody></table></div> : <>
+      <div className="nbc-trend-tools">
+        <ul className="nbc-legend" aria-label="Legend"><li><i data-line="actual" aria-hidden="true"/>Actual</li>{plan && <li><i data-line="plan" aria-hidden="true"/>Planned</li>}</ul>
+        <div className="nbc-trend-seg" role="group" aria-label="Progress curve view"><button type="button" aria-pressed={!table} onClick={() => setTable(false)}>Chart</button><button type="button" aria-pressed={table} onClick={() => setTable(true)}>Table</button></div>
+      </div></div>
+    {table ? <div className="table-scroll"><table className="nbc-trend-table"><thead><tr><th scope="col">Week</th><th scope="col" data-num>Planned</th><th scope="col" data-num>Actual</th><th scope="col" data-num>Change</th></tr></thead><tbody>{sorted.map((s) => <tr key={s.id}><th scope="row">{weekLabel(s.weekStart)}</th><td data-num data-muted>{plannedAt(addDays(s.weekStart, 6))}</td><td data-num data-strong>{percent(s.overall)}</td><td data-num><Change value={s.overall - s.previous}/></td></tr>)}</tbody></table></div> : <>
       <div ref={box} className="nbc-trend-plot" onMouseLeave={() => setHovered(null)}>
       <svg width={width} height={H} viewBox={`0 0 ${width} ${H}`} role="img" aria-label={`${plan ? `Planned progress reaches 100% on ${planDate(plan.completion)}. ` : 'No planned curve is loaded for this project. '}${sorted.length ? sorted.map((s) => `${weekLabel(s.weekStart)}: ${percent(s.overall)}`).join('; ') : 'No confirmed reporting weeks'}`}>
         <defs><linearGradient id={gradient} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor="var(--accent)" stopOpacity=".22"/><stop offset="1" stopColor="var(--accent)" stopOpacity="0"/></linearGradient></defs>

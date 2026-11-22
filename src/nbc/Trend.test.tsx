@@ -14,8 +14,9 @@ test('actual points come only from confirmed summaries in week order, drawn agai
   expect(chart.querySelector('[data-series=actual]')?.getAttribute('data-points')?.split(' ')).toHaveLength(2)
   expect(chart.querySelectorAll('circle')).toHaveLength(2)
   expect(chart.textContent).toContain('Deadline 20 Jun 2026')
-  fireEvent.click(screen.getByRole('button', { name: 'View as table' }))
-  expect(screen.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['18 Oct – 24 Oct100.00%20.00%▲ +10.00%', '25 Oct – 31 Oct100.00%40.00%▲ +30.00%'])
+  fireEvent.click(screen.getByRole('button', { name: 'Table' }))
+  expect(screen.getByRole('button', { name: 'Table' }).getAttribute('aria-pressed')).toBe('true')
+  expect(screen.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual(['18 Oct – 24 Oct100.00%20.00%+10.00%', '25 Oct – 31 Oct100.00%40.00%+30.00%'])
 })
 
 test('hovering a past week shows its percentage, change and planned progress', () => {
