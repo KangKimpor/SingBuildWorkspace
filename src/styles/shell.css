@@ -163,6 +163,10 @@
   display: flex;
   flex-direction: column;
 }
+.main:not(:has(> .topbar, > .ptopbar)) {
+  --h-topbar: 0px;
+  --nbc-tabs-top: 12px;
+}
 .topbar {
   --glass-radius: 0;
   position: sticky;
@@ -174,43 +178,13 @@
   box-sizing: content-box;
   height: var(--h-topbar);
   margin: 0;
-  padding: var(--safe-top) var(--space-16) 0;
+  padding: var(--safe-top) var(--space-24) 0;
   background: var(--bg-canvas);
   box-shadow: none;
   border-bottom: 1px solid var(--border-subtle);
 }
-.topbar .crumbs {
-  display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  flex: 1;
-  min-width: 0;
-  font-size: var(--fs-label);
-  line-height: var(--lh-label);
-  font-weight: 500;
-}
-.topbar .crumbs > * {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.topbar .crumbs .sep {
-  color: var(--text-tertiary);
-}
-.topbar .crumbs .current {
-  color: var(--text-primary);
-}
-.topbar .crumbs .parent {
-  color: var(--text-secondary);
-}
-.topbar .collapsed-title {
-  opacity: 0;
-  transition: opacity var(--duration-fast) var(--ease-standard);
-}
-.topbar[data-collapsed='true'] .collapsed-title {
-  opacity: 1;
-}
 .topbar .actions {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: var(--space-4);
@@ -507,7 +481,7 @@
 
 /* Medium adjustments */
 .shell[data-bp='medium'] .topbar {
-  padding-inline: max(var(--space-8), var(--safe-left)) max(var(--space-8), var(--safe-right));
+  padding-inline: max(var(--space-16), var(--safe-left)) max(var(--space-24), var(--safe-right));
 }
 
 /* Explicit grid placement so hidden slots never shift the main column */
@@ -520,10 +494,6 @@
 .shell[data-bp='large'] .main {
   grid-column: 2;
   grid-row: 1;
-}
-.shell[data-bp='expanded'] .topbar .sidebar-toggle,
-.shell[data-bp='large'] .topbar .sidebar-toggle {
-  display: none;
 }
 .shell[data-bp='expanded'] .inspector-slot,
 .shell[data-bp='large'] .inspector-slot {

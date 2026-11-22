@@ -410,7 +410,6 @@ html[data-nbc] .sidebar-foot .nav-item[aria-current='page'] .nav-icon {
 
 /* Topbar and minimal Apple-style cloud sync failure indicator (no background) */
 .topbar { background: var(--bg-canvas); border: 0; }
-.topbar .crumbs { font-size: 13px; }
 
 .topbar .sync-pill,
 html[data-nbc] .topbar .sync-pill {

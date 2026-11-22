@@ -1360,16 +1360,6 @@ button:disabled {
   }
 }
 @media (max-width: 767px) {
-  .topbar .crumbs .brand-crumb,
-  .topbar .crumbs .parent {
-    display: none;
-  }
-  .topbar .crumbs .sep {
-    display: none;
-  }
-  .topbar .collapsed-title {
-    opacity: 1;
-  }
   .topbar .actions {
     gap: 0;
   }

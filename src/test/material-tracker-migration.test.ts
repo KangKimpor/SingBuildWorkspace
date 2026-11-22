@@ -4,7 +4,7 @@ import { expect, test } from 'vitest'
 
 const sql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261115021338_material_tracker.sql'), 'utf8')
 const editSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261119043547_material_tracker_editing.sql'), 'utf8')
-const weeksSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261119120000_material_tracker_three_week_remarks.sql'), 'utf8')
+const weeksSql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261119094248_material_tracker_three_week_remarks.sql'), 'utf8')
 
 test('creates both tracker tables with row level security', () => {
   expect(sql).toContain('create table public.kw_mat_items')

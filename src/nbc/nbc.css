@@ -47,6 +47,7 @@ html[data-motion=reduced][data-nbc] button:active { transform: none; }
 /* Project frame: flat page, quiet header, underlined text tabs. */
 html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project.workspace-surface { margin: 0; padding: 16px 24px; border: 0; border-radius: 0; min-width: 0; max-width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.shell[data-bp='medium'] .nbc-project.workspace-surface { padding-top: 8px; }
 .nbc-project h1 { font-size: 22px; line-height: 28px; font-weight: 600; letter-spacing: -.02em; margin: 0; }
 .nbc-project h2 { font-size: 16px; line-height: 24px; font-weight: 600; margin: 0; }
 .nbc-project h3 { font-size: var(--fs-label); line-height: var(--lh-label); font-weight: 600; margin: 0; }
@@ -61,7 +62,7 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project-actions .nbc-start-update { margin-left: 0; }
 .nbc-export-button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
 .nbc-project-header p { margin: 2px 0 0; font-size: 12px; line-height: 18px; }
-.nbc-tabs { display: flex; overflow-x: auto; position: sticky; top: calc(var(--h-topbar) + var(--safe-top)); z-index: 8; background: var(--bg-canvas); border-bottom: 0; padding: 0; margin: 0; }
+.nbc-tabs { display: flex; overflow-x: auto; position: sticky; top: calc(var(--nbc-tabs-top, var(--h-topbar)) + var(--safe-top)); z-index: 8; background: var(--bg-canvas); border-bottom: 0; padding: 0; margin: 0; }
 .nbc-eyebrow { display: inline-flex; align-items: center; gap: 5px; color: var(--text-secondary); font-size: 11px; line-height: 18px; letter-spacing: .04em; text-transform: uppercase; }
 .nbc-eyebrow::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; }
 .nbc-banner { display: flex; align-items: center; gap: var(--space-8); padding: var(--space-8) var(--space-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-control); font-size: var(--fs-small); color: var(--text-secondary); }

@@ -1,11 +1,10 @@
 import { PanelLeft, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import {Glass} from '@/components/glass/Glass'
+import { Glass } from '@/components/glass/Glass'
 import { useSyncStatus, useWorkspace } from '@/data'
 import { modKey, useShell } from './store'
 import type { Breakpoint } from './store'
 import { useWorkspaceUI } from './workspace'
-import { Link } from 'react-router-dom'
 import { SyncGlyph } from './SyncGlyph'
 import type { SyncVisualState } from './SyncGlyph'
 
@@ -24,17 +23,6 @@ function useOnline() {
     }
   }, [])
   return online
-}
-
-function useScrolled(threshold: number) {
-  const [scrolled, setScrolled] = useState(false)
-  useEffect(() => {
-    const on = () => setScrolled(window.scrollY > threshold)
-    on()
-    addEventListener('scroll', on, { passive: true })
-    return () => removeEventListener('scroll', on)
-  }, [threshold])
-  return scrolled
 }
 
 export interface Crumb {
@@ -70,93 +58,64 @@ export function useSyncView() {
 }
 
 export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
-  // Project Progress keeps its top bar to the breadcrumb and save status; search stays on the keyboard shortcut.
+  // Project Progress keeps search on the keyboard shortcut and omits the bar on desktop unless sync fails.
   const progressScreen = crumb.parent === 'Projects Progress'
   const { sync, tone, retry } = useSyncView()
   const syncFailed = sync.kind === 'error'
-  const compact = bp === 'compact'
-  const scrolled = useScrolled(48)
-  const { sidebarOpen, setSidebarOpen, setDrawerOpen } = useShell()
+  const { setDrawerOpen } = useShell()
   const persistent = bp === 'expanded' || bp === 'large'
+  const showSidebarToggle = !persistent
+  const showSearch = !progressScreen
+  const showActions = syncFailed || showSearch
 
-  const toggleSidebar = () =>
-    persistent ? setSidebarOpen(!sidebarOpen) : setDrawerOpen(true)
+  if (!showSidebarToggle && !showActions) return null
 
   return (
-    <Glass
-      as="header"
-      material="thin"
-      className="topbar"
-      data-collapsed={compact ? scrolled : true}
-    >
-      {
+    <Glass as="header" material="thin" className="topbar">
+      {showSidebarToggle && (
         <button
           type="button"
           className="ibtn sidebar-toggle"
-          aria-label={
-            persistent ? (sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar') : 'Open sidebar'
-          }
-          aria-pressed={persistent ? sidebarOpen : undefined}
+          aria-label="Open sidebar"
           title={`Sidebar (${modKey()} \\)`}
-          onClick={toggleSidebar}
+          onClick={() => setDrawerOpen(true)}
         >
           <PanelLeft {...ic} />
         </button>
-      }
+      )}
 
-      <nav
-        className={`crumbs ${compact ? 'collapsed-title' : ''}`}
-        aria-label="Breadcrumb"
-      >
-        <Link className="parent brand-crumb" to="/">
-          SingBuild
-        </Link>
-        <span className="sep brand-crumb" aria-hidden="true">
-          /
-        </span>
-        {crumb.parent ? (
-          <>
-            <span className="parent">{crumb.parent}</span>
-            <span className="sep" aria-hidden="true">
-              /
+      {showActions && (
+        <div className="actions">
+          {syncFailed && (
+            <span
+              className="sync-pill"
+              role="status"
+              data-tone={tone}
+              data-state="error"
+              title={sync.reason}
+              aria-label={`Sync failed: ${sync.reason}`}
+              data-testid="sync-pill"
+            >
+              <span className="sync-pill-icon" aria-hidden="true">
+                <SyncGlyph state="error" size={17} />
+              </span>
+              <button type="button" className="sync-retry" onClick={retry}>
+                Retry
+              </button>
             </span>
-          </>
-        ) : null}
-        <span className="current" aria-current="page" title={crumb.label}>
-          {crumb.label}
-        </span>
-      </nav>
-
-      <div className="actions">
-        {syncFailed && (
-          <span
-            className="sync-pill"
-            role="status"
-            data-tone={tone}
-            data-state="error"
-            title={sync.reason}
-            aria-label={`Sync failed: ${sync.reason}`}
-            data-testid="sync-pill"
-          >
-            <span className="sync-pill-icon" aria-hidden="true">
-              <SyncGlyph state="error" size={17} />
-            </span>
-            <button type="button" className="sync-retry" onClick={retry}>
-              Retry
+          )}
+          {showSearch && (
+            <button
+              type="button"
+              className="ibtn"
+              aria-label="Open command palette"
+              onClick={() => useWorkspaceUI.getState().setCommandOpen(true)}
+            >
+              <Search {...ic} />
             </button>
-          </span>
-        )}
-        {!progressScreen && (
-          <button
-            type="button"
-            className="ibtn"
-            aria-label="Open command palette"
-            onClick={() => useWorkspaceUI.getState().setCommandOpen(true)}
-          >
-            <Search {...ic} />
-          </button>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </Glass>
   )
 }

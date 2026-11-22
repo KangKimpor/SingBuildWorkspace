@@ -278,7 +278,7 @@ The updated BP03/BP04 submission workbooks (19 November 2026) moved purchase rem
 5. **Pencils only on Code.** Image and Approved Sample cells are pictures and lightboxes; the edit pencil lives only on the Code cell, which opens the Material Source panel. Photos are centred at 36 px with `object-fit: cover` so they fill the cell.
 6. **Uniform rows.** The workbook's stray green/yellow fills on individual materials no longer tint whole rows; the section band is a neutral mix of `--pp-*`, and a small dot on the Code cell carries the done/tracking/omit mark.
 
-Migration `20261119120000_material_tracker_three_week_remarks.sql`; seed regenerated from the two workbooks with pictures in `public/mat`.
+Migration `20261119094248_material_tracker_three_week_remarks.sql` (renamed from `20261119120000` in D-51 to match the applied remote timestamp); seed regenerated from the two workbooks with pictures in `public/mat`.
 
 
 ## D-43 Apple-style controls from the prototype on Project Progress, Update Progress and the Material list - November 19, 2026
@@ -354,3 +354,8 @@ Seven targeted Operate-mode UI refinements across the NBC screens and top bar:
 ## D-50 Remove Needs attention card from project Overview - November 22, 2026
 
 Removed the **Needs attention** section from `src/nbc/overview/Overview.tsx` across all progress projects (desktop and phone), along with the now-unused `Attention.tsx`, `insights.ts`, `insights.test.ts`, and `.nbc-attention` styles in `overview.css` and `mobile.css`. Updated `Overview.test.tsx` and `e2e/phone.spec.ts` accordingly.
+
+## D-51 Remove desktop/tablet topbar breadcrumb and align Supabase migration timestamp - November 22, 2026
+
+1. **Remove topbar breadcrumb (`src/shell/TopBar.tsx`, `src/styles/shell.css`, `src/styles/stitch.css`, `src/styles/workspace.css`, `src/nbc/nbc.css`).** Removed `<nav className="crumbs">` (`SingBuild / Projects Progress / <Project>`) from the desktop/tablet top bar. On desktop (`expanded`/`large`) progress screens where neither the drawer button nor search is shown, `TopBar` now returns `null` unless `sync.kind === 'error'`. When `.main` has no `.topbar` or `.ptopbar` child, `--h-topbar` collapses to `0px` (and `--nbc-tabs-top: 12px`), letting the project header align directly with the sidebar header and giving the sticky view tabs and full-height progress/update tables the full viewport height. Right-side `.topbar .actions` align via `margin-left: auto`, and tablet (`medium`) aligns the drawer button and trims top padding above `.nbc-project`.
+2. **Align local migration filename for Supabase Preview (`supabase/migrations/20261119094248_material_tracker_three_week_remarks.sql`).** Remote `supabase_migrations.schema_migrations` recorded the byte-identical three-week remarks migration under version `20261119094248`, while the repo file was named `20261119120000_material_tracker_three_week_remarks.sql`, causing the `Supabase Preview` GitHub check to fail with `Remote migration versions not found in local migrations directory.` Renamed the local file to `20261119094248_material_tracker_three_week_remarks.sql` and updated `src/test/material-tracker-migration.test.ts`.
