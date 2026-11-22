@@ -75,8 +75,8 @@ test('Progress tab lists projects and opens one', async ({ page }) => {
 test('tab bar hides while typing', async ({ page }) => {
   await setup(page)
   await page.goto('/projects-progress/nbc-bp03/activities')
-  await page.locator('.ptopbar').getByRole('button', { name: 'Search activities' }).tap()
-  const search = page.locator('.ptopbar').getByRole('searchbox', { name: 'Search activities' })
+  await page.locator('.ptopbar').getByRole('button', { name: 'Search activity' }).tap()
+  const search = page.locator('.ptopbar').getByRole('searchbox', { name: 'Search activity' })
   await search.focus()
   await expect(page.getByTestId('tabbar')).toBeHidden()
   await search.blur()

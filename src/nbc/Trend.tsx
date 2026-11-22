@@ -119,7 +119,7 @@ export default function Trend({ summaries, today, plan = NBC_PLAN }: { summaries
             <span className="nbc-trend-tip-dot" data-series="actual"/>
             <strong className="nbc-trend-tip-pct">{percent(activePoint.s.overall)}</strong>
             <span className="nbc-trend-tip-delta" data-sign={activePoint.s.overall - activePoint.s.previous > 1e-9 ? 'up' : activePoint.s.overall - activePoint.s.previous < -1e-9 ? 'down' : 'flat'}>
-              {delta(activePoint.s.overall - activePoint.s.previous)}%
+              {delta(activePoint.s.overall - activePoint.s.previous).replace(/^[▲▼] /, '')}%
             </span>
           </div>
           {plan && (

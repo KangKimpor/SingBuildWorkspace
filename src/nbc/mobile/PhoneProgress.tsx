@@ -27,7 +27,7 @@ export default function PhoneProgress({ projectId, activities, rollups }: { proj
   const [dismissedWbs, setDismissedWbs] = useState('')
   const trailRef = useRef<HTMLElement>(null)
 
-  usePhoneHeaderPatch({ search: { value: query, onChange: setQuery, placeholder: 'Search activities' } })
+  usePhoneHeaderPatch({ search: { value: query, onChange: setQuery, placeholder: 'Search activity' } })
 
   const handler = params.get('handler') ?? ''
   const changed = params.get('changed') === '1'

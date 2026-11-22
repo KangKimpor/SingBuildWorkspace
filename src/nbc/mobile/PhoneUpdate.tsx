@@ -68,7 +68,7 @@ function PhoneUpdateScreen({ projectId, week, handler, activities, submission, p
   const [remarkOpen, setRemarkOpen] = useState<ReadonlySet<string>>(new Set())
   const [jump, setJump] = useState<{ id: string; kind: 'value' | 'remark' } | null>(null)
 
-  usePhoneHeaderPatch({ title: `${handler} · Update`, search: { value: query, onChange: setQuery, placeholder: 'Search activities' } })
+  usePhoneHeaderPatch({ title: `${handler} · Update`, search: { value: query, onChange: setQuery, placeholder: 'Search activity' } })
 
   const deferredQuery = useDeferredValue(query)
   const deferredFloorId = useDeferredValue(floorId)

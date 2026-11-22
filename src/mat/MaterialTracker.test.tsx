@@ -244,7 +244,7 @@ test('collapsing a section hides its items', async () => {
 
 test('search keeps the matching materials and their section', async () => {
   await openList()
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search materials' }), { target: { value: 'xx-02' } })
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search material' }), { target: { value: 'xx-02' } })
   await waitFor(() => expect(screen.queryByText('Sample panel XX-01')).toBeNull())
   expect(screen.getByText('Sample panel XX-02')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: 'Collapse Wall Finishing' })).toBeInTheDocument()
@@ -253,13 +253,13 @@ test('search keeps the matching materials and their section', async () => {
 test('the key bar counts the materials and follows the search', async () => {
   await openList()
   expect(screen.getByText('2 materials')).toBeInTheDocument()
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search materials' }), { target: { value: 'xx-02' } })
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search material' }), { target: { value: 'xx-02' } })
   await waitFor(() => expect(screen.getByText('1 material of 2')).toBeInTheDocument())
 })
 
 test('no match keeps the table frame, the zero count and the legend', async () => {
   await openList()
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search materials' }), { target: { value: 'zzz' } })
+  fireEvent.change(screen.getByRole('searchbox', { name: 'Search material' }), { target: { value: 'zzz' } })
   expect(await screen.findByText(/No materials match these filters/)).toBeInTheDocument()
   expect(screen.getByText('0 materials of 2')).toBeInTheDocument()
   expect(document.querySelector('.mat-empty-scroll')).not.toBeNull()
@@ -272,7 +272,7 @@ test('no match keeps the table frame, the zero count and the legend', async () =
 
 test('the "/" key focuses the search box without typing into it', async () => {
   await openList()
-  const search = screen.getByRole('searchbox', { name: 'Search materials' })
+  const search = screen.getByRole('searchbox', { name: 'Search material' })
   fireEvent.keyDown(document.body, { key: '/' })
   expect(search).toHaveFocus()
   expect(search).toHaveValue('')

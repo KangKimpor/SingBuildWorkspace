@@ -66,9 +66,6 @@ html[data-mat] .canvas { padding-block: 0; }
 .mat-loading { display: grid; gap: var(--space-8); }
 .mat-skeleton-bar { height: 32px; width: min(520px, 100%); }
 
-/* The "/" hint uses the app's kbd chip and steps out of the way once the field has focus. */
-.mat-search .kbd { flex: none; }
-.mat-search:focus-within .kbd { visibility: hidden; }
 .mat-toolbar-actions { display: inline-flex; align-items: center; gap: var(--space-4); margin-inline-start: auto; }
 .mat-key-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4) var(--space-16); font-size: 12px; color: var(--pp-ink-2); font-variant-numeric: tabular-nums; }
 .mat-swatch[data-mark='override'] { position: relative; background: var(--pp-l3); border-color: var(--pp-line-strong); }

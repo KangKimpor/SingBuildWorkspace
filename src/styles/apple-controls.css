@@ -41,13 +41,7 @@ html .nbc-project .nbc-filters .search-field input,
 .mat-toolbar.mat-toolbar .search-field input { color: var(--ap-label); font-size: 13px; }
 html .nbc-project .nbc-filters .search-field input::placeholder,
 .mat-toolbar.mat-toolbar .search-field input::placeholder { color: var(--ap-label-3); opacity: 1; }
-html .nbc-project .nbc-filters .search-field kbd,
-.mat-toolbar.mat-toolbar .search-field kbd {
-  font: 500 11px/1 -apple-system, BlinkMacSystemFont, 'Inter', system-ui, sans-serif;
-  color: var(--ap-label-3); background: var(--ap-raised); border: .5px solid var(--ap-sep-2); border-radius: 5px; padding: 3px 6px;
-}
 
-/* The longer placeholder needs room beside the "/" hint. */
 .mat-toolbar.mat-toolbar .mat-search { flex: 0 1 270px; min-width: 220px; }
 
 /* ── Segmented control: NBC "Needs update / Changed / All" and floors, Material column views ── */

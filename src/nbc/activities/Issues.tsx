@@ -26,7 +26,7 @@ export function Issues({ projectId, activities, switcher }: { projectId: string;
   const filtered = !!(query || handler || wbs)
   const actions = <button className="btn-accent" onClick={() => { addTask({ title: 'New site action', projectId, nbcActivityId: activities.find((a) => a.wbs === wbs)?.id, labels: [] }); setQuery(''); setHandler('') }}>New action</button>
   const filters = <div className="nbc-filters nbc-issue-filters">
-      <label className="search-field"><Search size={16} aria-hidden="true"/><input ref={search} aria-label="Search issues or WBS" placeholder="Search issues or WBS" value={query} onChange={(e) => setQuery(e.target.value)}/><kbd>/</kbd></label>
+      <label className="search-field"><Search size={16} aria-hidden="true"/><input ref={search} aria-label="Search issues or WBS" placeholder="Search issues" value={query} onChange={(e) => setQuery(e.target.value)}/></label>
       <GlassSelect aria-label="Issue handler" value={handler} onChange={(e) => setHandler(e.target.value)}><option value="">All handlers</option>{projectHandlers(projectId).map((h) => <option key={h}>{h}</option>)}</GlassSelect>
       <GlassSelect aria-label="Issue WBS" value={wbs} onChange={(e) => { const next = new URLSearchParams(params); if (e.target.value) next.set('wbs', e.target.value); else next.delete('wbs'); setParams(next) }}><option value="">All WBS activities</option>{activities.map((a) => <option key={a.id} value={a.wbs}>{a.wbs} · {a.name}</option>)}</GlassSelect>
     </div>

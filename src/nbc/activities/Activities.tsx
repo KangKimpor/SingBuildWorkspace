@@ -97,7 +97,7 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
     <div className="nbc-filters">
       {floor && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor!.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div></div>}
       <div className="nbc-filter-line">
-      <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
+      <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activity" placeholder="Search activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/></label>
       <button className="nbc-chip nbc-filters-toggle" aria-expanded={filtersOpen} aria-controls="nbc-filter-selects" onClick={() => setFiltersOpen(!filtersOpen)}>Filters{selectFilters > 0 && <span className="nbc-filters-count">{selectFilters}</span>}</button>
       <div id="nbc-filter-selects" className="nbc-filter-selects" data-open={filtersOpen || undefined}>
       <GlassSelect aria-label="Assigned handler" value={handler} onChange={(e) => filter('handler', e.target.value)}><option value="">All handlers</option>{[...new Set([...projectHandlers(projectId), ...activities.filter((a) => a.editable).map((a) => a.handler || 'Unassigned')])].map((h) => <option key={h}>{h}</option>)}</GlassSelect>

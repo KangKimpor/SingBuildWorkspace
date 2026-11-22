@@ -135,7 +135,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-filters .search-field:hover { border-color: var(--pp-ink-muted); }
 .nbc-filters .search-field input { color: var(--pp-ink); font-size: 13px; }
 .nbc-filters .search-field input::placeholder { color: var(--pp-ink-muted); opacity: 1; }
-.nbc-filters .search-field kbd { font: 500 11px var(--font-mono); color: var(--pp-ink-2); border: 1px solid var(--pp-line-strong); border-radius: 4px; padding: 0 5px; line-height: 16px; background: transparent; }
 .nbc-filters .ibtn { width: 32px; height: 32px; min-height: 32px; border-radius: 6px; color: var(--pp-ink-2); }
 .nbc-filters .ibtn:hover { background: var(--pp-wash); color: var(--pp-ink); }
 .nbc-filters .text-link { color: var(--pp-accent-ink); }

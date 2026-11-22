@@ -2,12 +2,10 @@ import {
   BarChart3,
   Eye,
   PanelLeft,
-  Search,
   Settings,
   SquarePen,
-  X,
 } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useMemo } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useProjects } from '@/data'
 import { useShell } from './store'
@@ -75,44 +73,12 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   )
 
   const { pathname } = useLocation()
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const searchInputRef = useRef<HTMLInputElement>(null)
-
-  const filteredProjects = useMemo(() => {
-    const q = query.trim().toLowerCase()
-    if (!q) return progressProjects
-    return progressProjects.filter((p) => p.name.toLowerCase().includes(q))
-  }, [progressProjects, query])
-
-  const toggleSearch = () => {
-    setSearchOpen((open) => {
-      const next = !open
-      if (next) {
-        requestAnimationFrame(() => searchInputRef.current?.focus())
-      } else {
-        setQuery('')
-      }
-      return next
-    })
-  }
-
   return (
     <>
       <div className="sidebar-header">
         <img className="brand-logo" src="/brand/favicon.svg" alt="" width={28} height={28} />
         <span className="sidebar-brand">SingBuild Workspace</span>
         <div className="sidebar-header-actions">
-          <button
-            type="button"
-            className="sidebar-icon-btn sidebar-search-btn"
-            aria-label="Filter projects"
-            aria-pressed={searchOpen}
-            title="Filter projects"
-            onClick={toggleSearch}
-          >
-            <Search size={15} strokeWidth={1.85} aria-hidden="true" />
-          </button>
           {!onNavigate ? (
             <button
               type="button"
@@ -128,49 +94,11 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </div>
 
-      <div className="sidebar-search-drawer" data-open={searchOpen} aria-hidden={!searchOpen} inert={!searchOpen}>
-        <div className="sidebar-search-inner">
-          <div className="sidebar-search-box" data-has-query={query.length > 0}>
-            <span className="sidebar-search-glyph" aria-hidden="true">
-              <Search size={13} strokeWidth={2} />
-            </span>
-            <input
-              ref={searchInputRef}
-              type="text"
-              className="sidebar-search-input"
-              placeholder="Filter projects…"
-              aria-label="Filter projects"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') {
-                  if (query) setQuery('')
-                  else toggleSearch()
-                }
-              }}
-            />
-            {query.length > 0 ? (
-              <button
-                type="button"
-                className="sidebar-search-clear"
-                aria-label="Clear filter"
-                onClick={() => {
-                  setQuery('')
-                  searchInputRef.current?.focus()
-                }}
-              >
-                <X size={10} strokeWidth={2.5} aria-hidden="true" />
-              </button>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
       <nav className="sidebar-body" aria-label="Primary">
         <div className="nav-section">
           <div className="t-caption">Projects</div>
           <ul className="nav-list nav-projects nav-progress" aria-label="Progress projects">
-            {filteredProjects.map((project) => {
+            {progressProjects.map((project) => {
               const isCurrent = pathname.startsWith(`/projects-progress/${project.id}/`)
               const [name, subtitle] = project.name.split(' – ')
               const pct = Math.round(project.progress * 100)
@@ -217,9 +145,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               )
             })}
           </ul>
-          {filteredProjects.length === 0 && query.trim() ? (
-            <div className="sidebar-empty">No matching projects</div>
-          ) : null}
         </div>
       </nav>
 

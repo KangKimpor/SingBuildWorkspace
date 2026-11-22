@@ -363,3 +363,9 @@ Removed the **Needs attention** section from `src/nbc/overview/Overview.tsx` acr
 ## D-52 Apple-style Progress curve legend, view switch and table - November 22, 2026
 
 On the project Overview (`src/nbc/Trend.tsx`, `src/nbc/overview/overview.css`): the legend is now a list whose swatches repeat the chart marks (a solid capsule for actual, round dots for planned). The "View as table / View chart" text link became a **Chart | Table** segmented control (`aria-pressed`, same gray-track and white-key style as the other app toolbars), so both views are always visible and one click away. The table view uses hairline separators, right-aligned tabular figures (week label as a row header), a bold Actual column, and the weekly change as a green, red or gray pill with no arrow glyph. Tests (`Trend.test.tsx`, `e2e/nbc.spec.ts`) now click the `Table` button, and the change cell reads `+4.10%` instead of `▲ +4.10%`.
+
+## D-53 Remove sidebar project filter, drop `/` search hints, shorten search placeholders - November 22, 2026
+
+1. **Sidebar (`src/shell/SidebarContent.tsx`, `src/styles/stitch.css`).** Removed the header Search button, its collapsible "Filter projects" drawer, the filter state and the empty-state line. The header now holds only the logo, the full **SingBuild Workspace** name (no longer truncated) and the collapse button.
+2. **Search boxes.** Removed the `/` keyboard hint chip from every search field (Project Progress, Update Progress, Issues, Material). The `/` shortcut itself still focuses the field. Placeholders and accessible names are now short and consistent: `Search activity` (Project Progress, Update Progress, phone), `Search issues`, `Search material`.
+3. **Progress curve tooltip (`src/nbc/Trend.tsx`).** The hover tooltip drops the triangle glyph and shows the signed change (`+1.39%`), matching the table pills from D-52.

@@ -109,8 +109,8 @@ test('BP02 interaction timings', async ({ page, browserName }) => {
   for (let i = 0; i < RUNS; i++) {
     record('tab: Overview → Project Progress', await time(page, click('.nbc-tabs a[href$="/activities"]'), '.nbc-rooms'))
     record('progress: switch floor', await time(page, floor(`.nbc-activities .nbc-seg button:nth-child(${2 + (i % 3)})`)))
-    record('progress: search keystroke', await time(page, type('.nbc-activities input[aria-label="Search activities"]', 'install'.slice(0, 1 + i))))
-    await time(page, type('.nbc-activities input[aria-label="Search activities"]', ''))
+    record('progress: search keystroke', await time(page, type('.nbc-activities input[aria-label="Search activity"]', 'install'.slice(0, 1 + i))))
+    await time(page, type('.nbc-activities input[aria-label="Search activity"]', ''))
     record('progress: collapse group', await time(page, click('.nbc-rooms tr[data-group=true] .nbc-toggle')))
     record('tab: Project Progress → Overview', await time(page, click('.nbc-tabs a[href$="/overview"]'), '.nbc-kpi'))
   }

@@ -154,7 +154,7 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
     <div className="nbc-filters">
       {roomMode && pressedFloor && floors.length > 1 && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div></div>}
       <div className="nbc-filter-line">
-      <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activities" placeholder="Search WBS or activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/><kbd>/</kbd></label>
+      <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activity" placeholder="Search activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/></label>
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>
       <div className="nbc-toolbar-actions nbc-update-controls">
         {controls}

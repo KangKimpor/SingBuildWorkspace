@@ -18,13 +18,13 @@ const wbsOrder = () => [...document.querySelectorAll('tbody tr[data-wbs]')].map(
 
 test('expanding Project Progress preserves the search and filtered rows', () => {
   setup()
-  fireEvent.change(screen.getByLabelText('Search activities'), { target: { value: 'Install' } })
+  fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: 'Install' } })
   const rows = wbsOrder()
   fireEvent.click(screen.getByRole('button', { name: 'Expand editor' }))
   expect(document.querySelector('.nbc-activities-page')).toHaveAttribute('data-expanded', 'true')
   expect(wbsOrder()).toEqual(rows)
   fireEvent.click(screen.getByRole('button', { name: 'Collapse editor' }))
-  expect(screen.getByLabelText('Search activities')).toHaveValue('Install')
+  expect(screen.getByLabelText('Search activity')).toHaveValue('Install')
 })
 
 test('a handler filter keeps only that handler leaves with their ancestor groups', () => {
@@ -46,11 +46,11 @@ test('shows the workbook columns plus Handler, and no progress input', () => {
 
 test('search matches WBS or name, and a group name brings its whole subtree', () => {
   setup()
-  fireEvent.change(screen.getByLabelText('Search activities'), { target: { value: 'Install' } })
+  fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: 'Install' } })
   expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.2'])
-  fireEvent.change(screen.getByLabelText('Search activities'), { target: { value: '1.6.1.1' } })
+  fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: '1.6.1.1' } })
   expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.1'])
-  fireEvent.change(screen.getByLabelText('Search activities'), { target: { value: 'Test area' } })
+  fireEvent.change(screen.getByLabelText('Search activity'), { target: { value: 'Test area' } })
   expect(wbsOrder()).toEqual(['1.6.1', '1.6.1.1', '1.6.1.2'])
 })
 
@@ -106,8 +106,8 @@ test('the toolbar has no area or progress selectors, columns menu or more menu, 
   expect(screen.queryByLabelText('Progress range')).toBeNull()
   expect(screen.queryByRole('button', { name: 'Columns' })).toBeNull()
   expect(screen.queryByRole('button', { name: 'Activity tools' })).toBeNull()
-  expect(screen.getByPlaceholderText('Search WBS or activity')).toBeTruthy()
-  expect(document.querySelector('.search-field kbd')?.textContent).toBe('/')
+  expect(screen.getByPlaceholderText('Search activity')).toBeTruthy()
+  expect(document.querySelector('.search-field kbd')).toBeNull()
 })
 
 test('shared room rows show two handler profile avatars without 50/50 text', () => {

@@ -228,10 +228,9 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
     <div className="mat-toolbar">
       <label className="search-field mat-search">
         <Search size={15} aria-hidden="true"/>
-        <input ref={searchRef} type="search" aria-label="Search materials" placeholder="Search code, name, brand, spec…" value={query}
+        <input ref={searchRef} type="search" aria-label="Search material" placeholder="Search material" value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Escape' && query) { e.preventDefault(); setQuery('') } }}/>
-        <kbd className="kbd" aria-hidden="true">/</kbd>
       </label>
       {sheet !== 'mep' && <GlassSelect aria-label="Person in charge" className={pic ? 'is-on' : ''} value={pic} onChange={(e) => setPic(e.target.value)}>
         <option value="">All people</option>{options.pics.map((v) => <option key={v}>{v}</option>)}
