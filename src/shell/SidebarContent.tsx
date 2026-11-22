@@ -7,10 +7,9 @@ import {
   SquarePen,
   X,
 } from 'lucide-react'
-import { useId, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { useProjects, useWorkspace } from '@/data'
-import { attentionItems } from '@/nbc/overview/insights'
+import { useProjects } from '@/data'
 import { useShell } from './store'
 
 const ic = { size: 15, strokeWidth: 1.75 } as const
@@ -42,30 +41,24 @@ function Item({
   to,
   icon,
   label,
-  badge,
   onNavigate,
 }: {
   to: string
   icon: React.ReactNode
   label: string
-  badge?: number
   onNavigate?: () => void
 }) {
-  const badgeId = useId()
   return (
     <li>
       <NavLink
         to={to}
         end
         className="nav-item"
-        aria-describedby={badge ? badgeId : undefined}
         onClick={onNavigate}
       >
         <span className="nav-icon" aria-hidden="true">{icon}</span>
         <span className="nav-label">{label}</span>
-        {badge ? <span className="nav-badge" aria-hidden="true">{badge}</span> : null}
       </NavLink>
-      {badge ? <span id={badgeId} className="sr-only">{badge} needing attention</span> : null}
     </li>
   )
 }
@@ -73,8 +66,6 @@ function Item({
 /** Sidebar contents, shared by the persistent sidebar and the overlay drawer. */
 export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const projects = useProjects()
-  const nbcActivities = useWorkspace((s) => s.nbc_activities)
-  const nbcSubmissions = useWorkspace((s) => s.nbc_submissions)
   const sidebarOpen = useShell((s) => s.sidebarOpen)
   const setSidebarOpen = useShell((s) => s.setSidebarOpen)
 
@@ -87,21 +78,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const [searchOpen, setSearchOpen] = useState(false)
   const [query, setQuery] = useState('')
   const searchInputRef = useRef<HTMLInputElement>(null)
-
-  const attentionCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    if (!nbcActivities?.length) return counts
-    const now = Date.now()
-    const today = new Date(now).toLocaleDateString('en-CA', { timeZone: 'Asia/Phnom_Penh' })
-    for (const p of progressProjects) {
-      const activities = nbcActivities.filter((a) => a.projectId === p.id)
-      if (!activities.length) continue
-      const submissions = (nbcSubmissions ?? []).filter((s) => s.projectId === p.id)
-      const count = attentionItems({ projectId: p.id, activities, submissions, today, now }).length
-      if (count > 0) counts.set(p.id, count)
-    }
-    return counts
-  }, [nbcActivities, nbcSubmissions, progressProjects])
 
   const filteredProjects = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -198,7 +174,6 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               const isCurrent = pathname.startsWith(`/projects-progress/${project.id}/`)
               const [name, subtitle] = project.name.split(' – ')
               const pct = Math.round(project.progress * 100)
-              const attentionCount = attentionCounts.get(project.id)
               return (
                 <li key={project.id} data-current={isCurrent}>
                   <div
@@ -233,7 +208,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
                   <div className="nav-project-views-wrap">
                     <ul className="nav-list nav-project-views" aria-label={`${project.name} views`}>
-                      <Item to={`/projects-progress/${project.id}/overview`} icon={<Eye {...ic} />} label="Overview" badge={attentionCount} onNavigate={onNavigate} />
+                      <Item to={`/projects-progress/${project.id}/overview`} icon={<Eye {...ic} />} label="Overview" onNavigate={onNavigate} />
                       <Item to={`/projects-progress/${project.id}/activities`} icon={<BarChart3 {...ic} />} label="Project Progress" onNavigate={onNavigate} />
                       <Item to={`/projects-progress/${project.id}/update`} icon={<SquarePen {...ic} />} label="Update Progress" onNavigate={onNavigate} />
                     </ul>

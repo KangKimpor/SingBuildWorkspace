@@ -28,7 +28,18 @@ function HandlerLabel({ a, activities }: { a: NbcActivity; activities: NbcActivi
   return <span className="nbc-handler" title={label}><Avatar name={label}/><span className="nbc-handler-text">{label}</span></span>
 }
 
-function RoomHandlerLabel({ label }: { label: string }) {
+function RoomHandlerLabel({ names }: { names: string[] }) {
+  const label = names.join(', ')
+  if (names.length > 1) {
+    return (
+      <span className="nbc-handler nbc-handler-pair" title={label}>
+        <span className="nbc-av-pair" aria-hidden="true">
+          {names.map((name) => <Avatar key={name} name={name}/>)}
+        </span>
+        <span className="sr-only">{label}</span>
+      </span>
+    )
+  }
   return <span className="nbc-handler" title={label}><Avatar name={label}/><span className="nbc-handler-text">{label}</span></span>
 }
 
@@ -112,9 +123,8 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
             return { 'data-changed': moved ? 'true' : undefined, 'data-prev': prev, 'data-done': halves.every((h) => h.progress === 1) ? 'true' : undefined }
           }}
           extra={[{ header: 'Handler', cell: (row) => {
-            const label = [...new Set(row.leaves.map((l) => l.handler || 'Unassigned'))].join(', ')
-            // A task shared 50/50 by two handlers keeps both of them, so it is not reassigned from here.
-            return row.co.size ? <span title="Shared 50/50">{label} · 50/50</span> : <RoomHandlerLabel label={label}/>
+            const names = [...new Set(row.leaves.map((l) => l.handler || 'Unassigned'))]
+            return <RoomHandlerLabel names={names}/>
           } }]}/>
       : rows.length === 0
       ? <div className="quiet-empty">No activities match these filters.<button className="text-link" onClick={clear}>Clear filters</button></div>

@@ -60,11 +60,6 @@ body {
   width: var(--space-16);
   height: var(--space-16);
 }
-.topbar .pill {
-  color: var(--text-primary);
-  background: var(--bg-hover);
-  border: 1px solid var(--border-subtle);
-}
 .owner-avatar {
   display: inline-grid;
   place-items: center;
@@ -1679,8 +1674,6 @@ html[data-motion='reduced'] .pill[data-tone='busy'] .dot { animation: none; }
 .task-fields input[type=checkbox] { width: auto; }
 .table-task-name { display: block; }
 .task-row .task-title-input { width: 100%; font-size: var(--fs-label); }
-.topbar .pill[data-tone=busy] { color: var(--text-primary); background: var(--chip-blue); }
-.topbar .pill[data-tone=error] { color: var(--danger-text); background: var(--chip-red); }
 
 .account-brand-logo { display: block; width: 80px; height: 80px; object-fit: contain; margin-bottom: var(--space-24); }
 

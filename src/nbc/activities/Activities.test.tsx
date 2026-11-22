@@ -109,3 +109,19 @@ test('the toolbar has no area or progress selectors, columns menu or more menu, 
   expect(screen.getByPlaceholderText('Search WBS or activity')).toBeTruthy()
   expect(document.querySelector('.search-field kbd')?.textContent).toBe('/')
 })
+
+test('shared room rows show two handler profile avatars without 50/50 text', () => {
+  const base = fixtureActivities()[0]!
+  const floor = { ...base, id: 'f1', wbs: '1', name: 'Level 23', parentId: null, editable: false, globalWeight: 1, relativeWeight: 1 }
+  const task = { ...base, id: 't1', wbs: '1.1', name: 'Wall framing', parentId: 'f1', editable: false, globalWeight: 1, relativeWeight: 1 }
+  const first = { ...base, id: 'r1a', wbs: '1.1.1', name: 'Room 2301', room: '2301', parentId: 't1', editable: true, handler: 'Sitha' as const, progress: .4, globalWeight: .5, relativeWeight: .5 }
+  const second = { ...base, id: 'r1b', wbs: '1.1.2', name: 'Room 2301', room: '2301', sharedWith: 'r1a', parentId: 't1', editable: true, handler: 'Kheng' as const, progress: .6, globalWeight: .5, relativeWeight: .5 }
+  const activities = [floor, task, first, second]
+  render(<MemoryRouter><Activities projectId="nbc-bp02" activities={activities} baseline={new Map(activities.map((a) => [a.id, a.progress]))} view="activities"/></MemoryRouter>)
+  expect(screen.queryByText(/50\/50/)).toBeNull()
+  const pair = document.querySelector('.nbc-handler-pair') as HTMLElement
+  expect(pair).not.toBeNull()
+  expect(pair.getAttribute('title')).toBe('Sitha, Kheng')
+  const avatars = [...pair.querySelectorAll('.nbc-av')].map((el) => el.getAttribute('data-initials'))
+  expect(avatars).toEqual(['S', 'K'])
+})

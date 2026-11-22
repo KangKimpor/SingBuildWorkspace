@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ChevronDown, ChevronRight } from 'lucide-react'
+import { Avatar } from '../ui/Avatar'
 import { MoreMenu } from '../ui/MoreMenu'
 import { StatusPill } from '../ui/StatusPill'
 import { reopenUpdate } from '../actions'
@@ -65,7 +66,7 @@ export function HandlerTable({ projectId, activities, submissions, now }: { proj
           : s || week === current
             ? <StatusPill status={submissionStatus(s, week, activities, now)} time={s?.confirmedAt}/> : <span className="small muted">{missing}</span>
         const rows = [<tr key={handler} className="nbc-handler-row">
-          <td><div className="nbc-handler-name"><span className="nbc-handler-avatar" aria-hidden="true">{handler[0]}</span><button className="nbc-handler-toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${handler}`} onClick={() => setOpen(flip(open, handler))}><span>{handler}</span>{expanded ? <ChevronDown size={14} aria-hidden="true"/> : <ChevronRight size={14} aria-hidden="true"/>}</button>{complete && <span className="nbc-pill" data-status="Complete">Complete</span>}</div></td>
+          <td><div className="nbc-handler-name"><Avatar name={handler} size="md"/><button className="nbc-handler-toggle" aria-expanded={expanded} aria-label={`${expanded ? 'Collapse' : 'Expand'} ${handler}`} onClick={() => setOpen(flip(open, handler))}><span>{handler}</span>{expanded ? <ChevronDown size={14} aria-hidden="true"/> : <ChevronRight size={14} aria-hidden="true"/>}</button>{complete && <span className="nbc-pill" data-status="Complete">Complete</span>}</div></td>
           <td hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">This week</span>{complete ? cell(now_, current, 'Missing') : <Link to={`/projects-progress/${projectId}/update?handler=${handler}`}><span className="sr-only">{handler} this week update · </span>{cell(now_, current, 'Missing')}</Link>}</td>
           <td hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">Last week</span>{prev ? <button className="nbc-linkish" onClick={() => setPeek(prev)}><span className="sr-only">{handler} last week update · </span>{cell(prev, last, 'Missing')}</button> : complete ? cell(undefined, last, 'Missing') : <span className="small muted">Missing</span>}</td>
           <td className="nbc-num" hidden={!expanded}><span className="nbc-handler-meta-label" aria-hidden="true">Changed</span>{now_ ? changedEntries(now_.entries).length : '—'}</td>

@@ -1,26 +1,24 @@
-import { ChevronLeft, CloudAlert, CloudCheck, CloudOff, CloudUpload, HardDrive, Search, Settings, X } from 'lucide-react'
+import { ChevronLeft, Search, Settings, X } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Glass } from '@/components/glass/Glass'
 import { GlassPopover } from '@/components/glass/GlassPopover'
-import { useWorkspace } from '@/data'
 import { usePhoneHeaderState } from './phoneHeader'
 import type { PhoneHeader } from './phoneHeader'
+import { SyncGlyph } from './SyncGlyph'
 import { useSyncView } from './TopBar'
 import type { Crumb } from './TopBar'
 
 const ic = { size: 22, strokeWidth: 1.75, 'aria-hidden': true } as const
 
 function SyncButton() {
-  const { offline, sync, tone, text, retry } = useSyncView()
-  const guest = useWorkspace((s) => s.scope === 'guest')
-  const Icon = offline ? CloudOff : sync.kind === 'saving' ? CloudUpload : sync.kind === 'error' ? CloudAlert : guest ? HardDrive : CloudCheck
+  const { sync, state, tone, text, retry } = useSyncView()
   return (
     <GlassPopover
       label="Save status"
       trigger={
-        <button type="button" className="ibtn psync" data-tone={tone} data-testid="sync-pill">
-          <Icon {...ic} />
+        <button type="button" className="ibtn psync" data-tone={tone} data-state={state} data-testid="sync-pill">
+          <SyncGlyph state={state} size={22} />
           <span className="sr-only">{text}</span>
         </button>
       }

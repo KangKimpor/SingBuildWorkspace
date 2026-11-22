@@ -1,7 +1,7 @@
 /* Update Progress: Apple-style polish on the workspace tokens (light and dark follow the theme). */
 .nbc-project:has(.nbc-update:not(.nbc-update-gate)) { height: calc(100dvh - var(--h-topbar) - var(--safe-top)); }
 .canvas:has(.nbc-update:not(.nbc-update-gate)) { padding-bottom: 0; }
-.nbc-update { display: flex; flex: 1; flex-direction: column; gap: 8px; min-height: 0; }
+.nbc-update { display: flex; flex: 1; flex-direction: column; gap: 12px; min-height: 0; }
 .nbc-update > :not(.nbc-wbs-scroll) { flex-shrink: 0; }
 .nbc-update[data-expanded=true] { gap: 6px; }
 .nbc-update > .nbc-wbs-scroll { flex: 1 1 auto; min-height: 8rem; }

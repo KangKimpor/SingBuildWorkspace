@@ -19,6 +19,9 @@ test('lists the seven handlers with the five columns', () => {
   setup()
   expect(screen.getAllByRole('columnheader').map((h) => h.textContent)).toEqual(['Handler', 'This week', 'Last week', 'Changed', 'Contribution'])
   expect(['Sitha', 'Lychhinh', 'Chhorvaon', 'Srun', 'Kheng', 'Vuth', 'Tola'].every((n) => within(screen.getByRole('table')).getByText(n))).toBe(true)
+  const avatars = document.querySelectorAll('.nbc-handler-panel .nbc-av[data-size="md"]')
+  expect(avatars).toHaveLength(7)
+  expect(avatars[0]?.getAttribute('data-initials')).toBe('S')
 })
 
 test('a confirmed current-week update shows Updated and its changed count', () => {

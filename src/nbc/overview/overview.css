@@ -15,7 +15,6 @@
 .nbc-handler-row td:first-child { grid-column: 1 / -1; grid-row: 1; padding-right: 65px; }
 .nbc-handler-name { display: inline-flex; align-items: center; gap: 10px; min-height: 44px; max-width: 100%; border: 0; padding: 0; background: transparent; color: var(--text-primary); font: inherit; font-size: 14px; font-weight: 500; text-align: start; }
 .nbc-handler-toggle > svg { flex: none; color: var(--text-secondary); }
-.nbc-handler-avatar { display: inline-grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 50%; background: var(--bg-hover); color: var(--text-secondary); font-size: 12px; }
 .nbc-handler-row td:nth-child(2) { grid-column: 1; grid-row: 3; }
 .nbc-handler-row td:nth-child(3) { grid-column: 2; grid-row: 3; }
 .nbc-handler-row td:nth-child(4) { grid-column: 3; grid-row: 3; text-align: end; }
@@ -70,10 +69,6 @@
 }
 
 /* Overview: Apple-style polish. Same tokens, so light and dark follow the theme. */
-.nbc-ov-head { display: flex; justify-content: space-between; align-items: flex-end; gap: var(--space-16); flex-wrap: wrap; }
-.nbc-ov-head h2 { margin: 0; font-size: 40px; line-height: 46px; font-weight: 700; letter-spacing: -.03em; }
-.nbc-ov-head p { margin: 2px 0 0; }
-.nbc-ov-head .btn-secondary { border: 0; background: var(--status-neutral-bg); border-radius: var(--radius-pill); padding: 9px 18px; font-weight: 500; }
 .nbc-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 .nbc-kpi { display: grid; gap: 2px; align-content: start; padding: 16px 18px; border-radius: 20px; background: var(--bg-raised); box-shadow: 0 0 0 .5px var(--border-subtle), 0 2px 12px rgb(0 0 0 / .05); min-width: 0; }
 .nbc-kpi-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
@@ -131,7 +126,79 @@
 .nbc-handler-toggle { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; border: 0; background: transparent; padding: 0; color: inherit; font: inherit; text-align: start; }
 
 /* Progress curve: drawn at its real width, quiet grid, soft area under the actual line. */
-.nbc-trend-plot { width: 100%; min-width: 0; }
+.nbc-trend-plot { position: relative; width: 100%; min-width: 0; }
 .nbc-trend svg { max-width: 100%; margin-top: 8px; color: var(--text-primary); }
 .nbc-trend-axis { font: 11px var(--font-sans); fill: var(--text-secondary); font-variant-numeric: tabular-nums; }
 .nbc-trend-chip { font: 600 11px var(--font-sans); font-variant-numeric: tabular-nums; }
+.nbc-trend-hit { cursor: pointer; }
+.nbc-trend svg circle { cursor: pointer; transition: r 120ms ease, stroke-width 120ms ease; }
+.nbc-trend-tip {
+  position: absolute;
+  z-index: 6;
+  pointer-events: none;
+  min-width: 148px;
+  padding: 8px 11px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.96);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.10), 0 0 0 0.5px rgb(0 0 0 / 0.08);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  transform: translate(-50%, -100%);
+  transition: left 110ms cubic-bezier(0.22, 1, 0.36, 1), top 110ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.nbc-trend-tip[data-placement='below'] {
+  transform: translate(-50%, 0);
+}
+.nbc-trend-tip-week {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.nbc-trend-tip-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+.nbc-trend-tip-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--accent);
+}
+.nbc-trend-tip-dot[data-series='plan'] {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--text-secondary);
+}
+.nbc-trend-tip-pct {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+}
+.nbc-trend-tip-delta {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.nbc-trend-tip-delta[data-sign='up'] { color: var(--success-text); }
+.nbc-trend-tip-delta[data-sign='down'] { color: var(--danger-text); }
+.nbc-trend-tip-plan {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nbc-trend svg circle, .nbc-trend-tip { transition: none; }
+}

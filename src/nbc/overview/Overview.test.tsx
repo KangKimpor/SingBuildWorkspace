@@ -10,6 +10,7 @@ const show = () => render(<MemoryRouter><Overview project={fixtureProject} activ
 
 test('headline numbers compare actual progress with the contract plan and deadline', () => {
   show()
+  expect(screen.queryByRole('heading', { name: 'Overview' })).toBeNull()
   const kpis = within(screen.getByRole('region', { name: 'Project snapshot' }))
   expect(kpis.getByText('Overall progress')).toBeTruthy()
   expect(kpis.getByText('20 Jun 2026')).toBeTruthy()

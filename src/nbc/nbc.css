@@ -27,13 +27,6 @@ html[data-nbc] button:active { transform: scale(.98); transition-duration: var(-
 html[data-nbc] .glass { background-color: var(--surface-raised); }
 html[data-nbc] .sidebar { background-color: var(--surface-sidebar); }
 html[data-nbc] .topbar { background: var(--surface-canvas); border-bottom: 0; }
-html[data-nbc] .topbar [data-testid=sync-pill] { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 20px; padding: 0 8px; font-size: 11px; border-radius: 6px; border: 0; background: var(--status-neutral-bg); color: var(--text-primary); }
-html[data-nbc] .topbar [data-tone=success] { background: var(--status-success-bg); color: var(--text-primary); }
-html[data-nbc] .topbar [data-tone=warn] { background: var(--status-warning-bg); color: var(--text-primary); }
-html[data-nbc] .topbar [data-tone=error] { background: var(--status-danger-bg); color: var(--text-primary); }
-html[data-nbc] .topbar [data-testid=sync-pill] > span:not(.dot) { animation: precision-fade var(--dur-fast) var(--ease-standard); }
-html[data-nbc] .dot { animation: none; width: 6px; height: 6px; border-radius: 999px; background: var(--status-success); }
-html[data-nbc] .sync-check path { stroke-dasharray: 24; animation: precision-check var(--dur-base) var(--ease-enter); }
 html[data-nbc] .nav-projects .nav-item[aria-current=page] { background: var(--accent-selection); color: var(--accent-blue); border-radius: 8px; }
 html[data-nbc] .scrim { background: var(--scrim); backdrop-filter: none; }
 html[data-nbc] :is(.bsheet,.rsheet,.drawer,[role=dialog]) { box-shadow: 0 0 0 1px var(--border-subtle),0 6px 16px rgb(15 15 15 / 12%); }
@@ -85,8 +78,9 @@ html[data-nbc] .canvas { padding-top: 0; }
   html[data-nbc] :is(.btn-accent,.btn-secondary,.glass-select) { min-height: 44px; }
 }
 
-/* One toolbar row above both progress tables: shared height, gap and search width. */
-.nbc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; min-width: 0; }
+/* One toolbar row above both progress tables: shared height, gap and search width.
+   Vertical row-gap matches `.nbc-project` (12px) so header, view tabs, floor bar, and filter line share one uniform rhythm. */
+.nbc-filters { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 8px; min-width: 0; }
 .nbc-filters .search-field { flex: 1 1 180px; max-width: 260px; min-width: 0; }
 .nbc-filters .glass-select { border-color: var(--pp-line-strong); background: var(--pp-l3); }
 .nbc-filters .glass-select:hover { border-color: var(--pp-ink-muted); }
@@ -134,8 +128,8 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-project-header p { color: var(--pp-ink-2); }
 .nbc-project .nbc-export-button { min-height: 32px; padding: 0 12px; border: 1px solid var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink); font-size: 13px; font-weight: 500; }
 .nbc-project .nbc-export-button:hover:not(:disabled) { background: var(--pp-wash); }
-/* Toolbar: one wrapping row of 32px controls with 6px corners. */
-.nbc-filters { gap: 8px; }
+/* Toolbar: one wrapping row of 32px controls with 6px corners, 12px vertical rhythm across stacked rows. */
+.nbc-filters { gap: 12px 8px; }
 .nbc-filters .search-field { min-width: 170px; min-height: 32px; border-color: var(--pp-line-strong); border-radius: 6px; background: var(--pp-l3); color: var(--pp-ink-2); }
 .nbc-filters .search-field:hover { border-color: var(--pp-ink-muted); }
 .nbc-filters .search-field input { color: var(--pp-ink); font-size: 13px; }

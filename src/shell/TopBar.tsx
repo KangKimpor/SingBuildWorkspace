@@ -1,4 +1,4 @@
-import { Check, PanelLeft, Search, WifiOff } from 'lucide-react'
+import { PanelLeft, Search } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import {Glass} from '@/components/glass/Glass'
 import { useSyncStatus, useWorkspace } from '@/data'
@@ -6,6 +6,8 @@ import { modKey, useShell } from './store'
 import type { Breakpoint } from './store'
 import { useWorkspaceUI } from './workspace'
 import { Link } from 'react-router-dom'
+import { SyncGlyph } from './SyncGlyph'
+import type { SyncVisualState } from './SyncGlyph'
 
 const ic = { size: 18, strokeWidth: 1.75 } as const
 
@@ -44,20 +46,34 @@ export interface Crumb {
 export function useSyncView() {
   const online = useOnline()
   const sync = useSyncStatus()
+  const guest = useWorkspace((s) => s.scope === 'guest')
   const offline = !online || sync.kind === 'offline'
+  const state: SyncVisualState = offline
+    ? 'offline'
+    : sync.kind === 'saving'
+      ? 'saving'
+      : sync.kind === 'error'
+        ? 'error'
+        : guest
+          ? 'local'
+          : 'saved'
   const tone = offline ? 'warn' : sync.kind === 'saving' ? 'busy' : sync.kind === 'error' ? 'error' : 'success'
-  const text = offline ? 'Offline' : sync.kind === 'saved'
-    ? useWorkspace.getState().scope === 'guest' ? 'Demo · local' : 'Saved to cloud'
-    : sync.kind === 'saving' ? 'Saving' : 'Error'
-  const icon = offline ? <WifiOff size={12} aria-hidden="true"/> : sync.kind === 'saved' ? <Check className="sync-check" size={12} aria-hidden="true"/> : <span className="dot" aria-hidden="true" />
-  const retry = sync.kind === 'error' && online ? () => void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false)) : undefined
-  return { online, sync, offline, tone, text, icon, retry }
+  const pending = sync.kind === 'offline' ? sync.pending : 0
+  const text = offline
+    ? pending > 0 ? `Offline · ${pending} pending` : 'Offline'
+    : sync.kind === 'saved'
+      ? guest ? 'Demo · local' : 'Saved to cloud'
+      : sync.kind === 'saving' ? 'Saving…' : 'Sync failed'
+  const icon = <SyncGlyph state={state} size={17} />
+  const retry = sync.kind === 'error' ? () => void import('@/data/sync').then(({ syncWorkspace }) => syncWorkspace(false)) : undefined
+  return { online, sync, offline, state, tone, text, icon, retry }
 }
 
 export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
   // Project Progress keeps its top bar to the breadcrumb and save status; search stays on the keyboard shortcut.
   const progressScreen = crumb.parent === 'Projects Progress'
-  const { online, sync, tone, text, icon, retry } = useSyncView()
+  const { sync, tone, retry } = useSyncView()
+  const syncFailed = sync.kind === 'error'
   const compact = bp === 'compact'
   const scrolled = useScrolled(48)
   const { sidebarOpen, setSidebarOpen, setDrawerOpen } = useShell()
@@ -112,18 +128,24 @@ export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
       </nav>
 
       <div className="actions">
-        <span
-          className="pill"
-          role="status"
-          data-tone={tone}
-          title={sync.kind === 'error' ? sync.reason : undefined}
-          aria-label={sync.kind === 'error' ? `Save failed: ${sync.reason}` : undefined}
-          data-testid="sync-pill"
-        >
-          {icon}
-          <span key={!online?'offline':sync.kind}>{text}</span>
-          {retry && <button className="text-link small" onClick={retry}>Retry</button>}
-        </span>
+        {syncFailed && (
+          <span
+            className="sync-pill"
+            role="status"
+            data-tone={tone}
+            data-state="error"
+            title={sync.reason}
+            aria-label={`Sync failed: ${sync.reason}`}
+            data-testid="sync-pill"
+          >
+            <span className="sync-pill-icon" aria-hidden="true">
+              <SyncGlyph state="error" size={17} />
+            </span>
+            <button type="button" className="sync-retry" onClick={retry}>
+              Retry
+            </button>
+          </span>
+        )}
         {!progressScreen && (
           <button
             type="button"

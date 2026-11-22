@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { ProjectSummary } from '@/data'
 import { calculate } from '../progress'
 import { handlerComplete } from '../handlers'
-import { addDays, weekLabel, weekStart } from '../submissions'
+import { addDays, weekStart } from '../submissions'
 import { percent } from '../format'
 import { daysToCompletion, projectPlan, planDate, plannedProgress } from '../plan'
 import { projectHandlers } from '../types'
@@ -50,7 +50,6 @@ export default function Overview({ project, activities, submissions, summaries, 
   // Phone notes stay on one line in a half-width tile.
   const note = (long: string, short: string) => phone ? short : long
   return <div className="nbc-overview">
-    {!phone && <header className="nbc-ov-head"><div><h2>Overview</h2><p className="small muted">{weekLabel(current)}</p></div></header>}
     <section className="nbc-kpis" aria-label="Project snapshot">
       <div className="nbc-kpi"><span className="nbc-kpi-label">Overall progress</span><strong className="nbc-kpi-value">{percent(overall)}</strong><span className="small muted">{thisWeek ? `${thisWeek.overall >= thisWeek.previous ? '+' : '−'}${pts(thisWeek.overall - thisWeek.previous)} this week` : lastWeek ? `Last week ${percent(lastWeek.overall)}` : note('No confirmed week yet', 'No confirmed week')}</span></div>
       <div className="nbc-kpi"><span className="nbc-kpi-label">Versus plan</span>{gap === null || planned === null ? <><strong className="nbc-kpi-value">No plan</strong><span className="small muted">{note('No planned curve supplied', 'No planned curve')}</span></> : <><strong className="nbc-kpi-value" data-tone={gap < -0.04 ? 'bad' : gap < -0.01 ? 'warn' : 'ok'}>{percent(Math.abs(gap))} {gap < 0 ? 'behind' : 'ahead'}</strong><span className="small muted">{note(`Plan: ${percent(planned)} by now`, `Plan ${percent(planned)}`)}</span></>}</div>
