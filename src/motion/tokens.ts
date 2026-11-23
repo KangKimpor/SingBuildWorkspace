@@ -17,11 +17,6 @@ export const EASE = {
   exit: [0.4, 0, 1, 1],
 } as const
 
-export const EASE_CSS = {
-  standard: 'cubic-bezier(0.2, 0, 0, 1)',
-  enter: 'cubic-bezier(0, 0, 0.2, 1)',
-  exit: 'cubic-bezier(0.4, 0, 1, 1)',
-} as const
 
 export const SPRING = {
   snappy: { type: 'spring', stiffness: 520, damping: 34 },

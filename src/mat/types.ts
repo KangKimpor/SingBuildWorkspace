@@ -14,13 +14,6 @@ export type ColKey = 'no' | 'pic' | 'bp02' | 'code' | 'description' | 'location'
   | 'poPlan' | 'poActual' | 'arrPlan' | 'arrActual' | 'procRemarks' | 'unit' | 'lastUpdated'
 
 export const SOURCE_COLS = ['no', 'code', 'description', 'pic', 'bp02', 'location', 'spec', 'brand', 'source'] as const
-export const DATE_COLS = [
-  'msPlan', 'msActual', 'msApproved',
-  'ssPlan', 'ssActual', 'ssApproved',
-  'poPlan', 'poActual', 'arrPlan', 'arrActual',
-] as const
-export const INLINE_TEXT_COLS = ['procRemarks', 'unit'] as const
-export const LONG_TEXT_COLS = ['description', 'spec', 'procRemarks'] as const
 export const MS_STATUS_OPTIONS = [
   'Not Yet Submit',
   'Under Review',

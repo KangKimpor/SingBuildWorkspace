@@ -27,7 +27,6 @@ const REPORTS: Record<string, Report> = {
   'nbc-bp03': { number: '03', zoneLabel: 'Zone weight (BOQ R06)', idBlockName: 'Finishing and Furnishing', avArea: 'AV System', subWeight: true, handlerTaskItem: false, areaWidth: 12.5, handlerWidth: 12, overallDescription: 46, mepHeaderHeight: 31.5 },
   'nbc-bp04': { number: '04', zoneLabel: 'Zone weight (BOQ share, Control sheet)', idBlockName: 'Guestroom', subWeight: false, handlerTaskItem: true, areaWidth: 14, handlerWidth: 14, overallDescription: 40, mepHeaderHeight: 43.5 },
 }
-export const hasAreaReport = (projectId: string | undefined) => !!projectId && projectId in REPORTS
 
 const TITLES: Record<Handler, string> = {
   Sitha: 'MR. SITHA - Waterproofing, Screeding, Floor Finishing and Wall Stone / Marble / Tile',

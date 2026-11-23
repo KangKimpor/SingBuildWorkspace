@@ -50,7 +50,7 @@ function useOpenSelection(ref: RefObject<HTMLInputElement | HTMLTextAreaElement 
   }, [ref, selectAll])
 }
 
-export const REMARK_LIMIT = MAX_LONG_TEXT
+const REMARK_LIMIT = MAX_LONG_TEXT
 
 const reason = (e: unknown) => (e instanceof Error && e.message ? e.message : 'Could not save.')
 

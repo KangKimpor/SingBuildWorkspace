@@ -3,9 +3,9 @@ import { initializeSupabase } from '@/lib/supabase'
 import type { ImageSet } from './types'
 
 export const MAX_IMAGES_PER_SET = 10
-export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
-export const MAX_RESIZED_BYTES = 5 * 1024 * 1024
-export const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+const MAX_RESIZED_BYTES = 5 * 1024 * 1024
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
 const MAX_LONG_SIDE = 960
 const SIGNED_TTL_MS = 45 * 60_000
@@ -27,7 +27,7 @@ function canvasToBlob(canvas: HTMLCanvasElement, mime: string, quality: number):
 }
 
 /** Validates image MIME/size and shrinks to max 960 px WebP (with JPEG/raw fallback). */
-export async function resizeImage(file: File): Promise<{ blob: Blob; contentType: string; ext: string }> {
+async function resizeImage(file: File): Promise<{ blob: Blob; contentType: string; ext: string }> {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) throw new Error('Use a JPEG, PNG, or WebP image.')
   if (file.size > MAX_UPLOAD_BYTES) throw new Error('Use an image up to 10 MB.')
 
@@ -91,7 +91,7 @@ export async function deleteMatImages(refs: string[]): Promise<void> {
 }
 
 /** Resolves either a `/mat/` static hash or a private `storage:` ref into a displayable URL. */
-export async function resolveMatImage(ref: string): Promise<string> {
+async function resolveMatImage(ref: string): Promise<string> {
   if (!isStorageRef(ref)) return `/mat/${ref}`
   const cached = urlCache.get(ref)
   if (cached && cached.expiresAt > Date.now()) return cached.url

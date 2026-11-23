@@ -32,7 +32,7 @@ const SHEETS: { id: Tab; label: string }[] = [
 /** MEP rows carry no Person In Charge: the workbook hides the column and the tracker leaves it out. */
 const MEP_OMIT: ReadonlySet<string> = new Set(['pic'])
 /** The workbook legend (W1:W3): green, beige and yellow rows. */
-export const MARKS: Record<Mark, string> = MARK_LABELS
+const MARKS: Record<Mark, string> = MARK_LABELS
 const SAVE_TEXT: Record<SaveStatus, string> = { idle: '', saving: 'Saving…', saved: 'Saved', error: 'Could not save' }
 /** The app's pill carries the dot color; this page adds the error chip on top of it. */
 const SAVE_TONE: Record<SaveStatus, string> = { idle: 'success', saving: 'busy', saved: 'success', error: 'error' }

@@ -24,7 +24,7 @@ import { remarkKey } from './store'
 import { MARK_LABELS, PCT_CELLS } from './types'
 import type { CellKey, ColKey, EditableColKey, MatItem, Team } from './types'
 
-export { codeOf, formatCol } from './formulas'
+
 
 export type ColumnView = 'all' | 'details' | 'submission' | 'procurement' | 'remarks'
 export const COLUMN_VIEWS: { id: ColumnView; label: string }[] = [
@@ -65,7 +65,7 @@ const remark = (team: Team, week: RemarkWeek, group: string): Column =>
 const MS = 'Material Submission', SS = 'Sample Submission', PROC = 'Procurement', QTY = 'Quantity', PCT = 'Percentage'
 const PM = 'PM Remarks'
 /** The workbook's columns, left to right. The first three stay frozen while scrolling sideways. */
-export const COLUMNS: Column[] = [
+const COLUMNS: Column[] = [
   col('no', 'No', 48, undefined, { source: true }),
   col('code', 'Code', 96, undefined, { source: true }),
   col('description', 'Description', 240, undefined, { long: true, source: true }),
@@ -156,7 +156,7 @@ function buildViewConfig(view: ColumnView, omit?: ReadonlySet<string>): ViewConf
 }
 
 /** A section's name is the first five columns joined. */
-export const sectionLabel = (item: MatItem) =>
+const sectionLabel = (item: MatItem) =>
   (['no', 'pic', 'bp02', 'code', 'description'] as const).map((k) => formatCol(item.data.cols[k])).filter(Boolean).join(' ') || 'Section'
 
 /** The last pos a section covers: `data.end`, else the row before the next section. */

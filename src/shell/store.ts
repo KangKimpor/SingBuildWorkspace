@@ -10,7 +10,7 @@ export function breakpointFor(width: number): Breakpoint {
   return 'large'
 }
 
-export const SIDEBAR_WIDTH = 264
+const SIDEBAR_WIDTH = 264
 
 export type SheetKind = 'quick-add' | null
 
@@ -36,6 +36,6 @@ export const useShell = create<ShellState>((set) => ({
   setSheet: (sheet) => set({ sheet }),
 }))
 
-export const isMac = () =>
+const isMac = () =>
   /Mac|iPhone|iPad/.test(navigator.platform) || /Mac/.test(navigator.userAgent)
 export const modKey = () => (isMac() ? '⌘' : 'Ctrl')

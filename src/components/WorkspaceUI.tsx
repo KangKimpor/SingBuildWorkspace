@@ -127,20 +127,6 @@ export function Badge({
     </span>
   )
 }
-export function SectionTitle({
-  children,
-  action,
-}: {
-  children: ReactNode
-  action?: ReactNode
-}) {
-  return (
-    <div className="section-title">
-      <h2>{children}</h2>
-      {action}
-    </div>
-  )
-}
 export function ProjectCard({ project }: { project: ProjectSummary }) {
   return (
     <Link

@@ -1,4 +1,4 @@
-export { Glass, useSheen } from './Glass'
+export { Glass,  } from './Glass'
 export type { GlassProps, Material } from './Glass'
 export { GlassPanel } from './GlassPanel'
 export { GlassButton } from './GlassButton'

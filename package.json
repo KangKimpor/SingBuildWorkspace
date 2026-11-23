@@ -12,10 +12,6 @@
     "test:e2e": "playwright test",
     "test:a11y": "playwright test e2e/a11y.spec.ts",
     "icons": "node scripts/icons.mjs",
-    "figma:screens": "node scripts/figma-screens.mjs",
-    "figma:prep": "node scripts/figma-prep.mjs",
-    "figma:plugin": "node scripts/figma-plugin-build.mjs",
-    "figma:serve": "node scripts/figma-serve.mjs",
     "lint": "oxlint src --react-plugin --jsx-a11y-plugin -D correctness -A react/purity -A react/set-state-in-effect -A jsx-a11y/prefer-tag-over-role -A jsx-a11y/no-autofocus",
     "perf:bp02": "playwright test -c playwright.perf.config.ts"
   },
@@ -23,7 +19,6 @@
     "@blocknote/ariakit": "0.56.0",
     "@blocknote/core": "0.56.0",
     "@blocknote/react": "0.56.0",
-    "@date-fns/tz": "1.5.0",
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/sortable": "10.0.0",
     "@dnd-kit/utilities": "3.2.2",

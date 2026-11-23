@@ -21,7 +21,7 @@ const sameList = (a: string[], b: string[]) => a.length === b.length && a.every(
  *
  * A workbook re-import bumps `updatedAt` but leaves `changedWeek` alone, so it marks nothing.
  */
-export function changedColumns(item: MatItem, remarks: Record<string, string>, week: string): ReadonlySet<string> {
+function changedColumns(item: MatItem, remarks: Record<string, string>, week: string): ReadonlySet<string> {
   if (item.kind !== 'item') return NONE
   const out = new Set<string>()
   if (item.changedWeek === week) {
@@ -53,11 +53,6 @@ export function changedCells(items: MatItem[], remarks: Record<string, string>, 
     if (cols.size) byItem.set(item.id, cols)
   }
   return byItem
-}
-
-/** Items with at least one change this week. */
-export function changedItemIds(items: MatItem[], remarks: Record<string, string>, week: string): ReadonlySet<string> {
-  return new Set(changedCells(items, remarks, week).keys())
 }
 
 /** Formatted value a changed cell held at the start of the week (`weekEdits`), for the indicator tooltip. */

@@ -9,7 +9,7 @@ import { changedEntries } from '../submissions'
 import { parseProgress } from '../progress'
 import type { Handler, NbcActivity, NbcSubmission, SubmissionEntry } from '../types'
 
-export const formatPercent = (progress: number) => String(Number((progress * 100).toFixed(8)))
+const formatPercent = (progress: number) => String(Number((progress * 100).toFixed(8)))
 export type DraftStatus = 'saved' | 'saving' | 'local' | 'error'
 
 interface Args { projectId: string; week: string; handler: Handler; activities: NbcActivity[]; submission?: NbcSubmission }

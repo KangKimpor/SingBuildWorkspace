@@ -135,6 +135,3 @@ export function persist(scope: string, content: Content, previous: Content) {
     )
   return writeQueue
 }
-export async function flushLocal() {
-  await writeQueue
-}

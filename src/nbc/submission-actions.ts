@@ -57,7 +57,7 @@ export function saveDraft(week: string, handler: Handler, entries: SubmissionEnt
   saveDraftBatch(week, [{ handler, entries, note }], projectId)
 }
 /** Validate every handler before one local/offline-queue commit. */
-export function saveDraftBatch(week: string, updates: { handler: Handler; entries: SubmissionEntry[]; note: string }[], projectId: string) {
+function saveDraftBatch(week: string, updates: { handler: Handler; entries: SubmissionEntry[]; note: string }[], projectId: string) {
   if (new Set(updates.map(u => u.handler)).size !== updates.length) throw new Error('Duplicate handler draft.')
   const drafts = updates.map(u => buildDraft(week, u.handler, u.entries, u.note, projectId))
   const ids = new Set(drafts.map(d => d.id)), state = useWorkspace.getState()
@@ -203,4 +203,4 @@ async function operate(week: string, handler: Handler, operation: SubmissionOper
 export const confirmUpdate = (week: string, handler: Handler, projectId = 'nbc-bp03') => operate(week, handler, 'confirm', projectId)
 export const reopenUpdate = (week: string, handler: Handler, projectId = 'nbc-bp03') => operate(week, handler, 'reopen', projectId)
 export const deleteUpdate = (week: string, handler: Handler, projectId = 'nbc-bp03') => operate(week, handler, 'delete', projectId)
-export const undoConfirm = (week: string, handler: Handler, projectId = 'nbc-bp03') => operate(week, handler, 'undo', projectId)
+const undoConfirm = (week: string, handler: Handler, projectId = 'nbc-bp03') => operate(week, handler, 'undo', projectId)

@@ -29,7 +29,7 @@ export function useSpringPress(options: { disabled?: boolean } = {}) {
 }
 
 export type Detent = 'medium' | 'large'
-export const DETENTS: Record<Detent, number> = { medium: 0.5, large: 0.92 }
+const DETENTS: Record<Detent, number> = { medium: 0.5, large: 0.92 }
 
 /**
  * Bottom-sheet drag: medium (50%) and large (92%) detents, rubber-banding, velocity-based dismissal (§11, §12).

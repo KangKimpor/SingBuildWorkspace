@@ -15,7 +15,7 @@ import type {
   WorkspacePage,
 } from './types'
 export * from './types'
-export { dateKey, relativeDate } from './seed'
+export { dateKey,  } from './seed'
 export type { Content } from './persistence'
 
 export interface Workspace extends Content {
@@ -50,7 +50,7 @@ export const emptyContent: Content = {
   scratchpad: '',
   taskViews: [],
 }
-export const sampleContent: Content = {
+const sampleContent: Content = {
   taskViews: [],
   pages: pageSeed,
   projects: projectSeed,

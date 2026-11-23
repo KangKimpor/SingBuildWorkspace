@@ -90,7 +90,7 @@ function stripRequirements(doc: Document, read: (cell: Element | undefined) => s
 }
 
 /** Shared read-only validation; only supported weight arithmetic is evaluated. */
-export function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[]) {
+function readNbcWorkbook(template: Uint8Array, activities: NbcActivity[]) {
   if (!activities.length) throw new Error('There are no BOQ activities to export.')
   if (template.byteLength > MAX_TEMPLATE_BYTES) throw new Error('Choose an XLSX template up to 10 MB.')
   let expanded = 0

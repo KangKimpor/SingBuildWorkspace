@@ -39,7 +39,7 @@ export const BP04_PLAN: NbcPlan = {
  * "2. & 5. BP-02 Weekly 64 - 15 Nov - 21 Nov 2026.xlsx". Only these dates and ratios are used. The report's dates are real 2025-2026
  * dates, so no year alignment is applied. The 0% point on the commencement date anchors the curve.
  */
-export const BP02_PLAN: NbcPlan = {
+const BP02_PLAN: NbcPlan = {
   commencement: '2025-09-01', completion: '2026-06-20', source: 'BP-02 weekly report no. 64',
   points: [
     ['2025-09-01', 0], ['2025-09-14', 0.01], ['2025-09-21', 0.02], ['2025-09-28', 0.03], ['2025-10-05', 0.04],

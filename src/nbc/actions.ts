@@ -2,9 +2,9 @@ import { useWorkspace } from '@/data'
 import { useAccount, reassignNbcActivities } from '@/data/sync'
 import { projectHandlers } from './types'
 import type { Handler, NbcActivity } from './types'
-export { saveDraft, confirmUpdate, undoConfirm, reopenUpdate, deleteUpdate } from './submission-actions'
+export { saveDraft, confirmUpdate,  reopenUpdate, deleteUpdate } from './submission-actions'
 
-export const sharedHalfIds = (activities: readonly NbcActivity[]) => new Set(activities.flatMap((a) => a.coOf ? [a.id, a.coOf] : []))
+const sharedHalfIds = (activities: readonly NbcActivity[]) => new Set(activities.flatMap((a) => a.coOf ? [a.id, a.coOf] : []))
 const isSharedHalf = (activities: readonly NbcActivity[], ids: string[]) => { const shared = sharedHalfIds(activities); return ids.some((id) => shared.has(id)) }
 
 export function assignActivities(ids: string[], handler: string) {
