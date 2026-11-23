@@ -94,32 +94,6 @@
   display: block;
   flex-shrink: 0;
 }
-.account-connecting-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-8);
-  width: 100%;
-  margin-top: var(--space-12);
-  padding: var(--space-8) var(--space-16);
-  background: var(--chip-blue);
-  color: var(--accent-text);
-  border-radius: var(--radius-control);
-  font-size: var(--fs-small);
-  font-weight: 500;
-}
-.account-spinner {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid currentColor;
-  border-right-color: transparent;
-  animation: account-spin 0.75s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes account-spin {
-  to { transform: rotate(360deg); }
-}
 .account-form-footer {
   display: flex;
   align-items: flex-start;

@@ -143,17 +143,24 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
       </div>
     )
   const Heading = standalone ? 'h1' : 'h2'
+  const googleLabel = busy === 'google'
+    ? 'Opening Google…'
+    : loading
+      ? 'Connecting…'
+      : 'Continue with Google'
   return (
     <div className="account-auth-layout">
       <section
-        className="account-auth-card flat-card"
+        className={standalone ? 'account-auth-card' : 'account-auth-card flat-card'}
         aria-label="Workspace authentication"
       >
         <header className="account-form-heading">
           <Heading>Welcome</Heading>
-          <p className="account-form-sub">
-            Sign in with your @{ALLOWED_EMAIL_DOMAIN} Google account to sync your projects, tasks, and workbooks across devices.
-          </p>
+          {!standalone && (
+            <p className="account-form-sub">
+              Sign in with your @{ALLOWED_EMAIL_DOMAIN} Google account to sync your projects, tasks, and workbooks across devices.
+            </p>
+          )}
         </header>
         {notice}
         <button
@@ -162,19 +169,15 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
           onClick={() => void run('google', google)}
         >
           <GoogleMark />
-          {busy === 'google' ? 'Opening Google…' : 'Continue with Google'}
+          {googleLabel}
         </button>
-        {loading && (
-          <div className="account-connecting-pill" role="status">
-            <span className="account-spinner" aria-hidden="true" />
-            <span>Connecting to your account…</span>
-          </div>
-        )}
         {!loading && !supabase && <p className="account-notice account-error" role="alert">Account services are unavailable. Please try again shortly.</p>}
-        <footer className="account-form-footer">
-          <LockKeyhole size={14} />
-          <span>Your work is private to your account and syncs across your devices.</span>
-        </footer>
+        {!standalone && (
+          <footer className="account-form-footer">
+            <LockKeyhole size={14} />
+            <span>Your work is private to your account and syncs across your devices.</span>
+          </footer>
+        )}
       </section>
     </div>
   )

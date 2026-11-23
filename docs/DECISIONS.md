@@ -369,3 +369,11 @@ On the project Overview (`src/nbc/Trend.tsx`, `src/nbc/overview/overview.css`): 
 1. **Sidebar (`src/shell/SidebarContent.tsx`, `src/styles/stitch.css`).** Removed the header Search button, its collapsible "Filter projects" drawer, the filter state and the empty-state line. The header now holds only the logo, the full **SingBuild Workspace** name (no longer truncated) and the collapse button.
 2. **Search boxes.** Removed the `/` keyboard hint chip from every search field (Project Progress, Update Progress, Issues, Material). The `/` shortcut itself still focuses the field. Placeholders and accessible names are now short and consistent: `Search activity` (Project Progress, Update Progress, phone), `Search issues`, `Search material`.
 3. **Progress curve tooltip (`src/nbc/Trend.tsx`).** The hover tooltip drops the triangle glyph and shows the signed change (`+1.39%`), matching the table pills from D-52.
+
+## D-54 Minimal SingBuild sign-in gate - November 23, 2026
+
+The signed-out `AuthGate` now matches the reference SingBuild welcome screen (`src/components/AuthGate.tsx`, `src/components/account-settings.css`, `src/components/auth-gate.css`):
+
+1. **Flat page, no card chrome (`src/components/auth-gate.css`).** Removed the dotted canvas and the bordered/shadowed auth card on the gate: white page, brand header at 32/40 px, a centered 456 px column, 40 px bold `Welcome`, and a 50 px bordered Google button at `16px` medium. The page keeps the header/main/footer grid, so the footer sits at the bottom.
+2. **Standalone variant is copy-minimal (`src/components/AccountSettings.tsx`).** The `standalone` card drops the domain subtitle, the privacy footer and the connecting pill; loading is reported in the button label (`Connecting…`) and errors stay in the notice. The Settings account card (non-standalone) keeps its subtitle, privacy footer and 20 px mobile padding, which the mobile-spacing e2e test asserts.
+3. **Accessibility (`src/components/auth-gate.css`).** The footer uses `--text-secondary` rather than `--c-gray` so axe-core color-contrast passes; the button hover is re-declared at gate specificity so it is not overridden by the base auth-card stylesheet.

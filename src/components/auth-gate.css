@@ -2,30 +2,28 @@
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  background-color: var(--bg-canvas);
-  background-image: radial-gradient(rgb(55 53 47 / 0.07) 1px, transparent 1px);
-  background-size: 24px 24px;
+  background: var(--bg-canvas);
 }
 
 .auth-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 28px 36px;
+  padding: 32px 40px;
 }
 
 .auth-brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  font-weight: 650;
-  font-size: 16px;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 17px;
   color: var(--text-primary);
-  letter-spacing: -0.015em;
+  letter-spacing: -0.02em;
 }
 
 .auth-brand img {
-  border-radius: 6px;
+  border-radius: 5px;
 }
 
 .auth-main {
@@ -43,46 +41,77 @@
 }
 
 .auth-main .account-auth-card {
-  width: min(400px, 100%);
-  padding: 36px 32px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  background: var(--bg-raised);
-  box-shadow: 0 1px 2px rgb(15 15 15 / 0.04), 0 14px 34px -4px rgb(15 15 15 / 0.08);
+  width: min(456px, 100%);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .auth-main h1 {
-  margin: 0 0 6px;
-  font-size: 28px;
-  font-weight: 650;
-  line-height: 1.25;
+  margin: 0 0 40px;
+  font-size: 40px;
+  font-weight: 700;
+  line-height: 1.2;
   letter-spacing: -0.025em;
   text-align: center;
   color: var(--text-primary);
 }
 
 .auth-main .account-form-heading {
-  margin-bottom: 24px;
+  margin-bottom: 0;
   text-align: center;
+}
+
+.auth-main .account-google {
+  min-height: 50px;
+  padding: 0 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--bg-raised);
+  font-size: 16px;
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  box-shadow: 0 1px 2px rgb(15 15 15 / 0.06);
+}
+
+.auth-main .account-google .google-mark-svg {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-main .account-notice {
+  margin-top: 16px;
 }
 
 .auth-footer {
   text-align: center;
-  padding: 24px;
+  padding: 28px 24px;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .auth-main .account-google:hover {
+    background: var(--bg-hover);
+  }
 }
 
 @media (max-width: 767px) {
   .auth-header {
-    padding: calc(16px + var(--safe-top)) max(16px, var(--safe-right)) 12px max(16px, var(--safe-left));
+    padding: calc(16px + var(--safe-top)) max(20px, var(--safe-right)) 12px max(20px, var(--safe-left));
   }
   .auth-main {
     padding: 16px max(16px, var(--safe-right)) 16px max(16px, var(--safe-left));
   }
   .auth-main .account-auth-card {
     padding: 20px;
+  }
+  .auth-main h1 {
+    margin-bottom: 28px;
+    font-size: 32px;
   }
   .auth-footer {
     padding: 16px max(16px, var(--safe-right)) calc(16px + var(--safe-bottom)) max(16px, var(--safe-left));
