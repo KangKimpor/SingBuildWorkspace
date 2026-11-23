@@ -188,11 +188,6 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
         animate={standalone && !reduced ? { y: 0, scale: 1 } : undefined}
         transition={SHEET_SPRING}
       >
-        {standalone && (
-          <div className="auth-medallion" aria-hidden="true">
-            <img src="/brand/favicon.svg" alt="" width={34} height={34} />
-          </div>
-        )}
         <header className="account-form-heading">
           <Heading>Welcome</Heading>
           <p className="account-form-sub">
