@@ -12,7 +12,6 @@ export default function Settings() {
       <header className="page-heading">
         <div>
           <h1 className="t-title">Settings</h1>
-          <p className="muted">A workspace that feels like yours.</p>
         </div>
       </header>
       <div className="settings-content">

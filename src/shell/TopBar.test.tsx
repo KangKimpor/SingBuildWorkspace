@@ -51,8 +51,8 @@ describe('TopBar', () => {
     expect(screen.getByRole('button', { name: 'Retry' })).toBeTruthy()
   })
 
-  test('keeps the sidebar drawer button on tablet and command palette on non-progress screens without a breadcrumb', () => {
-    const { rerender } = render(
+  test('keeps the sidebar drawer button on tablet and command palette on non-progress, non-settings screens without a breadcrumb', () => {
+    const { container, rerender } = render(
       <MemoryRouter>
         <TopBar crumb={{ label: 'NBC BP03 – Pan Pacific Hotel', parent: 'Projects Progress' }} bp="medium" />
       </MemoryRouter>,
@@ -64,6 +64,14 @@ describe('TopBar', () => {
     rerender(
       <MemoryRouter>
         <TopBar crumb={{ label: 'Settings' }} bp="expanded" />
+      </MemoryRouter>,
+    )
+    expect(container.querySelector('.topbar')).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Open command palette' })).toBeNull()
+
+    rerender(
+      <MemoryRouter>
+        <TopBar crumb={{ label: 'Workspace' }} bp="expanded" />
       </MemoryRouter>,
     )
     expect(screen.queryByRole('button', { name: 'Open sidebar' })).toBeNull()
