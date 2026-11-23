@@ -58,18 +58,23 @@ for (const width of [320, 393, 820, 1180, 1920]) {
 }
 
 for (const scheme of ['light'] as const) {
-  test(`Google sign-in accessibility in ${scheme}`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme: scheme })
-    await page.setViewportSize({ width: 393, height: 852 })
-    await page.goto('/settings/account')
-    await expect(
-      page.getByRole('button', { name: 'Continue with Google', exact: true }),
-    ).toBeVisible()
-    const result = await new AxeBuilder({ page }).analyze()
-    expect(
-      result.violations
-        .filter((v) => ['serious', 'critical'].includes(v.impact || ''))
-        .map((v) => `${scheme} ${v.id}: ${v.nodes[0]?.target}`),
-    ).toEqual([])
-  })
+  for (const viewport of [
+    { width: 393, height: 852 },
+    { width: 1440, height: 900 },
+  ]) {
+    test(`Google sign-in accessibility in ${scheme} (${viewport.width}x${viewport.height})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme })
+      await page.setViewportSize(viewport)
+      await page.goto('/settings/account')
+      await expect(
+        page.getByRole('button', { name: 'Continue with Google', exact: true }),
+      ).toBeVisible()
+      const result = await new AxeBuilder({ page }).analyze()
+      expect(
+        result.violations
+          .filter((v) => ['serious', 'critical'].includes(v.impact || ''))
+          .map((v) => `${scheme} ${v.id}: ${v.nodes[0]?.target}`),
+      ).toEqual([])
+    })
+  }
 }

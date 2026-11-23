@@ -1,36 +1,209 @@
+/* Apple-inspired translucent Google-only sign-in screen (D-55).
+   Light-only palette aligned with Apple HIG and SingBuild's apple-controls / stitch language. */
+
 .auth-page {
+  --auth-canvas: #f5f5f7;
+  --auth-ink: #1d1d1f;
+  --auth-ink-secondary: #515154;
+  --auth-ink-muted: #5f5f64;
+  --auth-sheet-bg: rgb(255 255 255 / 0.8);
+  --auth-sheet-border: rgb(255 255 255 / 0.92);
+  --auth-hairline: rgb(0 0 0 / 0.07);
+  --auth-cta-bg: #1d1d1f;
+  --auth-cta-hover: #2c2c2e;
+  --auth-cta-active: #121214;
+  --auth-cta-busy: #3a3a3c;
+  --auth-cta-ink: #ffffff;
+  --auth-focus-ring: 0 0 0 4px rgb(0 113 227 / 0.28);
+
+  position: relative;
   min-height: 100dvh;
   display: grid;
   grid-template-rows: auto 1fr auto;
-  background: var(--bg-canvas);
+  overflow-x: clip;
+  background: var(--auth-canvas);
+  color: var(--auth-ink);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
+/* Static, restrained ambient light field behind the translucent sheet (no looping motion). */
+.auth-ambient {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(62% 48% at 50% 18%, rgb(255 255 255 / 0.92) 0%, rgb(255 255 255 / 0) 72%),
+    radial-gradient(38% 36% at 82% 24%, rgb(221 31 38 / 0.045) 0%, rgb(221 31 38 / 0) 74%),
+    radial-gradient(42% 40% at 18% 78%, rgb(0 113 227 / 0.045) 0%, rgb(0 113 227 / 0) 74%);
+}
+
+.auth-header,
+.auth-main,
+.auth-footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* Translucent floating navigation chrome */
 .auth-header {
+  padding: 16px 32px;
+  background: rgb(245 245 247 / 0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  box-shadow: inset 0 -0.5px 0 var(--auth-hairline);
+}
+
+.auth-header-inner {
+  width: min(1080px, 100%);
+  margin: 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 32px 40px;
+  gap: 16px;
 }
 
 .auth-brand {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  font-weight: 700;
-  font-size: 17px;
-  color: var(--text-primary);
+  gap: 9px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.2;
   letter-spacing: -0.02em;
+  color: var(--auth-ink);
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .auth-brand img {
+  display: block;
+  flex-shrink: 0;
   border-radius: 5px;
 }
 
+.auth-header-domain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 0.045);
+  color: var(--auth-ink-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.005em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Optically centered main stage */
 .auth-main {
   display: grid;
   place-items: center;
-  padding: 32px 20px;
+  padding: 36px 24px 56px;
   min-width: 0;
+}
+
+.auth-stage {
+  width: min(432px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  min-width: 0;
+}
+
+/* Desktop editorial workspace intro (hidden below 960px so mobile & portrait tablet stay focused) */
+.auth-intro {
+  display: none;
+  min-width: 0;
+}
+
+.auth-kicker {
+  margin: 0 0 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--auth-ink-muted);
+}
+
+.auth-hero-title {
+  margin: 0;
+  max-width: 16ch;
+  font-size: clamp(2.125rem, 3.1vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.036em;
+  font-optical-sizing: auto;
+  color: var(--auth-ink);
+  text-wrap: balance;
+}
+
+.auth-hero-copy {
+  margin: 16px 0 0;
+  max-width: 40ch;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+  color: var(--auth-ink-secondary);
+}
+
+.auth-highlights {
+  list-style: none;
+  margin: 30px 0 0;
+  padding: 0;
+  border-top: 0.5px solid var(--auth-hairline);
+}
+
+.auth-highlight-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 15px 0;
+  border-bottom: 0.5px solid var(--auth-hairline);
+}
+
+.auth-highlight-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f7f9 100%);
+  color: var(--auth-ink);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.95),
+    0 0 0 0.5px rgb(0 0 0 / 0.08),
+    0 3px 8px -2px rgb(0 0 0 / 0.06);
+}
+
+.auth-highlight-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.auth-highlight-text strong {
+  font-size: 0.90625rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.012em;
+  color: var(--auth-ink);
+}
+
+.auth-highlight-text span {
+  font-size: 0.84375rem;
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: -0.004em;
+  color: var(--auth-ink-secondary);
 }
 
 .auth-main .account-auth-layout {
@@ -40,80 +213,392 @@
   padding: 0;
 }
 
+/* Sculpted frosted glass sign-in sheet */
 .auth-main .account-auth-card {
-  width: min(456px, 100%);
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  width: min(420px, 100%);
+  padding: 40px 36px 30px;
+  border-radius: 28px;
+  background: var(--auth-sheet-bg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--auth-sheet-border);
+  box-shadow:
+    0 0 0 0.5px rgb(0 0 0 / 0.06),
+    0 24px 48px -12px rgb(0 0 0 / 0.08),
+    0 4px 12px -2px rgb(0 0 0 / 0.04);
+}
+
+/* Signature Apple app-icon medallion */
+.auth-medallion {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff 0%, #f5f5f7 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.96),
+    0 0 0 0.5px rgb(0 0 0 / 0.08),
+    0 10px 24px -6px rgb(0 0 0 / 0.1),
+    0 2px 6px -1px rgb(221 31 38 / 0.08);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.auth-medallion img {
+  display: block;
+}
+
+/* Typography with optical sizing, size-specific tracking, and inverse leading */
+.auth-main .account-form-heading {
+  margin: 0 0 28px;
+  text-align: center;
 }
 
 .auth-main h1 {
-  margin: 0 0 40px;
-  font-size: 40px;
+  margin: 0;
+  font-size: clamp(1.875rem, 3.8vw, 2.125rem);
   font-weight: 700;
-  line-height: 1.2;
-  letter-spacing: -0.025em;
+  line-height: 1.12;
+  letter-spacing: -0.032em;
+  font-optical-sizing: auto;
   text-align: center;
-  color: var(--text-primary);
+  color: var(--auth-ink);
 }
 
-.auth-main .account-form-heading {
-  margin-bottom: 0;
-  text-align: center;
+.auth-main .account-form-sub {
+  margin: 10px auto 0;
+  max-width: 28ch;
+  font-size: 0.9375rem;
+  font-weight: 400;
+  line-height: 1.47;
+  letter-spacing: -0.008em;
+  color: var(--auth-ink-secondary);
+  text-wrap: balance;
 }
 
+/* Primary Google CTA — tactile obsidian pill with instant pointer-down feedback */
 .auth-main .account-google {
-  min-height: 50px;
-  padding: 0 18px;
-  border: 1px solid var(--border-subtle);
-  border-radius: 8px;
-  background: var(--bg-raised);
-  font-size: 16px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  box-shadow: 0 1px 2px rgb(15 15 15 / 0.06);
+  position: relative;
+  width: 100%;
+  min-height: 52px;
+  padding: 0 20px;
+  gap: 11px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--auth-cta-bg);
+  color: var(--auth-cta-ink);
+  font-size: 0.96875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.012em;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.14),
+    0 8px 20px -6px rgb(29 29 31 / 0.34),
+    0 2px 6px -1px rgb(29 29 31 / 0.16);
+  transition:
+    background-color 140ms cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 180ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.auth-main .account-google:active:not(:disabled) {
+  background: var(--auth-cta-active);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.08),
+    0 2px 6px -2px rgb(29 29 31 / 0.24);
+}
+
+.auth-main .account-google:focus-visible {
+  outline: 2px solid #0071e3;
+  outline-offset: 2px;
+  box-shadow:
+    var(--auth-focus-ring),
+    0 8px 20px -6px rgb(29 29 31 / 0.34);
+}
+
+.auth-main .account-google:disabled {
+  background: var(--auth-cta-busy);
+  color: var(--auth-cta-ink);
+  opacity: 1;
+  cursor: default;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.1);
+}
+
+.auth-main .account-google-badge {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.14);
+}
+
+.auth-main .account-google[data-pending='true'] .account-google-badge {
+  background: rgb(255 255 255 / 0.14);
+  box-shadow: none;
 }
 
 .auth-main .account-google .google-mark-svg {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
 }
 
+.account-google-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.account-google-label {
+  white-space: nowrap;
+}
+
+.account-google-spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1.75px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 0.72s linear infinite;
+}
+
+/* Inline status / error callout */
 .auth-main .account-notice {
-  margin-top: 16px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  gap: 9px;
+  align-items: flex-start;
+  border-radius: 12px;
+  border: 1px solid rgb(0 0 0 / 0.08);
+  background: rgb(245 245 247 / 0.85);
+  color: var(--auth-ink);
+  font-size: 0.84375rem;
+  line-height: 1.45;
+  letter-spacing: -0.004em;
+  text-align: left;
+}
+
+.auth-main .account-notice svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.auth-main .account-notice.account-error {
+  border-color: rgb(221 31 38 / 0.2);
+  background: rgb(221 31 38 / 0.07);
+  color: #b42318;
+}
+
+/* Quiet domain & privacy hairline footer inside sheet */
+.auth-main .account-form-footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 0.5px solid var(--auth-hairline);
+  align-items: center;
+  gap: 7px;
+  font-size: 0.78125rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.004em;
+  color: var(--auth-ink-muted);
+  text-align: center;
+}
+
+.auth-main .account-form-footer svg {
+  margin-top: 0;
+  color: var(--auth-ink-muted);
 }
 
 .auth-footer {
   text-align: center;
-  padding: 28px 24px;
-  color: var(--text-secondary);
-  font-size: 14px;
-  line-height: 1.5;
+  padding: 20px 24px;
+  color: var(--auth-ink-muted);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: 0.005em;
+}
+
+/* Desktop two-column stage */
+@media (min-width: 960px) {
+  .auth-ambient {
+    background:
+      radial-gradient(50% 60% at 72% 46%, rgb(255 255 255 / 0.94) 0%, rgb(255 255 255 / 0) 70%),
+      radial-gradient(36% 42% at 86% 20%, rgb(221 31 38 / 0.05) 0%, rgb(221 31 38 / 0) 72%),
+      radial-gradient(40% 44% at 14% 78%, rgb(0 113 227 / 0.048) 0%, rgb(0 113 227 / 0) 74%);
+  }
+
+  .auth-header {
+    padding: 18px 40px;
+  }
+
+  .auth-main {
+    padding: 40px 40px 56px;
+  }
+
+  .auth-stage {
+    width: min(1020px, 100%);
+    grid-template-columns: minmax(0, 1.08fr) minmax(380px, 424px);
+    gap: clamp(48px, 6vw, 88px);
+    align-items: center;
+  }
+
+  .auth-intro {
+    display: block;
+    padding-right: 8px;
+  }
+
+  .auth-main .account-auth-layout {
+    justify-content: flex-end;
+  }
+
+  .auth-main .account-auth-card {
+    width: 100%;
+    padding: 44px 36px 32px;
+  }
+
+  .auth-footer {
+    padding: 22px 40px;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .auth-main .account-google:hover {
-    background: var(--bg-hover);
+  .auth-main .account-google:hover:not(:disabled) {
+    background: var(--auth-cta-hover);
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.16),
+      0 12px 26px -6px rgb(29 29 31 / 0.38),
+      0 4px 10px -2px rgb(29 29 31 / 0.18);
   }
 }
 
 @media (max-width: 767px) {
   .auth-header {
-    padding: calc(16px + var(--safe-top)) max(20px, var(--safe-right)) 12px max(20px, var(--safe-left));
+    padding: calc(14px + var(--safe-top)) max(20px, var(--safe-right)) 14px max(20px, var(--safe-left));
   }
+
+  .auth-header-domain {
+    display: none;
+  }
+
   .auth-main {
-    padding: 16px max(16px, var(--safe-right)) 16px max(16px, var(--safe-left));
+    padding: 20px max(16px, var(--safe-right)) 32px max(16px, var(--safe-left));
   }
+
   .auth-main .account-auth-card {
     padding: 20px;
+    border-radius: 24px;
   }
+
+  .auth-medallion {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    margin: 12px auto 18px;
+  }
+
+  .auth-medallion img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .auth-main .account-form-heading {
+    margin-bottom: 24px;
+  }
+
   .auth-main h1 {
-    margin-bottom: 28px;
-    font-size: 32px;
+    font-size: 1.875rem;
   }
+
+  .auth-main .account-google {
+    min-height: 50px;
+    border-radius: 12px;
+    padding: 0 16px;
+  }
+
+  .auth-main .account-form-footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    padding-bottom: 4px;
+  }
+
   .auth-footer {
     padding: 16px max(16px, var(--safe-right)) calc(16px + var(--safe-bottom)) max(16px, var(--safe-left));
   }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .auth-header {
+    background: var(--auth-canvas);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .auth-main .account-auth-card {
+    background: #ffffff;
+    border-color: rgb(0 0 0 / 0.12);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
+
+@media (prefers-contrast: more) {
+  .auth-page {
+    --auth-ink-secondary: #1d1d1f;
+    --auth-ink-muted: #1d1d1f;
+    --auth-cta-bg: #000000;
+    --auth-cta-hover: #1d1d1f;
+    --auth-cta-busy: #1d1d1f;
+  }
+
+  .auth-header {
+    background: #ffffff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: inset 0 -1px 0 #1d1d1f;
+  }
+
+  .auth-header-domain {
+    background: #ffffff;
+    border: 1px solid #1d1d1f;
+    color: #1d1d1f;
+  }
+
+  .auth-main .account-auth-card {
+    background: #ffffff;
+    border: 1.5px solid #1d1d1f;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+  }
+
+  .auth-highlight-icon {
+    background: #ffffff;
+    box-shadow: none;
+    border: 1px solid #1d1d1f;
+  }
+
+  .auth-main .account-notice.account-error {
+    border-color: #9e1b14;
+    color: #9e1b14;
+    background: #fff5f5;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-main .account-google,
+  .account-google-spinner {
+    transition: none;
+  }
+}
+
+html[data-motion='reduced'] .auth-main .account-google {
+  transition: none;
 }
