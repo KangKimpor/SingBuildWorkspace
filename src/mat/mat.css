@@ -309,39 +309,37 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-source-actions :is(.btn-accent, .btn-secondary):disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Apple touches ────────────────────────────────────────────────────────────
-   Press feedback on the press itself; a translucent header material that rows
-   scroll under; panels that enter and leave along the same edge. */
-.mat-chip, .mat-thumb, .mat-toggle { transition: scale 100ms ease-out; }
+   Press feedback on the press itself, and panels that enter and leave along the same edge.
+   The sticky header stays solid: a blurred material behind dense labels costs a repaint of
+   every header cell on each scroll frame and adds nothing a reader of numbers needs. */
+:root { --mat-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); }
+.mat-chip, .mat-thumb { transition: scale 100ms ease-out; }
+.mat-toggle { transition: scale 100ms ease-out, background-color 150ms ease, color 150ms ease; }
 .mat-chip:active:not(:disabled), .mat-thumb:active, .mat-toggle:active { scale: 0.96; }
 
-/* Scrolling header cells are a light material; the frozen corner stays solid so translucent never stacks on translucent. */
-.mat-table thead th:not(.mat-f) {
-  background: rgb(250 250 250 / 0.78);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  backdrop-filter: blur(16px) saturate(180%);
-}
-.mat-table thead th[data-band='work'] { background: rgb(245 245 247 / 0.82); }
-
 /* Material Source: slides in from the right and leaves the same way (iOS sheet curve). */
-.mat-source-panel[data-state='open'] { animation: mat-panel-in 420ms cubic-bezier(0.32, 0.72, 0, 1); }
-.mat-source-panel[data-state='closed'] { animation: mat-panel-out 240ms cubic-bezier(0.32, 0.72, 0, 1) forwards; }
-.mat-scrim[data-state='open'] { animation: mat-fade-in 240ms ease-out; }
-.mat-scrim[data-state='closed'] { animation: mat-fade-out 200ms ease-in forwards; }
-/* The lightbox grows from a slightly smaller size rather than from nothing. */
-.mat-picture[data-state='open'] { animation: mat-pop-in 220ms cubic-bezier(0.2, 0, 0, 1); }
+.mat-source-panel[data-state='open'] { animation: mat-panel-in var(--duration-page) var(--mat-ease-sheet); }
+.mat-source-panel[data-state='closed'] { animation: mat-panel-out 240ms var(--mat-ease-sheet) forwards; }
+.mat-scrim[data-state='open'] { animation: mat-fade-in 240ms var(--ease-enter); }
+.mat-scrim[data-state='closed'] { animation: mat-fade-out 200ms var(--ease-exit) forwards; }
+/* The lightbox grows from a slightly smaller size rather than from nothing, and shrinks back the same way. */
+.mat-picture[data-state='open'] { animation: mat-pop-in var(--duration-base) var(--ease-standard); }
+.mat-picture[data-state='closed'] { animation: mat-pop-out 150ms var(--ease-exit) forwards; }
+/* The full-size image fades in once decoded instead of popping in over "Loading image…". */
+.mat-picture img { transition: opacity 150ms var(--ease-enter); }
+.mat-picture img[data-loaded='false'] { opacity: 0; }
 @keyframes mat-panel-in { from { translate: 100% 0; } }
 @keyframes mat-panel-out { to { translate: 100% 0; } }
 @keyframes mat-fade-in { from { opacity: 0; } }
 @keyframes mat-fade-out { to { opacity: 0; } }
 @keyframes mat-pop-in { from { opacity: 0; scale: 0.96; } }
+@keyframes mat-pop-out { to { opacity: 0; scale: 0.97; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .mat-chip, .mat-thumb, .mat-toggle { transition: none; }
+  .mat-chip, .mat-thumb { transition: none; }
+  .mat-toggle { transition: background-color 150ms ease, color 150ms ease; }
   .mat-chip:active, .mat-thumb:active, .mat-toggle:active { scale: none; }
   .mat-source-panel[data-state='open'], .mat-picture[data-state='open'] { animation: mat-fade-in 160ms ease-out; }
-  .mat-source-panel[data-state='closed'] { animation: mat-fade-out 140ms ease-in forwards; }
-}
-@media (prefers-reduced-transparency: reduce) {
-  .mat-table thead th:not(.mat-f) { background: var(--pp-band); -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .mat-table thead th[data-band='work'] { background: var(--pp-l1); }
+  .mat-source-panel[data-state='closed'], .mat-picture[data-state='closed'] { animation: mat-fade-out 140ms ease-in forwards; }
+  .mat-picture img { transition: none; }
 }

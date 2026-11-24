@@ -205,20 +205,32 @@ export function MatPictureDialog({
   onClose: () => void
   onEditPhotos?: (itemId: string) => void
 }) {
-  return picture ? <PictureDialogBody picture={picture} onClose={onClose} onEditPhotos={onEditPhotos}/> : null
+  // Keep the last picture mounted while the dialog plays its closing animation.
+  const [last, setLast] = useState(picture)
+  if (picture && picture !== last) setLast(picture)
+  const shown = picture ?? last
+  return shown ? <PictureDialogBody picture={shown} open={picture !== null} onClose={onClose} onEditPhotos={onEditPhotos}/> : null
+}
+
+/** Full-size picture that fades in once decoded; keyed by src so each new picture starts hidden. */
+function FadeInImg({ src, alt }: { src: string; alt: string }) {
+  const [loaded, setLoaded] = useState(false)
+  return <img src={src} alt={alt} data-loaded={loaded} onLoad={() => setLoaded(true)} onError={() => setLoaded(true)}/>
 }
 
 function PictureDialogBody({
   picture,
+  open,
   onClose,
   onEditPhotos,
 }: {
   picture: MatPicture
+  open: boolean
   onClose: () => void
   onEditPhotos?: (itemId: string) => void
 }) {
   const src = useMatImageSrc(picture.ref)
-  return <Dialog.Root open onOpenChange={(open) => { if (!open) onClose() }}>
+  return <Dialog.Root open={open} onOpenChange={(next) => { if (!next) onClose() }}>
     <Dialog.Portal>
       <Dialog.Overlay className="mat-scrim mat-picture-scrim"/>
       <Dialog.Content className="mat-picture" aria-describedby={undefined}>
@@ -229,7 +241,7 @@ function PictureDialogBody({
               <Pencil size={12} aria-hidden="true"/>Edit photos
             </button>}
         </div>
-        {src ? <img src={src} alt={picture.alt}/> : <p className="small muted">Loading image…</p>}
+        {src ? <FadeInImg key={src} src={src} alt={picture.alt}/> : <p className="small muted">Loading image…</p>}
         <Dialog.Close className="mat-picture-close" aria-label="Close picture"><X size={16} aria-hidden="true"/></Dialog.Close>
       </Dialog.Content>
     </Dialog.Portal>
