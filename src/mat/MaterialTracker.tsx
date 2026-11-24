@@ -69,7 +69,7 @@ function MaterialList() {
   const tab = SHEETS.find((t) => t.id === params.get('s'))?.id ?? 'id'
   const [expanded, setExpanded] = useState(false)
   const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
-  const go = (nextPkg: Pkg, nextTab: Tab) => setParams({ p: nextPkg, s: nextTab })
+  const go = (nextPkg: Pkg, nextTab: Tab) => setParams((prev) => { prev.set('p', nextPkg); prev.set('s', nextTab); return prev })
   const toggleExpand = useCallback(() => setExpanded((e) => !e), [])
 
   useEffect(() => {
@@ -142,6 +142,7 @@ function MaterialList() {
   </div>
 }
 
+const COUNT = new Intl.NumberFormat('en-US')
 const text = (item: MatItem, key: 'pic' | 'msStatus') => formatCol(effectiveCol(item, key)).trim()
 const distinct = (values: string[]) => [...new Set(values.filter(Boolean))].sort((a, b) => a.localeCompare(b))
 /** What the search box looks through: code, description, brand, specification and location. */
@@ -244,7 +245,7 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         {options.unmarked && <option value="none">No mark</option>}
       </GlassSelect>
       <button type="button" className="mat-chip" aria-pressed={changedOnly} onClick={() => setChangedOnly((v) => !v)}
-        aria-describedby="mat-changed-count">
+        disabled={!changedOnly && changed.size === 0} aria-describedby="mat-changed-count">
         <span className="mat-chip-dot" aria-hidden="true"/>Changed this week
         <span className="mat-chip-count" id="mat-changed-count" aria-hidden="true">{changed.size}</span>
       </button>
@@ -266,7 +267,11 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
         <button type="button" className="ibtn" title="Collapse all sections" aria-label="Collapse all sections" onClick={collapseAll}><ChevronsUp size={16} aria-hidden="true"/></button>
       </div>
     </div>
-    {active && shownCount === 0
+    {options.totalCount === 0
+      ? <div className="mat-scroll mat-empty-scroll">
+          <p className="quiet-empty">No materials on this sheet yet. They appear here once the workbook is imported.</p>
+        </div>
+      : active && shownCount === 0
       ? <div className="mat-scroll mat-empty-scroll">
           <p className="quiet-empty">No materials match these filters.{' '}
             <button type="button" className="text-link" onClick={clear}>Clear filters</button></p>
@@ -277,8 +282,8 @@ function SheetView({ sheet, state, saveStatus, caption, expanded, onToggleExpand
           onOpenSource={setSourceItemId} onPicture={setPicture}/>}
     <div className="mat-key-bar">
       <span role="status" aria-live="polite">
-        {shownCount} {shownCount === 1 ? 'material' : 'materials'}
-        {active && shownCount !== options.totalCount ? ` of ${options.totalCount}` : ''}
+        {COUNT.format(shownCount)} {shownCount === 1 ? 'material' : 'materials'}
+        {active && shownCount !== options.totalCount ? ` of ${COUNT.format(options.totalCount)}` : ''}
       </span>
       <ul className="mat-legend" aria-label="Legend">
         {(Object.keys(MARKS) as Mark[]).map((m) => <li key={m}><span className="mat-swatch" data-mark={m} aria-hidden="true"/>{MARKS[m]}</li>)}

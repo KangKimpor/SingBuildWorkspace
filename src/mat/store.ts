@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, reportingDate, weekStart } from '@/nbc/submissions'
 import { fetchPackage, saveCell, saveFields, saveRemark } from './api'
 import type { MatPackage } from './api'
+import { devDataset } from './devData'
 import type { FieldKey, FieldValue, MatEdits, MatItem, Pkg, Team } from './types'
 
 export const remarkKey = (itemId: string, team: Team, week: string) => `${itemId}:${team}:${week}`
@@ -57,6 +58,7 @@ export const cache = {
   },
 }
 async function readCache(pkg: Pkg) {
+  if (devDataset()) return null
   try {
     const cached = await cache.read(pkg)
     return cached && typeof cached.syncedAt === 'string' && Array.isArray(cached.items) ? cached : null
@@ -65,6 +67,7 @@ async function readCache(pkg: Pkg) {
   }
 }
 async function writeCache(pkg: Pkg, state: MatState) {
+  if (devDataset()) return
   try {
     await cache.write(pkg, state)
   } catch {

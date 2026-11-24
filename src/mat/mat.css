@@ -46,13 +46,16 @@ html[data-mat] .canvas { padding-block: 0; }
 .mat-legend li { display: inline-flex; align-items: center; gap: var(--space-6); }
 .mat-swatch { width: 14px; height: 14px; border-radius: var(--radius-chip); border: 1px solid var(--border-strong); }
 :is(.mat-swatch, .mat-table tr) { --mat-mark: transparent; }
-:is(.mat-swatch, .mat-table tr)[data-mark='done'] { --mat-mark: var(--chip-green); }
-:is(.mat-swatch, .mat-table tr)[data-mark='tracking'] { --mat-mark: var(--chip-brown); }
-:is(.mat-swatch, .mat-table tr)[data-mark='omit'] { --mat-mark: var(--chip-yellow); }
+/* Saturated system hues: the marks are 8 px dots, and the old pale chip fills vanished on white. */
+:is(.mat-swatch, .mat-table tr)[data-mark='done'] { --mat-mark: #34c759; }
+:is(.mat-swatch, .mat-table tr)[data-mark='tracking'] { --mat-mark: #a2845e; }
+:is(.mat-swatch, .mat-table tr)[data-mark='omit'] { --mat-mark: #ffb800; }
 .mat-swatch { background: var(--mat-mark); }
+.mat-swatch:is([data-mark='done'], [data-mark='tracking'], [data-mark='omit']) { width: 8px; height: 8px; border: 0; border-radius: 50%; }
 .mat-swatch[data-mark='changed'] { width: 6px; height: 6px; border: 0; border-radius: 50%; background: var(--pp-accent); }
 .mat-chip { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 10px; border: 1px solid var(--pp-line-strong); border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font: inherit; font-size: var(--fs-small); cursor: pointer; }
-.mat-chip:hover { border-color: var(--pp-accent); color: var(--pp-ink); }
+.mat-chip:hover:not(:disabled) { border-color: var(--pp-accent); color: var(--pp-ink); }
+.mat-chip:disabled { opacity: 0.5; cursor: default; }
 .mat-chip[aria-pressed='true'] { border-color: var(--pp-accent); background: var(--pp-wash); color: var(--pp-accent-ink); }
 .mat-chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--pp-accent); }
 .mat-chip-count { min-width: 18px; padding: 0 5px; border-radius: 999px; background: var(--pp-l3); color: var(--pp-ink-2); font-size: 11px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -85,12 +88,12 @@ html[data-mat-expanded] .sidebar-slot,
 html[data-mat-expanded] .topbar { visibility: hidden; }
 @media (max-width: 900px) { .mat-expand-label { display: none; } }
 
-/* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 96, Description 240. */
+/* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 120, Description 240. */
 .mat-scroll {
   flex: 1 1 auto; min-height: 8rem; overflow: auto;
   border: 1px solid var(--pp-line-strong); border-radius: 12px; background: var(--pp-l3);
-  /* A cell focused by the keyboard scrolls clear of the sticky header and the frozen columns (48 + 96 + 240). */
-  scroll-padding: calc(var(--mat-h1) + var(--mat-h2)) 0 0 384px;
+  /* A cell focused by the keyboard scrolls clear of the sticky header and the frozen columns (48 + 120 + 240). */
+  scroll-padding: calc(var(--mat-h1) + var(--mat-h2)) 0 0 408px;
   scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.2) transparent;
 }
 .mat-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -124,7 +127,7 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-table thead .mat-f { z-index: 5; }
 .mat-f1, .mat-f-span { left: 0; }
 .mat-f2 { left: 48px; }
-.mat-f3 { left: 144px; }
+.mat-f3 { left: 168px; }
 .mat-table :is(.mat-f3, .mat-f-span) { border-right: 1px solid var(--pp-line-strong); }
 .mat-scroll[data-scrolled] .mat-table :is(.mat-f3, .mat-f-span) { box-shadow: 5px 0 6px -4px var(--pp-edge); }
 
@@ -133,13 +136,16 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-muted); }
 /* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
 .mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
-.mat-mark-dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--mat-mark); }
+.mat-mark-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--mat-mark); }
 .mat-source-main { display: flex; align-items: center; gap: 6px; min-width: 0; }
 
 /* Material Source trigger on the Code cell. */
-.mat-source-btn { display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 10px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
-.mat-source-code { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mat-source-icon { flex: none; color: var(--pp-accent-ink); opacity: 0; }
+.mat-source-btn { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 100%; padding: 4px 10px; border: 0; background: transparent; color: inherit; font: inherit; text-align: start; cursor: pointer; }
+/* Codes differ at the end (…-REV3, …-005), so they wrap to two lines instead of losing the tail to an ellipsis. */
+.mat-source-code { min-width: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; overflow-wrap: anywhere; }
+.mat-source-code[data-empty='true'] { color: var(--pp-ink-muted); font-weight: 400; }
+/* Floats over the cell's edge so the hidden pencil does not take width from the code. */
+.mat-source-icon { position: absolute; top: 50%; right: 4px; translate: 0 -50%; color: var(--pp-accent-ink); opacity: 0; }
 .mat-table tbody tr:hover .mat-source-icon,
 .mat-source-btn:focus-visible .mat-source-icon { opacity: 1; }
 .mat-source-btn:hover { color: var(--pp-accent-ink); }
@@ -175,6 +181,9 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-thumb { display: block; width: 30px; height: 30px; padding: 0; border: 1px solid var(--pp-line-strong); border-radius: 5px; background: var(--pp-l3); overflow: hidden; cursor: zoom-in; }
 .mat-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .mat-img-loading { display: block; width: 100%; height: 100%; background: var(--pp-band); }
+.mat-img-missing { display: grid; place-items: center; width: 100%; height: 100%; background: var(--pp-band); color: var(--pp-ink-muted); }
+.mat-thumb-more { display: grid; place-items: center; background: var(--pp-l1); color: var(--pp-ink-2); font: inherit; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; }
+.mat-thumb-more:hover { color: var(--pp-ink); }
 .mat-scrim { position: fixed; inset: 0; z-index: 40; background: var(--scrim); }
 .mat-picture-scrim { z-index: 60; }
 .mat-picture { position: fixed; top: 50%; left: 50%; z-index: 61; translate: -50% -50%; display: grid; gap: 8px; max-width: min(720px, 92vw); padding: 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-modal); background: var(--bg-raised); box-shadow: var(--shadow-popover); }
@@ -197,7 +206,7 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-page .mat-cell-btn:focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: -2px; }
 .mat-cell-btn[data-invalid='true'] { border-color: var(--danger-text); }
 .mat-cell-ellipsis { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mat-cell-num { justify-content: flex-end; text-align: end; padding-inline-end: 13px; font-variant-numeric: tabular-nums; font-size: 12.5px; }
+.mat-cell-num { justify-content: flex-end; text-align: end; padding-inline-end: 10px; font-variant-numeric: tabular-nums; font-size: 12.5px; white-space: nowrap; overflow: hidden; }
 .mat-cell-num[data-source='formula'] { color: var(--pp-ink-2); }
 .mat-cell-num[data-done='true'] { color: var(--pp-done-ink); font-weight: 500; }
 .mat-cell-num[data-source='override'] { position: relative; font-weight: 600; }
@@ -298,3 +307,41 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 }
 .mat-source-actions { display: flex; justify-content: flex-end; gap: var(--space-8); }
 .mat-source-actions :is(.btn-accent, .btn-secondary):disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ── Apple touches ────────────────────────────────────────────────────────────
+   Press feedback on the press itself; a translucent header material that rows
+   scroll under; panels that enter and leave along the same edge. */
+.mat-chip, .mat-thumb, .mat-toggle { transition: scale 100ms ease-out; }
+.mat-chip:active:not(:disabled), .mat-thumb:active, .mat-toggle:active { scale: 0.96; }
+
+/* Scrolling header cells are a light material; the frozen corner stays solid so translucent never stacks on translucent. */
+.mat-table thead th:not(.mat-f) {
+  background: rgb(250 250 250 / 0.78);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+}
+.mat-table thead th[data-band='work'] { background: rgb(245 245 247 / 0.82); }
+
+/* Material Source: slides in from the right and leaves the same way (iOS sheet curve). */
+.mat-source-panel[data-state='open'] { animation: mat-panel-in 420ms cubic-bezier(0.32, 0.72, 0, 1); }
+.mat-source-panel[data-state='closed'] { animation: mat-panel-out 240ms cubic-bezier(0.32, 0.72, 0, 1) forwards; }
+.mat-scrim[data-state='open'] { animation: mat-fade-in 240ms ease-out; }
+.mat-scrim[data-state='closed'] { animation: mat-fade-out 200ms ease-in forwards; }
+/* The lightbox grows from a slightly smaller size rather than from nothing. */
+.mat-picture[data-state='open'] { animation: mat-pop-in 220ms cubic-bezier(0.2, 0, 0, 1); }
+@keyframes mat-panel-in { from { translate: 100% 0; } }
+@keyframes mat-panel-out { to { translate: 100% 0; } }
+@keyframes mat-fade-in { from { opacity: 0; } }
+@keyframes mat-fade-out { to { opacity: 0; } }
+@keyframes mat-pop-in { from { opacity: 0; scale: 0.96; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mat-chip, .mat-thumb, .mat-toggle { transition: none; }
+  .mat-chip:active, .mat-thumb:active, .mat-toggle:active { scale: none; }
+  .mat-source-panel[data-state='open'], .mat-picture[data-state='open'] { animation: mat-fade-in 160ms ease-out; }
+  .mat-source-panel[data-state='closed'] { animation: mat-fade-out 140ms ease-in forwards; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .mat-table thead th:not(.mat-f) { background: var(--pp-band); -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .mat-table thead th[data-band='work'] { background: var(--pp-l1); }
+}

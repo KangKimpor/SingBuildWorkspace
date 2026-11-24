@@ -1,4 +1,5 @@
 import { initializeSupabase } from '@/lib/supabase'
+import { devDataset } from './devData'
 import type { FieldKey, FieldValue, MatItem, Pkg, Team } from './types'
 
 export interface MatRemark { itemId: string; team: Team; weekStart: string; body: string }
@@ -18,6 +19,7 @@ async function rpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
 
 // False rather than an error for a signed-out visitor, so the page can simply not show itself.
 export async function fetchAccess(): Promise<boolean> {
+  if (devDataset()) return true
   const client = await initializeSupabase()
   if (!client) return false
   const { data, error } = await client.auth.getSession()
@@ -27,6 +29,9 @@ export async function fetchAccess(): Promise<boolean> {
 }
 
 export async function fetchPackage(pkg: Pkg, itemsSince: string | null, remarksSince: string | null): Promise<MatPackage> {
+  // The literal DEV check lets the production build drop the fixtures chunk entirely.
+  const dataset = import.meta.env.DEV ? devDataset() : null
+  if (import.meta.env.DEV && dataset) return (await import('./fixtures')).fixturePackage(dataset, pkg)
   const data = await rpc<{ week: string; now: string; items: ItemRow[]; remarks: RemarkRow[] }>('kw_mat_load', {
     p_package: pkg, p_items_since: itemsSince, p_remarks_since: remarksSince,
   })
@@ -42,16 +47,19 @@ export async function fetchPackage(pkg: Pkg, itemsSince: string | null, remarksS
 
 // A null value removes the override, so the field falls back to its imported source.
 export async function saveCell(id: string, cell: FieldKey, value: FieldValue): Promise<void> {
+  if (devDataset()) return
   await rpc('kw_mat_set_cell', { p_id: id, p_cell: cell, p_value: value })
 }
 
 // Updates multiple fields in `edits` atomically in one RPC; null removes that key's override.
 export async function saveFields(id: string, patch: Partial<Record<FieldKey, FieldValue>>): Promise<void> {
+  if (devDataset()) return
   await rpc('kw_mat_set_fields', { p_id: id, p_patch: patch })
 }
 
 // The server files the remark under its own current week, which is returned.
 export async function saveRemark(id: string, team: Team, body: string): Promise<{ week: string }> {
+  if (import.meta.env.DEV && devDataset()) return { week: (await import('./fixtures')).fixturePackage('empty', 'bp03').week }
   const data = await rpc<{ week: string; updated_at: string }>('kw_mat_set_remark', { p_id: id, p_team: team, p_body: body })
   return { week: data.week }
 }

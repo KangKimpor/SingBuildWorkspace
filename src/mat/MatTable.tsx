@@ -2,7 +2,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { UIEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
-import { ChevronDown, Pencil, X } from 'lucide-react'
+import { ChevronDown, ImageOff, Pencil, X } from 'lucide-react'
 import { ChangedDot } from '@/components/ChangedDot'
 import { addDays } from '@/nbc/submissions'
 import { previousCellValue } from './changes'
@@ -45,7 +45,8 @@ type Column = { key: string; label: string; width: number; group?: string; view?
   | { type: 'cell'; cell: CellKey }
   | { type: 'remark'; team: Team; week: RemarkWeek })
 
-const DATE = 112, NUM = 76, REMARK = 220, REMARK_HISTORY = 190
+// QTY fits 1,284,500.75 without spilling into the next cell; PCT only ever shows up to "100%".
+const DATE = 112, NUM = 76, QTY_W = 104, REMARK = 220, REMARK_HISTORY = 190
 const col = (
   key: ColKey,
   label: string,
@@ -54,7 +55,7 @@ const col = (
   options?: { long?: boolean; source?: boolean; edit?: EditMode; view?: ViewTag },
 ): Column => ({ type: 'col', key, col: key, label, width, group, ...options })
 const cell = (key: CellKey, label: string, group: string, view: ViewTag): Column =>
-  ({ type: 'cell', key, cell: key, label, width: NUM, group, view })
+  ({ type: 'cell', key, cell: key, label, width: group === PCT ? NUM : QTY_W, group, view })
 const remark = (team: Team, week: RemarkWeek, group: string): Column =>
   ({ type: 'remark', key: `${team}-${week}`, team, week, group, view: group === PROC ? 'procurement' : 'remarks',
     label: group === PROC
@@ -67,7 +68,7 @@ const PM = 'PM Remarks'
 /** The workbook's columns, left to right. The first three stay frozen while scrolling sideways. */
 const COLUMNS: Column[] = [
   col('no', 'No', 48, undefined, { source: true }),
-  col('code', 'Code', 96, undefined, { source: true }),
+  col('code', 'Code', 120, undefined, { source: true }),
   col('description', 'Description', 240, undefined, { long: true, source: true }),
   col('pic', 'Person In Charge', 120, undefined, { source: true, view: 'details' }),
   col('bp02', 'BP02 Mat Approval', 104, undefined, { source: true, view: 'details' }),
@@ -186,9 +187,14 @@ type Averages = Record<string, number | null>
 
 function MatImg({ srcRef, alt }: { srcRef: string; alt: string }) {
   const src = useMatImageSrc(srcRef)
+  const [failed, setFailed] = useState<string | null>(null)
+  if (src && failed === src) return <span className="mat-img-missing" title="Photo could not be loaded"><ImageOff size={14} aria-hidden="true"/></span>
   if (!src) return <span className="mat-img-loading" aria-hidden="true"/>
-  return <img loading="lazy" src={src} alt={alt}/>
+  return <img loading="lazy" src={src} alt={alt} onError={() => setFailed(src)}/>
 }
+
+/** Thumbnails a picture cell shows before folding the rest into a "+N" tile. */
+const MAX_THUMBS = 2
 
 export function MatPictureDialog({
   picture,
@@ -298,7 +304,7 @@ const ItemRow = memo(function ItemRow({
                   onClick={() => onOpenSource(item.id)}>
                   <span className="mat-source-main">
                     {mark && <span className="mat-mark-dot" data-mark={mark} title={MARK_LABELS[mark]} aria-hidden="true"/>}
-                    <span className="mat-source-code">{text || 'Edit'}</span>
+                    {text ? <span className="mat-source-code">{text}</span> : <span className="mat-source-code" data-empty="true">Add code</span>}
                   </span>
                   <Pencil size={12} className="mat-source-icon" aria-hidden="true"/>
                 </button>
@@ -356,15 +362,25 @@ const ItemRow = memo(function ItemRow({
 
       if (c.type === 'pictures') {
         const list = effectiveImages(item, c.set)
+        // Past two photos the second slot becomes "+N", so a row never grows a photo grid.
+        const shown = list.length > MAX_THUMBS ? list.slice(0, MAX_THUMBS - 1) : list
+        const more = list.length - shown.length
         return <td key={c.key} className="mat-pic-cell" data-changed={changed}>
           <div className="mat-pictures">
-            {list.map((ref, i) => {
+            {shown.map((ref, i) => {
               const alt = `${code} ${c.label} ${i + 1}`
               return <button key={`${ref}-${i}`} type="button" className="mat-thumb"
                 onClick={() => onPicture({ ref, alt, itemId: item.id })}>
                 <MatImg srcRef={ref} alt={alt}/>
               </button>
             })}
+            {more > 0 && <button type="button" className="mat-thumb mat-thumb-more"
+              aria-label={`${more} more ${c.label} photos for ${code}`} title={`${list.length} photos`}
+              onClick={() => onOpenSource
+                ? onOpenSource(item.id)
+                : onPicture({ ref: list[shown.length]!, alt: `${code} ${c.label} ${shown.length + 1}`, itemId: item.id })}>
+              +{more}
+            </button>}
           </div>
           {changedDot}
         </td>
@@ -472,7 +488,7 @@ const SummaryRow = memo(function SummaryRow({
         {onToggle && id && <button type="button" className="mat-toggle" aria-expanded={open} aria-label={`${open ? 'Collapse' : 'Expand'} ${label}`} onClick={() => onToggle(id)}>
           <ChevronDown size={12} aria-hidden="true"/>
         </button>}
-        <span className="mat-clamp">{label}</span>
+        <span className="mat-clamp" title={label}>{label}</span>
       </div>
     </th>
     {colSpanMiddle > 0 && <td colSpan={colSpanMiddle} aria-hidden="true"/>}

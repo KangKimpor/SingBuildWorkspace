@@ -16,12 +16,15 @@ const PageEditor = lazy(() => import('@/pages/PageEditor'))
 const Trash = lazy(() => import('@/pages/Trash'))
 const Settings = lazy(() => import('@/pages/Settings'))
 const MaterialTracker = lazy(() => import('@/mat/MaterialTracker'))
+// Dev-only stress route for the material list (fixtures, no sign-in). Absent from production builds.
+const MatLab = import.meta.env.DEV ? lazy(() => import('@/mat/MatLab')) : null
 
 function WorkspaceStart() {
   const { scope, projects } = useWorkspace(), phone = usePhone()
   return <Navigate to={workspaceStart(scope, projects, phone)} replace />
 }
 export function App() {
+  if (MatLab && location.pathname === '/__lab/mat') return <Suspense fallback={null}><MatLab /></Suspense>
   return <AuthGate><WorkspaceApp /></AuthGate>
 }
 function WorkspaceApp() {

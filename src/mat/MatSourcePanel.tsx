@@ -47,6 +47,10 @@ function initialCols(item: MatItem): DraftCols {
 }
 
 export function MatSourcePanel({ item, picOptions, pictureOpen = false, onClose, onFields, onPicture }: MatSourcePanelProps) {
+  // Keep the last item on screen while the panel slides out, so it does not leave empty.
+  const [lastItem, setLastItem] = useState(item)
+  if (item && item !== lastItem) setLastItem(item)
+  const shown = item ?? lastItem
   return <Dialog.Root open={!!item} modal={!pictureOpen} onOpenChange={(open) => { if (!open) onClose() }}>
     <Dialog.Portal>
       <Dialog.Overlay className="mat-scrim"/>
@@ -54,7 +58,7 @@ export function MatSourcePanel({ item, picOptions, pictureOpen = false, onClose,
         onPointerDownOutside={(e) => { if (pictureOpen) e.preventDefault() }}
         onInteractOutside={(e) => { if (pictureOpen) e.preventDefault() }}
         onEscapeKeyDown={(e) => { if (pictureOpen) e.preventDefault() }}>
-        {item && <SourceForm key={item.id} item={item} picOptions={picOptions}
+        {shown && <SourceForm key={shown.id} item={shown} picOptions={picOptions}
           onClose={onClose} onFields={onFields} onPicture={onPicture}/>}
       </Dialog.Content>
     </Dialog.Portal>
