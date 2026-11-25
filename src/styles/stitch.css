@@ -22,7 +22,7 @@
   box-shadow: none;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', var(--font-sans);
   user-select: none;
-  transition: width 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  /* Collapse snaps: it is toggled from the keyboard, and animating width re-lays out the page every frame. */
 }
 .drawer {
   --bg-sidebar: #f5f5f7;
@@ -131,7 +131,7 @@ html[data-nbc] .glass.drawer { background-color: #f5f5f7; }
   stroke: var(--ring-muted);
   stroke-width: 2.3;
   stroke-linecap: round;
-  transition: stroke 180ms ease, stroke-dashoffset 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: stroke 180ms ease, stroke-dashoffset 280ms var(--ease-out);
 }
 .nav-progress > li[data-current='true'] .proj-ring-fill { stroke: var(--accent); }
 
@@ -413,7 +413,7 @@ html[data-nbc] .topbar .sync-retry {
 /* Subtle SF-inspired glyph motion (phone sync icon) */
 .sync-check-mark {
   stroke-dasharray: 14;
-  animation: sync-check-draw 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: sync-check-draw 260ms var(--ease-out) both;
 }
 .sync-glyph-saving .sync-upload-arrow {
   animation: sync-arrow-lift 1.45s cubic-bezier(0.45, 0, 0.55, 1) infinite;

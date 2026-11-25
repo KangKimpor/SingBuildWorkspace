@@ -47,8 +47,8 @@
 .settings-card > .settings-preference + .settings-preference, .settings-theme + .settings-preference { border-top: 1px solid var(--border-subtle); }
 .settings-preference .glass-select { flex: none; min-height: 36px; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 13px; }
 .settings-preference .glass-select:hover { background: var(--bg-hover); }
-input.settings-switch { appearance: none; position: relative; width: 44px; height: 26px; margin: 0; padding: 0; border: 0; border-radius: 20px; background: #8e8e93; transition: background 160ms ease; }
-input.settings-switch::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgb(0 0 0 / .18); transition: transform 160ms ease; }
+input.settings-switch { appearance: none; position: relative; width: 44px; height: 26px; margin: 0; padding: 0; border: 0; border-radius: 20px; background: #8e8e93; transition: background 200ms ease; }
+input.settings-switch::after { content: ''; position: absolute; left: 3px; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: white; box-shadow: 0 1px 3px rgb(0 0 0 / .18); transition: transform 200ms var(--ease-out); }
 input.settings-switch:checked { background: #248a3d; }
 input.settings-switch:checked::after { transform: translateX(18px); }
 .settings-install { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; padding: 20px; }

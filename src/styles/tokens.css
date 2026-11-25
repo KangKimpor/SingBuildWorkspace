@@ -142,8 +142,15 @@
   --duration-slow: 340ms;
   --duration-page: 420ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
-  --ease-enter: cubic-bezier(0, 0, 0.2, 1);
-  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  /* Strong ease-out for anything entering, leaving or answering the user. */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* On-screen movement from A to B. */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* iOS sheet curve for drawers, sheets and slide-overs. */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-enter: var(--ease-out);
+  /* Exits ease out too: an ease-in exit holds still for the moment the user is watching. */
+  --ease-exit: var(--ease-out);
 
   /* Safe areas */
   --safe-top: env(safe-area-inset-top, 0px);

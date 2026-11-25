@@ -13,8 +13,12 @@ export const exitDuration = (enter: number) => enter * 0.7
 
 export const EASE = {
   standard: [0.2, 0, 0, 1],
-  enter: [0, 0, 0.2, 1],
-  exit: [0.4, 0, 1, 1],
+  /** Strong ease-out (--ease-out). */
+  enter: [0.23, 1, 0.32, 1],
+  /** Exits ease out as well; an ease-in exit stalls at the start. */
+  exit: [0.23, 1, 0.32, 1],
+  /** iOS sheet curve (--ease-drawer) for drawers and sheets. */
+  drawer: [0.32, 0.72, 0, 1],
 } as const
 
 
@@ -22,6 +26,10 @@ export const SPRING = {
   snappy: { type: 'spring', stiffness: 520, damping: 34 },
   smooth: { type: 'spring', stiffness: 300, damping: 30 },
   bouncy: { type: 'spring', stiffness: 420, damping: 22 },
+  /** Bottom sheet open, close and detent snaps: critically damped, no overshoot. */
+  sheet: { type: 'spring', duration: 0.42, bounce: 0 },
+  /** Snap after a drag: a little give so the release reads as physical. */
+  release: { type: 'spring', duration: 0.42, bounce: 0.12 },
 } as const
 
 /** Loading lists stagger 30 ms per item, maximum 8 items (§11). */

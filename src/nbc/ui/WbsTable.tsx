@@ -2,7 +2,7 @@ import './ui.css'
 import { useEffect, useRef, useState } from 'react'
 import { RowActions } from '@/components/RowActions'
 import type { RowActionTarget } from '@/components/RowActions'
-import type { ReactNode } from 'react'
+import type { ReactNode, UIEvent } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { ChevronDown } from 'lucide-react'
 import { ChangedDot } from '@/components/ChangedDot'
@@ -44,7 +44,12 @@ export function WbsTable({ rows, caption, collapsed, onToggle, previous, current
   const before = virtual && items.length ? items[0]!.start : 0
   const after = virtual && items.length ? virtualizer.getTotalSize() - items.at(-1)!.end : 0
   const columns = 4 + (remark ? 1 : 0) + extra.length
-  return <div className="nbc-wbs-scroll" ref={scroll}><table className="nbc-wbs"><caption className="sr-only">{caption}</caption>
+  // Marks the scroller once it leaves the left edge; CSS draws the frozen-column shadow from it (as in RoomMatrix).
+  const onScroll = (event: UIEvent<HTMLDivElement>) => {
+    const el = event.currentTarget, scrolled = el.scrollLeft > 0
+    if (scrolled !== ('scrolled' in el.dataset)) { if (scrolled) el.dataset.scrolled = ''; else delete el.dataset.scrolled }
+  }
+  return <div className="nbc-wbs-scroll" ref={scroll} onScroll={onScroll}><table className="nbc-wbs"><caption className="sr-only">{caption}</caption>
     <thead><tr><th scope="col">WBS</th><th scope="col">Description</th><th scope="col" className="nbc-num">Previous week %</th><th scope="col" className="nbc-num">This week %</th>{remark && <th scope="col">Remark</th>}{extra.map((c) => <th scope="col" key={c.header}>{c.header}</th>)}</tr></thead>
     <tbody>
       {before > 0 && <tr aria-hidden="true"><td aria-hidden="true" colSpan={columns} style={{ height: before, padding: 0, border: 0 }}/></tr>}

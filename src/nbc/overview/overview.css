@@ -168,8 +168,10 @@
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', var(--font-sans);
   font-variant-numeric: tabular-nums;
+  left: 0;
+  top: 0;
   transform: translate(-50%, -100%);
-  transition: left 110ms cubic-bezier(0.22, 1, 0.36, 1), top 110ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition: translate 110ms var(--ease-out);
 }
 .nbc-trend-tip[data-placement='below'] {
   transform: translate(-50%, 0);

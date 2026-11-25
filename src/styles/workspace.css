@@ -1047,7 +1047,7 @@ summary {
   padding: var(--space-8);
   max-height: 76dvh;
   overflow-y: auto;
-  animation: overlay-in var(--duration-fast) var(--ease-enter);
+  /* No open animation: the palette is opened from the keyboard many times a day. */
   box-shadow: var(--shadow-popover);
 }
 .command-input {
@@ -1174,6 +1174,33 @@ kbd {
   overflow-y: auto;
   box-shadow: var(--shadow-popover);
 }
+@media (min-width: 768px) {
+  .event-editor[data-state='open'] {
+    animation: modal-in var(--duration-base) var(--ease-out);
+  }
+  .event-editor[data-state='closed'] {
+    animation: modal-out var(--duration-fast) var(--ease-out) forwards;
+  }
+  .scrim:has(+ .event-editor)[data-state='open'] {
+    animation: rm-fade-in var(--duration-base) var(--ease-out);
+  }
+  .scrim:has(+ .event-editor)[data-state='closed'] {
+    animation: rm-fade-out var(--duration-fast) var(--ease-out) forwards;
+  }
+}
+/* Modals stay centred, so they scale from the middle; `scale` leaves the centring transform alone. */
+@keyframes modal-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+@keyframes modal-out {
+  to {
+    opacity: 0;
+    scale: 0.97;
+  }
+}
 .event-editor h2 {
   margin: 0;
 }
@@ -1259,7 +1286,7 @@ kbd {
   justify-content: space-between;
   gap: var(--space-12);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  animation: banner-drop 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  animation: banner-drop var(--duration-base) var(--ease-out);
 }
 .storage-banner-dismiss {
   display: inline-flex;
@@ -1292,12 +1319,6 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .storage-banner {
     animation: none;
-  }
-}
-@keyframes overlay-in {
-  from {
-    opacity: 0;
-    margin-top: calc(var(--space-8) * -1);
   }
 }
 
@@ -1600,7 +1621,7 @@ button:disabled {
 
 /* Keep press feedback on controls, so page and overlay positioning never moves. */
 :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-    .project-view-picker, .project-card, .recent-card, .theme-choice) {
+    .project-view-picker, .project-card, .recent-card, .theme-choice, .ph-card) {
   transition:
     scale var(--duration-fast) var(--ease-standard),
     background-color var(--duration-fast) var(--ease-standard),
@@ -1611,6 +1632,10 @@ button:disabled {
     .project-view-picker, .project-card, .recent-card, .theme-choice):where(:not(:disabled):not([aria-disabled='true'])):active {
   scale: .97;
 }
+/* Full-width phone cards press less, so the edges do not visibly pull in. */
+.ph-card:active {
+  scale: .985;
+}
 .task-title {
   transition: color var(--duration-base) var(--ease-standard);
 }
@@ -1620,23 +1645,32 @@ button:disabled {
 @keyframes saving-pulse {
   50% { opacity: .35; }
 }
-@media (prefers-reduced-motion: no-preference) {
-  html:not([data-motion='reduced']) .workspace-toast {
-    animation: toast-in var(--duration-base) var(--ease-enter);
+/* Toasts enter from the bottom edge with a transition, so one that replaces another retargets
+   from where it is instead of restarting. */
+.workspace-toast {
+  transition: opacity 400ms ease, translate 400ms ease;
+  @starting-style {
+    opacity: 0;
+    translate: 0 calc(100% + var(--space-24));
   }
 }
-@keyframes toast-in {
-  from { opacity: 0; translate: 0 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .workspace-toast {
+    transition: opacity var(--duration-fast) ease;
+  }
+}
+html[data-motion='reduced'] .workspace-toast {
+  transition: opacity var(--duration-fast) ease;
 }
 @media (prefers-reduced-motion: reduce) {
   :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-      .project-view-picker, .project-card, .recent-card, .theme-choice):active {
+      .project-view-picker, .project-card, .recent-card, .theme-choice, .ph-card):active {
     scale: none;
   }
   .pill[data-tone='busy'] .dot { animation: none; }
 }
 html[data-motion='reduced'] :is(.ibtn, .btn-secondary, .btn-text, .tab, .view-tab, .icon-link,
-    .project-view-picker, .project-card, .recent-card, .theme-choice):active {
+    .project-view-picker, .project-card, .recent-card, .theme-choice, .ph-card):active {
   scale: none;
 }
 html[data-motion='reduced'] .pill[data-tone='busy'] .dot { animation: none; }

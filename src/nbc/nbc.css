@@ -13,7 +13,7 @@ html[data-nbc] {
   --bg-hover: var(--surface-hover); --bg-pressed: var(--surface-selected); --bg-selected: var(--surface-selected);
   --accent: var(--accent-blue); --accent-fill: var(--accent-blue); --selection: var(--accent-selection);
   --dur-instant: 80ms; --dur-fast: 140ms; --dur-base: 220ms; --dur-slow: 340ms;
-  --ease-standard: cubic-bezier(0.2,0,0,1); --ease-enter: cubic-bezier(0,0,0.2,1); --ease-exit: cubic-bezier(0.4,0,1,1);
+  --ease-standard: cubic-bezier(0.2,0,0,1); --ease-enter: var(--ease-out); --ease-exit: var(--ease-out);
   --w-sidebar: 260px; --h-topbar: 44px; --w-nbc-wbs: 160px; --h-button: 32px; --h-input: 32px;
   --scrim: rgb(0 0 0 / 40%);
 }
@@ -30,18 +30,12 @@ html[data-nbc] .topbar { background: var(--surface-canvas); border-bottom: 0; }
 html[data-nbc] .nav-projects .nav-item[aria-current=page] { background: var(--accent-selection); color: var(--accent-blue); border-radius: 8px; }
 html[data-nbc] .scrim { background: var(--scrim); backdrop-filter: none; }
 html[data-nbc] :is(.bsheet,.rsheet,.drawer,[role=dialog]) { box-shadow: 0 0 0 1px var(--border-subtle),0 6px 16px rgb(15 15 15 / 12%); }
-@keyframes precision-row { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes precision-fade { from { opacity: 0; } to { opacity: 1; } }
-@keyframes precision-chip { from { opacity: 0; transform: scale(.92); } to { opacity: 1; transform: scale(1); } }
-@keyframes precision-check { from { stroke-dashoffset: 24; } to { stroke-dashoffset: 0; } }
-@keyframes precision-nudge { 33% { transform: translateX(2px); } 66% { transform: translateX(-2px); } }
+/* Reduced motion: the global rule in index.css shortens movement; presses stop scaling. */
 @media(prefers-reduced-motion:reduce) {
-  html[data-nbc] *,html[data-nbc] *::before { transition: none !important; animation: none !important; }
   html[data-nbc] button:active { transform: none; }
 }
 html[data-nbc] .nav-list > li { min-width: 0; }
 html[data-nbc] .nav-projects { width: 100%; }
-html[data-motion=reduced][data-nbc] *,html[data-motion=reduced][data-nbc] *::before { transition: none !important; animation: none !important; }
 html[data-motion=reduced][data-nbc] button:active { transform: none; }
 
 /* Project frame: flat page, quiet header, underlined text tabs. */
