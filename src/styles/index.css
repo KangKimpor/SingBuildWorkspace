@@ -190,8 +190,11 @@ a {
   }
 }
 
+/* Reduced motion: movement collapses to an instant change everywhere except the surfaces listed in
+   :not(...), which keep a short opacity fade instead (gentler, not zero) and set it themselves below.
+   The list must stay in sync with the fade rules that follow. */
 @media (prefers-reduced-motion: reduce) {
-  *,
+  :not(.popover, .glass-select-menu, .workspace-toast, .nbc-sheet, .mat-source-panel, .mat-scrim, .mat-picture, .ph-collapsible-body, [role='dialog'][id^='radix-']),
   *::before,
   *::after {
     animation-duration: 1ms !important;
@@ -203,7 +206,7 @@ a {
     animation: none;
   }
 }
-html[data-motion='reduced'] *,
+html[data-motion='reduced'] :not(.popover, .glass-select-menu, .workspace-toast, .nbc-sheet, .mat-source-panel, .mat-scrim, .mat-picture, .ph-collapsible-body, [role='dialog'][id^='radix-']),
 html[data-motion='reduced'] *::before,
 html[data-motion='reduced'] *::after {
   animation-duration: 1ms !important;
@@ -212,4 +215,16 @@ html[data-motion='reduced'] *::after {
 }
 html[data-motion='reduced'] .float-glyph {
   animation: none;
+}
+
+/* The fade the exempt surfaces use under reduced motion. */
+@keyframes rm-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rm-fade-out {
+  to {
+    opacity: 0;
+  }
 }

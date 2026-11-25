@@ -1,0 +1,23 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/styles/workspace.css"
+        ],
+        "createdAt": "2026-11-25T10:43:25.807Z",
+        "reason": "Claude triage: both hits are false positives, a blockquote rule (.block-quote, 3px border-left, standard quote typography) and the 2px table column-resize grip (.table-resizer); neither is an accent card"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-11-25T10:43:26.008Z",
+        "reason": "Claude triage: Inter is the project's established --font-sans, a declared dependency (@fontsource-variable/inter) since 7938d91; changing the typeface is outside this motion task"
+      }
+    ]
+  }
+}

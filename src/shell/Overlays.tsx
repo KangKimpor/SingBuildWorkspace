@@ -6,6 +6,10 @@ import type { ReactNode } from 'react'
 import { useMotionReduced, useSheetDrag } from '@/motion/hooks'
 import { DURATION, EASE, REDUCED, exitDuration } from '@/motion/tokens'
 
+/** Drawers and side sheets: iOS sheet curve, a full-panel move that stays inside the 200–500 ms drawer budget. */
+const SHEET_ENTER = DURATION.slow
+const SHEET_EXIT = exitDuration(DURATION.slow)
+
 interface SideSheetProps {
   side: 'left' | 'right'
   open: boolean
@@ -35,15 +39,16 @@ export function SideSheet({
         {open ? (
           <Dialog.Portal forceMount>
             <Dialog.Overlay asChild>
+              {/* The scrim moves with the panel: same start, same duration, same curve. */}
               <motion.div
                 className="scrim"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{
                   opacity: 0,
-                  transition: { duration: exitDuration(DURATION.base) },
+                  transition: { duration: SHEET_EXIT, ease: EASE.drawer },
                 }}
-                transition={{ duration: DURATION.base, ease: EASE.enter }}
+                transition={{ duration: SHEET_ENTER, ease: EASE.drawer }}
               />
             </Dialog.Overlay>
             <Dialog.Content asChild aria-describedby={undefined}>
@@ -57,13 +62,10 @@ export function SideSheet({
                     ? { opacity: 0 }
                     : {
                         x: from,
-                        transition: {
-                          duration: exitDuration(DURATION.base),
-                          ease: EASE.exit,
-                        },
+                        transition: { duration: SHEET_EXIT, ease: EASE.drawer },
                       }
                 }
-                transition={reduced ? REDUCED : { duration: DURATION.base, ease: EASE.enter }}
+                transition={reduced ? REDUCED : { duration: SHEET_ENTER, ease: EASE.drawer }}
               >
                 <Dialog.Title className="sr-only">{title}</Dialog.Title>
                 <div className="drawer-dismiss">

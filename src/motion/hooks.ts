@@ -30,6 +30,8 @@ export function useSpringPress(options: { disabled?: boolean } = {}) {
 
 export type Detent = 'medium' | 'large'
 const DETENTS: Record<Detent, number> = { medium: 0.5, large: 0.92 }
+/** Release speed (px/s) that counts as a flick. */
+const FLICK = 400
 
 /**
  * Bottom-sheet drag: medium (50%) and large (92%) detents, rubber-banding, velocity-based dismissal (§11, §12).
@@ -50,13 +52,14 @@ export function useSheetDrag(options: { onDismiss: () => void; initial?: Detent 
     heightRef.current = window.innerHeight * DETENTS.large
   }, [])
 
+  /** Springs to a detent. After a drag the release velocity carries into the spring, so a flick keeps its speed. */
   const snapTo = useCallback(
-    (d: Detent) => {
+    (d: Detent, velocity = 0) => {
       measure()
       setDetent(d)
-      animate(opacity, 1, reduced ? REDUCED : { duration: DURATION.base, ease: EASE.enter })
+      animate(opacity, 1, reduced ? REDUCED : { duration: DURATION.fast, ease: EASE.enter })
       if (reduced) y.set(offsetFor(d))
-      else animate(y, offsetFor(d), { duration: DURATION.base, ease: EASE.enter })
+      else animate(y, offsetFor(d), velocity ? { ...SPRING.release, velocity } : SPRING.sheet)
     },
     [measure, offsetFor, opacity, reduced, y],
   )
@@ -75,8 +78,9 @@ export function useSheetDrag(options: { onDismiss: () => void; initial?: Detent 
     measure()
     if (reduced) animate(opacity, 0, REDUCED).then(onDismiss)
     else {
-      animate(opacity, 0, { duration: DURATION.base * .7, ease: EASE.exit })
-      animate(y, heightRef.current, { duration: DURATION.base * .7, ease: EASE.exit }).then(onDismiss)
+      // Leaves along the edge it came from, on the sheet curve; the scrim fades with it.
+      animate(opacity, 0, { duration: DURATION.base, ease: EASE.exit })
+      animate(y, heightRef.current, { duration: DURATION.base, ease: EASE.drawer }).then(onDismiss)
     }
   }, [measure, onDismiss, opacity, reduced, y])
 
@@ -84,11 +88,19 @@ export function useSheetDrag(options: { onDismiss: () => void; initial?: Detent 
     (_: PointerEvent | MouseEvent | TouchEvent, info: PanInfo) => {
       const vy = info.velocity.y
       const pos = y.get()
-      const medium = offsetFor('medium')
-      if (vy > 900 || pos > medium + (heightRef.current - medium) * 0.55) return close()
-      if (vy < -900) return snapTo('large')
-      // otherwise snap to the nearest detent
-      snapTo(Math.abs(pos - offsetFor('large')) < Math.abs(pos - medium) ? 'large' : 'medium')
+      // Project where the release is heading (0.2 s of its velocity) and settle on the nearest stop to that,
+      // so a flick is enough and nobody has to drag past a distance threshold.
+      const stops = [
+        { at: offsetFor('large'), go: () => snapTo('large', vy) },
+        { at: offsetFor('medium'), go: () => snapTo('medium', vy) },
+        { at: heightRef.current, go: close },
+      ]
+      const projected = pos + vy * 0.2
+      let target = stops.reduce((best, s) => (Math.abs(s.at - projected) < Math.abs(best.at - projected) ? s : best))
+      // A deliberate flick always moves at least one stop in its direction.
+      if (vy > FLICK && target.at <= pos) target = stops.find((s) => s.at > pos) ?? target
+      if (vy < -FLICK && target.at >= pos) target = [...stops].reverse().find((s) => s.at < pos) ?? target
+      target.go()
     },
     [close, offsetFor, snapTo, y],
   )
@@ -106,9 +118,13 @@ export function useSheetDrag(options: { onDismiss: () => void; initial?: Detent 
       dragListener: false,
       dragMomentum: false,
       onDrag: () => {
-        // rubber-band past the large detent
+        // Rubber-band past the large detent: resistance rises the further it is pulled (iOS formula).
+        // Motion sets y from the pointer offset every frame, so this never compounds.
         const v = y.get()
-        if (v < 0) y.set(v * 0.6)
+        if (v < 0) {
+          const dim = heightRef.current || window.innerHeight
+          y.set(-(1 - 1 / ((-v * 0.55) / dim + 1)) * dim)
+        }
       },
       onDragEnd,
       style: { y, opacity },

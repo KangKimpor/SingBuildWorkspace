@@ -115,7 +115,7 @@ export default function Trend({ summaries, today, plan = NBC_PLAN }: { summaries
         <div
           className="nbc-trend-tip"
           data-placement={tipBelow ? 'below' : 'above'}
-          style={{ left: `${tipLeft}px`, top: `${tipBelow ? activePoint.cy + 16 : activePoint.cy - 14}px` }}
+          style={{ translate: `${tipLeft}px ${tipBelow ? activePoint.cy + 16 : activePoint.cy - 14}px` }}
           aria-hidden="true"
         >
           <span className="nbc-trend-tip-week">{weekLabel(activePoint.s.weekStart)}</span>

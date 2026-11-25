@@ -312,7 +312,7 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
    Press feedback on the press itself, and panels that enter and leave along the same edge.
    The sticky header stays solid: a blurred material behind dense labels costs a repaint of
    every header cell on each scroll frame and adds nothing a reader of numbers needs. */
-:root { --mat-ease-sheet: cubic-bezier(0.32, 0.72, 0, 1); }
+:root { --mat-ease-sheet: var(--ease-drawer); }
 .mat-chip, .mat-thumb { transition: scale 100ms ease-out; }
 .mat-toggle { transition: scale 100ms ease-out, background-color 150ms ease, color 150ms ease; }
 .mat-chip:active:not(:disabled), .mat-thumb:active, .mat-toggle:active { scale: 0.96; }
@@ -340,6 +340,6 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
   .mat-toggle { transition: background-color 150ms ease, color 150ms ease; }
   .mat-chip:active, .mat-thumb:active, .mat-toggle:active { scale: none; }
   .mat-source-panel[data-state='open'], .mat-picture[data-state='open'] { animation: mat-fade-in 160ms ease-out; }
-  .mat-source-panel[data-state='closed'], .mat-picture[data-state='closed'] { animation: mat-fade-out 140ms ease-in forwards; }
+  .mat-source-panel[data-state='closed'], .mat-picture[data-state='closed'] { animation: mat-fade-out 140ms ease-out forwards; }
   .mat-picture img { transition: none; }
 }

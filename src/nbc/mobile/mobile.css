@@ -232,13 +232,30 @@
   .ph-collapsible-head > svg {
     flex: none;
     color: var(--text-secondary);
-    transition: rotate var(--duration-instant) var(--ease-standard);
+    transition: rotate var(--duration-base) var(--ease-out);
   }
   .ph-collapsible[data-open] .ph-collapsible-head > svg {
     rotate: 180deg;
   }
+  /* The section opens in place: it grows from the row (where height: auto can be interpolated) and fades in.
+     It closes at once, because the user has already moved on. */
+  .ph-collapsible {
+    interpolate-size: allow-keywords;
+  }
   .ph-collapsible-body {
     padding: 0 var(--space-16) var(--space-16);
+    transition: opacity var(--duration-base) var(--ease-out), height var(--duration-base) var(--ease-out);
+    @starting-style {
+      opacity: 0;
+    }
+  }
+  @supports (interpolate-size: allow-keywords) {
+    .ph-collapsible-body {
+      overflow: clip;
+      @starting-style {
+        height: 0;
+      }
+    }
   }
   .ph-collapsible-body:has(> .nbc-handler-panel) {
     padding: 0;
@@ -594,7 +611,7 @@
     border: 0;
     border-radius: var(--radius-pill);
     background: var(--border-strong);
-    transition: background var(--duration-instant) var(--ease-standard);
+    transition: background 200ms ease;
   }
   .shell .ph-switch[aria-checked='true'] {
     background: var(--accent);
@@ -605,7 +622,7 @@
     height: 28px;
     border-radius: 50%;
     background: var(--on-accent);
-    transition: transform var(--duration-instant) var(--ease-standard);
+    transition: transform 200ms var(--ease-out);
   }
   .shell .ph-switch[aria-checked='true'] .ph-switch-thumb {
     transform: translateX(20px);
@@ -1022,13 +1039,11 @@
     border-radius: 16px 16px 0 0;
     box-shadow: 0 0 0 100vmax var(--scrim);
     z-index: 60;
-    transform-origin: bottom center;
-    animation: ph-sheet-in 180ms var(--ease-standard);
+    animation: ph-sheet-in var(--duration-slow) var(--ease-drawer);
   }
   @keyframes ph-sheet-in {
     from {
-      opacity: 0;
-      transform: scale(0.97);
+      transform: translateY(100%);
     }
   }
   .shell .nbc-sheet-note textarea {
@@ -1045,6 +1060,9 @@
     transition: none;
   }
   .shell .nbc-sheet {
-    animation: none;
+    animation: rm-fade-in var(--duration-fast) ease;
+  }
+  .ph-collapsible-body {
+    transition: opacity var(--duration-fast) ease;
   }
 }

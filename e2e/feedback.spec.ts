@@ -27,7 +27,8 @@ for (const preference of ['system', 'os-reduced']) {
     await page.getByRole('button', { name: 'Delete task', exact: true }).first().click()
     const toast = page.locator('.workspace-toast')
     await expect(toast).toContainText(/Task moved to Trash/)
-    await expect(toast).toHaveCSS('animation-name', preference === 'system' ? 'toast-in' : 'none')
+    // Enters on an interruptible transition from the bottom edge; reduced motion keeps only the fade.
+    await expect(toast).toHaveCSS('transition-property', preference === 'system' ? 'opacity, translate' : 'opacity')
     await toast.getByRole('button', { name: 'Undo', exact: true }).click()
     await expect(toast).not.toBeVisible()
   })

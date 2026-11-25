@@ -85,8 +85,6 @@
 }
 
 /* Frozen columns on Project Progress (non-matrix WbsTable). Wider than 900px: WBS, Description, Prev % and Now % stay put; at 900px and below only WBS and Description do. */
-@property --pp-edge-a { syntax: '<number>'; inherits: false; initial-value: 0; }
-@keyframes pp-edge-in { from { --pp-edge-a: 0; } to { --pp-edge-a: 1; } }
 @media (min-width: 768px) {
   .nbc-activities .nbc-wbs:not(.nbc-rooms) { --w-wbs: 112px; --pp-w-prev: 92px; }
   .nbc-activities .nbc-wbs:not(.nbc-rooms) thead th.nbc-num { white-space: normal; line-height: 1.15; }
@@ -108,13 +106,12 @@
   .nbc-activities .nbc-wbs:not(.nbc-rooms) { --pp-w-desc: 220px; }
   .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(2) { border-right: 1px solid var(--pp-line-strong); }
 }
-@supports (animation-timeline: scroll()) {
-  @media (min-width: 901px) {
-    .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(4) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(0 0 0 / calc(0.12 * var(--pp-edge-a))); }
-  }
-  @media (min-width: 768px) and (max-width: 900px) {
-    .nbc-activities .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(2) { animation: pp-edge-in linear both; animation-timeline: scroll(nearest inline); animation-range: 0 24px; box-shadow: 5px 0 6px -4px rgb(0 0 0 / calc(0.12 * var(--pp-edge-a))); }
-  }
+/* Soft shadow on the last frozen column once the table has been scrolled sideways (data-scrolled, set by WbsTable). */
+@media (min-width: 901px) {
+  .nbc-activities .nbc-wbs-scroll[data-scrolled] .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(4) { box-shadow: 5px 0 6px -4px var(--pp-edge); }
+}
+@media (min-width: 768px) and (max-width: 900px) {
+  .nbc-activities .nbc-wbs-scroll[data-scrolled] .nbc-wbs:not(.nbc-rooms) :is(thead tr, tr[data-wbs]) > :nth-child(2) { box-shadow: 5px 0 6px -4px var(--pp-edge); }
 }
 
 /* Item code chip, handler avatar, hovered room column. */

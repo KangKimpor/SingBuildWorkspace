@@ -136,6 +136,14 @@
 .popover[data-state='closed'] {
   animation: pop-out 100ms var(--ease-exit) forwards;
 }
+@media (prefers-reduced-motion: reduce) {
+  .popover[data-state='open'] {
+    animation: rm-fade-in var(--duration-fast) ease;
+  }
+  .popover[data-state='closed'] {
+    animation: rm-fade-out 100ms ease forwards;
+  }
+}
 @keyframes pop-in {
   from {
     opacity: 0;

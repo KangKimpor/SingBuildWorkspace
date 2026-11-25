@@ -63,10 +63,10 @@
     overscroll-behavior: contain;
     transform: none;
     translate: none;
-    animation: phone-sheet-in var(--duration-base) var(--ease-enter);
+    animation: phone-sheet-in var(--duration-slow) var(--ease-drawer);
   }
   [role='dialog'][id^='radix-']:not(.bsheet, .drawer, .rsheet)[data-state='closed'] {
-    animation: phone-sheet-out 160ms var(--ease-exit) forwards;
+    animation: phone-sheet-out var(--duration-base) var(--ease-drawer) forwards;
   }
   /* Drag handle */
   [role='dialog'][id^='radix-']:not(.bsheet, .drawer, .rsheet)::before {
@@ -91,13 +91,28 @@
       transform: translateY(100%);
     }
   }
-  html[data-motion='reduced'] [role='dialog'][id^='radix-'][data-state]:not(.bsheet, .drawer, .rsheet) {
-    animation: none;
+  html[data-motion='reduced'] [role='dialog'][id^='radix-'][data-state='open']:not(.bsheet, .drawer, .rsheet) {
+    animation: rm-fade-in var(--duration-fast) ease;
+  }
+  html[data-motion='reduced'] [role='dialog'][id^='radix-'][data-state='closed']:not(.bsheet, .drawer, .rsheet) {
+    animation: rm-fade-out var(--duration-fast) ease forwards;
   }
 }
 
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
-  [role='dialog'][id^='radix-'][data-state]:not(.bsheet, .drawer, .rsheet) {
-    animation: none;
+  [role='dialog'][id^='radix-'][data-state='open']:not(.bsheet, .drawer, .rsheet) {
+    animation: rm-fade-in var(--duration-fast) ease;
+  }
+  [role='dialog'][id^='radix-'][data-state='closed']:not(.bsheet, .drawer, .rsheet) {
+    animation: rm-fade-out var(--duration-fast) ease forwards;
+  }
+}
+/* Desktop modals: fade only. */
+@media (min-width: 768px) and (prefers-reduced-motion: reduce) {
+  .event-editor[data-state='open'] {
+    animation: rm-fade-in var(--duration-fast) ease;
+  }
+  .event-editor[data-state='closed'] {
+    animation: rm-fade-out var(--duration-fast) ease forwards;
   }
 }

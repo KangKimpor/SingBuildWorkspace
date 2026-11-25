@@ -251,6 +251,8 @@ test.describe('mobile progress work', () => {
     expect((await remark.boundingBox())!.height).toBeGreaterThanOrEqual(44)
     await page.getByRole('button', { name: 'Confirm update', exact: true }).tap()
     const sheet = page.getByRole('dialog', { name: 'Confirm update' })
+    // The sheet slides up from the bottom edge; measure where it settles.
+    await sheet.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)))
     const box = await sheet.boundingBox()
     expect(box!.y).toBeGreaterThanOrEqual(0)
     expect(box!.y + box!.height).toBeLessThanOrEqual(page.viewportSize()!.height)
