@@ -120,8 +120,12 @@
 .mi-chg { display: inline-block; flex: none; width: 6px; height: 6px; margin-inline-end: 6px; border-radius: 50%; background: var(--mi-accent); vertical-align: 2px; }
 .mi-chip .mi-chg { margin: 0; vertical-align: 0; }
 /* Changed this week: a small labelled tag leading the subtitle, so the name keeps its left edge and the mark says what it means. */
-.mi-chg-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 17px; margin-inline-end: 6px; padding: 0 6px; border-radius: 5px; background: rgb(0 113 227 / 0.09); color: var(--mi-blue); font-size: 10.5px; font-weight: 650; letter-spacing: 0.01em; vertical-align: 1px; }
-.mi-chg-tag::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+/* The tag's own line box is its height (line-height 1), so the word and the dot sit on its vertical centre whatever line
+   height the surrounding text uses. */
+.mi-chg-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; box-sizing: border-box; height: 17px; margin-inline-end: 6px; padding: 0 6px; border-radius: 5px; background: rgb(0 113 227 / 0.09); color: var(--mi-blue); font-size: 10.5px; font-weight: 650; line-height: 1; letter-spacing: 0.01em; white-space: nowrap; vertical-align: middle; }
+.mi-chg-tag::before { content: ''; flex: none; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+/* On a Board card the subtitle wraps, so the tag takes its own line above it instead of riding the first line of text. */
+.mi-kc .mi-chg-tag { display: flex; width: fit-content; margin: 3px 0 3px; }
 .mi-name .mi-s { display: flex; align-items: center; min-width: 0; }
 .mi-name .mi-s > .mi-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mi-toolbar .mi-chip { height: 32px; }
