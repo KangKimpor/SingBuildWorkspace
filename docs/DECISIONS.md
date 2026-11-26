@@ -613,3 +613,10 @@ The old cell showed six unlabelled dots, an uppercase "NEXT" and a bold red sent
 - **Stages.** Six symbols in a fixed order: document (submitted), tick (approved), swatch (sample), box (ordered), truck (shipped), delivered box (on site). They are joined by a line that turns green up to the current stage.
 - **States.** A reached stage is green. The current stage is ringed in blue when on track, orange when due within 14 days, or red when overdue. A stage that is not required is dashed. A missed plan on another stage is tinted red. Each symbol names itself and its date on hover.
 - **Text.** Under the symbols, the step to do in plain words ("Place order", no eyebrow). Below that, one small chip carries the lateness ("412d late", "In 3d", "Today") with "Planned 10 Oct" in grey beside it. Only the chip is coloured, so a long run of late rows stays readable.
+
+## D-75 Timeline stage symbols follow the stage capsules - November 26, 2026
+
+The Timeline cell's six symbols (D-74) now use the stage capsules' design language: the same two-tone glyphs, with a soft tinted shape and the glyph in the full hue. The submitted, approved, ordered, shipped and on-site glyphs are the capsules' own; the sample glyph is a new pair of swatches with a tick. Each stage keeps a hue from the capsule palette: Submitted indigo, Approved purple, Sample magenta, Ordered blue, Shipped cyan, On site green. Orange and red stay reserved for urgency, so an on-track Submit step is never orange.
+
+- **Reached stages** show their symbol in colour. Pending stages are grey, and a stage that is not required is grey and dashed.
+- **The current stage** is a small capsule: a pale ground, a 1.5 px ring a little heavier underneath, and the symbol. The ring takes the stage's hue when on track, orange when due within 14 days, and red when overdue.

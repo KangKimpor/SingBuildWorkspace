@@ -178,13 +178,21 @@ const stoneState = (s: Stone) => s.done ? 'done' : s.skipped ? 'skip' : s.late ?
  * list of late rows reads as a column of red marks, not a wall of red sentences.
  */
 /** The six stages' symbols: document, approval tick, sample swatch, order box, truck, delivered box. */
+/**
+ * The six stages drawn like the stage capsules (D-75): the same two-tone symbols (a soft tinted shape, the glyph in the full
+ * hue), each stage in its capsule's hue, so the Timeline reads as the same family as the Submission and Procurement capsules.
+ */
 const STEP_GLYPH: Record<string, ReactNode> = {
-  submitted: <path d="M6 2.5h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2zM7.5 7.5h5M7.5 11h5"/>,
-  approved: <path d="m5 10.4 3.3 3.3L15 6.6"/>,
-  sample: <><rect x="3.5" y="3.5" width="9" height="9" rx="2"/><path d="M8 16.5h6.5a2 2 0 0 0 2-2V8"/></>,
-  ordered: <path d="M3 7l7-4 7 4v7l-7 4-7-4zM3 7l7 4 7-4M10 11v7"/>,
-  shipping: <><path d="M2.5 5.5h9v8h-9zM11.5 8.5h3l3 3v2h-6"/><circle cx="6" cy="15" r="1.6"/><circle cx="14.5" cy="15" r="1.6"/></>,
-  onsite: <><path d="M3 4.5h14v11H3z"/><path d="m7 10 2.2 2.2L13.5 8"/></>,
+  submitted: GLYPH.notsub,
+  approved: GLYPH.approved,
+  sample: <><rect className="b" x="2" y="2" width="12" height="12" rx="3"/><rect className="b" x="6" y="6" width="12" height="12" rx="3"/><path className="g" d="m8.6 12.2 1.9 1.9 3.6-3.8"/></>,
+  ordered: GLYPH.ordered,
+  shipping: GLYPH.shipping,
+  onsite: GLYPH.onsite,
+}
+/** Each stage's hue from the capsule palette. Orange and red are kept for urgency, so Submitted takes the indigo, not Under review's orange. */
+const STEP_HUE: Record<string, string> = {
+  submitted: '#3b4fd8', approved: '#8b5cf6', sample: '#a21caf', ordered: '#0a6cff', shipping: '#06aed4', onsite: '#0a9e6a',
 }
 function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Stone | null; today: string }) {
   const at = current ? stones.indexOf(current) : -1
@@ -206,8 +214,9 @@ function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Sto
     <span className="mi-tm-steps">
       {stones.map((s, i) => <Fragment key={s.key}>
         {i > 0 && <i className="mi-tm-line" data-on={s.done || i === at || undefined} aria-hidden="true"/>}
-        <span className="mi-tm-k" data-state={i === at ? (tone === 'now' ? 'now' : `now-${tone}`) : stoneState(s)} title={stoneLine(s, today)}>
-          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">{STEP_GLYPH[s.key]}</svg>
+        <span className="mi-tm-k" data-state={i === at ? (tone === 'now' ? 'now' : `now-${tone}`) : stoneState(s)} title={stoneLine(s, today)}
+          style={{ ['--hue' as string]: STEP_HUE[s.key] }}>
+          <svg className="mi-sicon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">{STEP_GLYPH[s.key]}</svg>
         </span>
       </Fragment>)}
     </span>

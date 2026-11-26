@@ -744,20 +744,28 @@ div.mi-tlp-row { cursor: default; }
 /* Timeline cell (D-74): six stage symbols joined by a line, then the step to do, then a lateness chip and the plan date. */
 .mi-time { gap: 5px; }
 .mi-tm-steps { display: flex; align-items: center; width: 100%; max-width: 172px; margin-bottom: 1px; }
-.mi-tm-k { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: rgb(118 118 128 / 0.1); color: rgb(60 60 67 / 0.4); transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
-.mi-tm-k svg { width: 13px; height: 13px; overflow: visible; }
-.mi-tm-k svg * { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.mi-tm-line { flex: 1; min-width: 4px; height: 2px; background: rgb(60 60 67 / 0.14); }
-.mi-tm-line[data-on] { background: #34a853; }
-.mi-tm-k[data-state='done'] { background: #e6f4ea; color: #1e8e3e; }
-.mi-tm-k[data-state='skip'] { background: #fff; color: rgb(60 60 67 / 0.3); box-shadow: inset 0 0 0 1.25px rgb(60 60 67 / 0.25); outline: 1px dashed rgb(60 60 67 / 0.35); outline-offset: -1px; }
+/* Stage symbols in the capsules' style (D-75). A reached stage shows its two-tone symbol in its own hue. The stage the
+   material is at is a small capsule: a pale ground of the hue, a solid ring a little heavier underneath. Its hue is the
+   stage's own when on track, orange when due within 14 days, red when overdue. Pending stages are grey; a stage that is
+   not required is grey and dashed. */
+.mi-tm-k { --st: rgb(60 60 67 / 0.3); display: grid; place-items: center; flex: none; width: 24px; height: 24px; box-sizing: border-box; border-radius: 50%; transition: background-color 200ms ease, box-shadow 200ms ease; }
+.mi-tm-k .mi-sicon { width: 19px; height: 19px; }
+.mi-tm-k .mi-sicon .b { fill: color-mix(in srgb, var(--st) 30%, #fff); }
+.mi-tm-k[data-state='done'] { --st: var(--hue); }
+.mi-tm-k[data-state='done'] .mi-sicon .b { fill: color-mix(in srgb, var(--st) 42%, #fff); }
+.mi-tm-k[data-state='skip'] { --st: rgb(60 60 67 / 0.28); box-shadow: inset 0 0 0 1.25px rgb(60 60 67 / 0.22); outline: 1.25px dashed rgb(60 60 67 / 0.3); outline-offset: -1.25px; }
+.mi-tm-k[data-state='skip'] .mi-sicon { opacity: 0.6; }
 /* A stage whose plan date passed but is not the one the material is at (a sample still waiting, say). */
-.mi-tm-k[data-state='late'] { background: rgb(215 0 21 / 0.08); color: #d70015; }
-/* The stage the material is at: a ring in blue (on track), orange (due within 14 days) or red (overdue). */
-.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) { background: #fff; box-shadow: 0 0 0 1.75px var(--tm); color: var(--tm); }
-.mi-tm-k[data-state='now'] { --tm: var(--mi-accent); }
-.mi-tm-k[data-state='now-soon'] { --tm: #f08a00; }
-.mi-tm-k[data-state='now-late'] { --tm: #d70015; }
+.mi-tm-k[data-state='late'] { --st: #e5484d; }
+.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) {
+  width: 26px; height: 26px; border: 1.5px solid var(--st); box-shadow: 0 1px 0 var(--st); background: color-mix(in srgb, var(--st) 11%, #fff); }
+.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) .mi-sicon { width: 17px; height: 17px; }
+.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) .mi-sicon .b { fill: color-mix(in srgb, var(--st) 42%, #fff); }
+.mi-tm-k[data-state='now'] { --st: var(--hue); }
+.mi-tm-k[data-state='now-soon'] { --st: #f08a00; }
+.mi-tm-k[data-state='now-late'] { --st: #e5484d; }
+.mi-tm-line { flex: 1; min-width: 3px; height: 2px; border-radius: 1px; background: rgb(60 60 67 / 0.12); }
+.mi-tm-line[data-on] { background: rgb(60 60 67 / 0.32); }
 .mi-tm-t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0; font-size: 13px; font-weight: 600; line-height: 17px; letter-spacing: -0.01em; color: var(--mi-ink); overflow-wrap: anywhere; }
 .mi-tm-t[data-done] { color: var(--mi-green); }
 .mi-tm-s { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11.5px; line-height: 18px; color: var(--mi-ink-3); white-space: nowrap; }
