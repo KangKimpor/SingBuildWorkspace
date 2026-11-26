@@ -1,6 +1,7 @@
 /* Material list, List and Board views (D-57). Item-centric rows on a quiet grouped surface; every value is a calm
    button that reveals its affordance on hover and opens an anchored popover. Light mode only, like the rest of /admin. */
 .mat-page[data-view='list'], .mat-page[data-view='board'] { padding-bottom: 0; }
+.mat-page[data-expanded] .mi { --mi-pad: var(--space-16); }
 /* The List / Board / Sheet switch: the same gray-track segment as the package and sheet pickers. The shared `.view-tabs`
    scrolls sideways (`overflow-x: auto`), and its taller `.view-tab` min-height overflowed the 32 px track, which showed
    a vertical scroll spinner; this track never scrolls and every key fits inside it. */
@@ -21,7 +22,7 @@
   --mi-shadow-pop: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 10px 30px rgb(0 0 0 / 0.14), 0 2px 6px rgb(0 0 0 / 0.06);
   --mi-ease: cubic-bezier(0.32, 0.72, 0, 1);
   flex: 1 1 auto !important; min-height: 0; overflow: auto; overscroll-behavior: contain;
-  margin-inline: calc(-1 * var(--space-32)); padding: 0 var(--space-32) 96px;
+  margin-inline: calc(-1 * var(--mi-pad, var(--space-32))); padding: 0 var(--mi-pad, var(--space-32)) 96px;
   color: var(--mi-ink); font-size: 14px; line-height: 1.4; letter-spacing: -0.003em;
   scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.2) transparent;
 }
@@ -32,7 +33,7 @@
 .mi :is(input, textarea):not([type='checkbox']):not([type='radio']):is(:focus, :focus-visible) { outline: 0; box-shadow: none; }
 .mi button { font-family: inherit; line-height: inherit; color: inherit; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .mi :is(button, .mi-kc) { transition: transform 90ms ease-out, background-color 120ms, box-shadow 160ms, color 120ms; }
-.mi :is(.mi-card, .mi-chip, .mi-menu, .mi-btn, .mi-cell, .mi-pipe-stages button, .mi-bulk button):active { transform: scale(0.97); }
+.mi :is(.mi-card, .mi-chip, .mi-menu, .mi-btn, .mi-cell, .mi-pipe-stages button):active { transform: scale(0.97); }
 .mi-spacer { flex: 1; }
 .mi-faint { color: var(--mi-ink-3); }
 .mi-muted { color: var(--mi-ink-2); }
@@ -48,8 +49,11 @@
 .mi [data-stage='review'] { --st: #f27a0c; }
 .mi [data-stage='revise'] { --st: #e5484d; }
 .mi [data-stage='approved'] { --st: #8b5cf6; }
+.mi [data-stage='notreq'] { --st: #64748b; }
 .mi [data-stage='ordered'] { --st: #0a6cff; }
-.mi [data-stage='delivering'] { --st: #06aed4; }
+.mi [data-stage='production'] { --st: #a21caf; }
+.mi [data-stage='waiting'] { --st: #c97a00; }
+.mi [data-stage='shipping'] { --st: #06aed4; }
 .mi [data-stage='partial'] { --st: #3b4fd8; }
 .mi [data-stage='onsite'] { --st: #0a9e6a; }
 .mi-dot { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--st, currentColor); }
@@ -103,7 +107,7 @@
 /* Toolbar: sticks to the top of the scroller as a translucent layer, the list scrolls under it. */
 .mi-toolbar {
   position: sticky; top: 0; z-index: 5; display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
-  margin-inline: calc(-1 * var(--space-32)); padding: 10px var(--space-32);
+  margin-inline: calc(-1 * var(--mi-pad, var(--space-32))); padding: 10px var(--mi-pad, var(--space-32));
   background: rgb(255 255 255 / 0.8); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
   box-shadow: 0 0.5px 0 var(--mi-sep);
 }
@@ -138,17 +142,18 @@
 .mi-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mi-count { font-size: 12px; color: var(--mi-ink-3); }
 
-/* List: one grid shared by the header and every row. */
-.mi-list { margin-top: 10px; overflow: clip; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
+/* List: one grid shared by the header and every row. Scrolls horizontally inside the card on medium desktops so both notes columns stay reachable without overflowing the page. */
+.mi-list { margin-top: 10px; overflow-x: auto; overflow-y: clip; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
 .mi-list { --mi-lead: 44px; }
-.mi-grid { display: grid; grid-template-columns: var(--mi-lead) minmax(200px, 1.7fr) 150px 150px 170px 236px minmax(170px, 1.2fr); align-items: center; column-gap: 12px; padding: 0 16px 0 12px; }
-.mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1.7fr) 150px 150px 170px 236px 124px minmax(170px, 1.2fr); }
+.mi-grid { display: grid; grid-template-columns: var(--mi-lead) minmax(170px, 1.5fr) 138px 174px 158px 240px minmax(140px, 1fr) minmax(140px, 1fr); align-items: center; column-gap: 10px; min-width: 1240px; padding: 0 14px 0 12px; box-sizing: border-box; }
 .mi-lh { height: 34px; box-shadow: inset 0 -0.5px 0 var(--mi-sep); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mi-ink-3); }
 /* Section headers follow the workbook's nesting: each level steps in by 20 px and gets a little quieter, so
-   "1 Wall Finishing > 1.1 L23 Club Lounge > 1.1.1 Stone/Marble" reads as a tree. The number keeps its own muted ink. */
+   "1 Wall Finishing > 1.1 L23 Club Lounge > 1.1.1 Stone/Marble" reads as a tree. Only the chevron and title button toggle collapse (D-69). */
+.mi-gh { min-width: 1240px; box-sizing: border-box; }
 .mi-row + .mi-gh { box-shadow: inset 0 0.5px 0 var(--mi-sep); }
-.mi-grp { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; column-gap: 8px; width: 100%; min-height: 40px; padding: 8px 16px 8px calc(12px + var(--depth, 0) * 20px); border: 0; background: none; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; text-align: start; }
-.mi-grp:hover { background: var(--mi-hover); }
+.mi-grp { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 40px; padding: 8px 16px 8px calc(12px + var(--depth, 0) * 20px); box-sizing: border-box; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; text-align: start; }
+.mi-grp-btn { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; min-width: 0; padding: 4px 8px 4px 4px; margin: -4px 0 -4px -4px; border: 0; border-radius: 8px; background: none; font: inherit; letter-spacing: inherit; color: inherit; text-align: start; cursor: pointer; }
+.mi-grp-btn:hover { background: var(--mi-fill); }
 .mi-gh[data-depth='0'] .mi-grp { min-height: 48px; padding-block: 14px 8px; font-size: 15px; font-weight: 700; letter-spacing: -0.015em; }
 .mi-lh + .mi-gh .mi-grp { min-height: 42px; padding-top: 10px; }
 .mi-gh[data-depth='1'] .mi-grp { font-size: 13.5px; font-weight: 650; }
@@ -156,9 +161,9 @@
 .mi-grp-l { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; }
 .mi-grp-no { flex: none; color: var(--mi-ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
 .mi-grp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.mi-chev { justify-self: center; color: var(--mi-ink-3); transition: transform 250ms var(--mi-ease); }
-.mi-grp[aria-expanded='false'] .mi-chev { transform: rotate(-90deg); }
-.mi-grp-meta { display: inline-flex; align-items: baseline; gap: 10px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; }
+.mi-chev { flex: none; width: 16px; color: var(--mi-ink-3); transition: transform 250ms var(--mi-ease); }
+.mi-grp-btn[aria-expanded='false'] .mi-chev { transform: rotate(-90deg); }
+.mi-grp-meta { display: inline-flex; flex: none; align-items: baseline; gap: 10px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; }
 .mi-grp-n { min-width: 2ch; color: var(--mi-ink-3); text-align: end; font-variant-numeric: tabular-nums; }
 .mi-grp-late { font-size: 12px; font-weight: 600; color: var(--mi-red); }
 .mi-row { position: relative; min-height: 60px; padding-block: 8px; box-sizing: border-box; transition: background-color 120ms; }
@@ -166,23 +171,17 @@
 .mi-vpad { pointer-events: none; }
 /* Each row paints and lays out on its own, so a row mounting at the edge while scrolling does not repaint its neighbours. */
 .mi-row { contain: layout paint; }
-.mi-row::after { content: ''; position: absolute; left: calc(12px + var(--mi-lead) + 14px); right: 0; bottom: 0; height: 0.5px; background: var(--mi-sep); }
+.mi-row::after { content: ''; position: absolute; left: calc(12px + var(--mi-lead) + 12px); right: 0; bottom: 0; height: 0.5px; background: var(--mi-sep); }
 .mi-row:hover { background: var(--mi-hover); }
-.mi-row[data-picked] { background: rgb(0 113 227 / 0.05); }
 .mi-row[data-sel] { background: var(--mi-sel); }
 .mi-row[data-flash] { animation: mi-flash 1.2s var(--mi-ease); }
 @keyframes mi-flash { from { background-color: rgb(52 199 89 / 0.16); } }
-/* The material's photo: big enough to recognise the finish, opens full size. The select box sits on its corner. */
+/* The material's photo: big enough to recognise the finish, opens full size. */
 .mi-lead { position: relative; display: flex; align-items: center; justify-content: center; width: var(--mi-lead); height: var(--mi-lead); }
 .mi-thumb { position: relative; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 8px; background: linear-gradient(135deg, #f0efec, #e2ded7); color: rgb(0 0 0 / 0.3); box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08); }
 .mi-thumb img { width: 100%; height: 100%; object-fit: cover; }
 .mi-thumb-n { position: absolute; right: 2px; bottom: 2px; min-width: 14px; padding: 0 3px; border-radius: 999px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 9.5px; font-weight: 600; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums; }
 .mi-row[data-mark='omit'] { opacity: 0.6; }
-.mi-ck { position: absolute; top: -5px; left: -5px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1.5px solid var(--mi-sep-2); border-radius: 50%; background: var(--mi-surface); color: #fff; opacity: 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
-.mi-ck svg { opacity: 0; }
-.mi-row:hover .mi-ck, .mi-ck:focus-visible, .mi-ck[aria-checked='true'], .mi-list[data-selecting] .mi-ck { opacity: 1; }
-.mi-ck[aria-checked='true'] { border-color: var(--mi-accent); background: var(--mi-accent); }
-.mi-ck[aria-checked='true'] svg { opacity: 1; }
 .mi-name { display: flex; flex-direction: column; min-width: 0; }
 .mi-name .mi-t { overflow: hidden; padding: 0; border: 0; background: none; font-weight: 600; letter-spacing: -0.01em; text-align: start; white-space: nowrap; text-overflow: ellipsis; }
 .mi-name .mi-t:hover { text-decoration: underline; text-decoration-color: var(--mi-sep-2); text-underline-offset: 3px; }
@@ -230,7 +229,7 @@
 .mi-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 10px; padding: 56px 16px; color: var(--mi-ink-2); text-align: center; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
 
 /* Board: one column per stage; cards lift and follow the pointer from where they were grabbed. */
-.mi-board { display: grid; grid-template-columns: repeat(8, minmax(190px, 1fr)); gap: 12px; margin: 10px calc(-1 * var(--space-32)) 0; overflow-x: auto; padding: 2px var(--space-32) 8px; scroll-padding-inline: var(--space-32); }
+.mi-board { display: grid; grid-template-columns: repeat(11, minmax(200px, 1fr)); gap: 12px; margin: 10px calc(-1 * var(--mi-pad, var(--space-32))) 0; overflow-x: auto; padding: 2px var(--mi-pad, var(--space-32)) 8px; scroll-padding-inline: var(--mi-pad, var(--space-32)); }
 .mi-col { min-height: 360px; padding: 8px; border-radius: 14px; background: rgb(118 118 128 / 0.06); transition: background-color 150ms, box-shadow 150ms; }
 .mi-col[data-over] { background: var(--mi-sel); box-shadow: inset 0 0 0 2px rgb(0 113 227 / 0.35); }
 .mi-col h3 { display: flex; align-items: center; gap: 7px; margin: 4px 4px 10px; font-size: 12.5px; font-weight: 650; }
@@ -295,20 +294,14 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-pop .mi-compose { background: rgb(118 118 128 / 0.1); }
 .mi .mi-compose:not([type='checkbox']):not([type='radio']):is(:focus, :focus-visible) { background: #fff; box-shadow: 0 0 0 3px var(--mi-accent-soft), 0 0 0 1px var(--mi-accent); }
 
-/* Bulk bar and toast: dark floating materials at the bottom; the toast lifts above the bar while it shows. */
-.mi-bulk, .mi-toast {
-  position: fixed; left: 50%; bottom: calc(22px + var(--safe-bottom)); display: flex; align-items: center; color: #fff;
+/* Toast: dark floating material at the bottom. */
+.mi-toast {
+  position: fixed; left: 50%; bottom: calc(22px + var(--safe-bottom)); z-index: 35; display: flex; align-items: center; gap: 12px;
+  padding: 9px 9px 9px 15px; border-radius: 14px; background: rgb(29 29 31 / 0.88); color: #fff; font-size: 13px; min-height: 40px;
   -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); box-shadow: 0 12px 40px rgb(0 0 0 / 0.25);
+  transform: translate(-50%, 16px) scale(0.97); opacity: 0; pointer-events: none; transition: transform 320ms var(--mi-ease), opacity 180ms;
 }
-.mi-bulk { z-index: 30; gap: 4px; padding: 6px 6px 6px 14px; border-radius: 16px; background: rgb(29 29 31 / 0.84); transform: translate(-50%, 140%); opacity: 0; visibility: hidden; transition: transform 380ms var(--mi-ease), opacity 200ms, visibility 0s 380ms; }
-.mi-bulk[data-on] { transform: translate(-50%, 0); opacity: 1; visibility: visible; transition: transform 380ms var(--mi-ease), opacity 200ms; }
-.mi-bulk b { margin-inline-end: 8px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.mi-bulk button { display: inline-flex; align-items: center; padding: 7px 12px; border: 0; border-radius: 10px; background: rgb(255 255 255 / 0.1); color: #fff; font-size: 13px; font-weight: 600; }
-.mi-bulk button:hover { background: rgb(255 255 255 / 0.18); }
-.mi-toast { z-index: 35; gap: 12px; padding: 9px 9px 9px 15px; border-radius: 14px; background: rgb(29 29 31 / 0.88); font-size: 13px; min-height: 40px; transform: translate(-50%, 16px) scale(0.97); opacity: 0; pointer-events: none; transition: transform 320ms var(--mi-ease), opacity 180ms, translate 320ms var(--mi-ease); }
 .mi-toast[data-on] { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
-/* Lifts above the bulk bar by moving, not by animating `bottom` (a layout property). */
-.mi-toast[data-lift] { translate: 0 -62px; }
 .mi-toast button { padding: 4px 11px; border: 0; border-radius: 9px; background: rgb(255 255 255 / 0.14); color: #8cc8ff; font-weight: 650; }
 .mi-toast button:hover { background: rgb(255 255 255 / 0.22); }
 
@@ -344,20 +337,24 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-nextcard .mi-t { font-weight: 650; letter-spacing: -0.01em; }
 .mi-nextcard .mi-s { font-size: 12.5px; white-space: normal; }
 .mi-tl { margin: 0; padding: 0; list-style: none; }
-.mi-ms { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) 124px 84px; align-items: center; gap: 10px; padding: 6px 0; }
+.mi-ms { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) 138px 80px; align-items: center; gap: 10px; padding: 6px 0; }
 .mi-ms:not(:last-child)::after { content: ''; position: absolute; left: 6px; top: 26px; bottom: -12px; width: 2px; background: rgb(60 60 67 / 0.12); }
 .mi-o { z-index: 1; display: grid; place-items: center; width: 14px; height: 14px; border: 2px solid rgb(60 60 67 / 0.22); border-radius: 50%; background: #fff; color: #fff; }
 :is(.mi-ms, .mi-tlp li)[data-state='done'] .mi-o { border-color: #248a3d; background: #248a3d; }
 :is(.mi-ms, .mi-tlp li)[data-state='late'] .mi-o { border-color: #d70015; background: #ffe8ea; }
+:is(.mi-ms, .mi-tlp li)[data-state='skip'] .mi-o { border-style: dashed; border-color: rgb(60 60 67 / 0.34); background: #fff; }
 .mi-ms .mi-t { font-size: 13px; font-weight: 600; }
-.mi-ms .mi-s { white-space: normal; }
-.mi-var { font-size: 12px; text-align: end; }
-.mi-date-wrap { display: inline-flex; align-items: center; gap: 6px; }
-.mi-date-wrap { position: relative; }
-.mi-ms > .mi-date-wrap { display: flex; width: 124px; }
-.mi-ms > .mi-date-wrap .mi-date-btn { flex: 1; padding-inline-end: 26px; }
-.mi-date-btn { display: inline-flex; align-items: center; min-width: 96px; height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; background: rgb(118 118 128 / 0.08); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.mi-date-wrap[data-plain] .mi-date-btn { min-width: 0; padding: 1px 4px; background: none; font-size: 12px; text-decoration: underline dotted rgb(60 60 67 / 0.35); text-underline-offset: 3px; }
+.mi-ms[data-state='skip'] .mi-t { color: var(--mi-ink-3); text-decoration: line-through; }
+.mi-ms .mi-s { white-space: normal; overflow-wrap: anywhere; }
+.mi-skip-btn { padding: 0; font-size: 12px; font-weight: 500; }
+.mi-var { font-size: 12px; text-align: end; white-space: nowrap; }
+.mi-date-wrap { position: relative; display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
+.mi-ms > .mi-date-wrap { display: flex; width: 138px; min-width: 0; }
+.mi-ms > .mi-date-wrap .mi-date-btn { flex: 1; min-width: 0; }
+.mi-ms > .mi-date-wrap[data-filled] .mi-date-btn { padding-inline-end: 26px; }
+.mi-date-btn { display: inline-flex; align-items: center; min-width: 0; max-width: 100%; height: 28px; box-sizing: border-box; padding: 0 10px; border-radius: 7px; background: rgb(118 118 128 / 0.08); font-size: 12.5px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; }
+.mi-date-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mi-date-wrap[data-plain] .mi-date-btn { min-width: 0; height: auto; padding: 1px 4px; background: none; font-size: 12px; text-decoration: underline dotted rgb(60 60 67 / 0.35); text-underline-offset: 3px; }
 .mi-date-wrap:hover .mi-date-btn { background: rgb(118 118 128 / 0.14); }
 .mi-date-wrap:focus-within .mi-date-btn { background: #fff; box-shadow: 0 0 0 3px rgb(0 113 227 / 0.14), 0 0 0 1px #0071e3; }
 .mi-date-btn[data-empty] { color: rgb(60 60 67 / 0.72); }
@@ -392,42 +389,29 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-kv dd { margin: 0; overflow-wrap: anywhere; }
 .mi-src { margin-top: 14px; }
 
-/* Columns drop by the room the list actually has (the sidebar takes part of the viewport): the note first, then the owner,
-   the timeline, the quantities and the procurement stage. */
+/* Narrow viewports drop the outer columns so the table fits without crowding; desktop widths keep all 8 columns inside .mi-list. */
 .mi-list, .mi-overview { container: mi / inline-size; }
-@container mi (max-width: 1440px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1fr) 150px 150px 170px 236px; }
-  .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1fr) 150px 150px 170px 236px 124px; }
-  .mi-grid > .mi-c-note { display: none; }
-}
-@container mi (max-width: 1240px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1fr) 150px 150px 170px 236px; }
-  .mi-grid > .mi-c-who { display: none; }
-}
-@container mi (max-width: 1060px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(180px, 1fr) 150px 150px 236px; }
-  .mi-grid > .mi-c-time { display: none; }
-}
-@container mi (max-width: 860px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(160px, 1fr) 150px 150px; }
-  .mi-grid > .mi-c-qty { display: none; }
+@container mi (max-width: 760px) {
+  .mi-grid, .mi-gh { min-width: 0; }
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(150px, 1fr) 138px 170px; }
+  .mi-grid > :is(.mi-c-note, .mi-c-time, .mi-c-qty) { display: none; }
 }
 @container mi (max-width: 700px) {
   .mi-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@container mi (max-width: 620px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(0, 1fr) auto; }
+@container mi (max-width: 580px) {
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(0, 1fr) auto; }
   .mi-grid > .mi-c-proc { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .mi :is(button, .mi-kc), .mi-pop, .mi-bulk, .mi-toast, .mi-chev, .mi-qbar i, .mi-pipe-bar i { transition-duration: 1ms; }
+  .mi :is(button, .mi-kc), .mi-pop, .mi-toast, .mi-chev, .mi-qbar i, .mi-pipe-bar i { transition-duration: 1ms; }
   .mi-pop { transform: none; }
   .mi-row[data-flash] { animation: none; }
 }
 @media (prefers-reduced-transparency: reduce) {
   .mi-toolbar { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .mi-pop { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
-  .mi-bulk, .mi-toast { background: #1d1d1f; }
+  .mi-toast { background: #1d1d1f; }
 }
 
 /* Activity (D-58): who changed what, in the toolbar popover and in the panel. */
@@ -497,16 +481,17 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-track i { position: relative; display: grid; place-items: center; width: 13px; height: 13px; box-sizing: border-box; border: 2px solid rgb(60 60 67 / 0.24); border-radius: 50%; background: #fff; color: #fff; }
 .mi-track i[data-state='done'] { border-color: var(--mi-green); background: var(--mi-green); }
 .mi-track i[data-state='late'] { border-color: var(--mi-red); }
+.mi-track i[data-state='skip'] { border-style: dashed; border-color: rgb(60 60 67 / 0.34); background: #fff; }
 .mi-time .mi-s { display: flex; align-items: baseline; gap: 4px; min-width: 0; white-space: nowrap; }
 .mi-time-l { overflow: hidden; font-size: 13px; font-weight: 600; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; }
+.mi-time-k { margin-inline-end: 5px; font-size: 10px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; color: var(--mi-ink-3); }
 
-/* Quantity column: the four figures of the panel side by side, on site last and in green once anything has arrived. */
-/* Each quantity is its own button (D-66): the box you press is the value you change. */
-.mi-qstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
-.mi-qbox { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 7px; border: 0; border-radius: 8px; background: rgb(118 118 128 / 0.08); text-align: start; }
+/* Quantity column (D-69): a 2×2 grid so every label ("Total by BOQ", "Approved SHD") and full value read cleanly without clipping. */
+.mi-qstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.mi-qbox { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 8px; border: 0; border-radius: 8px; background: rgb(118 118 128 / 0.08); text-align: start; }
 .mi-qbox:hover { background: rgb(118 118 128 / 0.16); }
 .mi-qbox[aria-expanded='true'] { background: #fff; box-shadow: 0 0 0 1.5px var(--mi-accent), 0 0 0 4px var(--mi-accent-soft); }
-.mi-qbox small { overflow: hidden; font-size: 10px; font-weight: 600; line-height: 13px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
+.mi-qbox small { overflow: hidden; font-size: 10.5px; font-weight: 600; line-height: 13px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
 .mi-qbox b { overflow: hidden; font-size: 13px; font-weight: 650; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
 .mi-qbox[data-k='onsite'][data-some] { background: rgb(36 138 61 / 0.1); }
 .mi-qbox[data-k='onsite'][data-some] b { color: var(--mi-green); }
@@ -567,6 +552,7 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-tlp-row:disabled { cursor: default; opacity: 1; }
 .mi-tlp-t { font-size: 13px; font-weight: 600; }
 .mi-tlp li[data-state='done'] .mi-tlp-t { color: var(--mi-ink-2); font-weight: 500; }
+.mi-tlp li[data-state='skip'] .mi-tlp-t { color: var(--mi-ink-3); font-weight: 500; text-decoration: line-through; }
 .mi-tlp .mi-due { font-size: 12px; text-align: end; white-space: nowrap; }
 .mi-tlp .mi-due:not([data-tone]) { color: var(--mi-ink-3); font-weight: 500; }
 .mi-tlp .mi-due[data-tone='done'] { color: var(--mi-ink-3); font-weight: 500; }
@@ -616,3 +602,5 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 div.mi-tlp-row { cursor: default; }
 .mi-tlp-now { margin-inline-start: 6px; padding: 1px 6px; border-radius: 5px; background: rgb(0 113 227 / 0.1); color: var(--mi-blue); font-size: 10.5px; font-weight: 650; vertical-align: 1px; }
 .mi-tlp-act .mi-plan { padding-top: 0; border-top: 0; }
+.mi-tlp-skip { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 0.5px solid rgb(60 60 67 / 0.14); }
+.mi-tlp-skip:first-child { padding-top: 0; border-top: 0; }

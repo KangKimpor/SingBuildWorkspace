@@ -91,7 +91,7 @@ const COLUMNS: Column[] = [
   col('arrActual', 'Actual Arrived', DATE, PROC, { edit: 'date', view: 'procurement' }),
   remark('purchase', 'before', PROC), remark('purchase', 'last', PROC), remark('purchase', 'now', PROC),
   col('unit', 'Unit', 72, QTY, { edit: 'text', view: 'procurement' }),
-  cell('total', 'Total by QS', QTY, 'procurement'),
+  cell('total', 'Total by BOQ', QTY, 'procurement'),
   cell('po', 'PO by Purchase', QTY, 'procurement'),
   cell('shd', 'Approved SHD', QTY, 'procurement'),
   cell('onsite', 'On site', QTY, 'procurement'),

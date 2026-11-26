@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
-import { Activity, CalendarDays, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, ImageIcon, Search, Undo2, X } from 'lucide-react'
+import { Activity, CalendarDays, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, ImageIcon, Maximize2, Minimize2, Search, Undo2, X } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
 import { useMatImageSrc } from './images'
 import type { MatPicture } from './MatSourcePanel'
@@ -15,7 +15,7 @@ import { remarkKey } from './store'
 import type { MatState } from './store'
 import {
   ATTENTION, PROC_NONE, PROC_STAGES, STAGE, STAGES, SUB_STAGES, addDaysIso, cellPatch, days, effectivePatch, nextOf, onsitePatch, procurementOf, procurementPatch,
-  qtyOf, sectionTree, snapshot, stageOf, stagePatch, submissionOf, submissionPatch, todayIso,
+  qtyOf, sampleSkipPatch, sampleSkipped, sectionTree, snapshot, stageOf, stagePatch, submissionOf, submissionPatch, todayIso,
 } from './stage'
 import type { AttentionId, MoveStage, NextStep, ProcStage, Qty, SectionInfo, SectionTree, StageId, SubStage } from './stage'
 import type { CellKey, EditableColKey, FieldKey, FieldValue, MatItem, MatLog, Sheet, Team } from './types'
@@ -23,9 +23,10 @@ import type { CellKey, EditableColKey, FieldKey, FieldValue, MatItem, MatLog, Sh
 type Patch = Partial<Record<FieldKey, FieldValue>>
 type Group = 'section' | 'stage' | 'owner' | 'none'
 type Sort = 'pos' | 'urgency' | 'recent'
-type PopType = 'sub' | 'proc' | 'next' | 'qty' | 'owner' | 'note' | 'filter-owner' | 'group' | 'sort' | 'bulk-stage' | 'bulk-owner' | 'activity'
-/** `field`: which quantity a `qty` popover edits. */
-interface Pop { type: PopType; id: string | null; anchor: HTMLElement; field?: QtyField }
+type PopType = 'sub' | 'proc' | 'next' | 'qty' | 'owner' | 'note' | 'filter-owner' | 'group' | 'sort' | 'activity'
+/** `field`: which quantity a `qty` popover edits. `team`: which team's note a `note` popover opens on. */
+interface PopOpts { field?: QtyField; team?: Team }
+interface Pop extends PopOpts { type: PopType; id: string | null; anchor: HTMLElement }
 interface Toast { message: string; undo?: { id: string; patch: Patch }[]; key: number }
 interface Note { team: Team; week: string; body: string; by?: string }
 
@@ -97,9 +98,12 @@ const GLYPH: Record<ChipStage, ReactNode> = {
   review: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="M10 5.8V10l2.9 1.9"/></>,
   revise: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="M6.2 7.6a4.4 4.4 0 1 1-.3 4.7"/><path className="g" d="M5.8 4.6v3.3h3.3"/></>,
   approved: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="m6.5 10.3 2.4 2.4 4.6-4.9"/></>,
+  notreq: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="m6.2 7 3 3-3 3M10.6 7l3 3-3 3"/></>,
   none: <><rect className="b" x="2" y="5" width="16" height="12" rx="3"/><path className="g" d="M7 11h6"/></>,
   ordered: <><rect className="b" x="2" y="5.5" width="16" height="11.5" rx="3"/><path className="g" d="M7 5.5V3.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8v1.7M2 10.3h16M10 9v2.6"/></>,
-  delivering: <><path className="b" d="M2 6.5A1.5 1.5 0 0 1 3.5 5h8A1.5 1.5 0 0 1 13 6.5V14H2zM13 8h2.6l2.4 3v3h-5z"/><circle className="d" cx="6" cy="14.6" r="1.9"/><circle className="d" cx="14.6" cy="14.6" r="1.9"/></>,
+  production: <><path className="b" d="M2 17.5V9.2l4.6 2.9V9.2l4.6 2.9V4.5H18v13z"/><path className="g" d="M5.6 14.6h1.8M9.9 14.6h1.8M14.2 14.6h1.2"/></>,
+  waiting: <><rect className="b" x="2" y="4" width="16" height="13" rx="3"/><path className="g" d="M10 7.4v3.2l2.2 1.4"/></>,
+  shipping: <><path className="b" d="M2 6.5A1.5 1.5 0 0 1 3.5 5h8A1.5 1.5 0 0 1 13 6.5V14H2zM13 8h2.6l2.4 3v3h-5z"/><circle className="d" cx="6" cy="14.6" r="1.9"/><circle className="d" cx="14.6" cy="14.6" r="1.9"/></>,
   partial: <><rect className="b" x="2" y="4" width="16" height="13" rx="3"/><path className="g" d="M10 7.2v5.6M7.4 10.4 10 13l2.6-2.6"/></>,
   onsite: <><rect className="b" x="2" y="4" width="16" height="13" rx="3"/><path className="g" d="m6.6 10.6 2.3 2.3 4.5-4.8"/></>,
 }
@@ -115,38 +119,46 @@ function StagePill({ stage, caret }: { stage: ChipStage; caret?: boolean }) {
 
 /**
  * The six points a material passes (D-66), the same in the List's Timeline column and the panel's Timeline: submitted,
- * approved, sample approved, ordered, delivering and fully on site. A point is reached by its date, or by the stage the
- * material is in (an approved status with no approval date is still approved); Delivering has no date column and follows the
- * procurement stage. An unreached point whose plan date has passed is overdue.
+ * approved, sample approved, ordered, shipped and fully on site. A point is reached by its date, or by the stage the
+ * material is in (an approved status with no approval date is still approved); Shipped has no date column and follows the
+ * procurement stage. An unreached point whose plan date has passed is overdue. A skipped point (D-69: no submission or no
+ * sample needed) is neither reached nor overdue, and the material moves past it.
  */
 interface Stone {
-  key: string; title: string; plan: string; planKey: EditableColKey | null; actual: EditableColKey | null
+  key: string; title: string
+  /** What the step asks for while it is the one the material is at ("Place order", not "Order placed"). */
+  todo: string
+  plan: string; planKey: EditableColKey | null; actual: EditableColKey | null
   /** The real date it was reached, when there is one; `note` holds workbook text such as "TBC" in that column. */
-  date: string; note: string; done: boolean; late: boolean; sub?: string
+  date: string; note: string; done: boolean; late: boolean; skipped: boolean; sub?: string
 }
 function stonesOf(item: MatItem, today: string): Stone[] {
   const iso = (key: EditableColKey) => { const v = effectiveCol(item, key); return isIsoDate(v) ? v : '' }
   const raw = (key: EditableColKey) => { const v = text(item, key); return v && !isIsoDate(effectiveCol(item, key)) ? v : '' }
-  const sub = submissionOf(item), proc = procurementOf(item), submitted = iso('msActual')
+  const sub = submissionOf(item), proc = procurementOf(item), submitted = iso('msActual'), noSub = sub === 'notreq'
+  const shipTodo = proc === 'production' ? 'In production' : proc === 'waiting' ? 'Waiting for shipment' : proc === 'ordered' ? 'Production and shipping' : 'Ship'
   const defs: (Omit<Stone, 'date' | 'note' | 'done' | 'late'> & { reached: boolean })[] = [
-    { key: 'submitted', title: 'Material submitted', plan: iso('msPlan'), planKey: 'msPlan', actual: 'msActual', reached: sub !== 'notsub' },
-    { key: 'approved', title: 'Material approved', plan: submitted ? addDaysIso(submitted, 14) : '', planKey: null, actual: 'msApproved', reached: sub === 'approved', sub: text(item, 'msStatus') },
-    { key: 'sample', title: 'Sample approved', plan: iso('ssPlan'), planKey: 'ssPlan', actual: 'ssApproved', reached: false },
-    { key: 'ordered', title: 'Order placed', plan: iso('poPlan'), planKey: 'poPlan', actual: 'poActual', reached: proc !== 'none' },
-    { key: 'delivering', title: 'Delivering', plan: '', planKey: null, actual: null, reached: proc === 'delivering' || proc === 'partial' || proc === 'onsite' },
-    { key: 'onsite', title: 'Fully on site', plan: iso('arrPlan'), planKey: 'arrPlan', actual: 'arrActual', reached: proc === 'onsite' },
+    { key: 'submitted', title: 'Material submitted', todo: 'Submit material', plan: iso('msPlan'), planKey: 'msPlan', actual: 'msActual', reached: sub !== 'notsub' && !noSub, skipped: noSub },
+    { key: 'approved', title: 'Material approved', todo: 'Get approval', plan: submitted ? addDaysIso(submitted, 14) : '', planKey: null, actual: 'msApproved', reached: sub === 'approved', skipped: noSub, sub: text(item, 'msStatus') },
+    { key: 'sample', title: 'Sample approved', todo: 'Get sample approved', plan: iso('ssPlan'), planKey: 'ssPlan', actual: 'ssApproved', reached: /^approved/i.test(raw('ssApproved')), skipped: sampleSkipped(item) },
+    { key: 'ordered', title: 'Order placed', todo: 'Place order', plan: iso('poPlan'), planKey: 'poPlan', actual: 'poActual', reached: proc !== 'none', skipped: false },
+    { key: 'shipping', title: 'Shipped', todo: shipTodo, plan: '', planKey: null, actual: null, reached: proc === 'shipping' || proc === 'partial' || proc === 'onsite', skipped: false },
+    { key: 'onsite', title: 'Fully on site', todo: proc === 'partial' ? 'Deliver the balance' : 'Deliver to site', plan: iso('arrPlan'), planKey: 'arrPlan', actual: 'arrActual', reached: proc === 'onsite', skipped: false },
   ]
   return defs.map(({ reached, ...d }) => {
     const date = d.actual ? iso(d.actual) : '', done = !!date || reached
-    return { ...d, date, note: d.actual ? raw(d.actual) : '', done, late: !done && !!d.plan && days(d.plan, today) < 0 }
+    const skipped = d.skipped && !done
+    return { ...d, date, note: d.actual && !skipped ? raw(d.actual) : '', done, skipped, late: !done && !skipped && !!d.plan && days(d.plan, today) < 0 }
   })
 }
-/** The step a material is at: the first one not reached (the sample comes last, as it runs beside the main flow). */
-const currentStone = (stones: Stone[]) => stones.find((s) => !s.done && s.key !== 'sample') ?? stones.find((s) => !s.done) ?? null
+/** The step a material is at: the first one not reached or skipped (the sample comes last, as it runs beside the main flow). */
+const pending = (s: Stone) => !s.done && !s.skipped
+const currentStone = (stones: Stone[]) => stones.find((s) => pending(s) && s.key !== 'sample') ?? stones.find(pending) ?? null
 /** A step's state in the panel's words: "139d overdue", "Plan 2 Dec", "Expected 23 Nov", "Pending", or the date it was reached. */
 function stoneStatus(s: Stone, today: string): { text: string; tone?: 'late' | 'soon' | 'done' } {
   if (s.done) return { text: s.date ? shortDate(s.date) : 'Done', tone: 'done' }
-  if (!s.plan) return { text: s.key === 'delivering' ? 'Pending' : 'No plan date' }
+  if (s.skipped) return { text: 'Not required' }
+  if (!s.plan) return { text: s.key === 'shipping' ? 'Pending' : 'No plan date' }
   const diff = days(s.plan, today), word = s.planKey ? 'Plan' : 'Expected'
   if (diff < 0) return { text: `${-diff}d overdue · ${word.toLowerCase()} ${shortDate(s.plan)}`, tone: 'late' }
   if (diff <= 14) return { text: `${diff ? `In ${diff}d` : 'Today'} · ${word.toLowerCase()} ${shortDate(s.plan)}`, tone: 'soon' }
@@ -156,11 +168,13 @@ function StoneStatus({ stone, today }: { stone: Stone; today: string }) {
   const st = stoneStatus(stone, today)
   return <span className="mi-due" data-tone={st.tone}>{st.text}</span>
 }
-const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
-/** The panel's timeline in one line of points: green with a check when reached, a red ring when overdue, grey when pending. */
+const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.skipped ? 'not required' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
+const stoneState = (s: Stone) => s.done ? 'done' : s.skipped ? 'skip' : s.late ? 'late' : undefined
+/** The panel's timeline in one line of points: green with a check when reached, a red ring when overdue, a dashed ring when
+ * not required, grey when pending. */
 function Track({ stones }: { stones: Stone[] }) {
   return <span className="mi-track" aria-hidden="true">
-    {stones.map((m) => <i key={m.key} data-state={m.done ? 'done' : m.late ? 'late' : undefined}>{m.done && <Check size={8} strokeWidth={3.6}/>}</i>)}
+    {stones.map((m) => <i key={m.key} data-state={stoneState(m)}>{m.done && <Check size={8} strokeWidth={3.6}/>}</i>)}
   </span>
 }
 function QtyBar({ q, large }: { q: Qty; large?: boolean }) {
@@ -182,10 +196,13 @@ export interface MatItemsProps {
   onOpenSource: (id: string) => void
   /** Opens a photo full size. */
   onPicture: (picture: MatPicture) => void
+  /** Full screen (D-69), shared with the Sheet: the page hides its heading and the app's sidebar while it is on. */
+  expanded?: boolean
+  onToggleExpand?: () => void
 }
 
 /** The List and Board views of one material sheet (D-57): every value is edited in place, every change can be undone. */
-export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource, onPicture }: MatItemsProps) {
+export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource, onPicture, expanded, onToggleExpand }: MatItemsProps) {
   const rows = useMemo(() => state.items.filter((i) => i.sheet === sheet), [state.items, sheet])
   const items = useMemo(() => rows.filter((r) => r.kind === 'item'), [rows])
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
@@ -228,9 +245,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
   const [sort, setSort] = useState<Sort>('pos')
   const [collapsed, setCollapsed] = useState<ReadonlySet<string>>(() => new Set())
   const [open, setOpen] = useState<string | null>(null)
-  const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set())
-  const lastChecked = useRef<string | null>(null)
-  /** Set by the List while it shows: the item order on screen and a scroll that works with rows not yet mounted. */
+  /** Set by the List while it shows: a scroll that works with rows not yet mounted. */
   const listHandle = useRef<ListHandle | null>(null)
   const [pop, setPop] = useState<Pop | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
@@ -302,8 +317,11 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
   const setDate = useCallback((item: MatItem, key: EditableColKey, value: string) => {
     const patch: Patch = { [key]: colPatchValue(item, key, value) }
     if (key === 'msApproved' && value && !/^approved/i.test(text(item, 'msStatus'))) patch.msStatus = colPatchValue(item, 'msStatus', 'Approved')
-    if (key === 'msActual' && value && /not yet/i.test(text(item, 'msStatus') || 'not yet')) patch.msStatus = colPatchValue(item, 'msStatus', 'Under Review')
+    if (key === 'msActual' && value && /not yet|not required/i.test(text(item, 'msStatus') || 'not yet')) patch.msStatus = colPatchValue(item, 'msStatus', 'Under Review')
     void apply([{ item, patch }], key.endsWith('Plan') ? 'Plan date saved' : 'Date saved')
+  }, [apply])
+  const skipSample = useCallback((item: MatItem, skip: boolean) => {
+    void apply([{ item, patch: sampleSkipPatch(item, skip) }], skip ? 'Sample marked not required' : 'Sample required again')
   }, [apply])
   const setQty = useCallback((item: MatItem, key: CellKey, value: number) => {
     void apply([{ item, patch: key === 'onsite' ? onsitePatch(item, value, today) : { [key]: cellPatch(item, key, value) } }], 'Quantity saved')
@@ -325,25 +343,11 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     if (b.team) await saveNote(item.id, b.team, b.body ?? '')
   }, [apply, byId, saveNote])
   // ---- popovers ----
-  const openPop = useCallback((type: PopType, id: string | null, anchor: HTMLElement, field?: QtyField) =>
-    setPop((cur) => cur && cur.anchor === anchor && cur.type === type ? null : { type, id, anchor, field }), [])
+  const openPop = useCallback((type: PopType, id: string | null, anchor: HTMLElement, opts?: PopOpts) =>
+    setPop((cur) => cur && cur.anchor === anchor && cur.type === type ? null : { type, id, anchor, ...opts }), [])
   const closePop = useCallback(() => setPop(null), [])
 
-  // ---- selection, panel navigation, keys ----
-  const toggleCheck = useCallback((id: string, range: boolean) => {
-    // Ranges follow the rows as they are shown (grouped and sorted), read from the page.
-    // The anchor is read and moved outside the updater: React may run an updater twice.
-    const anchor = lastChecked.current
-    const ids = listHandle.current?.ids() ?? [...document.querySelectorAll<HTMLElement>('[data-mi-row]')].map((el) => el.dataset.miRow!)
-    lastChecked.current = id
-    setChecked((old) => {
-      const next = new Set(old)
-      const a = anchor ? ids.indexOf(anchor) : -1, b = ids.indexOf(id)
-      if (range && a >= 0 && b >= 0) for (const x of ids.slice(Math.min(a, b), Math.max(a, b) + 1)) next.add(x)
-      else if (!next.delete(id)) next.add(id)
-      return next
-    })
-  }, [])
+  // ---- panel navigation, keys ----
   const nav = useCallback((dir: number) => {
     const i = list.findIndex((x) => x.id === open), n = list[i + dir]
     if (!n) return
@@ -356,10 +360,10 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
       if (e.defaultPrevented) return
       const inField = e.target instanceof HTMLElement && !!e.target.closest('input,textarea,select,[contenteditable=true]')
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !inField && toast?.undo) { e.preventDefault(); void undo(); return }
+      // Escape closes the innermost thing first; preventDefault keeps it from also leaving full screen.
       if (e.key === 'Escape') {
-        if (pop) { setPop(null); return }
-        if (checked.size && !open) { setChecked(new Set()); return }
-        if (open && !document.querySelector('[role="dialog"][data-state="open"]')) { setOpen(null); return }
+        if (pop) { e.preventDefault(); setPop(null); return }
+        if (open && !document.querySelector('[role="dialog"][data-state="open"]')) { e.preventDefault(); setOpen(null); return }
       }
       if (inField || e.metaKey || e.ctrlKey || e.altKey) return
       // A popover or a dialog owns the keyboard while it is open: no list shortcuts behind it.
@@ -370,12 +374,12 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     }
     addEventListener('keydown', onKey)
     return () => removeEventListener('keydown', onKey)
-  }, [pop, checked, open, nav, toast, undo])
+  }, [pop, open, nav, toast, undo])
 
-  const actions = useMemo<RowActions>(() => ({ openPop, toggleCheck, openPanel: setOpen, openPicture: onPicture }), [openPop, toggleCheck, onPicture])
+  const actions = useMemo<RowActions>(() => ({ openPop, openPanel: setOpen, openPicture: onPicture }), [openPop, onPicture])
   const canRevert = useCallback((l: MatLog) => !!l.before && byId.has(l.itemId)
     && (l.kind === 'fields' || (l.before as { week?: string }).week === state.week), [byId, state.week])
-  const ctx: RowCtx = { today, week: state.week, changed, notes, people, activity, hasOwner, checked, flash, open, pop, derived, actions, openPop, openPanel: setOpen, selecting: checked.size > 0, canRevert, askRevert: setReverting }
+  const ctx: RowCtx = { today, week: state.week, changed, notes, people, activity, hasOwner, flash, open, pop, derived, actions, openPop, openPanel: setOpen, canRevert, askRevert: setReverting }
   const openItem = open ? byId.get(open) ?? null : null
   const popItem = pop?.id ? byId.get(pop.id) ?? null : null
 
@@ -408,6 +412,9 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
         <Activity size={14} aria-hidden="true"/>Activity
       </button>
       <span className="mi-count" role="status" aria-live="polite">{NUM.format(list.length)} of {NUM.format(items.length)}</span>
+      {onToggleExpand && <button type="button" className="mi-menu" aria-pressed={!!expanded} title={expanded ? 'Leave full screen (Esc)' : 'Full screen'} onClick={onToggleExpand}>
+        {expanded ? <Minimize2 size={14} aria-hidden="true"/> : <Maximize2 size={14} aria-hidden="true"/>}{expanded ? 'Collapse' : 'Expand'}
+      </button>}
     </div>
 
     {items.length === 0
@@ -418,19 +425,19 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
       ? <ListView list={list} group={group} tree={tree} collapsed={collapsed} ctx={ctx} handle={listHandle}
           onToggleGroup={(k) => setCollapsed((old) => { const n = new Set(old); if (!n.delete(k)) n.add(k); return n })}/>
       : <BoardView list={list} ctx={ctx} onDrop={(id, to, card) => {
-          if (to === 'partial') { const el = document.querySelector<HTMLElement>(`[data-mi-card="${CSS.escape(id)}"]`) ?? card; openPop('qty', id, el, 'onsite'); return }
+          if (to === 'partial') { const el = document.querySelector<HTMLElement>(`[data-mi-card="${CSS.escape(id)}"]`) ?? card; openPop('qty', id, el, { field: 'onsite' }); return }
           moveTo([id], to as MoveStage)
         }}/>}
 
     <Panel item={openItem} ctx={ctx} section={openItem ? tree.pathOf.get(openItem.id) ?? [] : []} week={state.week} remarks={state.remarks}
-      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty}
+      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty} onSub={moveSub} onSkipSample={skipSample}
       onNote={saveNote} onOpenSource={onOpenSource}/>
 
     <RevertDialog entry={reverting} item={reverting ? byId.get(reverting.itemId) ?? null : null} people={people} activity={activity}
       onClose={() => setReverting(null)} onConfirm={(e) => { setReverting(null); void revert(e) }}/>
 
     {pop && <Popover pop={pop} onClose={closePop}>
-      <PopBody key={`${pop.type}:${pop.id ?? ''}`} pop={pop} item={popItem} today={today} owners={owners} owner={owner} group={group} sort={sort} count={checked.size} hasOwner={hasOwner}
+      <PopBody key={`${pop.type}:${pop.id ?? ''}:${pop.team ?? ''}`} pop={pop} item={popItem} today={today} owners={owners} owner={owner} group={group} sort={sort} hasOwner={hasOwner}
         week={state.week} remarks={state.remarks}
         onSub={(to) => { closePop(); if (popItem) moveSub(popItem, to) }}
         onProc={(to) => {
@@ -438,6 +445,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
           closePop(); if (popItem) moveProc(popItem, to)
         }}
         onPlan={(key, value) => { closePop(); if (popItem) setDate(popItem, key, value) }}
+        onSkipSample={(skip) => { closePop(); if (popItem) skipSample(popItem, skip) }}
         onEditDates={() => { const id = pop.id!; closePop(); setOpen(id) }}
         onSetQty={(field, v) => { closePop(); if (popItem) { if (field === 'onsite') setOnsite(popItem, v, 'On site updated'); else setQty(popItem, field, v) } }}
         onOwner={(name) => { closePop(); assign([pop.id!], name) }}
@@ -446,18 +454,10 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
         onGroup={(g) => { closePop(); setGroup(g) }}
         onSort={(s) => { closePop(); setSort(s) }}
         activity={activity} people={people} byId={byId} onOpenItem={(id) => { closePop(); setOpen(id) }}
-        canRevert={canRevert} onRevert={(l) => { closePop(); setReverting(l) }}
-        onBulkStage={(to) => { closePop(); moveTo([...checked], to) }}
-        onBulkOwner={(name) => { closePop(); assign([...checked], name) }}/>
+        canRevert={canRevert} onRevert={(l) => { closePop(); setReverting(l) }}/>
     </Popover>}
 
-    <div className="mi-bulk" data-on={checked.size > 0 || undefined} role="toolbar" aria-label="Selected materials" aria-hidden={checked.size === 0}>
-      <b>{checked.size} selected</b>
-      <button type="button" tabIndex={checked.size ? 0 : -1} onClick={(e) => openPop('bulk-stage', null, e.currentTarget)}>Stage</button>
-      {hasOwner && <button type="button" tabIndex={checked.size ? 0 : -1} onClick={(e) => openPop('bulk-owner', null, e.currentTarget)}>Owner</button>}
-      <button type="button" tabIndex={checked.size ? 0 : -1} aria-label="Clear selection" onClick={() => setChecked(new Set())}><X size={14} aria-hidden="true"/></button>
-    </div>
-    <div className="mi-toast" data-on={toast ? '' : undefined} data-lift={checked.size > 0 || undefined} role="status">
+    <div className="mi-toast" data-on={toast ? '' : undefined} role="status">
       <span>{toast?.message}</span>
       {toast?.undo && <button type="button" onClick={() => void undo()}>Undo</button>}
     </div>
@@ -521,8 +521,7 @@ function derivedOf(i: MatItem, today: string): Derived {
   return d
 }
 interface RowActions {
-  openPop: (type: PopType, id: string | null, anchor: HTMLElement, field?: QtyField) => void
-  toggleCheck: (id: string, range: boolean) => void
+  openPop: (type: PopType, id: string | null, anchor: HTMLElement, opts?: PopOpts) => void
   openPanel: (id: string) => void
   openPicture: (picture: MatPicture) => void
 }
@@ -534,11 +533,9 @@ interface RowCtx {
   changed: ReadonlyMap<string, ReadonlySet<string>>
   notes: Map<string, Note[]>
   hasOwner: boolean
-  checked: ReadonlySet<string>
   flash: ReadonlySet<string>
   open: string | null
   pop: Pop | null
-  selecting: boolean
   derived: Map<string, Derived>
   /** Stable across renders, so memoized rows skip re-rendering when only another row changed. */
   actions: RowActions
@@ -604,7 +601,7 @@ function listEntries(list: MatItem[], group: Group, tree: SectionTree, derived: 
   return out
 }
 
-interface ListHandle { ids: () => string[]; reveal: (id: string) => void }
+interface ListHandle { reveal: (id: string) => void }
 /** Above this many rows the List mounts only what is on screen (plus a margin), as the Sheet does past its own threshold. */
 const LIST_VIRTUAL_THRESHOLD = 120
 
@@ -614,7 +611,7 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
 }) {
   const { derived } = ctx
   const entries = useMemo(() => listEntries(list, group, tree, derived, collapsed), [list, group, tree, derived, collapsed])
-  const columns = ctx.hasOwner ? 8 : 7
+  const columns = 8
   const listRef = useRef<HTMLDivElement>(null)
   const virtual = entries.length > LIST_VIRTUAL_THRESHOLD
   // Where the rows start inside the page scroller (below the overview, the toolbar and the column header), and how much
@@ -653,7 +650,6 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
   useLayoutEffect(() => { latest.current = { entries, virtual, virtualizer } })
   useEffect(() => {
     handle.current = {
-      ids: () => latest.current.entries.flatMap((e) => e.kind === 'item' ? [e.item.id] : []),
       reveal: (id) => {
         const { entries: all, virtual: v, virtualizer: vz } = latest.current
         if (!v) { document.querySelector(`[data-mi-row="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest' }); return }
@@ -664,27 +660,28 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
     return () => { handle.current = null }
   }, [handle])
   const rowsOnScreen = shown ? shown.map((v) => ({ e: entries[v.index]!, index: v.index })) : entries.map((e, index) => ({ e, index }))
-  return <div ref={listRef} className="mi-list" data-selecting={ctx.selecting || undefined} role="table" aria-label="Materials"
+  return <div ref={listRef} className="mi-list" role="table" aria-label="Materials"
     aria-rowcount={virtual ? entries.length + 1 : undefined}>
-    <div className="mi-grid mi-lh" role="row" data-owner={ctx.hasOwner || undefined} aria-rowindex={virtual ? 1 : undefined}>
-      <span role="columnheader"><span className="sr-only">Photo and select</span></span><span role="columnheader">Material</span>
+    <div className="mi-grid mi-lh" role="row" aria-rowindex={virtual ? 1 : undefined}>
+      <span role="columnheader"><span className="sr-only">Photo</span></span><span role="columnheader">Material</span>
       <span role="columnheader">Submission</span><span role="columnheader" className="mi-c-proc">Procurement</span>
       <span role="columnheader" className="mi-c-time">Timeline</span><span role="columnheader" className="mi-c-qty">Quantity</span>
-      {ctx.hasOwner && <span role="columnheader" className="mi-c-who">Owner</span>}<span role="columnheader" className="mi-c-note">Notes</span>
+      <span role="columnheader" className="mi-c-note">Purchase notes</span><span role="columnheader" className="mi-c-note" title="Project Management notes">PM notes</span>
     </div>
     {padTop > 0 && <div className="mi-vpad" style={{ height: padTop }} aria-hidden="true"/>}
     {rowsOnScreen.map(({ e, index }) => e.kind === 'head'
+      // Only the chevron and the section name toggle the section; the rest of the band is not a button (D-69).
       ? <div key={e.key} ref={measure} data-index={virtual ? index : undefined} aria-rowindex={virtual ? index + 2 : undefined}
-          role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns}>
-          <button type="button" className="mi-grp" aria-expanded={!collapsed.has(e.key)} style={{ ['--depth' as string]: e.depth }} title={e.title} onClick={() => onToggleGroup(e.key)}>
+          role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns} className="mi-grp" style={{ ['--depth' as string]: e.depth }}>
+          <button type="button" className="mi-grp-btn" aria-expanded={!collapsed.has(e.key)} title={e.title} onClick={() => onToggleGroup(e.key)}>
             <ChevronDown className="mi-chev" size={13} aria-hidden="true"/>
             <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}</span>
-            <span className="mi-grp-meta"><span className="mi-grp-n" aria-label={`${e.count} materials`}>{e.count}</span></span>
           </button>
+          <span className="mi-grp-meta"><span className="mi-grp-n" aria-label={`${e.count} materials`}>{e.count}</span></span>
         </div></div>
       : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} notes={ctx.notes.get(e.item.id)} week={ctx.week} today={ctx.today}
-          changed={ctx.changed.has(e.item.id)} picked={ctx.checked.has(e.item.id)} sel={ctx.open === e.item.id} flash={ctx.flash.has(e.item.id)}
-          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} popField={ctx.pop?.id === e.item.id ? ctx.pop.field : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}
+          changed={ctx.changed.has(e.item.id)} sel={ctx.open === e.item.id} flash={ctx.flash.has(e.item.id)}
+          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} popKey={ctx.pop?.id === e.item.id ? ctx.pop.field ?? ctx.pop.team : undefined} actions={ctx.actions}
           index={virtual ? index : undefined} measure={measure}/>)}
     {padBottom > 0 && <div className="mi-vpad" style={{ height: padBottom }} aria-hidden="true"/>}
   </div>
@@ -699,19 +696,20 @@ function Photo({ src: ref }: { src: string }) {
 }
 
 interface RowProps {
-  item: MatItem; d: Derived; notes: Note[] | undefined; week: string; today: string; changed: boolean; picked: boolean; sel: boolean; flash: boolean
-  popType: PopType | undefined; popField: QtyField | undefined; hasOwner: boolean; actions: RowActions
+  item: MatItem; d: Derived; notes: Note[] | undefined; week: string; today: string; changed: boolean; sel: boolean; flash: boolean
+  /** The open popover on this row, and which quantity or note team it is for. */
+  popType: PopType | undefined; popKey: QtyField | Team | undefined; actions: RowActions
   /** Set when the List is virtualized: the entry index the virtualizer measures this row under. */
   index?: number; measure?: (el: HTMLElement | null) => void
 }
-/** Memoized on plain props: opening a popover or ticking one row re-renders that row, not all of them. */
-const Row = memo(function Row({ item, d, notes, week, today, changed, picked, sel, flash, popType, popField, hasOwner, actions, index, measure }: RowProps) {
-  const { subStage: sub, proc, stones, qty: q, name, owner } = d
+/** Memoized on plain props: opening a popover on one row re-renders that row, not all of them. */
+const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash, popType, popKey, actions, index, measure }: RowProps) {
+  const { subStage: sub, proc, stones, qty: q, name } = d
   const current = currentStone(stones)
-  const cell = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => { e.stopPropagation(); actions.openPop(type, item.id, e.currentTarget) }
+  const cell = (type: PopType, opts?: PopOpts) => (e: ReactMouseEvent<HTMLButtonElement>) => { e.stopPropagation(); actions.openPop(type, item.id, e.currentTarget, opts) }
   // oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- A click anywhere on the row is a pointer shortcut; the name button is the keyboard path to the same panel.
-  return <div ref={measure} data-index={index} aria-rowindex={index === undefined ? undefined : index + 2} className="mi-grid mi-row" role="row" data-mi-row={item.id} data-owner={hasOwner || undefined} data-sel={sel || undefined}
-    data-picked={picked || undefined} data-flash={flash || undefined} data-mark={item.data.mark}
+  return <div ref={measure} data-index={index} aria-rowindex={index === undefined ? undefined : index + 2} className="mi-grid mi-row" role="row" data-mi-row={item.id} data-sel={sel || undefined}
+    data-flash={flash || undefined} data-mark={item.data.mark}
     onClick={(e) => { if (!(e.target as HTMLElement).closest('button,input')) actions.openPanel(item.id) }}>
     <span className="mi-lead" role="cell">
       {d.photo
@@ -719,9 +717,6 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, picked, se
             <Photo src={d.photo}/>{d.photos > 1 && <span className="mi-thumb-n" aria-hidden="true">{d.photos}</span>}
           </button>
         : <span className="mi-thumb" data-empty aria-hidden="true"><ImageIcon size={16}/></span>}
-      <button type="button" className="mi-ck" role="checkbox" aria-checked={picked} aria-label={`Select ${name}`} onClick={(e) => { e.stopPropagation(); actions.toggleCheck(item.id, e.shiftKey) }}>
-        <Check size={11} strokeWidth={3} aria-hidden="true"/>
-      </button>
     </span>
     <span className="mi-name" role="cell">
       <button type="button" className="mi-t" title={name} onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
@@ -730,10 +725,11 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, picked, se
     <span role="cell"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
     <span role="cell" className="mi-c-proc"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'proc'} aria-label={`Procurement: ${stageLabel(proc)}. Change`} onClick={cell('proc')}><StagePill stage={proc}/></button></span>
     <span role="cell" className="mi-c-time"><button type="button" className="mi-cell mi-time" aria-haspopup="dialog" aria-expanded={popType === 'next'}
-      aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${current ? `Now: ${current.title}, ${stoneStatus(current, today).text}` : 'Complete'}. Update`}
+      aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${current ? `Next: ${current.todo}, ${stoneStatus(current, today).text}` : 'Complete'}. Update`}
       title={stones.map((m) => stoneLine(m, today)).join('\n')} onClick={cell('next')}>
       <Track stones={stones}/>
-      {current ? <><span className="mi-time-l" title={current.title}>{current.title}</span><span className="mi-s"><StoneStatus stone={current} today={today}/></span></>
+      {/* The step still to do, in its own words ("Place order"), so nothing reads as done before it is (D-69). */}
+      {current ? <><span className="mi-time-l" title={`Next: ${current.todo}`}><span className="mi-time-k">Next</span>{current.todo}</span><span className="mi-s"><StoneStatus stone={current} today={today}/></span></>
         : <span className="mi-s"><span className="mi-due" data-tone="done">All on site</span></span>}
     </button></span>
     <span role="cell" className="mi-c-qty"><span className="mi-qstats">
@@ -742,18 +738,20 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, picked, se
         const shown = k === 'total' && q.totalText ? q.totalText : boxNumber(q[k])
         return <button key={k} type="button" className="mi-qbox" data-k={k} data-some={(k === 'onsite' && q.onsite > 0) || undefined}
           data-text={(k === 'total' && !!q.totalText) || undefined}
-          aria-haspopup="dialog" aria-expanded={popType === 'qty' && popField === k} aria-label={`${QTY_LABEL[k]}: ${exact} ${q.unit}. Change`.replace(/ +\./, '.')}
-          title={`${QTY_LABEL[k]}: ${exact} ${q.unit}`.trim()} onClick={(e) => { e.stopPropagation(); actions.openPop('qty', item.id, e.currentTarget, k) }}>
-          <small>{short}{k === 'total' && q.unit && <i className="mi-qunit">{q.unit}</i>}</small><b>{shown}</b>
+          aria-haspopup="dialog" aria-expanded={popType === 'qty' && popKey === k} aria-label={`${QTY_LABEL[k]}: ${exact} ${q.unit}. Change`.replace(/ +\./, '.')}
+          title={`${QTY_LABEL[k]}: ${exact} ${q.unit}`.trim()} onClick={cell('qty', { field: k })}>
+          <small>{short}</small><b>{shown}{k === 'total' && q.unit && !q.totalText && <i className="mi-qunit">{q.unit}</i>}</b>
         </button>
       })}
     </span></span>
-    {hasOwner && <span role="cell" className="mi-c-who"><button type="button" className="mi-cell mi-who" aria-haspopup="dialog" aria-expanded={popType === 'owner'} aria-label={`Owner: ${owner || 'none'}. Change`} onClick={cell('owner')}>
-      {owner ? <><Avatar name={owner}/><span title={owner}>{owner}</span></> : <span className="mi-faint">Assign</span>}
-    </button></span>}
-    <span role="cell" className="mi-c-note"><button type="button" className="mi-cell mi-note" aria-haspopup="dialog" aria-expanded={popType === 'note'} onClick={cell('note')}>
-      {notes?.length ? <NoteStack notes={notes} week={week}/> : <span className="mi-add">+ Add note</span>}
-    </button></span>
+    {(['purchase', 'pm'] as Team[]).map((team) => {
+      const own = notes?.filter((n) => n.team === team) ?? []
+      return <span key={team} role="cell" className="mi-c-note"><button type="button" className="mi-cell mi-note" aria-haspopup="dialog" aria-expanded={popType === 'note' && popKey === team}
+        aria-label={`${TEAM_LABEL[team]} notes: ${own.length ? own.map((n) => `${weekName(n.week, week)}, ${n.body}`).join('. ') : 'none'}. ${own.some((n) => n.week === week) ? 'Edit' : 'Add'} this week's note`}
+        onClick={cell('note', { team })}>
+        {own.length ? <NoteLines notes={own} week={week}/> : <span className="mi-add">+ Add note</span>}
+      </button></span>
+    })}
   </div>
 })
 
@@ -853,7 +851,7 @@ const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: M
         <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
       </span>
     </span>
-    <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{current ? <><span className="mi-kc-step">{current.title}</span> <StoneStatus stone={current} today={today}/></> : <span className="mi-due" data-tone="done">All on site</span>}</span></span>
+    <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{current ? <><span className="mi-kc-step">{current.todo}</span> <StoneStatus stone={current} today={today}/></> : <span className="mi-due" data-tone="done">All on site</span>}</span></span>
   </>
 })
 
@@ -861,7 +859,7 @@ const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: M
 const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 280, proc: 280, activity: 380, next: 400 }
 const POP_LABEL: Record<PopType, string> = {
   sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Timeline', qty: 'Change quantity', owner: 'Change owner', note: 'This week\'s note',
-  'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', 'bulk-stage': 'Move selected to stage', 'bulk-owner': 'Assign selected to', activity: 'Recent activity',
+  'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', activity: 'Recent activity',
 }
 function Popover({ pop, onClose, children }: { pop: Pop; onClose: () => void; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -908,19 +906,20 @@ function Opt({ on, onClick, children, autoFocus }: { on?: boolean; onClick: () =
 }
 
 interface PopBodyProps {
-  pop: Pop; item: MatItem | null; today: string; owners: string[]; owner: string; group: Group; sort: Sort; count: number; week: string; remarks: Record<string, string>; hasOwner: boolean
+  pop: Pop; item: MatItem | null; today: string; owners: string[]; owner: string; group: Group; sort: Sort; week: string; remarks: Record<string, string>; hasOwner: boolean
   onSub: (to: SubStage) => void; onProc: (to: ProcStage) => void; onEditDates: () => void
-  onPlan: (key: EditableColKey, value: string) => void; onSetQty: (field: QtyField, v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
+  onPlan: (key: EditableColKey, value: string) => void; onSkipSample: (skip: boolean) => void
+  onSetQty: (field: QtyField, v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
   onFilterOwner: (name: string) => void; onGroup: (g: Group) => void; onSort: (s: Sort) => void
-  onBulkStage: (to: MoveStage) => void; onBulkOwner: (name: string) => void
   activity: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; onOpenItem: (id: string) => void
   canRevert: (entry: MatLog) => boolean; onRevert: (entry: MatLog) => void
 }
 function PopBody(p: PopBodyProps) {
   const { pop, item } = p
-  const [team, setTeam] = useState<Team>('purchase')
-  const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, 'purchase', p.week)] ?? '' : '')
-  // Keyed by popover type and row (see MatItems), so a draft never carries over to another material.
+  const initialTeam: Team = pop.team ?? 'purchase'
+  const [team, setTeam] = useState<Team>(initialTeam)
+  const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, initialTeam, p.week)] ?? '' : '')
+  // Keyed by popover type, row and team (see MatItems), so a draft never carries over to another material or team.
   const switchTeam = (t: Team) => { setTeam(t); if (item) setBody(p.remarks[remarkKey(item.id, t, p.week)] ?? '') }
   if ((pop.type === 'sub' || pop.type === 'proc') && item) {
     const isSub = pop.type === 'sub', current: ChipStage = isSub ? submissionOf(item) : procurementOf(item)
@@ -933,7 +932,7 @@ function PopBody(p: PopBodyProps) {
       <p className="mi-pad mi-faint mi-small mi-pop-foot">Dates are recorded as today. Change them in the timeline.</p>
     </>
   }
-  if (pop.type === 'next' && item) return <TimelinePop key={item.id} item={item} today={p.today} onPlan={p.onPlan} onEditDates={p.onEditDates}/>
+  if (pop.type === 'next' && item) return <TimelinePop key={item.id} item={item} today={p.today} onPlan={p.onPlan} onSub={p.onSub} onSkipSample={p.onSkipSample} onEditDates={p.onEditDates}/>
   if (pop.type === 'qty' && item) {
     const q = qtyOf(item), field = pop.field ?? 'onsite', rem = Math.max(0, q.total - q.onsite)
     return <div className="mi-pad">
@@ -943,11 +942,11 @@ function PopBody(p: PopBodyProps) {
         : `${NUM.format(q.onsite)} of ${NUM.format(q.total)} on site · ${NUM.format(rem)} to go`}</p>
     </div>
   }
-  if ((pop.type === 'owner' && item) || pop.type === 'bulk-owner') {
-    const current = item ? text(item, 'pic') : ''
+  if (pop.type === 'owner' && item) {
+    const current = text(item, 'pic')
     return <>
-      <div className="mi-pop-t">{pop.type === 'bulk-owner' ? `Assign ${p.count} to` : 'Owner'}</div>
-      {p.owners.map((o) => <Opt key={o} on={o === current} autoFocus={o === current} onClick={() => pop.type === 'bulk-owner' ? p.onBulkOwner(o) : p.onOwner(o)}><Avatar name={o}/><span>{o}</span></Opt>)}
+      <div className="mi-pop-t">Owner</div>
+      {p.owners.map((o) => <Opt key={o} on={o === current} autoFocus={o === current} onClick={() => p.onOwner(o)}><Avatar name={o}/><span>{o}</span></Opt>)}
       {!p.owners.length && <p className="mi-pad mi-faint">No owners on this sheet yet.</p>}
     </>
   }
@@ -986,10 +985,6 @@ function PopBody(p: PopBodyProps) {
       }) : <p className="mi-pad mi-faint">No changes in the last three weeks.</p>}
     </>
   }
-  if (pop.type === 'bulk-stage') return <>
-    <div className="mi-pop-t">Move {p.count} to stage</div>
-    {STAGES.filter((s): s is (typeof STAGES)[number] & { id: MoveStage } => s.id !== 'partial').map((s, i) => <Opt key={s.id} autoFocus={i === 0} onClick={() => p.onBulkStage(s.id)}><StageIcon stage={s.id} size={17}/><span>{s.label}</span></Opt>)}
-  </>
   return null
 }
 function SetOnsite({ label = 'Total on site', value, unit, onSet }: { label?: string; value: number; unit: string; onSet: (v: number) => void }) {
@@ -1003,29 +998,22 @@ function SetOnsite({ label = 'Total on site', value, unit, onSet }: { label?: st
       <button type="submit" className="mi-btn" data-primary disabled={!ok || x === value}>Set</button></div>
   </form>
 }
-/** The four quantities, as the List shows them and as their popover names them. */
+/** The four quantities, as the List shows them in a 2×2 grid and as their popover names them (D-69). */
 type QtyField = 'total' | 'po' | 'shd' | 'onsite'
-const QTY_FIELDS: [QtyField, string][] = [['total', 'Total'], ['po', 'Ordered'], ['shd', 'SHD'], ['onsite', 'On site']]
-/** A box is about 50 px wide: from 100,000 up a value is written compactly (642K, 1.28M); the tooltip and the popover keep it exact. */
+const QTY_FIELDS: [QtyField, string][] = [['total', 'Total by BOQ'], ['po', 'Ordered'], ['shd', 'Approved SHD'], ['onsite', 'On site']]
+/** Each 2×2 box is about 116 px wide: from 1,000,000 up a value is written compactly (1.28M); the tooltip and popover keep it exact. */
 const COMPACT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 })
-const boxNumber = (v: number) => Math.abs(v) >= 1e5 ? COMPACT.format(v) : NUM.format(v)
-const QTY_LABEL: Record<QtyField, string> = { total: 'Total by QS', po: 'Ordered', shd: 'Approved SHD', onsite: 'On site' }
+const boxNumber = (v: number) => Math.abs(v) >= 1e6 ? COMPACT.format(v) : NUM.format(v)
+const QTY_LABEL: Record<QtyField, string> = { total: 'Total by BOQ', po: 'Ordered', shd: 'Approved SHD', onsite: 'On site' }
 const WEEK_SHORT = (week: string, current: string) => week === current ? 'This wk' : week === addDaysIso(current, -7) ? 'Last wk' : '2 wks ago'
 /**
- * The notes cell (D-66): Purchase and PM each get their own block, newest week first, with this week, last week and the week
- * before when they were written. Each note is one line; the whole note and its author are in the tooltip and the panel.
+ * One team's notes for its List column (D-69): this week, last week and the week before when written, newest first.
+ * Each note is one line; the full note and its author are in the tooltip and the panel.
  */
-function NoteStack({ notes, week }: { notes: Note[]; week: string }) {
+function NoteLines({ notes, week }: { notes: Note[]; week: string }) {
   return <span className="mi-notes">
-    {(['purchase', 'pm'] as Team[]).map((team) => {
-      const own = notes.filter((n) => n.team === team)
-      if (!own.length) return null
-      return <span key={team} className="mi-nt">
-        <span className="mi-team" data-team={team}>{TEAM_LABEL[team]}</span>
-        <span className="mi-nl-list">{own.map((n) => <span key={n.week} className="mi-nl" data-week={n.week === week ? 'now' : undefined}
-          title={`${weekName(n.week, week)}${n.by ? ` · ${n.by}` : ''}\n${n.body}`}><span className="mi-nw">{WEEK_SHORT(n.week, week)}</span>{n.body}</span>)}</span>
-      </span>
-    })}
+    <span className="mi-nl-list">{notes.map((n) => <span key={n.week} className="mi-nl" data-week={n.week === week ? 'now' : undefined}
+      title={`${weekName(n.week, week)}${n.by ? ` · ${n.by}` : ''}\n${n.body}`}><span className="mi-nw">{WEEK_SHORT(n.week, week)}</span>{n.body}</span>)}</span>
   </span>
 }
 /** One-tap dates for "when did this happen": today (the default), yesterday, or any other day from the calendar. */
@@ -1059,6 +1047,8 @@ interface PanelProps {
   onClose: () => void; onNav: (dir: number) => void
   onDate: (item: MatItem, key: EditableColKey, value: string) => void
   onQty: (item: MatItem, key: CellKey, value: number) => void
+  onSub: (item: MatItem, to: SubStage) => void
+  onSkipSample: (item: MatItem, skip: boolean) => void
   onNote: (id: string, team: Team, body: string) => Promise<void>
   onOpenSource: (id: string) => void
 }
@@ -1137,7 +1127,7 @@ function Panel(props: PanelProps) {
   </motion.aside>
 }
 
-function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
+function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onSub, onSkipSample, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
   const sub = submissionOf(item), proc = procurementOf(item), q = qtyOf(item), owner = text(item, 'pic')
   const [team, setTeam] = useState<Team>('purchase')
   const [draft, setDraft] = useState('')
@@ -1199,19 +1189,23 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <h4>Timeline<span className="mi-spacer"/><span className="mi-faint">Plan · Actual · Variance</span></h4>
         <ol className="mi-tl">
           {stones.map((s) => {
-            const { date: actual, done, late } = s
+            const { date: actual, done, late, skipped } = s
             const v = actual && s.plan ? days(actual, s.plan) : null
-            return <li key={s.key} className="mi-ms" data-state={done ? 'done' : late ? 'late' : undefined}>
+            const canSkip = !done && (s.key === 'submitted' || s.key === 'sample')
+            const toggleSkip = () => s.key === 'submitted' ? onSub(item, skipped ? 'notsub' : 'notreq') : onSkipSample(item, !skipped)
+            const shipText = done ? 'Shipped' : proc === 'production' ? 'In production' : proc === 'waiting' ? 'Waiting' : 'From Procurement'
+            return <li key={s.key} className="mi-ms" data-state={stoneState(s)}>
               <span className="mi-o" aria-hidden="true">{done && <Check size={9} strokeWidth={3.4}/>}</span>
               <div><div className="mi-t">{s.title}</div>
-                <div className="mi-s">Plan {s.planKey
+                <div className="mi-s">{skipped ? <span>Not required</span> : <>Plan {s.planKey
                   ? <DateField label={`${s.title} plan date`} value={s.plan} plain onSave={(val) => onDate(item, s.planKey!, val)}/>
-                  : <span className="mi-num">{shortDate(s.plan || null)}</span>}{raw(s.planKey ?? 'msPlan') && s.planKey && !s.plan ? ` (${raw(s.planKey)})` : ''}{s.sub ? ` · ${s.sub}` : ''}</div></div>
-              {s.actual ? <DateField label={`${s.title} actual date`} value={actual} note={s.note} onSave={(val) => onDate(item, s.actual!, val)}/>
-                : <span className="mi-faint mi-ship" title="Set by the Procurement status">{done ? 'Shipped' : 'From Procurement'}</span>}
+                  : <span className="mi-num">{shortDate(s.plan || null)}</span>}{raw(s.planKey ?? 'msPlan') && s.planKey && !s.plan ? ` (${raw(s.planKey)})` : ''}{s.sub ? ` · ${s.sub}` : ''}{s.note && s.note !== s.sub ? ` · ${s.note}` : ''}</>}{canSkip && <> · <button type="button" className="mi-link mi-skip-btn" onClick={toggleSkip}>{skipped ? 'Require' : 'Skip'}</button></>}</div></div>
+              {skipped ? <span className="mi-faint mi-ship">Skipped</span>
+                : s.actual ? <DateField label={`${s.title} actual date`} value={actual} onSave={(val) => onDate(item, s.actual!, val)}/>
+                : <span className="mi-faint mi-ship" title="Set by the Procurement status">{shipText}</span>}
               <div className="mi-var">{done
                 ? v === null ? <span className="mi-faint">Done</span> : v > 0 ? <span className="mi-late">{v}d late</span> : v < 0 ? <span className="mi-early">{-v}d early</span> : <span className="mi-faint">On time</span>
-                : late ? <span className="mi-late">{-days(s.plan, ctx.today)}d overdue</span> : <span className="mi-faint">Pending</span>}</div>
+                : skipped ? <span className="mi-faint">Not required</span> : late ? <span className="mi-late">{-days(s.plan, ctx.today)}d overdue</span> : <span className="mi-faint">Pending</span>}</div>
             </li>
           })}
         </ol>
@@ -1221,7 +1215,7 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <QtyBar q={q} large/>
         <div className="mi-legend"><span><i data-k="onsite"/>On site {pct(q.onsite)}%</span><span><i data-k="shd"/>Approved SHD {pct(q.shd)}%</span><span><i data-k="po"/>Ordered {pct(q.po)}%</span></div>
         <div className="mi-qgrid">
-          {([['total', 'Total by QS'], ['po', 'Ordered'], ['shd', 'Approved SHD'], ['onsite', 'On site']] as [CellKey, string][]).map(([k, l]) =>
+          {([['total', 'Total by BOQ'], ['po', 'Ordered'], ['shd', 'Approved SHD'], ['onsite', 'On site']] as [CellKey, string][]).map(([k, l]) =>
             <QtyField key={`${item.id}:${k}`} label={l} value={q[k as 'total']} onSave={(v) => onQty(item, k, v)}/>)}
         </div>
       </div>
@@ -1259,12 +1253,12 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
   </>
 }
 
-function DateField({ label, value, note, plain, onSave }: { label: string; value: string; note?: string; plain?: boolean; onSave: (v: string) => void }) {
-  // A formatted date ("10 Nov") that opens the native picker: the input stays the real control for keyboard and screen readers.
+function DateField({ label, value, plain, onSave }: { label: string; value: string; plain?: boolean; onSave: (v: string) => void }) {
+  // A formatted date ("10 Nov 2025") that opens the native picker: the input stays the real control for keyboard and screen readers.
   const ref = useRef<HTMLInputElement>(null)
-  const shown = value ? (plain ? DAY_MONTH : DAY_MONTH_YEAR).format(asDate(value)) : note || (plain ? 'Set' : 'Add date')
-  return <span className="mi-date-wrap" data-plain={plain || undefined}>
-    <span className="mi-date-btn" data-empty={!value || undefined} aria-hidden="true">{shown}</span>
+  const shown = value ? (plain ? DAY_MONTH : DAY_MONTH_YEAR).format(asDate(value)) : plain ? 'Set' : 'Add actual date'
+  return <span className="mi-date-wrap" data-plain={plain || undefined} data-filled={value && !plain ? '' : undefined}>
+    <span className="mi-date-btn" data-empty={!value || undefined} aria-hidden="true"><span>{shown}</span></span>
     <input ref={ref} type="date" className="mi-date" aria-label={label} value={value}
       onClick={() => { try { ref.current?.showPicker() } catch { /* older browsers open it themselves */ } }}
       onChange={(e) => { if (e.target.value !== value) onSave(e.target.value) }}/>
@@ -1332,33 +1326,43 @@ function RevertDialog({ entry, item, people, activity, onClose, onConfirm }: {
 }
 
 /**
- * The timeline popover (D-67): the six steps as the panel shows them, read from the Submission and Procurement status (moving
- * Procurement to Delivering reaches the Delivering step by itself). Nothing here changes a status: a step with a plan column
- * opens to its plan date, the only thing that can be edited; the step the material is at opens first when it has one.
+ * The timeline popover (D-67, D-69): the six steps as the panel shows them, read from the Submission and Procurement status.
+ * Steps with a plan column open to their plan date; unreached submission and sample steps can also be marked not required so
+ * a material can skip straight to ordering.
  */
-function TimelinePop({ item, today, onPlan, onEditDates }: {
-  item: MatItem; today: string; onPlan: (key: EditableColKey, value: string) => void; onEditDates: () => void
+function TimelinePop({ item, today, onPlan, onSub, onSkipSample, onEditDates }: {
+  item: MatItem; today: string; onPlan: (key: EditableColKey, value: string) => void
+  onSub: (to: SubStage) => void; onSkipSample: (skip: boolean) => void; onEditDates: () => void
 }) {
   const stones = stonesOf(item, today), current = currentStone(stones)
   const [openKey, setOpenKey] = useState(() => current?.planKey ? current.key : null)
   return <>
     <div className="mi-pop-t">Timeline</div>
-    <p className="mi-tlp-hint">Follows the Submission and Procurement status. Plan dates can be changed here.</p>
+    <p className="mi-tlp-hint">Follows the Submission and Procurement status. Change plan dates or skip submission/sample here.</p>
     <ol className="mi-tlp">
       {stones.map((s) => {
         const status = stoneStatus(s, today), open = !!s.planKey && openKey === s.key
+        const canSkip = !s.done && (s.key === 'submitted' || s.key === 'sample')
         const body = <>
           <span className="mi-o" aria-hidden="true">{s.done && <Check size={9} strokeWidth={3.4}/>}</span>
           <span className="mi-tlp-t">{s.title}{s.key === current?.key && <span className="mi-tlp-now">Now</span>}</span>
           <span className="mi-due" data-tone={status.tone}>{status.text}</span>
         </>
-        return <li key={s.key} data-state={s.done ? 'done' : s.late ? 'late' : undefined} data-open={open || undefined}>
+        return <li key={s.key} data-state={stoneState(s)} data-open={open || undefined}>
           {s.planKey
             ? <button type="button" className="mi-tlp-row" aria-expanded={open} data-autofocus={open || undefined} title="Change the plan date"
                 onClick={() => setOpenKey(open ? null : s.key)}>{body}</button>
             : <div className="mi-tlp-row" title={s.key === 'approved' ? 'Expected 14 days after the submission' : 'Set by the Procurement status'}>{body}</div>}
           {open && <div className="mi-tlp-act">
-            <PlanDate key={`${item.id}:${s.planKey}`} label={`${s.title} plan date`} value={s.plan} onSave={(v) => onPlan(s.planKey!, v)}/>
+            {!s.skipped && <PlanDate key={`${item.id}:${s.planKey}`} label={`${s.title} plan date`} value={s.plan} onSave={(v) => onPlan(s.planKey!, v)}/>}
+            {canSkip && <div className="mi-tlp-skip">
+              <span className="mi-faint mi-small">{s.key === 'submitted'
+                ? s.skipped ? 'Submission skipped — can order directly.' : 'No submission needed for this material?'
+                : s.skipped ? 'Sample marked not required.' : 'No sample approval needed?'}</span>
+              <button type="button" className="mi-sa-btn" onClick={() => s.key === 'submitted' ? onSub(s.skipped ? 'notsub' : 'notreq') : onSkipSample(!s.skipped)}>
+                {s.key === 'submitted' ? (s.skipped ? 'Require submission' : 'Skip submission') : (s.skipped ? 'Require sample' : 'Skip sample')}
+              </button>
+            </div>}
           </div>}
         </li>
       })}

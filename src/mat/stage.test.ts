@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { nextOf, onsitePatch, procurementOf, procurementPatch, qtyOf, sectionTree, snapshot, stageOf, stagePatch, submissionOf, submissionPatch } from './stage'
+import { nextOf, onsitePatch, procurementOf, procurementPatch, qtyOf, sampleSkipPatch, sampleSkipped, sectionTree, snapshot, stageOf, stagePatch, submissionOf, submissionPatch } from './stage'
 import type { MatItem } from './types'
 
 const item = (cols: MatItem['data']['cols'], qty: [number, number, number] = [10, 0, 0], edits: MatItem['edits'] = {}): MatItem => ({
@@ -106,18 +106,66 @@ test('initials use the first and last word, skip suffixes and keep whole charact
   expect(initials('  ')).toBe('?')
 })
 
-test('submission and procurement are separate tracks, and Delivering sits between ordered and on site', () => {
+test('submission and procurement are separate tracks, with Production, Waiting for shipment and Shipping between ordered and on site', () => {
   const ordered = item({ msStatus: 'Under Review', msActual: '2026-10-01' }, [10, 10, 0])
-  expect([submissionOf(ordered), procurementOf(ordered), stageOf(ordered)]).toEqual(['review', 'ordered', 'ordered'])
-  const shipping: MatItem = { ...ordered, data: { ...ordered.data, cells: { ...ordered.data.cells, shipping: { v: 0.5 } } } }
-  expect(procurementOf(shipping)).toBe('delivering')
+  const withFormulas: MatItem = { ...ordered, data: { ...ordered.data, cells: { ...ordered.data.cells, production: { v: 0 }, waiting: { f: 'waiting' }, shipping: { v: 0 }, arrived: { f: 'arrived' } } } }
+  expect([submissionOf(withFormulas), procurementOf(withFormulas), stageOf(withFormulas)]).toEqual(['review', 'ordered', 'ordered'])
+
+  const inProdPatch = procurementPatch(withFormulas, 'production', '2026-11-25')
+  expect(inProdPatch).toMatchObject({ production: 1, waiting: 0 })
+  expect(inProdPatch).not.toHaveProperty('msStatus')
+  const inProd: MatItem = { ...withFormulas, edits: { ...(inProdPatch as MatItem['edits']) } }
+  expect(procurementOf(inProd)).toBe('production')
+
+  const waitPatch = procurementPatch(inProd, 'waiting', '2026-11-25')
+  expect(waitPatch).toMatchObject({ waiting: null })
+  const waiting: MatItem = { ...withFormulas, edits: { ...inProd.edits, waiting: undefined } }
+  expect(procurementOf(waiting)).toBe('waiting')
+
+  // When a row has no formula for waiting (or a text total), moving to Waiting still sets waiting to 100%.
+  const textTotal: MatItem = { ...ordered, data: { ...ordered.data, cells: { total: { v: 'As per BOQ' }, po: { v: 10 }, onsite: { v: 0 }, waiting: { f: 'waiting' } } } }
+  const textWait = procurementPatch(textTotal, 'waiting', '2026-11-25')
+  expect(textWait).toMatchObject({ production: 1, waiting: 1 })
+  expect(procurementOf({ ...textTotal, edits: { ...(textWait as MatItem['edits']) } })).toBe('waiting')
+
+  const shipPatch = procurementPatch(waiting, 'shipping', '2026-11-25')
+  expect(shipPatch).toMatchObject({ shipping: 1 })
+  const shipping: MatItem = { ...withFormulas, edits: { ...(shipPatch as MatItem['edits']) } }
+  expect(procurementOf(shipping)).toBe('shipping')
   expect(procurementOf(item({}, [10, 0, 0]))).toBe('none')
+
   // Moving the submission leaves the order alone; moving procurement leaves the submission alone.
   const sub = submissionPatch(ordered, 'approved', '2026-11-25')
   expect(sub).toMatchObject({ msStatus: 'Approved', msApproved: '2026-11-25' })
   expect(sub).not.toHaveProperty('po')
-  const proc = procurementPatch(ordered, 'delivering', '2026-11-25')
-  expect(proc).toMatchObject({ shipping: 1 })
-  expect(proc).not.toHaveProperty('msStatus')
-  expect(procurementPatch(shipping, 'onsite', '2026-11-25')).toMatchObject({ shipping: 0, onsite: 10, arrActual: '2026-11-25' })
+  expect(procurementPatch(shipping, 'onsite', '2026-11-25')).toMatchObject({ shipping: null, onsite: 10, arrActual: '2026-11-25' })
+})
+
+test('materials can skip submission and sample stages and order directly', () => {
+  const direct = item({ msStatus: 'Not Yet Submit' })
+  const skip = submissionPatch(direct, 'notreq', '2026-11-25')
+  expect(skip).toMatchObject({ msStatus: 'Not Required' })
+  const skipped: MatItem = { ...direct, edits: { ...(skip as MatItem['edits']) } }
+  expect(submissionOf(skipped)).toBe('notreq')
+  expect(nextOf(skipped, '2026-11-25').label).toBe('Place order')
+
+  // Ordering a material whose submission is not required keeps Not Required instead of marking it Approved.
+  const orderPatch = stagePatch(skipped, 'ordered', '2026-11-25')
+  expect(orderPatch).not.toHaveProperty('msApproved')
+  expect(orderPatch).not.toHaveProperty('msStatus')
+
+  // Workbook "N/A" on msActual counts as not required, and moving back to Not submitted clears it.
+  const naItem = item({ msActual: 'N/A' })
+  expect(submissionOf(naItem)).toBe('notreq')
+  const backPatch = submissionPatch(naItem, 'notsub', '2026-11-25')
+  expect(backPatch).toMatchObject({ msActual: '', msStatus: 'Not Yet Submit' })
+  expect(submissionOf({ ...naItem, edits: { ...(backPatch as MatItem['edits']) } })).toBe('notsub')
+
+  // Sample skip marks ssApproved as N/A and clearing removes both ssApproved and ssActual N/A markers.
+  expect(sampleSkipped(direct)).toBe(false)
+  const sSkip = sampleSkipPatch(direct, true)
+  expect(sSkip).toEqual({ ssApproved: 'N/A' })
+  const skippedSample: MatItem = { ...direct, edits: { ...(sSkip as MatItem['edits']) } }
+  expect(sampleSkipped(skippedSample)).toBe(true)
+  expect(sampleSkipPatch(skippedSample, false)).toEqual({ ssApproved: null })
 })

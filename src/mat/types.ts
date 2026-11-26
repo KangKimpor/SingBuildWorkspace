@@ -23,6 +23,7 @@ export const MS_STATUS_OPTIONS = [
   'Revise & Resubmit',
   'Rejected',
   'Information only',
+  'Not Required',
 ] as const
 
 export type EditableColKey = Exclude<ColKey, 'lastUpdated'>

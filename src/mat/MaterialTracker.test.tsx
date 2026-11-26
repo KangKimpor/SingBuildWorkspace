@@ -346,7 +346,7 @@ test('typing a cell back to its value from the start of the week takes the outli
   fireEvent.change(po, { target: { value: '7' } })
   fireEvent.keyDown(po, { key: 'Enter' })
   await waitFor(() => expect(changedCell('XX-01 PO by Purchase')).toHaveAttribute('data-changed', 'true'))
-  expect(changedCell('XX-01 Total by QS')).not.toHaveAttribute('data-changed')
+  expect(changedCell('XX-01 Total by BOQ')).not.toHaveAttribute('data-changed')
   // Back to the imported 4: the value matches the start of the week again.
   const again = activate('XX-01 PO by Purchase')
   fireEvent.change(again, { target: { value: '4' } })
@@ -369,7 +369,7 @@ test('Enter saves and moves to the same column one row down; Escape keeps focus 
 
 test('on a focused cell the arrows move between cells and typing starts editing from that key', async () => {
   await openList()
-  const total = cellButton('XX-01 Total by QS')
+  const total = cellButton('XX-01 Total by BOQ')
   total.focus()
   fireEvent.keyDown(total, { key: 'ArrowRight' })
   expect(cellButton('XX-01 PO by Purchase')).toHaveFocus()

@@ -80,8 +80,6 @@ function MaterialList() {
   const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams((prev) => { prev.set('p', nextPkg); prev.set('s', nextTab); return prev })
   const toggleExpand = useCallback(() => setExpanded((e) => !e), [])
-  // Full screen belongs to the Sheet table; List and Board have no Collapse control, so leaving Sheet leaves full screen.
-  useEffect(() => { if (view !== 'sheet') setExpanded(false) }, [view])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-mat', '')
@@ -93,11 +91,11 @@ function MaterialList() {
   useEffect(() => {
     document.documentElement.toggleAttribute('data-mat-expanded', expanded)
     if (!expanded) return
-    // Escape leaves full screen, unless an editor, a field or a dialog took the key first.
+    // Escape leaves full screen, unless an editor, a field, the detail panel or a dialog took the key first.
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape' || e.defaultPrevented) return
       if (e.target instanceof HTMLElement && e.target.closest('input,textarea,select')) return
-      if (document.querySelector('[role="dialog"]')) return
+      if (document.querySelector('[role="dialog"], .mi-panel')) return
       setExpanded(false)
     }
     addEventListener('keydown', onKey)
@@ -114,7 +112,8 @@ function MaterialList() {
           <div className="skeleton mat-skeleton"/>
         </div>
   } else if (view !== 'sheet') {
-    body = <ItemsView key={`${pkg}:${tab}`} sheet={tab} state={state} view={view} onFields={setFields} onRemark={setRemark}/>
+    body = <ItemsView key={`${pkg}:${tab}`} sheet={tab} state={state} view={view}
+      expanded={expanded} onToggleExpand={toggleExpand} onFields={setFields} onRemark={setRemark}/>
   } else {
     body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} saveStatus={saveStatus}
       caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`}
@@ -214,13 +213,16 @@ function WorkbookExport({ pkg, state, onDone }: { pkg: Pkg; state: MatState; onD
 }
 
 /** List and Board, with the existing details-and-photos panel and picture viewer behind "edit details". */
-function ItemsView({ sheet, state, view, onFields, onRemark }: { sheet: Tab; state: MatState; view: 'list' | 'board'; onFields: OnFields; onRemark: OnRemark }) {
+function ItemsView({ sheet, state, view, expanded, onToggleExpand, onFields, onRemark }: {
+  sheet: Tab; state: MatState; view: 'list' | 'board'; expanded: boolean; onToggleExpand: () => void; onFields: OnFields; onRemark: OnRemark
+}) {
   const [sourceId, setSourceId] = useState<string | null>(null)
   const [picture, setPicture] = useState<MatPicture | null>(null)
   const item = sourceId ? state.items.find((i) => i.id === sourceId && i.kind === 'item') ?? null : null
   const pics = useMemo(() => sheet === 'mep' ? [] : distinct(state.items.filter((i) => i.sheet === sheet && i.kind === 'item').map((i) => text(i, 'pic'))), [state.items, sheet])
   return <>
-    <MatItems sheet={sheet} state={state} view={view} onFields={onFields} onRemark={onRemark} onOpenSource={setSourceId} onPicture={setPicture}/>
+    <MatItems sheet={sheet} state={state} view={view} expanded={expanded} onToggleExpand={onToggleExpand}
+      onFields={onFields} onRemark={onRemark} onOpenSource={setSourceId} onPicture={setPicture}/>
     <MatSourcePanel item={item} picOptions={pics} pictureOpen={!!picture} onClose={() => setSourceId(null)} onFields={onFields} onPicture={setPicture}/>
     <MatPictureDialog picture={picture} onClose={() => setPicture(null)}
       onEditPhotos={item ? undefined : (id) => { setPicture(null); setSourceId(id) }}/>

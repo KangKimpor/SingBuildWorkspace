@@ -76,13 +76,18 @@ function open(path = '/admin') {
 }
 const row = async (code: string) => (await screen.findByText(`Sample panel ${code}`)).closest('[role="row"]') as HTMLElement
 
-test('List shows one row per material with its stage, next step and latest note', async () => {
+test('List shows one row per material with its stage, next step and split notes, with no owner column or row checkboxes', async () => {
   open()
   const x1 = await row('XX-01')
   expect(within(x1).getByRole('button', { name: /^Submission: Approved/ })).toBeInTheDocument()
   expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
-  expect(within(x1).getByText('Delivering')).toBeInTheDocument() // the timeline step it is at, not a 'next step'
+  expect(within(x1).getByText('Production and shipping')).toBeInTheDocument()
   expect(within(x1).getByText('Quote received')).toBeInTheDocument()
+  expect(within(x1).getByText('Lead time 3 weeks')).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Purchase notes' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'PM notes' })).toBeInTheDocument()
+  expect(screen.queryByRole('columnheader', { name: 'Owner' })).toBeNull()
+  expect(within(x1).queryByRole('checkbox')).toBeNull()
   expect(screen.getByRole('button', { name: /Wall Finishing/ })).toHaveAttribute('aria-expanded', 'true')
 })
 
@@ -112,22 +117,32 @@ test('the submission stage moves on its own and leaves the order alone', async (
   expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
 })
 
-test('Delivering marks the quantity as on the way', async () => {
+test('Procurement stages include Production, Waiting for shipment and Shipping', async () => {
   open()
   const x1 = await row('XX-01')
   fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
-  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Delivering/ }))
-  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ shipping: 1 })))
-  expect(within(x1).getByRole('button', { name: /^Procurement: Delivering/ })).toBeInTheDocument()
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Production/ }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ production: 1, waiting: 0 })))
+  expect(within(x1).getByRole('button', { name: /^Procurement: Production/ })).toBeInTheDocument()
+
+  fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Waiting for shipment/ }))
+  await waitFor(() => expect(saveFields).toHaveBeenLastCalledWith('x1', expect.objectContaining({ waiting: null })))
+  expect(within(x1).getByRole('button', { name: /^Procurement: Waiting for shipment/ })).toBeInTheDocument()
+
+  fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Shipping/ }))
+  await waitFor(() => expect(saveFields).toHaveBeenLastCalledWith('x1', expect.objectContaining({ shipping: 1 })))
+  expect(within(x1).getByRole('button', { name: /^Procurement: Shipping/ })).toBeInTheDocument()
 })
 
-test('the row shows the timeline points and all four quantities', async () => {
+test('the row shows the timeline points and all four quantities with Total by BOQ', async () => {
   open()
   const x1 = await row('XX-01')
-  // Approved by status (no dates), so submitted and approved; ordered; the sample, delivery and arrival are not reached.
-  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Now: Delivering, Pending/ })).toBeInTheDocument()
+  // Approved by status (no dates), so submitted and approved; ordered; the sample, shipping and arrival are not reached.
+  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: Production and shipping, Pending/ })).toBeInTheDocument()
   expect(x1.querySelectorAll('.mi-track i')).toHaveLength(6)
-  for (const name of ['Total by QS: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
+  for (const name of ['Total by BOQ: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
 })
 
 test('each quantity box edits its own value', async () => {
@@ -140,13 +155,14 @@ test('each quantity box edits its own value', async () => {
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { po: 7 }))
 })
 
-test('the notes cell shows Purchase and PM notes for this week, last week and the week before', async () => {
+test('Purchase and PM notes live in separate columns and each opens its own team tab', async () => {
   open()
   const x1 = await row('XX-01')
   for (const body of ['Quote received', 'Waiting for supplier quote', 'Lead time 3 weeks', 'Budget checked']) expect(within(x1).getByText(body)).toBeInTheDocument()
-  expect(within(x1).getAllByText('PM')).toHaveLength(1)
-  expect(within(x1).getAllByText('Purchase')).toHaveLength(1)
   expect(within(x1).getByText('2 wks ago')).toBeInTheDocument()
+  fireEvent.click(within(x1).getByRole('button', { name: /^PM notes:/ }))
+  const pop = await screen.findByRole('dialog', { name: "This week's note" })
+  expect(within(pop).getByRole('textbox', { name: 'PM note for this week' })).toHaveValue('Quote received')
 })
 
 test('the on-site popover sets the total on site', async () => {
@@ -161,36 +177,35 @@ test('the on-site popover sets the total on site', async () => {
   expect(screen.getByText('On site updated')).toBeInTheDocument()
 })
 
-test('the timeline cell names the step a material is at, and its popover changes plan dates only', async () => {
+test('the timeline cell says Place order before an order is placed, and its popover edits plan dates and skips stages', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([
     section('s1', 1, 'Wall Finishing'),
     material('x1', 2, 'XX-01', 0, { data: { ...material('x1', 2, 'XX-01', 0).data, cols: { ...material('x1', 2, 'XX-01', 0).data.cols, poPlan: '2025-10-07' } } }),
   ]))
   open()
   const x1 = await row('XX-01')
-  expect(within(x1).getByText('Order placed')).toBeInTheDocument()
+  expect(within(x1).getByText('Place order')).toBeInTheDocument()
+  expect(within(x1).queryByText('Order placed')).toBeNull()
   expect(within(x1).getByText(/^\d+d overdue · plan 7 Oct$/)).toBeInTheDocument()
-  fireEvent.click(within(x1).getByText('Order placed'))
+  fireEvent.click(within(x1).getByText('Place order'))
   const pop = await screen.findByRole('dialog', { name: 'Timeline' })
-  for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Delivering', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()
-  // No way to mark a step done here: status changes belong to the Submission and Procurement capsules.
+  for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Shipped', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()
   expect(within(pop).queryByRole('button', { name: /Done today|Yesterday|Mark shipped/ })).toBeNull()
-  // Delivering and the expected approval have no plan column, so they do not open.
-  expect(within(pop).queryByRole('button', { name: /^Delivering/ })).toBeNull()
+  expect(within(pop).queryByRole('button', { name: /^Shipped/ })).toBeNull()
   expect(within(pop).getByRole('button', { name: /^Order placed/ })).toHaveAttribute('aria-expanded', 'true')
   fireEvent.change(within(pop).getByLabelText('Order placed plan date'), { target: { value: '2026-12-15' } })
-  expect(saveFields).not.toHaveBeenCalled() // a date being typed is not saved until Save or Enter
+  expect(saveFields).not.toHaveBeenCalled()
   fireEvent.click(within(pop).getByRole('button', { name: 'Save' }))
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { poPlan: '2026-12-15' }))
 })
 
-test('the timeline follows the status: moving Procurement to Delivering reaches the Delivering step', async () => {
+test('the timeline follows the status: moving Procurement to Shipping reaches the Shipped step', async () => {
   open()
   const x1 = await row('XX-01')
-  expect(within(x1).getByRole('button', { name: /^Timeline: .*\. Now: Delivering/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Timeline: .*\. Next: Production and shipping/ })).toBeInTheDocument()
   fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
-  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Delivering/ }))
-  await waitFor(() => expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed, Delivering\. Now: Fully on site/ })).toBeInTheDocument())
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Shipping/ }))
+  await waitFor(() => expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed, Shipped\. Next: Deliver to site/ })).toBeInTheDocument())
 })
 
 test('List sections expand and collapse all at once', async () => {
@@ -205,42 +220,69 @@ test('List sections expand and collapse all at once', async () => {
 test('a note is saved as the remark for this week and the chosen team', async () => {
   open()
   const x2 = await row('XX-02')
-  fireEvent.click(within(x2).getByText('+ Add note'))
+  fireEvent.click(within(x2).getByRole('button', { name: /^Purchase notes:/ }))
   const box = await screen.findByRole('textbox', { name: /Purchase note for this week/ })
   fireEvent.change(box, { target: { value: 'ETA 2 Dec' } })
   fireEvent.keyDown(box, { key: 'Enter' })
   await waitFor(() => expect(saveRemark).toHaveBeenCalledWith('x2', 'purchase', 'ETA 2 Dec'))
 })
 
-test('the detail panel opens from the name and closes with Escape', async () => {
+test('the detail panel opens from the name, shows Add actual date and Total by BOQ, and closes with Escape', async () => {
   open()
   fireEvent.click(await screen.findByRole('button', { name: /Sample panel XX-01$/ }))
   const panel = await screen.findByRole('complementary', { name: 'Sample panel XX-01 details' })
   expect(within(panel).getByText('Material submitted')).toBeInTheDocument()
+  expect(within(panel).getAllByText('Add actual date').length).toBeGreaterThan(0)
+  expect(within(panel).getByLabelText('Total by BOQ')).toBeInTheDocument()
   expect(within(panel).getByText('Lead time 3 weeks')).toBeInTheDocument()
   fireEvent.keyDown(window, { key: 'Escape' })
   await waitFor(() => expect(screen.queryByRole('complementary', { name: /details/ })).toBeNull())
 })
 
-test('Board shows one column per stage and Sheet keeps the workbook table', async () => {
+test('Board shows all 11 stages and changes stay connected across List, Board and Sheet', async () => {
   open('/admin?v=board')
   expect(await screen.findByRole('region', { name: 'Ordered, 2' })).toBeInTheDocument()
-  expect(screen.getAllByRole('region', { name: /, \d+$/ })).toHaveLength(8)
+  expect(screen.getAllByRole('region', { name: /, \d+$/ })).toHaveLength(11)
+  // Switch to List, move XX-01 to Shipping, verify Board and Sheet both reflect it.
+  fireEvent.click(screen.getByRole('button', { name: 'List' }))
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Shipping/ }))
+  await waitFor(() => expect(within(x1).getByRole('button', { name: /^Procurement: Shipping/ })).toBeInTheDocument())
+  fireEvent.click(screen.getByRole('button', { name: 'Board' }))
+  expect(await screen.findByRole('region', { name: 'Shipping, 1' })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Sheet' }))
-  expect(await screen.findByRole('searchbox', { name: 'Search material' })).toBeInTheDocument()
-  expect(document.querySelector('.mat-table')).not.toBeNull()
+  expect(await screen.findByRole('button', { name: 'XX-01 Shipping On The Way' })).toHaveTextContent('100%')
+  // Edit status in Sheet to Not Required and verify List reflects it.
+  fireEvent.click(screen.getByRole('button', { name: 'XX-01 Material Submission Status' }))
+  fireEvent.change(screen.getByRole('combobox', { name: 'XX-01 Material Submission Status' }), { target: { value: 'Not Required' } })
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'msStatus', 'Not Required'))
+  fireEvent.click(screen.getByRole('button', { name: 'List' }))
+  expect(within(await row('XX-01')).getByRole('button', { name: /^Submission: Not required/ })).toBeInTheDocument()
 })
 
-test('a bulk change that fails for one row says so and keeps Undo for the rows that saved', async () => {
+test('a material can skip submission and sample stages, and Expand toggles full screen in List and Board', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    material('x1', 2, 'XX-01', 0, { data: { ...material('x1', 2, 'XX-01', 0).data, cols: { ...material('x1', 2, 'XX-01', 0).data.cols, msStatus: 'Not Yet Submit' } } }),
+  ]))
   open()
-  const x1 = await row('XX-01'), x2 = await row('XX-02')
-  fireEvent.click(within(x1).getByRole('checkbox'))
-  fireEvent.click(within(x2).getByRole('checkbox'))
-  vi.mocked(saveFields).mockImplementation(async (id) => { if (id === 'x1') throw new Error('Network down'); return {} })
-  fireEvent.click(screen.getByRole('button', { name: 'Stage' }))
-  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Move selected to stage' })).getByRole('button', { name: /^Approved/ }))
-  expect(await screen.findByText('Could not save 1 of 2. Those were put back.')).toBeInTheDocument()
-  expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument()
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: /^Submission:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change submission stage' })).getByRole('button', { name: /^Not required/ }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { msStatus: 'Not Required' }))
+  expect(within(x1).getByText('Place order')).toBeInTheDocument()
+
+  // Expand works in List and stays expanded when closing the detail panel with Escape.
+  fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
+  expect(document.querySelector('.mat-page')).toHaveAttribute('data-expanded')
+  fireEvent.click(within(x1).getByRole('button', { name: 'Sample panel XX-01' }))
+  await screen.findByRole('complementary', { name: 'Sample panel XX-01 details' })
+  fireEvent.keyDown(window, { key: 'Escape' })
+  await waitFor(() => expect(screen.queryByRole('complementary', { name: /details/ })).toBeNull())
+  expect(document.querySelector('.mat-page')).toHaveAttribute('data-expanded')
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
+  expect(document.querySelector('.mat-page')).not.toHaveAttribute('data-expanded')
 })
 
 test('omitted materials never count as late or show under the Late filter', async () => {
@@ -283,10 +325,14 @@ test('List groups materials under the same nested sections as the Sheet, and col
   open()
   await row('XX-01')
   const group = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
+  const wallRow = group('Wall Finishing').closest('[role="row"]') as HTMLElement
   expect(within(group('Wall Finishing')).getByText('1')).toBeInTheDocument()
-  expect(within(group('Wall Finishing')).getByText('2')).toBeInTheDocument()
+  expect(within(wallRow).getByText('2')).toBeInTheDocument()
   expect(group('L23 Club Lounge')).toHaveAttribute('title', '1 Wall Finishing › 1.1 L23 Club Lounge')
   expect(group('Stone/Marble').closest('[role="row"]')).toHaveAttribute('data-depth', '2')
+  // Clicking the band background outside the chevron/title button does not collapse the section.
+  fireEvent.click(within(wallRow).getByText('2'))
+  expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
   fireEvent.click(group('Wall Finishing'))
   expect(screen.queryByText('Sample panel XX-01')).toBeNull()
   expect(screen.queryByRole('button', { name: /Stone\/Marble/ })).toBeNull()
