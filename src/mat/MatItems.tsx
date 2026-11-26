@@ -1,4 +1,4 @@
-import { Fragment, memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -172,28 +172,13 @@ function StoneStatus({ stone, today }: { stone: Stone; today: string }) {
 const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.skipped ? 'not required' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
 const stoneState = (s: Stone) => s.done ? 'done' : s.skipped ? 'skip' : s.late ? 'late' : undefined
 /**
- * The List's Timeline cell (D-74), after the Apple Store order status: the step to do in plain words with a quiet
- * "4/6" counter, a thin bar of six segments (green when reached, hatched when not required, the current one tinted by
- * urgency), and one small chip for lateness with the plan date beside it in grey. Only the chip is coloured, so a long
- * list of late rows reads as a column of red marks, not a wall of red sentences.
+ * The List's Timeline cell (D-76): the six stages as named steps on one line (dot above, short name below), then the step
+ * to do and one small lateness chip with the plan date. Each step sizes to its own name, so names never collide; a dot is
+ * green with a tick once reached, the line joining reached steps turns green, and the stage the material is at is a ringed
+ * dot with a soft halo in the urgency colour (blue on track, orange due within 14 days, red overdue) with its name bold in
+ * that colour. Only that one name and the chip carry colour, so a long run of late rows stays readable.
  */
-/** The six stages' symbols: document, approval tick, sample swatch, order box, truck, delivered box. */
-/**
- * The six stages drawn like the stage capsules (D-75): the same two-tone symbols (a soft tinted shape, the glyph in the full
- * hue), each stage in its capsule's hue, so the Timeline reads as the same family as the Submission and Procurement capsules.
- */
-const STEP_GLYPH: Record<string, ReactNode> = {
-  submitted: GLYPH.notsub,
-  approved: GLYPH.approved,
-  sample: <><rect className="b" x="2" y="2" width="12" height="12" rx="3"/><rect className="b" x="6" y="6" width="12" height="12" rx="3"/><path className="g" d="m8.6 12.2 1.9 1.9 3.6-3.8"/></>,
-  ordered: GLYPH.ordered,
-  shipping: GLYPH.shipping,
-  onsite: GLYPH.onsite,
-}
-/** Each stage's hue from the capsule palette. Orange and red are kept for urgency, so Submitted takes the indigo, not Under review's orange. */
-const STEP_HUE: Record<string, string> = {
-  submitted: '#3b4fd8', approved: '#8b5cf6', sample: '#a21caf', ordered: '#0a6cff', shipping: '#06aed4', onsite: '#0a9e6a',
-}
+const STEP_LABEL: Record<string, string> = { submitted: 'Submit', approved: 'Approve', sample: 'Sample', ordered: 'Order', shipping: 'Ship', onsite: 'Site' }
 function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Stone | null; today: string }) {
   const at = current ? stones.indexOf(current) : -1
   const st = current ? stoneStatus(current, today) : null
@@ -208,17 +193,19 @@ function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Sto
     else if (diff !== null && diff <= 14) { chip = diff ? `In ${diff}d` : 'Today'; rest = `${word} ${shortDate(current.plan)}` }
     else rest = `${word} ${shortDate(current.plan)}`
   }
+  // A segment of the line is green once the step it leads to is reached (or is where the material is).
+  const reachedAt = (i: number) => i >= 0 && i < stones.length && (stones[i]!.done || i === at)
   return <>
-    {/* One symbol per stage, always in the same order (D-74): green when reached, ringed in the urgency colour where the
-        material is, dashed when not required. Each names itself on hover. */}
+    {/* Dots at exactly equal intervals (D-76): step i sits at x0 + i × (width − x0 − x5) / 5, each name centred under its
+        dot, and the line is five equal segments, each green once the step it leads to is reached. */}
     <span className="mi-tm-steps">
-      {stones.map((s, i) => <Fragment key={s.key}>
-        {i > 0 && <i className="mi-tm-line" data-on={s.done || i === at || undefined} aria-hidden="true"/>}
-        <span className="mi-tm-k" data-state={i === at ? (tone === 'now' ? 'now' : `now-${tone}`) : stoneState(s)} title={stoneLine(s, today)}
-          style={{ ['--hue' as string]: STEP_HUE[s.key] }}>
-          <svg className="mi-sicon" viewBox="0 0 20 20" aria-hidden="true" focusable="false">{STEP_GLYPH[s.key]}</svg>
-        </span>
-      </Fragment>)}
+      {stones.slice(1).map((s, k) => <i key={`seg-${s.key}`} className="mi-tm-seg" data-on={reachedAt(k + 1) || undefined}
+        style={{ ['--k' as string]: k }} aria-hidden="true"/>)}
+      {stones.map((s, i) => <span key={s.key} className="mi-tm-k" title={stoneLine(s, today)} style={{ ['--i' as string]: i }}
+        data-state={i === at ? (tone === 'now' ? 'now' : `now-${tone}`) : stoneState(s)}>
+        <i className="mi-tm-dot" aria-hidden="true">{s.done && i !== at && <Check size={8} strokeWidth={3.6}/>}</i>
+        <span className="mi-tm-lb">{STEP_LABEL[s.key]}</span>
+      </span>)}
     </span>
     <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
     {current && <span className="mi-tm-s">{chip && <span className="mi-tm-chip" data-tone={tone}>{chip}</span>}<span>{rest}</span></span>}

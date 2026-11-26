@@ -620,3 +620,12 @@ The Timeline cell's six symbols (D-74) now use the stage capsules' design langua
 
 - **Reached stages** show their symbol in colour. Pending stages are grey, and a stage that is not required is grey and dashed.
 - **The current stage** is a small capsule: a pale ground, a 1.5 px ring a little heavier underneath, and the symbol. The ring takes the stage's hue when on track, orange when due within 14 days, and red when overdue.
+
+## D-76 The Timeline cell names every stage in words - November 26, 2026
+
+The stage symbols of D-74/D-75 were too small and abstract to tell apart, so the cell now names each stage. This is the "labelled steps" mockup the user chose, refined.
+
+- **Steps.** Six steps on one line, each a dot above its short name: Submit, Approve, Sample, Order, Ship, Site.
+- **Even spacing.** The dots sit at exactly equal intervals: step i is at x0 + i × (width − x0 − x5) / 5, with each name centred under its dot. x0 = 17 px (half of "Submit") and x5 = 10 px (half of "Site") keep the outer names inside the cell. The line is five equal segments. An earlier pass sized each step to its own name, which left the dots unevenly spaced, and was replaced.
+- **Colour.** A reached step is a green dot with a white tick, and the line up to it turns green. Where the material is, the dot is a ring with a soft halo, and its name is bold, both in blue (on track), orange (due within 14 days) or red (overdue). Upcoming steps are grey, a stage that is not required is dashed and struck through, and a missed plan on another stage is a red ring. Below the steps come the step to do and the lateness chip with the plan date (as in D-74).
+- **Width.** With 10 px names, even spacing needs about 40 px between dots so that "Approve" and "Sample" do not touch. The Timeline column is 232 px wide, or 228 px in the stacked medium layout, which pays for it by taking 12 px from Quantity and 6 px from each notes column. Measured in Chrome and Firefox: 41 px spacing at full width and 40.2 px at 1,250 px; at least 2.6 px between names; no name past the cell edge; no sideways scrolling.
