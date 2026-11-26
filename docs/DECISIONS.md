@@ -430,3 +430,10 @@ Built from `docs/prototypes/material-tracker-redesign.html`. `/admin` now opens 
 
 The material list's own styles (`mat.css`, `mat-items.css`) already load only with `/admin`. The board and layout browser tests (`workspace`, `project-layout`, `a11y`, `ui-polish`, `stitch-design`, `navigation`) pass.
 
+### D-59 follow-up: first paint for signed-out visitors, and the CI checks it unblocked
+
+With the budget green, CI ran the browser suite and Lighthouse again, which had been skipped or failing since D-55/D-56:
+
+3. **Mobile LCP over 2 s on production.** Lighthouse measures `/` signed out, so its LCP is the sign-in card's line "Sign in to SingBuild Workspace with your Google account." The median had been 2.11 to 2.31 s on every `main` run since D-55. The card waited on the whole entry chunk, which carried the `motion` library only because the sign-in card animated with it, and the gate started loading the Supabase client while the first frame was being painted. Now the card's entrance, press and notice animations are CSS (same lift, scale and critically damped curve; reduced motion keeps only fades), so `motion` loads with the app instead, and `AuthGate` starts the Supabase client with `afterFirstPaint` (a stored session still starts it before render, as before). Initial JavaScript falls from 182.3 to 133.6 KiB gzip (entry chunk 136 to 82 KiB). A local mobile Lighthouse on an uncompressed `vite preview` went from 6.2 s to 4.1 s LCP; a font-priority change, `font-display: optional` and removing the card animation each made no difference and were not kept.
+4. **Accessibility check during an animation.** `e2e/project-layout.spec.ts` ran axe right after opening the project editor, while D-56's fade-in left "Save changes" half-transparent (4.41:1 measured, 4.7:1 at rest). The test now waits for `document.getAnimations()` to finish before measuring.
+

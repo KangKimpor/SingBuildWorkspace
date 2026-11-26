@@ -47,6 +47,8 @@ for (const theme of ['light']) {
     await expect(page.locator('.project-heading .lucide-hard-hat')).toBeVisible()
     await page.getByRole('button', { name: 'Edit project', exact: true }).click()
     await expect(page.getByRole('button', { name: 'Use hard hat icon', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    // The editor fades and scales in (D-56); measure contrast once it has settled, not on a half-transparent frame.
+    await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)))
     expect((await new AxeBuilder({ page }).analyze()).violations).toEqual([])
     await page.getByRole('button', { name: 'Close project editor', exact: true }).click()
     const status = table.getByRole('combobox').first()

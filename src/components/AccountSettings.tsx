@@ -1,19 +1,13 @@
 import { useState } from 'react'
 import { AlertCircle, Check, Cloud, Download, LockKeyhole, RefreshCw } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
 import { supabase } from '@/lib/supabase'
 import { syncWorkspace, useAccount } from '@/data/sync'
 import { contentOf, useWorkspace } from '@/data'
-import { useMediaQuery } from '@/lib/media'
-import { useMotionReduced } from '@/motion/hooks'
 import './account-settings.css'
 import { ALLOWED_EMAIL_DOMAIN } from '@/lib/emailDomain'
 
-// Critically damped Apple springs (WWDC Designing Fluid Interfaces: damping ratio 1.0, no overshoot).
-const SHEET_SPRING = { type: 'spring' as const, bounce: 0, duration: 0.36 }
-const PRESS_SPRING = { type: 'spring' as const, bounce: 0, duration: 0.22 }
-const NOTICE_SPRING = { type: 'spring' as const, bounce: 0, duration: 0.3 }
-const REDUCED_FADE = { type: 'tween' as const, duration: 0.16, ease: [0.2, 0, 0, 1] as const }
+// The sign-in card is the first screen a signed-out visitor sees, so its motion is plain CSS
+// (account-settings.css): the animation library then loads with the app instead of before the first paint (D-59).
 
 function GoogleMark() {
   return (
@@ -40,8 +34,6 @@ function backupWorkspace() {
 export function AccountSettings({ standalone = false, loading = false }: { standalone?: boolean; loading?: boolean }) {
   const { session, recovering, error: accountError } = useAccount()
   const sync = useWorkspace((s) => s.sync)
-  const reduced = useMotionReduced()
-  const finePointer = useMediaQuery('(hover: hover) and (pointer: fine)')
   const [busy, setBusy] = useState('')
   const [message, setMessage] = useState('')
   const [error, setError] = useState('')
@@ -76,36 +68,20 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
   }
   const activeError = error || accountError || (!loading && !supabase ? 'Account services are unavailable. Please try again shortly.' : '')
   const notice = (
-    <AnimatePresence initial={false}>
+    <>
       {activeError && (
-        <motion.p
-          key="auth-error"
-          className="account-notice account-error"
-          role="alert"
-          initial={reduced ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-          animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={reduced ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-          transition={reduced ? REDUCED_FADE : NOTICE_SPRING}
-        >
+        <p key="auth-error" className="account-notice account-error" role="alert">
           <AlertCircle size={16} aria-hidden="true" />
           <span>{activeError}</span>
-        </motion.p>
+        </p>
       )}
       {message && (
-        <motion.p
-          key="auth-status"
-          className="account-notice"
-          role="status"
-          initial={reduced ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-          animate={reduced ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
-          exit={reduced ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
-          transition={reduced ? REDUCED_FADE : NOTICE_SPRING}
-        >
+        <p key="auth-status" className="account-notice" role="status">
           <Check size={16} aria-hidden="true" />
           <span>{message}</span>
-        </motion.p>
+        </p>
       )}
-    </AnimatePresence>
+    </>
   )
   if (session && !recovering && !standalone)
     return (
@@ -181,12 +157,10 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
       : 'Continue with Google'
   return (
     <div className="account-auth-layout">
-      <motion.section
+      <section
         className={standalone ? 'account-auth-card' : 'account-auth-card flat-card'}
+        data-enter={standalone || undefined}
         aria-label="Workspace authentication"
-        initial={standalone && !reduced ? { y: 8, scale: 0.985 } : false}
-        animate={standalone && !reduced ? { y: 0, scale: 1 } : undefined}
-        transition={SHEET_SPRING}
       >
         <header className="account-form-heading">
           <Heading>Welcome</Heading>
@@ -197,21 +171,18 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
           </p>
         </header>
         {notice}
-        <motion.button
+        <button
           type="button"
           className="account-google"
           data-pending={isPending ? 'true' : undefined}
           disabled={isDisabled}
-          whileTap={isDisabled || reduced ? undefined : { scale: 0.975 }}
-          whileHover={isDisabled || reduced || !finePointer ? undefined : { y: -1 }}
-          transition={PRESS_SPRING}
           onClick={() => void run('google', google)}
         >
           <span className="account-google-badge" aria-hidden="true">
             {isPending ? <span className="account-google-spinner" /> : <GoogleMark />}
           </span>
           <span className="account-google-label">{googleLabel}</span>
-        </motion.button>
+        </button>
         <footer className="account-form-footer">
           <LockKeyhole size={13} aria-hidden="true" />
           <span>
@@ -220,7 +191,7 @@ export function AccountSettings({ standalone = false, loading = false }: { stand
               : 'Your work is private to your account and syncs across your devices.'}
           </span>
         </footer>
-      </motion.section>
+      </section>
     </div>
   )
 }
