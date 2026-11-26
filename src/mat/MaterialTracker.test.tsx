@@ -149,7 +149,7 @@ test('typing a remark and leaving the field saves it for that team', async () =>
   const remark = activate('XX-01 PM Remarks This week')
   fireEvent.change(remark, { target: { value: 'Quote approved' } })
   fireEvent.blur(remark)
-  await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
+  await waitFor(() => expect(saveRemark).toHaveBeenCalled())
   expect(saveRemark).toHaveBeenCalledExactlyOnceWith('x1', 'pm', 'Quote approved')
   expect(cellButton('XX-01 PM Remarks This week')).toHaveTextContent('Quote approved')
 })
@@ -161,7 +161,7 @@ test('typing 50 in Placed Order saves 0.5 and Not Yet PO follows', async () => {
   const placed = activate('XX-01 Placed Order')
   fireEvent.change(placed, { target: { value: '50' } })
   fireEvent.keyDown(placed, { key: 'Enter' })
-  await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
+  await waitFor(() => expect(saveCell).toHaveBeenCalled())
   expect(saveCell).toHaveBeenCalledExactlyOnceWith('x1', 'placed', 0.5)
   expect(cellButton('XX-01 Not Yet PO')).toHaveTextContent('50%')
   expect(cellButton('XX-01 Placed Order')).toHaveTextContent('50%')
@@ -184,7 +184,6 @@ test('Use formula clears the override', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Use formula for XX-01 Placed Order' }))
   await waitFor(() => expect(cellButton('XX-01 Placed Order')).toHaveTextContent('40%'))
   expect(saveCell).toHaveBeenCalledExactlyOnceWith('x1', 'placed', null)
-  await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
   expect(screen.queryByRole('button', { name: 'Use formula for XX-01 Placed Order' })).toBeNull()
 })
 
@@ -202,7 +201,9 @@ test('a failed save keeps the typed text, marks the cell invalid and offers Retr
   await waitFor(() => expect(cellButton('XX-01 Placed Order')).toHaveTextContent('50%'))
   expect(saveCell).toHaveBeenLastCalledWith('x1', 'placed', 0.5)
   expect(cellButton('XX-01 Placed Order')).not.toHaveAttribute('data-invalid')
-  await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
+  // Only a failed save is shown; it clears once the retry saves, and "Saved" is never shown (D-71).
+  await waitFor(() => expect(screen.queryByText('Could not save')).toBeNull())
+  expect(screen.queryByText('Saved')).toBeNull()
 })
 
 test('a section row shows the average Placed Order of its items, and there is no sheet-average row', async () => {
@@ -279,7 +280,7 @@ test('the "/" key focuses the search box without typing into it', async () => {
   expect(search).toHaveValue('')
 })
 
-test('Expand sets full-screen mode, keeps SaveState visible, and Collapse restores layout', async () => {
+test('Expand sets full-screen mode, saves quietly, and Collapse restores layout', async () => {
   await openList()
   fireEvent.click(screen.getByRole('button', { name: 'Expand' }))
   expect(document.querySelector('.mat-page')).toHaveAttribute('data-expanded')
@@ -287,7 +288,8 @@ test('Expand sets full-screen mode, keeps SaveState visible, and Collapse restor
   const unit = activate('XX-01 Quantity Unit')
   fireEvent.change(unit, { target: { value: 'set' } })
   fireEvent.keyDown(unit, { key: 'Enter' })
-  await waitFor(() => expect(within(document.querySelector('.mat-toolbar-actions') as HTMLElement).getByText('Saved')).toBeInTheDocument())
+  await waitFor(() => expect(saveCell).toHaveBeenCalledWith('x1', 'unit', 'set'))
+  expect(screen.queryByText('Saved')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: 'Collapse' }))
   expect(document.querySelector('.mat-page')).not.toHaveAttribute('data-expanded')
   expect(document.documentElement).not.toHaveAttribute('data-mat-expanded')

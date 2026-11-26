@@ -22,8 +22,14 @@ html[data-mat] .canvas { padding-block: 0; }
 .mat-heading-main h1, .mat-meta > span { white-space: nowrap; }
 .mat-heading-main { display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
 .mat-heading-main h1 { margin: 0; }
-.mat-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8); margin: var(--space-4) 0 0; font-variant-numeric: tabular-nums; }
-.mat-save { height: 22px; padding-inline: var(--space-6); }
+/* The tile matches the two-line title block it sits beside, so the icon no longer floats small next to a large heading. */
+.mat-heading-main .icon-tile { width: 44px; height: 44px; flex: none; border-radius: 12px; }
+.mat-heading-main .icon-tile svg { width: 22px; height: 22px; }
+.mat-title { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.mat-title h1 { font-size: 24px; font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; color: var(--text-primary, #1d1d1f); }
+.mat-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8); margin: 0; font-size: 13px; line-height: 20px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.mat-meta-pkg { display: inline-flex; align-items: center; height: 20px; padding: 0 7px; border-radius: 6px; background: rgb(118 118 128 / 0.12); color: var(--text-primary, #1d1d1f); font-size: 11.5px; font-weight: 650; letter-spacing: 0.02em; }
+.mat-save { height: 20px; padding-inline: var(--space-6); }
 .mat-save[data-tone='error'] { background: var(--chip-red); color: var(--danger-text); }
 .mat-save[data-tone='error'] .dot { background: var(--danger); }
 .mat-spin { animation: mat-spin 900ms linear infinite; }

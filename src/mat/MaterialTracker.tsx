@@ -3,7 +3,7 @@ import './mat-items.css'
 import '@/styles/apple-controls.css'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronsDown, ChevronsUp, FileDown, Maximize2, Minimize2, RefreshCw, Search, X } from 'lucide-react'
+import { ChevronsDown, ChevronsUp, FileDown, Maximize2, Minimize2, Search, X } from 'lucide-react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { NotFound } from '@/components/NotFound'
 import { Tile } from '@/components/WorkspaceUI'
@@ -39,9 +39,6 @@ const SHEETS: { id: Tab; label: string }[] = [
 const MEP_OMIT: ReadonlySet<string> = new Set(['pic'])
 /** The workbook legend (W1:W3): green, beige and yellow rows. */
 const MARKS: Record<Mark, string> = MARK_LABELS
-const SAVE_TEXT: Record<SaveStatus, string> = { idle: '', saving: 'Saving…', saved: 'Saved', error: 'Could not save' }
-/** The app's pill carries the dot color; this page adds the error chip on top of it. */
-const SAVE_TONE: Record<SaveStatus, string> = { idle: 'success', saving: 'busy', saved: 'success', error: 'error' }
 
 function Skeleton() {
   return <div className="page"><div className="skeleton" style={{ height: 48 }}/><span className="sr-only" role="status">Opening the material list…</span></div>
@@ -62,10 +59,11 @@ export default function MaterialTracker() {
   return <MaterialList/>
 }
 
+/** Only a failed save is shown: saving and saved are quiet (each edit already confirms itself in place). */
 function SaveState({ status }: { status: SaveStatus }) {
-  if (status === 'idle') return null
-  return <span className="pill mat-save" data-tone={SAVE_TONE[status]} role="status">
-    <span className="dot" aria-hidden="true"/>{SAVE_TEXT[status]}
+  if (status !== 'error') return null
+  return <span className="pill mat-save" data-tone="error" role="status">
+    <span className="dot" aria-hidden="true"/>Could not save
   </span>
 }
 
@@ -77,7 +75,7 @@ function MaterialList() {
   const setView = (next: View) => setParams((prev) => { prev.set('v', next); return prev })
   const [expanded, setExpanded] = useState(false)
   const [exportNote, setExportNote] = useState<ExportNote | null>(null)
-  const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
+  const { state, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams((prev) => { prev.set('p', nextPkg); prev.set('s', nextTab); return prev })
   const toggleExpand = useCallback(() => setExpanded((e) => !e), [])
 
@@ -125,11 +123,11 @@ function MaterialList() {
     <header className="page-heading mat-heading">
       <div className="mat-heading-main">
         <Tile name="hard-hat" color="orange"/>
-        <div>
-          <h1 className="t-h1">Material list</h1>
-          <p className="small muted mat-meta">
-            <span>{pkg.toUpperCase()}</span>
-            {state && <><span aria-hidden="true">·</span><span>Week {weekLabel(state.week)}</span></>}
+        <div className="mat-title">
+          <h1>Material list</h1>
+          <p className="mat-meta">
+            <span className="mat-meta-pkg">{pkg.toUpperCase()}</span>
+            {state && <span>Week {weekLabel(state.week)}</span>}
             <SaveState status={saveStatus}/>
           </p>
         </div>
@@ -139,9 +137,6 @@ function MaterialList() {
           {VIEWS.map((v) => <button key={v.id} type="button" className="view-tab" aria-pressed={v.id === view} onClick={() => setView(v.id)}>{v.label}</button>)}
         </div>
         {state && <WorkbookExport pkg={pkg} state={state} onDone={setExportNote}/>}
-        <button type="button" className="btn-secondary" onClick={() => void refresh()} disabled={loading}>
-          <RefreshCw size={14} aria-hidden="true" className={loading ? 'mat-spin' : undefined}/>{loading ? 'Refreshing…' : 'Refresh'}
-        </button>
       </div>
     </header>
     <nav className="mat-tabs" aria-label="Material list">

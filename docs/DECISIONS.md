@@ -564,3 +564,21 @@ Not changed:
    - If the version is outdated, it unregisters stale service workers, clears Cache Storage, and reloads immediately without mounting the old app (capped at 2 automatic reloads per 30 s target; if still mismatched, it renders a blocking **Update required** screen with a manual **Reload latest version** action).
    - If `/version.json` cannot be reached or verified, it refuses to mount the app and renders a blocking **Latest version required** screen with **Try again**.
    - Restoring a page from browser back-forward cache (`pageshow` with `event.persisted`) re-runs the same gate, and `registerUpdates()` checks `/version.json` alongside `registration.update()` on `focus`, `online`, `visibilitychange`, and every 5 minutes so open tabs adopt new deployments promptly.
+
+## D-71 Material list: cleaner heading, sticky column header, compact sections, past notes, and a clearer Undo - November 26, 2026
+
+1. **Heading.** The tile grows to 44 px so it matches the two-line title block beside it; the title is 24 px; the package is a small neutral badge before the week. The Refresh button is gone (the page loads fresh on open, D-70, and the load error keeps its **Try again**). The save pill no longer shows "Saving…" or "Saved": only **Could not save** appears, because a failed save is the one state the user must act on.
+2. **Sticky column header.** The List's column header sticks just under the toolbar. It sits outside the rows' sideways scroller (a scroll container would pin a sticky child to itself, not to the page) and follows that scroller's `scrollLeft` with a transform. The list card clips with `overflow: clip`, which keeps its rounded corners without becoming a scroll container. The toolbar's measured height is passed as `--mi-stick`.
+3. **Compact section headers, no counts.** Section bands drop to 40 px (top level) and 32 px (nested), and the material count on each band is removed.
+4. **Timeline and Quantity columns.** The Timeline column widens to 192 px with a 12 px column gap, the next step wraps to two lines instead of being cut, and the quantity boxes get extra room on their left.
+5. **Notes.** The notes cells drop the "This wk / Last wk" labels; this week's note is in full ink and earlier ones are quieter, with the week and author in the tooltip. A lone note can use two lines. In the note popover the hint line is replaced by **Past notes (n)**, which lists the selected team's earlier notes in full. The popover is placed again when its content grows, and it moves focus in only once per opening.
+6. **Undo instead of revert.** Activity entries show a labelled **Undo** button (the same word the toast uses) instead of a bare arrow icon. The confirmation, **Undo this change?**, shows each field as it is **Now** and **After undo** side by side, with the workbook's own value written out instead of "the workbook value". Fields already back where they were are left out, and when nothing would change it says so and disables the button. If someone changed the same field again later, it names them. The confirm button is the ordinary blue primary, not red.
+7. **Polish pass.**
+   - Text buttons (`.mi-link`, Past notes, Undo, Skip) keep their blue: `.mi button`, `.mi-pop button` and `.mi-panel button` set `color: inherit` and out-ranked them.
+   - Material names wrap to two lines.
+   - "No plan date" and "Pending" are no longer bold.
+   - "+ Add note" is quiet until its row is hovered.
+   - Pipeline stages with nothing in them step back.
+   - Undo shows on the hovered or focused activity entry only, and is always visible on touch screens.
+   - In the panel, the status pills align with the title, the owner sits on its own line, "Shipped" lines up with the date fields, and the photo strip runs to the panel's edges.
+   - The stage and activity popovers are wider, so their options wrap less.

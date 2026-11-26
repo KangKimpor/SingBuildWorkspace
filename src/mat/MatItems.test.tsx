@@ -159,10 +159,28 @@ test('Purchase and PM notes live in separate columns and each opens its own team
   open()
   const x1 = await row('XX-01')
   for (const body of ['Quote received', 'Waiting for supplier quote', 'Lead time 3 weeks', 'Budget checked']) expect(within(x1).getByText(body)).toBeInTheDocument()
-  expect(within(x1).getByText('2 wks ago')).toBeInTheDocument()
+  // No week label in the cell (D-71): the week is in the tooltip and the popover's past notes.
+  expect(within(x1).queryByText('2 wks ago')).toBeNull()
+  expect(within(x1).getByText('Budget checked')).toHaveAttribute('title', expect.stringMatching(/^Week of 1 Nov/))
   fireEvent.click(within(x1).getByRole('button', { name: /^PM notes:/ }))
   const pop = await screen.findByRole('dialog', { name: "This week's note" })
   expect(within(pop).getByRole('textbox', { name: 'PM note for this week' })).toHaveValue('Quote received')
+})
+
+test("the note popover lists the team's past notes", async () => {
+  open()
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: /^Purchase notes:/ }))
+  const pop = await screen.findByRole('dialog', { name: "This week's note" })
+  expect(within(pop).queryByRole('list', { name: 'Past Purchase notes' })).toBeNull()
+  fireEvent.click(within(pop).getByRole('button', { name: 'Past notes (2)' }))
+  const past = within(pop).getByRole('list', { name: 'Past Purchase notes' })
+  expect(within(past).getByText('Lead time 3 weeks')).toBeInTheDocument()
+  expect(within(past).getByText('Last week')).toBeInTheDocument()
+  expect(within(past).getByText('Budget checked')).toBeInTheDocument()
+  // Switching team shows that team's earlier notes instead.
+  fireEvent.click(within(pop).getByRole('button', { name: 'PM' }))
+  expect(within(within(pop).getByRole('list', { name: 'Past PM notes' })).getByText('Waiting for supplier quote')).toBeInTheDocument()
 })
 
 test('the on-site popover sets the total on site', async () => {
@@ -327,11 +345,12 @@ test('List groups materials under the same nested sections as the Sheet, and col
   const group = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
   const wallRow = group('Wall Finishing').closest('[role="row"]') as HTMLElement
   expect(within(group('Wall Finishing')).getByText('1')).toBeInTheDocument()
-  expect(within(wallRow).getByText('2')).toBeInTheDocument()
+  // No material count on section headers (D-71).
+  expect(within(wallRow).queryByText('2')).toBeNull()
   expect(group('L23 Club Lounge')).toHaveAttribute('title', '1 Wall Finishing › 1.1 L23 Club Lounge')
   expect(group('Stone/Marble').closest('[role="row"]')).toHaveAttribute('data-depth', '2')
   // Clicking the band background outside the chevron/title button does not collapse the section.
-  fireEvent.click(within(wallRow).getByText('2'))
+  fireEvent.click(wallRow.querySelector('.mi-grp') as HTMLElement)
   expect(screen.getByText('Sample panel XX-01')).toBeInTheDocument()
   fireEvent.click(group('Wall Finishing'))
   expect(screen.queryByText('Sample panel XX-01')).toBeNull()
@@ -383,12 +402,17 @@ test('an activity entry is reverted only after confirming, and writes back what 
   await row('XX-01')
   fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
   const list = await screen.findByRole('dialog', { name: 'Recent activity' })
-  fireEvent.click(within(list).getByRole('button', { name: /^Revert: Dara set the status to Rejected/ }))
-  const confirm = await screen.findByRole('dialog', { name: 'Revert this change?' })
+  fireEvent.click(within(list).getByRole('button', { name: /^Undo: Dara set the status to Rejected/ }))
+  const confirm = await screen.findByRole('dialog', { name: 'Undo this change?' })
   expect(saveFields).not.toHaveBeenCalled()
-  expect(within(confirm).getByText('goes back to the workbook value')).toBeInTheDocument()
-  expect(within(confirm).getByText('goes back to 4')).toBeInTheDocument()
-  fireEvent.click(within(confirm).getByRole('button', { name: 'Revert' }))
+  // Each field as it is now and as it will be after the undo (D-71): the status goes back to the workbook's own value.
+  const status = within(confirm).getByRole('rowheader', { name: 'Submission status' }).closest('tr') as HTMLElement
+  expect(within(status).getByText('Rejected')).toHaveClass('mi-confirm-now')
+  expect(within(status).getByText('Approved')).toHaveClass('mi-confirm-after')
+  const ordered = within(confirm).getByRole('rowheader', { name: 'Ordered quantity' }).closest('tr') as HTMLElement
+  expect(within(ordered).getByText('9')).toHaveClass('mi-confirm-now')
+  expect(within(ordered).getByText('4')).toHaveClass('mi-confirm-after')
+  fireEvent.click(within(confirm).getByRole('button', { name: 'Undo change' }))
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { msStatus: null, po: 4 }))
 })
 
@@ -398,7 +422,7 @@ test('an entry from before revert existed offers no revert', async () => {
   await row('XX-01')
   fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
   const list = await screen.findByRole('dialog', { name: 'Recent activity' })
-  expect(within(list).queryByRole('button', { name: /^Revert/ })).toBeNull()
+  expect(within(list).queryByRole('button', { name: /^Undo/ })).toBeNull()
 })
 
 test('the panel shows the submission image and the approved sample as separate groups', async () => {
@@ -424,4 +448,21 @@ test('a Board card shows the material photo', async () => {
   const card = await screen.findByRole('button', { name: 'Sample panel XX-01. Open details' })
   expect(card.querySelector('.mi-kc-ph img')).toHaveAttribute('src', '/mat/abc.webp')
   expect(within(card).getByText('2')).toBeInTheDocument()
+})
+
+test('an entry whose change is no longer in place has nothing to undo', async () => {
+  // x1 has no overrides: the logged status change was already put back.
+  vi.mocked(fetchPackage).mockResolvedValue({
+    ...load(),
+    log: [{ id: 7, itemId: 'x1', at: new Date().toISOString(), by: 'u1', kind: 'fields', detail: { msStatus: 'Rejected' }, before: { msStatus: null } }],
+    people: { u1: 'Dara' },
+  })
+  open()
+  await row('XX-01')
+  fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
+  const list = await screen.findByRole('dialog', { name: 'Recent activity' })
+  fireEvent.click(within(list).getByRole('button', { name: /^Undo: Dara/ }))
+  const confirm = await screen.findByRole('dialog', { name: 'Undo this change?' })
+  expect(within(confirm).getByText(/^Nothing to undo/)).toBeInTheDocument()
+  expect(within(confirm).getByRole('button', { name: 'Undo change' })).toBeDisabled()
 })
