@@ -629,3 +629,21 @@ The stage symbols of D-74/D-75 were too small and abstract to tell apart, so the
 - **Even spacing.** The dots sit at exactly equal intervals: step i is at x0 + i × (width − x0 − x5) / 5, with each name centred under its dot. x0 = 17 px (half of "Submit") and x5 = 10 px (half of "Site") keep the outer names inside the cell. The line is five equal segments. An earlier pass sized each step to its own name, which left the dots unevenly spaced, and was replaced.
 - **Colour.** A reached step is a green dot with a white tick, and the line up to it turns green. Where the material is, the dot is a ring with a soft halo, and its name is bold, both in blue (on track), orange (due within 14 days) or red (overdue). Upcoming steps are grey, a stage that is not required is dashed and struck through, and a missed plan on another stage is a red ring. Below the steps come the step to do and the lateness chip with the plan date (as in D-74).
 - **Width.** With 10 px names, even spacing needs about 40 px between dots so that "Approve" and "Sample" do not touch. The Timeline column is 232 px wide, or 228 px in the stacked medium layout, which pays for it by taking 12 px from Quantity and 6 px from each notes column. Measured in Chrome and Firefox: 41 px spacing at full width and 40.2 px at 1,250 px; at least 2.6 px between names; no name past the cell edge; no sideways scrolling.
+
+## D-77 Submission and Procurement keep their own columns at every width - November 26, 2026
+
+The stacked "Status" column of D-73 is removed. The List always shows Submission and Procurement side by side. To fit them beside the 224 px sidebar without sideways scrolling (a 1,536 px screen leaves about 1,180 px of list), the medium layout (761–1,379 px of list) is tightened.
+
+- **Capsules.** Capsules get 12 px text, a 26 px height and a 17 px symbol. Measured widths at this size: the widest Submission capsule ("Not submitted") is 116 px and the widest Procurement capsule ("Waiting for shipment") is 152 px. The columns are 118 px and 154 px.
+- **Other columns.**
+
+  | Column | Width |
+  | --- | --- |
+  | Photo | 40 px |
+  | Name | at least 140 px |
+  | Timeline | 230 px (step names keep at least 3 px apart, dots 40.6 px apart) |
+  | Quantity | 194 px (box padding 7 px, so "Approved SHD" fits) |
+  | Each notes column | at least 104 px |
+
+  Column gaps are 10 px, and header text is 11 px with an ellipsis as a safeguard.
+- **Measured** in Chrome and Firefox at 1,250 px and 1,500 px: no sideways scrolling, no capsule outside its cell, no header or Quantity label cut.

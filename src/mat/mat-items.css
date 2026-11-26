@@ -407,7 +407,6 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 
 /* Narrow viewports drop the outer columns so the table fits without crowding; desktop widths keep all 8 columns inside .mi-list. */
 .mi-list, .mi-overview { container: mi / inline-size; }
-.mi-lh-both { display: none; }
 /* The toolbar fits one line beside the narrower sidebar (D-73): below 1,300 px the search narrows and Expand shows its icon only. */
 .mi { container: mi-page / inline-size; }
 @container mi-page (max-width: 1300px) {
@@ -418,15 +417,19 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 /* Medium widths (D-73): a narrower sidebar leaves the List about 1,150 to 1,340 px. Rather than scroll sideways, the
    Submission and Procurement capsules stack in one column (the rows are tall enough for two), and the header reads
    "Submission · Procurement". */
+/* Medium widths (D-77): Submission and Procurement keep their own columns. To fit beside the 224 px sidebar (about
+   1,180 px of list on a 1,536 px screen) the capsules get 12 px text, and the gaps, photo, name, Quantity and notes
+   columns tighten. Measured capsule widths at this size: "Not submitted" 116 px, "Waiting for shipment" 152 px. */
 @container mi (min-width: 761px) and (max-width: 1379px) {
-  .mi-grid { grid-template-columns: var(--mi-lead) minmax(170px, 1.5fr) 174px 228px 206px minmax(124px, 1fr) minmax(124px, 1fr); column-gap: 12px; min-width: 1170px; }
-  .mi-gh { min-width: 1170px; }
-  .mi-row { grid-template-rows: auto auto; row-gap: 6px; }
-  .mi-row > * { grid-row: 1 / span 2; }
-  .mi-row > .mi-c-sub { grid-column: 3; grid-row: 1; align-self: end; }
-  .mi-row > .mi-c-proc { grid-column: 3; grid-row: 2; align-self: start; }
-  .mi-lh > .mi-c-proc, .mi-lh-one { display: none; }
-  .mi-lh-both { display: inline; }
+  .mi-list { --mi-lead: 40px; }
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(140px, 1.3fr) 118px 154px 230px 194px minmax(104px, 1fr) minmax(104px, 1fr); column-gap: 10px; min-width: 1180px; padding: 0 12px 0 10px; }
+  .mi-gh { min-width: 1180px; }
+  .mi-row::after { left: calc(10px + var(--mi-lead) + 10px); }
+  .mi-row .mi-stage { gap: 4px; height: 26px; padding: 0 9px 0 4px; font-size: 12px; }
+  .mi-row .mi-stage .mi-sicon { width: 17px; height: 17px; }
+  .mi-lh > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+  .mi-lh { font-size: 11px; }
+  .mi-row .mi-qbox { padding: 4px 7px; }
 }
 @container mi (max-width: 760px) {
   .mi-grid, .mi-gh { min-width: 0; }

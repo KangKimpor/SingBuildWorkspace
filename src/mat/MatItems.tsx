@@ -709,7 +709,7 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
     <div className="mi-lh-wrap" role="rowgroup">
       <div ref={headRef} className="mi-grid mi-lh" role="row" aria-rowindex={virtual ? 1 : undefined}>
         <span role="columnheader"><span className="sr-only">Photo</span></span><span role="columnheader">Material</span>
-        <span role="columnheader" className="mi-c-sub"><span className="mi-lh-one">Submission</span><span className="mi-lh-both" title="Submission and Procurement">Status</span></span><span role="columnheader" className="mi-c-proc">Procurement</span>
+        <span role="columnheader" className="mi-c-sub">Submission</span><span role="columnheader" className="mi-c-proc">Procurement</span>
         <span role="columnheader" className="mi-c-time">Timeline</span><span role="columnheader" className="mi-c-qty">Quantity</span>
         <span role="columnheader" className="mi-c-note">Purchase notes</span><span role="columnheader" className="mi-c-note" title="Project Management notes">PM notes</span>
       </div>
