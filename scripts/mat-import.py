@@ -54,6 +54,9 @@ COL_KEYS = ('no', 'pic', 'bp02', 'code', 'description', 'location', 'spec', 'bra
             'msStatus', 'ssPlan', 'ssActual', 'ssApproved', 'poPlan', 'poActual', 'arrPlan', 'arrActual', 'procRemarks', 'unit',
             'lastUpdated')
 PICTURE_COLS = ('image', 'sample')
+# Columns a material row fills and a numbered heading leaves blank (see label_only).
+LABEL_ONLY_EMPTY = ('location', 'spec', 'brand', 'source', 'msPlan', 'msActual', 'msApproved', 'msStatus', 'ssPlan', 'ssActual',
+                    'ssApproved', 'poPlan', 'poActual', 'arrPlan', 'arrActual', 'unit')
 # Percentage cells of a sheet whose whole percentage group is empty (BP04 MEP Material) get the formulas of the other sheets.
 DEFAULT_PCT = {'notYetPo': 'notYetPo', 'placed': 'placedPoOverTotal', 'waiting': 'waiting', 'arrived': 'arrived'}
 EXCLUDED_SECTIONS = {'COMMONLY MATERIALS USES'}
@@ -473,6 +476,13 @@ def read_material(pkg, wf, wv, title, legend_fallback):
         """BP04 MEP Material has no SUBTOTAL rows, so its section rows are the ones numbered 1, 2, 3 (items are 1.1, 2.3)."""
         return empty_pct and re.fullmatch(r'\d+', str(clean(value) if clean(value) is not None else '')) is not None
 
+    def label_only(at):
+        """A numbered heading the workbook left without SUBTOTALs (BP03 ID '1.1.1 Miscellaneous', its name in the code column):
+        a dotted number and a name, and nothing a material would carry (no description, quantity, percentage, date or detail)."""
+        if not re.fullmatch(r'\d+(\.\d+)+', str(clean(at('no')) or '')) or clean(at('description')) is not None:
+            return False
+        return all(clean(at(k)) is None for k in LABEL_ONLY_EMPTY + CELLS)
+
     subtotals = []  # (coord, cell key, first row, last row, cached, section row or None for row 8)
     checks = []     # (coord, cell key, row data or None for a constant, cached, constant's value)
     for r in range(FIRST_ROW, max_row + 1):
@@ -486,7 +496,8 @@ def read_material(pkg, wf, wv, title, legend_fallback):
         is_section = (clean(at('total')) is None and pct_sections and has_label and
                       (any(is_subtotal(v) for v in pct_raw)
                        or (clean(at('code')) is None and clean(at('description')) is None)
-                       or (numbered_section(at('no')) and clean(at('description')) is None)))
+                       or (numbered_section(at('no')) and clean(at('description')) is None)
+                       or label_only(at)))
         kind = 'section' if is_section else 'item'
         data = dict(cols={}, cells={})
         for key in COL_KEYS:

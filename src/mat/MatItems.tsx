@@ -2,7 +2,8 @@ import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMem
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
-import { Activity, Check, ChevronDown, ChevronUp, ImageIcon, Search, X } from 'lucide-react'
+import { Activity, Check, ChevronDown, ChevronUp, CircleCheck, CircleDashed, Clock3, ImageIcon, Package, PackageCheck, RotateCcw, Search, Truck, X } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
 import { useMatImageSrc } from './images'
 import type { MatPicture } from './MatSourcePanel'
@@ -87,8 +88,15 @@ const hue = (name: string) => HUES[[...name].reduce((a, c) => a + c.charCodeAt(0
 function Avatar({ name, large }: { name: string; large?: boolean }) {
   return <span className="mi-av" data-large={large || undefined} style={{ ['--h' as string]: hue(name) }} aria-hidden="true">{initials(name)}</span>
 }
+/** One symbol per stage, read left to right as the material moves: dashed (nothing yet), clock (waiting), back arrow (revise),
+ * check (approved), box (ordered), truck (arriving), checked box (all on site). The symbol carries the colour; the label stays ink. */
+const STAGE_ICON: Record<StageId, LucideIcon> = { notsub: CircleDashed, review: Clock3, revise: RotateCcw, approved: CircleCheck, ordered: Package, partial: Truck, onsite: PackageCheck }
+function StageIcon({ stage, size = 14 }: { stage: StageId; size?: number }) {
+  const Icon = STAGE_ICON[stage]
+  return <Icon className="mi-sicon" data-stage={stage} size={size} strokeWidth={2.1} aria-hidden="true"/>
+}
 function StagePill({ stage, caret }: { stage: StageId; caret?: boolean }) {
-  return <span className="mi-pill" data-stage={stage}><span className="mi-dot" aria-hidden="true"/>{STAGE[stage].label}{caret && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span>
+  return <span className="mi-stage" data-stage={stage}><StageIcon stage={stage}/><span>{STAGE[stage].label}</span>{caret && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span>
 }
 /** When the next step is due: "139d late · due 10 Jul", "In 5d · due 1 Dec", "Expected 10 Dec" for an approval. */
 function Due({ next }: { next: NextStep }) {
@@ -518,8 +526,8 @@ function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
       ? <div key={e.key} role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns}>
           <button type="button" className="mi-grp" aria-expanded={!collapsed.has(e.key)} style={{ ['--depth' as string]: e.depth }} title={e.title} onClick={() => onToggleGroup(e.key)}>
             <ChevronDown className="mi-chev" size={13} aria-hidden="true"/>
-            <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}<span className="mi-grp-n">{e.count}</span></span>
-            {e.late > 0 ? <span className="mi-grp-late">{e.late} late</span> : <span/>}
+            <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}</span>
+            <span className="mi-grp-meta">{e.late > 0 && <span className="mi-grp-late">{e.late} late</span>}<span className="mi-grp-n" aria-label={`${e.count} materials`}>{e.count}</span></span>
           </button>
         </div></div>
       : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} note={ctx.notes.get(e.item.id)?.[0]} week={ctx.week}
@@ -638,7 +646,7 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
     {STAGES.map((s) => {
       const rows = columns[s.id]
       return <section key={s.id} className="mi-col" data-mi-col={s.id} data-over={over === s.id || undefined} aria-label={`${s.label}, ${rows.length}`}>
-        <h3><span className="mi-dot" data-stage={s.id} aria-hidden="true"/>{s.label}<span className="mi-col-n">{rows.length}</span></h3>
+        <h3><StageIcon stage={s.id}/>{s.label}<span className="mi-col-n">{rows.length}</span></h3>
         {rows.map((item) => <div key={item.id} className="mi-kc" role="button" tabIndex={0} aria-label={`${derived.get(item.id)!.name}. Open details`} data-mi-card={item.id} data-ghosted={drag?.id === item.id || undefined}
           onPointerDown={(e) => start(e, item.id)} onKeyDown={(e) => onKey(e, item.id)}>
           <BoardCard item={item} d={derived.get(item.id)!} changed={ctx.changed.has(item.id)}/>
@@ -727,7 +735,7 @@ function PopBody(p: PopBodyProps) {
     return <>
       <div className="mi-pop-t">Move to stage</div>
       {STAGES.map((s) => <Opt key={s.id} on={s.id === st} autoFocus={s.id === st} onClick={() => p.onStage(s.id, on)}>
-        <span className="mi-dot" data-stage={s.id} aria-hidden="true"/><span>{s.label}<span className="mi-opt-h">{s.hint}</span></span>
+        <StageIcon stage={s.id} size={15}/><span>{s.label}<span className="mi-opt-h">{s.hint}</span></span>
       </Opt>)}
       <div className="mi-sep"/>
       <label className="mi-pad mi-l">Effective date<input type="date" className="mi-field" value={on} onChange={(e) => setOn(e.target.value || p.today)}/></label>
@@ -804,7 +812,7 @@ function PopBody(p: PopBodyProps) {
   }
   if (pop.type === 'bulk-stage') return <>
     <div className="mi-pop-t">Move {p.count} to stage</div>
-    {STAGES.filter((s): s is (typeof STAGES)[number] & { id: MoveStage } => s.id !== 'partial').map((s, i) => <Opt key={s.id} autoFocus={i === 0} onClick={() => p.onBulkStage(s.id)}><span className="mi-dot" data-stage={s.id} aria-hidden="true"/><span>{s.label}</span></Opt>)}
+    {STAGES.filter((s): s is (typeof STAGES)[number] & { id: MoveStage } => s.id !== 'partial').map((s, i) => <Opt key={s.id} autoFocus={i === 0} onClick={() => p.onBulkStage(s.id)}><StageIcon stage={s.id} size={15}/><span>{s.label}</span></Opt>)}
   </>
   return null
 }

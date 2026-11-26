@@ -51,10 +51,13 @@
 .mi [data-stage='partial'] { --st: #c25100; --st-bg: #fff0e0; }
 .mi [data-stage='onsite'] { --st: #248a3d; --st-bg: #e4f6e8; }
 .mi-dot { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--st, currentColor); }
-/* Status pill: a light tint with a hairline ring in the stage's hue, so a column of pills reads as labels, not blocks of colour. */
-.mi-pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; box-sizing: border-box; padding: 0 9px 0 7px; border-radius: 999px; background: color-mix(in srgb, var(--st) 7%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--st) 18%, transparent); color: var(--st); font-size: 12px; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; }
-.mi-pill .mi-dot { width: 6px; height: 6px; }
-.mi-pill .mi-dot { background: var(--st); }
+/* Stage: a coloured symbol beside a plain label, the way Reminders and Mail show state. No capsule: a column of
+   stages reads as text, and the hue lives only in the symbol. Revise is the one stage that asks for action, so its label
+   takes the hue too. */
+.mi-stage { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; letter-spacing: -0.005em; color: var(--mi-ink); white-space: nowrap; }
+.mi-sicon { flex: none; color: var(--st); }
+.mi-stage[data-stage='notsub'] { color: var(--mi-ink-2); }
+.mi-stage[data-stage='revise'] { color: var(--st); font-weight: 600; }
 .mi-caret { margin-inline-start: -2px; opacity: 0; transition: opacity 120ms; }
 .mi-cell:hover .mi-caret, .mi-cell[aria-expanded='true'] .mi-caret { opacity: 0.6; }
 
@@ -119,7 +122,7 @@
 
 /* List: one grid shared by the header and every row. */
 .mi-list { margin-top: 10px; overflow: clip; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
-.mi-list { --mi-lead: 60px; }
+.mi-list { --mi-lead: 44px; }
 .mi-grid { display: grid; grid-template-columns: var(--mi-lead) minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 148px minmax(200px, 1.7fr); align-items: center; column-gap: 14px; padding: 0 16px 0 12px; }
 .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 148px 132px minmax(200px, 1.7fr); }
 .mi-lh { height: 34px; box-shadow: inset 0 -0.5px 0 var(--mi-sep); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mi-ink-3); }
@@ -137,9 +140,10 @@
 .mi-grp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mi-chev { justify-self: center; color: var(--mi-ink-3); transition: transform 250ms var(--mi-ease); }
 .mi-grp[aria-expanded='false'] .mi-chev { transform: rotate(-90deg); }
-.mi-grp-n { flex: none; align-self: center; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--mi-fill); color: var(--mi-ink-3); font-size: 11.5px; font-weight: 600; letter-spacing: 0; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
+.mi-grp-meta { display: inline-flex; align-items: baseline; gap: 10px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; }
+.mi-grp-n { min-width: 2ch; color: var(--mi-ink-3); text-align: end; font-variant-numeric: tabular-nums; }
 .mi-grp-late { font-size: 12px; font-weight: 600; color: var(--mi-red); }
-.mi-row { position: relative; min-height: 76px; padding-block: 8px; box-sizing: border-box; transition: background-color 120ms; content-visibility: auto; contain-intrinsic-size: auto 76px; }
+.mi-row { position: relative; min-height: 60px; padding-block: 8px; box-sizing: border-box; transition: background-color 120ms; content-visibility: auto; contain-intrinsic-size: auto 60px; }
 .mi-row::after { content: ''; position: absolute; left: calc(12px + var(--mi-lead) + 14px); right: 0; bottom: 0; height: 0.5px; background: var(--mi-sep); }
 .mi-row:hover { background: var(--mi-hover); }
 .mi-row[data-picked] { background: rgb(0 113 227 / 0.05); }
@@ -148,11 +152,11 @@
 @keyframes mi-flash { from { background-color: rgb(52 199 89 / 0.16); } }
 /* The material's photo: big enough to recognise the finish, opens full size. The select box sits on its corner. */
 .mi-lead { position: relative; display: flex; align-items: center; justify-content: center; width: var(--mi-lead); height: var(--mi-lead); }
-.mi-thumb { position: relative; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 10px; background: linear-gradient(135deg, #f0efec, #e2ded7); color: rgb(0 0 0 / 0.3); box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08); }
+.mi-thumb { position: relative; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 8px; background: linear-gradient(135deg, #f0efec, #e2ded7); color: rgb(0 0 0 / 0.3); box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08); }
 .mi-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.mi-thumb-n { position: absolute; right: 3px; bottom: 3px; min-width: 16px; padding: 0 4px; border-radius: 999px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
+.mi-thumb-n { position: absolute; right: 2px; bottom: 2px; min-width: 14px; padding: 0 3px; border-radius: 999px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 9.5px; font-weight: 600; line-height: 14px; text-align: center; font-variant-numeric: tabular-nums; }
 .mi-row[data-mark='omit'] { opacity: 0.6; }
-.mi-ck { position: absolute; top: -6px; left: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1.5px solid var(--mi-sep-2); border-radius: 50%; background: var(--mi-surface); color: #fff; opacity: 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
+.mi-ck { position: absolute; top: -5px; left: -5px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1.5px solid var(--mi-sep-2); border-radius: 50%; background: var(--mi-surface); color: #fff; opacity: 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
 .mi-ck svg { opacity: 0; }
 .mi-row:hover .mi-ck, .mi-ck:focus-visible, .mi-ck[aria-checked='true'], .mi-list[data-selecting] .mi-ck { opacity: 1; }
 .mi-ck[aria-checked='true'] { border-color: var(--mi-accent); background: var(--mi-accent); }
@@ -169,12 +173,13 @@
 .mi-cell.mi-inline { display: inline-flex; align-items: center; gap: 7px; width: auto; margin: 0; }
 .mi-next .mi-t { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; line-height: 18px; }
 .mi-next .mi-caret { flex: none; }
-.mi-next .mi-s { display: flex; align-items: center; gap: 6px; }
+.mi-next .mi-s { display: flex; align-items: baseline; }
 /* Due state as a small tinted label ahead of the plan date: "139d late · due 10 Jul", "In 5d · due 1 Dec". */
-.mi-due { display: inline-flex; align-items: center; height: 17px; padding: 0 6px; border-radius: 5px; font-size: 11px; font-weight: 650; white-space: nowrap; }
-.mi-due[data-tone='late'] { background: rgb(215 0 21 / 0.08); color: var(--mi-red); }
-.mi-due[data-tone='soon'] { background: rgb(194 81 0 / 0.09); color: var(--mi-orange); }
-.mi-due[data-tone='done'] { background: rgb(36 138 61 / 0.09); color: var(--mi-green); }
+.mi-due { font-weight: 600; white-space: nowrap; }
+.mi-due[data-tone='late'] { color: var(--mi-red); }
+.mi-due[data-tone='soon'] { color: var(--mi-orange); }
+.mi-due[data-tone='done'] { color: var(--mi-green); }
+.mi-next .mi-s { gap: 4px; }
 .mi-cell .mi-s { line-height: 17px; }
 .mi-qbar { display: flex; height: 4px; margin: 0; border-radius: 2px; background: var(--mi-fill-2); overflow: hidden; }
 .mi-qbar[data-large] { height: 10px; margin: 0; border-radius: 5px; }
@@ -425,3 +430,15 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-step-plan .mi-field { flex: 1; }
 .mi-step-links { display: flex; gap: 2px; padding: 2px 4px 2px; }
 .mi-step-links .mi-link { height: 28px; font-size: 12.5px; }
+
+/* Apple pass (D-62): one type scale, symbols that follow the highlight, quieter separators. */
+.mi-opt:is(:hover, :focus-visible) .mi-sicon { color: currentColor; }
+.mi-col h3 .mi-sicon { margin-inline-end: -1px; }
+.mi-card-k { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
+.mi-card-v { font-size: 28px; line-height: 1.1; letter-spacing: -0.03em; }
+.mi-card-d { font-size: 12px; }
+.mi-grp-late { font-size: inherit; }
+.mi-name .mi-t { font-size: 14px; }
+.mi-row::after { background: rgb(60 60 67 / 0.09); }
+.mi-kc { border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.03); }
+.mi-col { border-radius: 16px; }

@@ -379,6 +379,23 @@ class ImporterTest(unittest.TestCase):
             self.assertEqual((got['bp04-mep-0009']['data']['end'], got['bp04-mep-0009']['data']['level']), (10, 0))
             self.assertEqual(got['bp04-mep-0010']['kind'], 'item')
 
+    def test_numbered_heading_without_subtotals_is_a_section(self):
+        """BP03 ID '1.1.1 Miscellaneous': a dotted number and a name in the code column, nothing else, no SUBTOTALs."""
+        def change(wb, cached):
+            ws = wb['ID Material']
+            last = ws.max_row
+            ws[f'A{last + 1}'], ws[f'D{last + 1}'] = '9.9.1', 'Miscellaneous'
+            # The same shape with a location is a material that has not been filled in yet, so it stays an item.
+            ws[f'A{last + 2}'], ws[f'D{last + 2}'], ws[f'F{last + 2}'] = '9.9.2', 'XX-99', 'GF Lobby'
+        with tempfile.TemporaryDirectory() as folder:
+            done, sql = run(folder, images=False, change03=change)
+            self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+            got = rows(sql.read_text(encoding='utf-8'))
+            heading = next(r for r in got.values() if r['data']['cols'].get('no') == '9.9.1')
+            material = next(r for r in got.values() if r['data']['cols'].get('no') == '9.9.2')
+            self.assertEqual(heading['kind'], 'section')
+            self.assertEqual(material['kind'], 'item')
+
     def test_mep_items_keep_no_person_in_charge(self):
         with tempfile.TemporaryDirectory() as folder:
             done, sql = run(folder, images=False)
