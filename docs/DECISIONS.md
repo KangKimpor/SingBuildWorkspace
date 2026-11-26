@@ -514,3 +514,36 @@ Each Board card shows the material's first photo (the submission image, else the
 4. **Expand and collapse all** buttons in the List toolbar, for every grouping (sections, stages, owners).
 5. **Reset to the workbooks.** On request: every manual change in production was cleared again (`edits`, `week_edits`, `changed_week`, `updated_by` on the 2 rows that had any), the 2 notes and all 29 activity rows were deleted. The importer, run on the files in Downloads/Procurement (saved 26 November 13:06), produced exactly the data production holds on all six sheets (same per-sheet hashes), so no import was needed. The IndexedDB cache moves to `DB_VERSION = 6`, so every browser drops its cached package, with the deleted notes and log rows, on its next load. Activity written from now on carries `before` (D-64) and can be reverted.
 6. **Free plan.** `kw_mat_load` returned the note sheets (BP03 Change Log, BP04 Review), which nothing shows: 408 rows, about 16% of each full load. Migration `20261126092231_material_tracker_load_material_sheets.sql` loads the two material sheets only; a full load is now 449 rows / 363 kB for BP03 and 401 rows / 332 kB for BP04 before compression (about 50 kB each gzipped), made once per browser per cache version; every later load asks only for rows changed since, and the log is capped at 300 rows and 21 days. Photos from the workbooks are static files on Vercel (no Supabase egress); uploads are resized to 960 px WebP before they reach Storage. The tracker has no realtime channel or polling. The database is 88 MB of 500 MB, the tracker's tables under 2 MB.
+
+## D-68 Material list: smoother List and Board (virtualized List, per-row derived cache, memoized Board columns) - November 26, 2026
+
+Measured on the 1,000-row lab data (`/__lab/mat?data=huge`), production React, CPU throttled 4× in headless Chromium. These are frame and interaction timings before and after:
+
+| | Before | After |
+| --- | --- | --- |
+| List scroll (fast fling, 90 px per frame), p50 frame | 83 ms | 50 ms |
+| Change one stage | 1,470 ms | 107 ms |
+| Expand all sections | 2,393 ms | 205 ms |
+| Collapse all sections | 311 ms | 82 ms |
+| Open a stage menu | 76 ms | 35 ms |
+| Board drag, frames over 33 ms | 54 | 8 |
+
+1. **One edit re-rendered every row.** `derived` was rebuilt with new objects on every data change, so each memoized `Row` and `BoardCard` saw a new `d` prop. The store already keeps unchanged row objects (an edit, a save and a delta load replace only the rows that changed). A module-level `WeakMap<MatItem, Derived>` keyed on the row object and the day now hands unchanged rows the same `Derived`, so only the edited row renders.
+2. **The List mounted every row.** It relied on `content-visibility: auto` alone, which still built all of the rows' DOM: expand-all and view switches mounted the whole sheet, and rows entering the viewport were laid out on every scroll frame. Above 120 entries the List now uses `@tanstack/react-virtual`, as the Sheet does:
+   - It measures rows of varying height, with spacer rows above and below.
+   - `scrollMargin` comes from the overview and toolbar above it, re-measured on resize, and the sticky toolbar's height is the scroll padding.
+   - `aria-rowcount` and `aria-rowindex` keep the table's size for screen readers.
+   - Shift-click ranges and the panel's next/previous (j/k) read the entry order rather than the DOM, so they work with rows that are not mounted.
+   - Rows get `contain: layout paint` so a row mounting at the edge does not repaint its neighbours, which cut paint time per frame by about a third.
+   - Trade-off: the browser's own find (Ctrl+F) sees only the rows on screen. The List's search box covers the whole sheet.
+3. **Board drag.**
+   - Hovering a new column re-rendered all eight columns and every card. Columns are now a memoized `BoardColumn` with stable handlers, so a column crossing re-renders the two columns whose highlight changed.
+   - The drop target was found with `elementsFromPoint` on every pointer move. It now comes from column rectangles read at lift, and read again only if something scrolls.
+4. **Smaller motion fixes.**
+   - The toast lifted above the bulk bar by transitioning `bottom`, a layout property. It now moves with `translate`.
+   - The popover's backdrop blur drops from 30 px to 20 px, the most that animates well in Safari.
+
+Not changed:
+
+- The toolbar's backdrop blur measured no main-thread cost; its GPU cost needs a recording on a real device.
+- The panel's quantity bar and the overview pipeline still transition `width` and `flex-grow`. Each is a single small element, and they no longer coincide with a full-list re-render.

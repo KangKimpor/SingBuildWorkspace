@@ -1,5 +1,6 @@
 import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
@@ -211,19 +212,10 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
   const owners = useMemo(() => hasOwner ? [...new Set(items.map((i) => text(i, 'pic')).filter(Boolean))].sort((a, b) => a.localeCompare(b)) : [], [items, hasOwner])
   const today = todayIso()
   // Everything a row shows that is derived from its columns, computed once per data change instead of on every render.
+  // A row's Derived object is reused while the row itself is unchanged, so an edit re-renders the edited row only.
   const derived = useMemo(() => {
     const out = new Map<string, Derived>()
-    for (const i of items) {
-      const next = nextOf(i, today), name = text(i, 'description') || codeOf(i), sub = submissionOf(i), proc = procurementOf(i)
-      out.set(i.id, {
-        stage: stageOf(i), subStage: sub, proc, stones: stonesOf(i, today), next, qty: qtyOf(i), name, owner: text(i, 'pic'),
-        sub: [codeOf(i), text(i, 'brand'), text(i, 'location')].filter(Boolean).join(' · '),
-        search: `${codeOf(i)} ${name} ${text(i, 'brand')} ${text(i, 'location')} ${text(i, 'spec')}`.toLowerCase(),
-        photos: effectiveImages(i, 'image').length + effectiveImages(i, 'sample').length,
-        photo: effectiveImages(i, 'image')[0] ?? effectiveImages(i, 'sample')[0] ?? null,
-        late: i.data.mark !== 'omit' && next.diff !== null && next.diff < 0,
-      })
-    }
+    for (const i of items) out.set(i.id, derivedOf(i, today))
     return out
   }, [items, today])
 
@@ -238,6 +230,8 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
   const [open, setOpen] = useState<string | null>(null)
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set())
   const lastChecked = useRef<string | null>(null)
+  /** Set by the List while it shows: the item order on screen and a scroll that works with rows not yet mounted. */
+  const listHandle = useRef<ListHandle | null>(null)
   const [pop, setPop] = useState<Pop | null>(null)
   const [toast, setToast] = useState<Toast | null>(null)
   const [flash, setFlash] = useState<ReadonlySet<string>>(() => new Set())
@@ -340,7 +334,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     // Ranges follow the rows as they are shown (grouped and sorted), read from the page.
     // The anchor is read and moved outside the updater: React may run an updater twice.
     const anchor = lastChecked.current
-    const ids = [...document.querySelectorAll<HTMLElement>('[data-mi-row]')].map((el) => el.dataset.miRow!)
+    const ids = listHandle.current?.ids() ?? [...document.querySelectorAll<HTMLElement>('[data-mi-row]')].map((el) => el.dataset.miRow!)
     lastChecked.current = id
     setChecked((old) => {
       const next = new Set(old)
@@ -354,7 +348,8 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     const i = list.findIndex((x) => x.id === open), n = list[i + dir]
     if (!n) return
     setOpen(n.id)
-    document.querySelector(`[data-mi-row="${CSS.escape(n.id)}"]`)?.scrollIntoView({ block: 'nearest' })
+    if (listHandle.current) listHandle.current.reveal(n.id)
+    else document.querySelector(`[data-mi-card="${CSS.escape(n.id)}"]`)?.scrollIntoView({ block: 'nearest' })
   }, [list, open])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -420,7 +415,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
       : list.length === 0
       ? <div className="mi-empty">No materials match.<button type="button" className="mi-btn" onClick={clearFilters}>Clear filters</button></div>
       : view === 'list'
-      ? <ListView list={list} group={group} tree={tree} collapsed={collapsed} ctx={ctx}
+      ? <ListView list={list} group={group} tree={tree} collapsed={collapsed} ctx={ctx} handle={listHandle}
           onToggleGroup={(k) => setCollapsed((old) => { const n = new Set(old); if (!n.delete(k)) n.add(k); return n })}/>
       : <BoardView list={list} ctx={ctx} onDrop={(id, to, card) => {
           if (to === 'partial') { const el = document.querySelector<HTMLElement>(`[data-mi-card="${CSS.escape(id)}"]`) ?? card; openPop('qty', id, el, 'onsite'); return }
@@ -504,6 +499,27 @@ function Overview({ scope, derived, today, attn, stage, onAttn, onStage }: { sco
 }
 
 interface Derived { stage: StageId; subStage: SubStage; proc: ProcStage; stones: Stone[]; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; photo: string | null; late: boolean }
+/**
+ * Derived values per row object and day. The store replaces only the rows that change (an edit, a save, a delta load) and
+ * keeps every other row object as it was, so keying on the object gives unchanged rows the same Derived object, and their
+ * memoized Row and BoardCard skip re-rendering. Without it one stage change re-rendered every row (seconds on 1,000 rows).
+ */
+const DERIVED = new WeakMap<MatItem, { today: string; d: Derived }>()
+function derivedOf(i: MatItem, today: string): Derived {
+  const hit = DERIVED.get(i)
+  if (hit && hit.today === today) return hit.d
+  const next = nextOf(i, today), name = text(i, 'description') || codeOf(i), sub = submissionOf(i), proc = procurementOf(i)
+  const d: Derived = {
+    stage: stageOf(i), subStage: sub, proc, stones: stonesOf(i, today), next, qty: qtyOf(i), name, owner: text(i, 'pic'),
+    sub: [codeOf(i), text(i, 'brand'), text(i, 'location')].filter(Boolean).join(' · '),
+    search: `${codeOf(i)} ${name} ${text(i, 'brand')} ${text(i, 'location')} ${text(i, 'spec')}`.toLowerCase(),
+    photos: effectiveImages(i, 'image').length + effectiveImages(i, 'sample').length,
+    photo: effectiveImages(i, 'image')[0] ?? effectiveImages(i, 'sample')[0] ?? null,
+    late: i.data.mark !== 'omit' && next.diff !== null && next.diff < 0,
+  }
+  DERIVED.set(i, { today, d })
+  return d
+}
 interface RowActions {
   openPop: (type: PopType, id: string | null, anchor: HTMLElement, field?: QtyField) => void
   toggleCheck: (id: string, range: boolean) => void
@@ -588,21 +604,78 @@ function listEntries(list: MatItem[], group: Group, tree: SectionTree, derived: 
   return out
 }
 
-function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
-  list: MatItem[]; group: Group; tree: SectionTree; collapsed: ReadonlySet<string>; ctx: RowCtx; onToggleGroup: (key: string) => void
+interface ListHandle { ids: () => string[]; reveal: (id: string) => void }
+/** Above this many rows the List mounts only what is on screen (plus a margin), as the Sheet does past its own threshold. */
+const LIST_VIRTUAL_THRESHOLD = 120
+
+function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: {
+  list: MatItem[]; group: Group; tree: SectionTree; collapsed: ReadonlySet<string>; ctx: RowCtx
+  handle: { current: ListHandle | null }; onToggleGroup: (key: string) => void
 }) {
   const { derived } = ctx
   const entries = useMemo(() => listEntries(list, group, tree, derived, collapsed), [list, group, tree, derived, collapsed])
   const columns = ctx.hasOwner ? 8 : 7
-  return <div className="mi-list" data-selecting={ctx.selecting || undefined} role="table" aria-label="Materials">
-    <div className="mi-grid mi-lh" role="row" data-owner={ctx.hasOwner || undefined}>
+  const listRef = useRef<HTMLDivElement>(null)
+  const virtual = entries.length > LIST_VIRTUAL_THRESHOLD
+  // Where the rows start inside the page scroller (below the overview, the toolbar and the column header), and how much
+  // of the top the sticky toolbar covers. Both move when the overview or toolbar wrap, so they are re-measured on resize.
+  const [frame, setFrame] = useState({ margin: 0, cover: 0 })
+  useLayoutEffect(() => {
+    const list = listRef.current, scroller = list?.closest<HTMLElement>('.mi')
+    if (!list || !scroller || !virtual) return
+    const measure = () => {
+      const head = list.querySelector<HTMLElement>('.mi-lh'), toolbar = scroller.querySelector<HTMLElement>('.mi-toolbar')
+      const margin = Math.round(list.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop + (head?.offsetHeight ?? 0))
+      const cover = (toolbar?.offsetHeight ?? 0) + (head?.offsetHeight ?? 0)
+      setFrame((f) => f.margin === margin && f.cover === cover ? f : { margin, cover })
+    }
+    measure()
+    const ro = new ResizeObserver(measure)
+    for (let el = list.previousElementSibling; el; el = el.previousElementSibling) ro.observe(el)
+    ro.observe(list)
+    return () => ro.disconnect()
+  }, [virtual])
+  // oxlint-disable-next-line react/incompatible-library -- React Compiler is not enabled; this virtualizer is not memoized.
+  const virtualizer = useVirtualizer({
+    count: virtual ? entries.length : 0,
+    getScrollElement: () => listRef.current?.closest<HTMLElement>('.mi') ?? null,
+    estimateSize: (i) => entries[i]?.kind === 'head' ? (entries[i] as { depth: number }).depth === 0 ? 48 : 40 : 76,
+    getItemKey: (i) => { const e = entries[i]!; return e.kind === 'head' ? e.key : e.item.id },
+    scrollMargin: frame.margin,
+    scrollPaddingStart: frame.cover + 8,
+    overscan: 6,
+  })
+  const shown = virtual ? virtualizer.getVirtualItems() : null
+  const padTop = shown?.length ? shown[0]!.start - frame.margin : 0
+  const padBottom = shown?.length ? Math.max(0, virtualizer.getTotalSize() - (shown.at(-1)!.end - frame.margin)) : 0
+  const measure = virtual ? virtualizer.measureElement : undefined
+  const latest = useRef({ entries, virtual, virtualizer })
+  useLayoutEffect(() => { latest.current = { entries, virtual, virtualizer } })
+  useEffect(() => {
+    handle.current = {
+      ids: () => latest.current.entries.flatMap((e) => e.kind === 'item' ? [e.item.id] : []),
+      reveal: (id) => {
+        const { entries: all, virtual: v, virtualizer: vz } = latest.current
+        if (!v) { document.querySelector(`[data-mi-row="${CSS.escape(id)}"]`)?.scrollIntoView({ block: 'nearest' }); return }
+        const index = all.findIndex((e) => e.kind === 'item' && e.item.id === id)
+        if (index >= 0) vz.scrollToIndex(index, { align: 'auto' })
+      },
+    }
+    return () => { handle.current = null }
+  }, [handle])
+  const rowsOnScreen = shown ? shown.map((v) => ({ e: entries[v.index]!, index: v.index })) : entries.map((e, index) => ({ e, index }))
+  return <div ref={listRef} className="mi-list" data-selecting={ctx.selecting || undefined} role="table" aria-label="Materials"
+    aria-rowcount={virtual ? entries.length + 1 : undefined}>
+    <div className="mi-grid mi-lh" role="row" data-owner={ctx.hasOwner || undefined} aria-rowindex={virtual ? 1 : undefined}>
       <span role="columnheader"><span className="sr-only">Photo and select</span></span><span role="columnheader">Material</span>
       <span role="columnheader">Submission</span><span role="columnheader" className="mi-c-proc">Procurement</span>
       <span role="columnheader" className="mi-c-time">Timeline</span><span role="columnheader" className="mi-c-qty">Quantity</span>
       {ctx.hasOwner && <span role="columnheader" className="mi-c-who">Owner</span>}<span role="columnheader" className="mi-c-note">Notes</span>
     </div>
-    {entries.map((e) => e.kind === 'head'
-      ? <div key={e.key} role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns}>
+    {padTop > 0 && <div className="mi-vpad" style={{ height: padTop }} aria-hidden="true"/>}
+    {rowsOnScreen.map(({ e, index }) => e.kind === 'head'
+      ? <div key={e.key} ref={measure} data-index={virtual ? index : undefined} aria-rowindex={virtual ? index + 2 : undefined}
+          role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns}>
           <button type="button" className="mi-grp" aria-expanded={!collapsed.has(e.key)} style={{ ['--depth' as string]: e.depth }} title={e.title} onClick={() => onToggleGroup(e.key)}>
             <ChevronDown className="mi-chev" size={13} aria-hidden="true"/>
             <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}</span>
@@ -611,7 +684,9 @@ function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
         </div></div>
       : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} notes={ctx.notes.get(e.item.id)} week={ctx.week} today={ctx.today}
           changed={ctx.changed.has(e.item.id)} picked={ctx.checked.has(e.item.id)} sel={ctx.open === e.item.id} flash={ctx.flash.has(e.item.id)}
-          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} popField={ctx.pop?.id === e.item.id ? ctx.pop.field : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}/>)}
+          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} popField={ctx.pop?.id === e.item.id ? ctx.pop.field : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}
+          index={virtual ? index : undefined} measure={measure}/>)}
+    {padBottom > 0 && <div className="mi-vpad" style={{ height: padBottom }} aria-hidden="true"/>}
   </div>
 }
 
@@ -626,14 +701,16 @@ function Photo({ src: ref }: { src: string }) {
 interface RowProps {
   item: MatItem; d: Derived; notes: Note[] | undefined; week: string; today: string; changed: boolean; picked: boolean; sel: boolean; flash: boolean
   popType: PopType | undefined; popField: QtyField | undefined; hasOwner: boolean; actions: RowActions
+  /** Set when the List is virtualized: the entry index the virtualizer measures this row under. */
+  index?: number; measure?: (el: HTMLElement | null) => void
 }
 /** Memoized on plain props: opening a popover or ticking one row re-renders that row, not all of them. */
-const Row = memo(function Row({ item, d, notes, week, today, changed, picked, sel, flash, popType, popField, hasOwner, actions }: RowProps) {
+const Row = memo(function Row({ item, d, notes, week, today, changed, picked, sel, flash, popType, popField, hasOwner, actions, index, measure }: RowProps) {
   const { subStage: sub, proc, stones, qty: q, name, owner } = d
   const current = currentStone(stones)
   const cell = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => { e.stopPropagation(); actions.openPop(type, item.id, e.currentTarget) }
   // oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- A click anywhere on the row is a pointer shortcut; the name button is the keyboard path to the same panel.
-  return <div className="mi-grid mi-row" role="row" data-mi-row={item.id} data-owner={hasOwner || undefined} data-sel={sel || undefined}
+  return <div ref={measure} data-index={index} aria-rowindex={index === undefined ? undefined : index + 2} className="mi-grid mi-row" role="row" data-mi-row={item.id} data-owner={hasOwner || undefined} data-sel={sel || undefined}
     data-picked={picked || undefined} data-flash={flash || undefined} data-mark={item.data.mark}
     onClick={(e) => { if (!(e.target as HTMLElement).closest('button,input')) actions.openPanel(item.id) }}>
     <span className="mi-lead" role="cell">
@@ -703,14 +780,18 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
     const gen = ++generation.current, pointer = e.pointerId
     const card = e.currentTarget, r = card.getBoundingClientRect(), ox = e.clientX - r.left, oy = e.clientY - r.top, sx = e.clientX, sy = e.clientY
     let lifted = false, target: StageId | null = null
+    // The columns' boxes, read once at lift and again only if something scrolls: hit-testing the page on every pointer
+    // move (elementsFromPoint) can force a layout per frame while the ghost is moving.
+    let cols: { id: StageId; r: DOMRect }[] = []
+    const measureCols = () => { cols = [...document.querySelectorAll<HTMLElement>('[data-mi-col]')].map((el) => ({ id: el.dataset.miCol as StageId, r: el.getBoundingClientRect() })) }
     const move = (ev: PointerEvent) => {
       if (ev.pointerId !== pointer) return
-      if (!lifted) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return; lifted = true; gx.jump(r.left); gy.jump(r.top); setDrag({ id, w: r.width }) }
+      if (!lifted) { if (Math.hypot(ev.clientX - sx, ev.clientY - sy) < 6) return; lifted = true; measureCols(); gx.jump(r.left); gy.jump(r.top); setDrag({ id, w: r.width }) }
       gx.set(ev.clientX - ox); gy.set(ev.clientY - oy)
-      const col = document.elementsFromPoint(ev.clientX, ev.clientY).map((el) => (el as HTMLElement).dataset?.miCol).find(Boolean) as StageId | undefined
-      if (target !== (col ?? null)) { target = col ?? null; setOver(target) }
+      const col = cols.find((c) => ev.clientX >= c.r.left && ev.clientX <= c.r.right && ev.clientY >= c.r.top && ev.clientY <= c.r.bottom)?.id ?? null
+      if (target !== col) { target = col; setOver(target) }
     }
-    const stop = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); active.current = null }
+    const stop = () => { removeEventListener('pointermove', move); removeEventListener('pointerup', up); removeEventListener('pointercancel', up); removeEventListener('scroll', measureCols, true); active.current = null }
     function up(ev: PointerEvent) {
       if (ev.pointerId !== pointer) return
       stop()
@@ -729,24 +810,36 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
       })
     }
     active.current = { stop }
-    addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up)
+    addEventListener('pointermove', move); addEventListener('pointerup', up); addEventListener('pointercancel', up); addEventListener('scroll', measureCols, true)
   }
   const dragged = drag ? list.find((i) => i.id === drag.id) : undefined
-  const onKey = (e: ReactKeyboardEvent<HTMLDivElement>, id: string) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ctx.actions.openPanel(id) } }
+  // Stable handlers for the memoized columns: hovering a new column during a drag re-renders the two columns whose
+  // highlight changed, not all eight with every card in them (which stalled the ghost at each column crossing).
+  const startRef = useRef(start)
+  useLayoutEffect(() => { startRef.current = start })
+  const onStart = useCallback((e: ReactPointerEvent<HTMLDivElement>, id: string) => startRef.current(e, id), [])
+  const openPanel = ctx.actions.openPanel
+  const ghostStage = drag ? derived.get(drag.id)?.stage : undefined
   return <div className="mi-board">
-    {STAGES.map((s) => {
-      const rows = columns[s.id]
-      return <section key={s.id} className="mi-col" data-mi-col={s.id} data-over={over === s.id || undefined} aria-label={`${s.label}, ${rows.length}`}>
-        <h3><StageIcon stage={s.id} size={15}/>{s.label}<span className="mi-col-n">{rows.length}</span></h3>
-        {rows.map((item) => <div key={item.id} className="mi-kc" role="button" tabIndex={0} aria-label={`${derived.get(item.id)!.name}. Open details`} data-mi-card={item.id} data-ghosted={drag?.id === item.id || undefined}
-          onPointerDown={(e) => start(e, item.id)} onKeyDown={(e) => onKey(e, item.id)}>
-          <BoardCard item={item} d={derived.get(item.id)!} changed={ctx.changed.has(item.id)} today={ctx.today}/>
-        </div>)}
-      </section>
-    })}
+    {STAGES.map((s) => <BoardColumn key={s.id} stage={s.id} label={s.label} rows={columns[s.id]} over={over === s.id} ghost={ghostStage === s.id ? drag!.id : undefined}
+      derived={derived} changed={ctx.changed} today={ctx.today} onStart={onStart} onOpen={openPanel}/>)}
     {drag && dragged && <motion.div className="mi-kc mi-ghost" style={{ x: gx, y: gy, width: drag.w }} aria-hidden="true"><BoardCard item={dragged} d={derived.get(dragged.id)!} changed={ctx.changed.has(dragged.id)} today={ctx.today}/></motion.div>}
   </div>
 }
+const BoardColumn = memo(function BoardColumn({ stage, label, rows, over, ghost, derived, changed, today, onStart, onOpen }: {
+  stage: StageId; label: string; rows: MatItem[]; over: boolean; ghost: string | undefined; derived: Map<string, Derived>
+  changed: ReadonlyMap<string, ReadonlySet<string>>; today: string
+  onStart: (e: ReactPointerEvent<HTMLDivElement>, id: string) => void; onOpen: (id: string) => void
+}) {
+  const onKey = (e: ReactKeyboardEvent<HTMLDivElement>, id: string) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(id) } }
+  return <section className="mi-col" data-mi-col={stage} data-over={over || undefined} aria-label={`${label}, ${rows.length}`}>
+    <h3><StageIcon stage={stage} size={15}/>{label}<span className="mi-col-n">{rows.length}</span></h3>
+    {rows.map((item) => <div key={item.id} className="mi-kc" role="button" tabIndex={0} aria-label={`${derived.get(item.id)!.name}. Open details`} data-mi-card={item.id} data-ghosted={ghost === item.id || undefined}
+      onPointerDown={(e) => onStart(e, item.id)} onKeyDown={(e) => onKey(e, item.id)}>
+      <BoardCard item={item} d={derived.get(item.id)!} changed={changed.has(item.id)} today={today}/>
+    </div>)}
+  </section>
+})
 const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: MatItem; d: Derived; changed: boolean; today: string }) {
   const { qty: q, owner } = d, current = currentStone(d.stones)
   // The material's first photo beside its name, as in the List; the card itself stays the drag handle, so the photo is not a button.

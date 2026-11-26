@@ -161,7 +161,11 @@
 .mi-grp-meta { display: inline-flex; align-items: baseline; gap: 10px; font-size: 12.5px; font-weight: 500; letter-spacing: 0; }
 .mi-grp-n { min-width: 2ch; color: var(--mi-ink-3); text-align: end; font-variant-numeric: tabular-nums; }
 .mi-grp-late { font-size: 12px; font-weight: 600; color: var(--mi-red); }
-.mi-row { position: relative; min-height: 60px; padding-block: 8px; box-sizing: border-box; transition: background-color 120ms; content-visibility: auto; contain-intrinsic-size: auto 60px; }
+.mi-row { position: relative; min-height: 60px; padding-block: 8px; box-sizing: border-box; transition: background-color 120ms; }
+/* Spacers for the rows a virtualized List has not mounted (D-68); they replace content-visibility, which re-laid out rows on every scroll frame. */
+.mi-vpad { pointer-events: none; }
+/* Each row paints and lays out on its own, so a row mounting at the edge while scrolling does not repaint its neighbours. */
+.mi-row { contain: layout paint; }
 .mi-row::after { content: ''; position: absolute; left: calc(12px + var(--mi-lead) + 14px); right: 0; bottom: 0; height: 0.5px; background: var(--mi-sep); }
 .mi-row:hover { background: var(--mi-hover); }
 .mi-row[data-picked] { background: rgb(0 113 227 / 0.05); }
@@ -251,7 +255,7 @@
 /* Popover: a translucent material that grows from its trigger. */
 .mi-pop {
   position: fixed; z-index: 60; max-height: min(520px, calc(100dvh - 16px)); overflow: auto; padding: 6px; border-radius: 14px;
-  background: rgb(252 252 253 / 0.88); -webkit-backdrop-filter: blur(30px) saturate(180%); backdrop-filter: blur(30px) saturate(180%);
+  background: rgb(252 252 253 / 0.9); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
   box-shadow: var(--mi-shadow-pop); color: var(--mi-ink); font-size: 13px;
   opacity: 0; transform: scale(0.94); transition: opacity 140ms ease, transform 220ms var(--mi-ease);
 }
@@ -301,9 +305,10 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-bulk b { margin-inline-end: 8px; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .mi-bulk button { display: inline-flex; align-items: center; padding: 7px 12px; border: 0; border-radius: 10px; background: rgb(255 255 255 / 0.1); color: #fff; font-size: 13px; font-weight: 600; }
 .mi-bulk button:hover { background: rgb(255 255 255 / 0.18); }
-.mi-toast { z-index: 35; gap: 12px; padding: 9px 9px 9px 15px; border-radius: 14px; background: rgb(29 29 31 / 0.88); font-size: 13px; min-height: 40px; transform: translate(-50%, 16px) scale(0.97); opacity: 0; pointer-events: none; transition: transform 320ms var(--mi-ease), opacity 180ms, bottom 320ms var(--mi-ease); }
+.mi-toast { z-index: 35; gap: 12px; padding: 9px 9px 9px 15px; border-radius: 14px; background: rgb(29 29 31 / 0.88); font-size: 13px; min-height: 40px; transform: translate(-50%, 16px) scale(0.97); opacity: 0; pointer-events: none; transition: transform 320ms var(--mi-ease), opacity 180ms, translate 320ms var(--mi-ease); }
 .mi-toast[data-on] { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
-.mi-toast[data-lift] { bottom: calc(84px + var(--safe-bottom)); }
+/* Lifts above the bulk bar by moving, not by animating `bottom` (a layout property). */
+.mi-toast[data-lift] { translate: 0 -62px; }
 .mi-toast button { padding: 4px 11px; border: 0; border-radius: 9px; background: rgb(255 255 255 / 0.14); color: #8cc8ff; font-weight: 650; }
 .mi-toast button:hover { background: rgb(255 255 255 / 0.22); }
 
