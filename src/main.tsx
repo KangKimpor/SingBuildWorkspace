@@ -9,6 +9,7 @@ import { useWorkspace } from './data'
 import { afterFirstPaint } from './lib/paint'
 import { useAccount } from './data/sync'
 import { enforceLatestVersion, forceReloadLatest } from './lib/versionGate'
+import { installChunkRecovery, resetChunkHeal } from './lib/chunkRecovery'
 import type { VersionGateOutcome } from './lib/versionGate'
 import { workspaceStart } from './shell/landing'
 import { PHONE_QUERY } from './shell/usePhone'
@@ -25,6 +26,22 @@ document.addEventListener('keydown', (event) => {
 
 const rootEl = document.getElementById('root')!
 const root = createRoot(rootEl)
+
+/** Shown instead of a blank page when a part of the app still will not load after one automatic recovery (D-72). */
+function ChunkErrorScreen() {
+  return (
+    <main className="page" role="alert" style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', padding: '24px', textAlign: 'center' }}>
+      <div style={{ maxWidth: 420, display: 'grid', gap: 12, justifyItems: 'center' }}>
+        <h1 className="t-h1" style={{ margin: 0 }}>Could not load this page</h1>
+        <p className="muted" style={{ margin: 0 }}>Part of SingBuild Workspace did not load. Check your connection and reload.</p>
+        <button type="button" className="btn-accent" onClick={() => { resetChunkHeal(); location.reload() }}>Reload</button>
+      </div>
+    </main>
+  )
+}
+// A code chunk that fails to load (a stale cached copy after a deployment) refetches itself and reloads once,
+// instead of leaving a blank page.
+if (!import.meta.env.DEV) installChunkRecovery(() => root.render(<StrictMode><ChunkErrorScreen /></StrictMode>))
 
 function VersionGateScreen({ outcome }: { outcome: Exclude<VersionGateOutcome, 'ok'> }) {
   const reloading = outcome === 'reloading'

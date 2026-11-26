@@ -1,17 +1,17 @@
 # Graph Report - kimpor-workspace  (2026-11-26)
 
 ## Corpus Check
-- 503 files · ~696,594 words
+- 506 files · ~697,883 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 40 file(s) not represented in the graph (top: .css 28, (none) 5, .toml 4)
 
 ## Summary
-- 5926 nodes · 13502 edges · 286 communities (256 shown, 30 thin omitted)
+- 5942 nodes · 13533 edges · 295 communities (264 shown, 31 thin omitted)
 - Extraction: 96% EXTRACTED · 4% INFERRED · 0% AMBIGUOUS · INFERRED: 531 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `80c6a812`
+- Built from commit: `5cd36c65`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -19,21 +19,21 @@
 - sync.ts
 - extract
 - nbc-confirm-conflict.test.ts
-- AppShell.tsx
+- SidebarContent.tsx
 - ProjectBoard.tsx
 - NbcActivity
 - startVariantObserver
 - nbc-bp02-extract.py
-- PhoneUpdate.tsx
+- Overlays.tsx
 - mat-import.py
-- TopBar.tsx
+- vitest
 - App.tsx
 - showToast
 - .agents/skills/impeccable/scripts/live-browser.js
 - .claude/skills/impeccable/scripts/live-browser.js
 - Expo Animation Recipes
-- nbc-export.spec.ts
-- react
+- workspace-test.ts
+- Removing Animations
 - Design.tsx
 - dependencies
 - Expo Animation Recipes
@@ -59,9 +59,9 @@
 - el
 - captureElementToBlob
 - react
-- versionGate.ts
+- main.tsx
 - setLiveState
-- RichEditor.tsx
+- n
 - handleKeyDown
 - with
 - App.tsx
@@ -73,25 +73,25 @@
 - captureElementToBlob
 - captureElementToBlob
 - NbcProject.tsx
-- syncWorkspace
+- reportPatch.test.ts
 - check-budgets.mjs
 - Animation Performance
 - captureElementToBlob
-- pullCloud
-- NbcProject.tsx
+- bp02.perf.ts
+- Glass
 - fixtures.ts
-- TopBar.tsx
+- actor
 - SingBuild Workspace
 - NBC BP03 weekly progress UX
-- initializeData
+- ExportWorkbook.tsx
 - .agents/skills/impeccable/reference/doctor.md
 - Android platform
 - attach_pictures
 - Region map
-- Animation Performance
+- TabBar.tsx
 - shape
 - .claude/skills/impeccable/reference/document.md
-- switchAccount
+- NbcProject.tsx
 - Phone app overhaul — design
 - updatePendingCounter
 - Removing Animations
@@ -128,11 +128,11 @@
 - 20261030090000_nbc_multiple_projects.sql
 - onAnnotDown
 - 20261107130000_kw_performance_advisor_fixes.sql
-- .agents/skills/impeccable/reference/animate.md
+- .agents/skills/impeccable/reference/delight.md
 - Handle `generate`
 - .claude/skills/impeccable/reference/animate.md
 - Handle `generate`
-- persistence.ts
+- Material List Tracker Implementation Plan
 - auth.users
 - Generate Report
 - Material list tracker (BP03 and BP04): design
@@ -148,7 +148,7 @@
 - mountSvelteComponentVariant
 - mountSvelteComponentVariant
 - Visualize: Direction Comps & Asset Production
-- select
+- Operate mode depth (and Read notes)
 - Simplify the Design
 - Hardening Dimensions
 - .claude/skills/impeccable/reference/critique.md
@@ -167,13 +167,13 @@
 - NBC BP03 weekly progress UX
 - Animation Audit Playbook
 - Generate Combined Critique Report
-- Responsive Design
-- switchAccount
+- .agents/skills/impeccable/reference/typeset.md
+- Extract Flow
 - Common Cognitive Load Violations
-- initializeData
+- AccountSettings.tsx
 - Operate mode depth (and Read notes)
 - Shape
-- phoneHeader.ts
+- TopBar.tsx
 - Common Cognitive Load Violations
 - .claude/skills/impeccable/reference/doctor.md
 - iOS platform
@@ -181,13 +181,13 @@
 - .claude/skills/impeccable/reference/colorize.md
 - Persona-Based Design Testing
 - normalize.ts
-- NbcProject
-- .agents/skills/impeccable/reference/bolder.md
+- Material tracker: handoff (finished 16 November 2026)
+- Diagnostic Scan
 - Persona-Based Design Testing
 - .claude/skills/impeccable/SKILL.md
-- pwa.ts
+- AppShell.tsx
 - Prototyping Variants
-- syncWorkspace
+- sync-merge.ts
 - Cognitive Load Assessment
 - Impeccable Finish Reviewer
 - Impeccable Manual Edit Applier
@@ -204,9 +204,9 @@
 - .agents/skills/impeccable/reference/colorize.md
 - interface
 - Extract Flow
-- visibility
+- atom
 - Impeccable Documenter
-- submission-actions.ts
+- NbcActivity
 - D-68 Material list: smoother List and Board (virtualized List, per-row derived cache, memoized Board columns) - November 26, 2026
 - Extract Flow
 - contrast.test.ts
@@ -218,6 +218,15 @@
 - 20261029041539_nbc_export_template.sql
 - Impeccable Documenter
 - Region map
+- Adaptation Strategies
+- Adaptation Strategies
+- Persuade and Experience
+- Persuade and Experience
+- Read
+- RO
+- Material
+- 3. Concurrency: stay single-threaded until profiling says otherwise
+- 3. Concurrency: stay single-threaded until profiling says otherwise
 - Moving off Supabase: backend analysis and migration study
 - Finding Animation Opportunities
 - Choreographing Motion
@@ -231,7 +240,7 @@
 - Impeccable Finish Reviewer
 - .agents/skills/impeccable/SKILL.md
 - Working With Sonner
-- .claude/skills/impeccable/reference/audit.native.md
+- Generate Report
 - Worst-Case Catalog
 - 20261112052435_nbc_bp02_weekly63_structure.sql
 - reportPatch.ts
@@ -280,9 +289,9 @@
 ## God Nodes (most connected - your core abstractions)
 1. `useWorkspace` - 92 edges
 2. `NbcActivity` - 72 edges
-3. `react` - 71 edges
-4. `Decisions` - 70 edges
-5. `vitest` - 64 edges
+3. `Decisions` - 71 edges
+4. `react` - 71 edges
+5. `vitest` - 65 edges
 6. `fixtureActivities()` - 50 edges
 7. `react-router-dom` - 44 edges
 8. `lucide-react` - 42 edges
@@ -292,23 +301,23 @@
 ## Surprising Connections (you probably didn't know these)
 - `D-51 Remove desktop/tablet topbar breadcrumb and align Supabase migration timestamp - November 22, 2026` --references--> `TopBar()`  [INFERRED]
   docs/DECISIONS.md → src/shell/TopBar.tsx
-- `D-54 Minimal SingBuild sign-in gate - November 23, 2026` --references--> `AuthGate()`  [INFERRED]
-  docs/DECISIONS.md → src/components/AuthGate.tsx
-- `D-55 Apple-style centered Google-only sign-in screen - November 23, 2026` --references--> `AuthGate()`  [INFERRED]
-  docs/DECISIONS.md → src/components/AuthGate.tsx
 - `D-63 Material list worst-case pass: text totals, initials, unknown authors, and layout under long data - November 26, 2026` --references--> `qtyOf()`  [INFERRED]
   docs/DECISIONS.md → src/mat/stage.ts
 - `D-69 Material list: procurement stages, stage skipping, 2×2 quantities, split notes, panel timeline polish, and List/Board Expand - November 26, 2026` --references--> `waiting()`  [INFERRED]
   docs/DECISIONS.md → scripts/mat-import.py
+- `WBS table` --references--> `Handler`  [INFERRED]
+  docs/NBC-BP03-UX-PLAN.md → src/nbc/types.ts
+- `Pitfalls` --references--> `Layout()`  [INFERRED]
+  .agents/skills/impeccable/reference/document.md → src/shell/phoneHeader.test.tsx
 
 ## Import Cycles
 - None detected.
 
-## Communities (286 total, 30 thin omitted)
+## Communities (295 total, 31 thin omitted)
 
 ### Community 0 - "sync.ts"
-Cohesion: 0.10
-Nodes (23): ChangeNotice, CloudCollection, Data, flushSnapshot(), MANIFEST_COLLECTIONS, NBC_TOPIC_COLLECTIONS, NOTICE_DELAY_MS, NoticeBatch (+15 more)
+Cohesion: 0.06
+Nodes (75): D-37 Staff-only company data, legacy quarantine, id-only Realtime and a per-row local snapshot - November 15, 2026, D-48 Sync watermark ordering, restore-flush guard, and NBC calculation self-healing - November 21, 2026, syncWorkspaceFiles(), contentFields(), Collection, collections, persist(), purgedRows() (+67 more)
 
 ### Community 1 - "extract"
 Cohesion: 0.12
@@ -316,11 +325,11 @@ Nodes (10): extract(), add(), leaf(), settle(), tidy(), Lin, lsum(), mean() (+2 
 
 ### Community 2 - "nbc-confirm-conflict.test.ts"
 Cohesion: 0.05
-Nodes (80): MatRemark, save(), ago(), asDate(), Avatar(), BoardCard, BoardColumn, BoardView() (+72 more)
+Nodes (89): MatRemark, codeOf(), save(), ago(), asDate(), Avatar(), BoardCard, BoardColumn (+81 more)
 
-### Community 3 - "AppShell.tsx"
-Cohesion: 0.08
-Nodes (44): D-49 NBC Overview, toolbar rhythm, shared handler avatars, progress-curve hover, and Apple cloud sync sign - November 22, 2026, Amendment — 13 November 2026 (owner: Tasks and Search are retired), Task 2: Phone shell, Workspace UI and data contract, useSyncStatus(), aliases, AppShell(), BottomSheet (+36 more)
+### Community 3 - "SidebarContent.tsx"
+Cohesion: 0.21
+Nodes (13): Sidebar(), bpNumber(), ic, Item(), ProgressRing(), RING_C, shortCode(), SidebarContent() (+5 more)
 
 ### Community 4 - "ProjectBoard.tsx"
 Cohesion: 0.08
@@ -328,27 +337,27 @@ Nodes (35): findColumns(), GROUPS, letter(), norm(), Role, TOP, ATTR(), Cell (+2
 
 ### Community 5 - "NbcActivity"
 Cohesion: 0.05
-Nodes (61): D-27 Room cells shared 50/50 by two handlers - November 11, 2026, D-30 Project Progress re-skin: scoped `--pp-*` tokens - November 12, 2026, D-34 BP02 room matrix on iPad: render one row per edit, roll up one floor - November 13, 2026, D-45 Apple Operate-mode table redesign across Project Progress, Update Progress, and Material List - November 21, 2026, ChangedDot(), TipPos, Activities(), ActivityTable() (+53 more)
+Nodes (74): D-30 Project Progress re-skin: scoped `--pp-*` tokens - November 12, 2026, D-34 BP02 room matrix on iPad: render one row per edit, roll up one floor - November 13, 2026, D-43 Apple-style controls from the prototype on Project Progress, Update Progress and the Material list - November 19, 2026, D-45 Apple Operate-mode table redesign across Project Progress, Update Progress, and Material List - November 21, 2026, D-49 NBC Overview, toolbar rhythm, shared handler avatars, progress-curve hover, and Apple cloud sync sign - November 22, 2026, ChangedDot(), TipPos, Activities() (+66 more)
 
 ### Community 6 - "startVariantObserver"
-Cohesion: 0.12
-Nodes (29): initializeSupabase(), rpc(), colPatchValue(), imagesPatchValue(), parseTextInput(), ALLOWED_IMAGE_TYPES, canvasToBlob(), deleteMatImages() (+21 more)
+Cohesion: 0.11
+Nodes (27): imagesPatchValue(), MAX_LONG_TEXT, MAX_SHORT_TEXT, ALLOWED_IMAGE_TYPES, canvasToBlob(), extFor(), inflight, isStorageRef() (+19 more)
 
 ### Community 7 - "nbc-bp02-extract.py"
-Cohesion: 0.09
-Nodes (15): close(), extract(), build(), settle(), main(), add(), leaf(), settle() (+7 more)
+Cohesion: 0.08
+Nodes (17): find_columns(), norm(), close(), extract(), build(), settle(), main(), add() (+9 more)
 
-### Community 8 - "PhoneUpdate.tsx"
-Cohesion: 0.06
-Nodes (52): File Structure, Global Constraints, Phone App Overhaul Implementation Plan, Review Focus, Task 1: Remove the calendar, Task 6: Update Progress on phone, Task 8: Clean-up and full verification, history() (+44 more)
+### Community 8 - "Overlays.tsx"
+Cohesion: 0.19
+Nodes (17): motion, Detent, DETENTS, useMotionReduced(), useSheetDrag(), useSpringPress(), DURATION, EASE (+9 more)
 
 ### Community 9 - "mat-import.py"
-Cohesion: 0.05
-Nodes (40): D-62 Material list: BP03 "1.1.1 Miscellaneous" is a section, and an Apple-style refinement - November 26, 2026, anchored_pictures(), as_text(), attach_pictures(), average(), clean(), constant(), walk() (+32 more)
+Cohesion: 0.06
+Nodes (30): D-62 Material list: BP03 "1.1.1 Miscellaneous" is a section, and an Apple-style refinement - November 26, 2026, anchored_pictures(), as_text(), attach_pictures(), average(), clean(), constant(), walk() (+22 more)
 
-### Community 10 - "TopBar.tsx"
-Cohesion: 0.09
-Nodes (27): @testing-library/react, vitest, session, emptyContent, setup(), Editor(), show(), load() (+19 more)
+### Community 10 - "vitest"
+Cohesion: 0.06
+Nodes (43): CORE_ROUTES, OVERFLOW_ROUTES, seedAll(), history(), historical(), now, setup(), react-router-dom (+35 more)
 
 ### Community 11 - "App.tsx"
 Cohesion: 0.12
@@ -370,21 +379,21 @@ Nodes (144): absolutizeUrls(), applyGlobalBarLabelState(), applyParamDefaults(),
 Cohesion: 0.06
 Nodes (33): Bottom sheet you can drag to dismiss, Collapsing header on scroll, Expo Animation Recipes, Firing something once at a threshold, Keyboard-synced UI, List entrances, Press feedback, Screen transitions (Expo Router) (+25 more)
 
-### Community 16 - "nbc-export.spec.ts"
-Cohesion: 0.06
-Nodes (24): routes, sizes, CORE_ROUTES, OVERFLOW_ROUTES, seedAll(), now, bp02Activities(), bp02Project (+16 more)
+### Community 16 - "workspace-test.ts"
+Cohesion: 0.21
+Nodes (7): routes, sizes, Window, authStorageKey, env, test, @axe-core/playwright
 
-### Community 17 - "react"
-Cohesion: 0.11
-Nodes (27): lucide-react, @radix-ui/react-popover, react, @tanstack/react-virtual, GlassPopover(), GlassPopoverProps, Choice, choices() (+19 more)
+### Community 17 - "Removing Animations"
+Cohesion: 0.12
+Nodes (15): Cleanup, Hard Rules, Initial Response, Operating Posture, Part 1 — Removed and reduced, Part 2 — Kept (REQUIRED), Part 3 — Cleanup and verdict, Reducing (+7 more)
 
 ### Community 18 - "Design.tsx"
-Cohesion: 0.08
-Nodes (48): motion@^14.3.0, motion, EmptyState(), Ambient(), Glass(), GlassProps, useSheen(), ButtonStatus (+40 more)
+Cohesion: 0.13
+Nodes (23): EmptyState(), Ambient(), GlassButton(), useListStagger(), ButtonStates(), Chip(), Chips(), Design() (+15 more)
 
 ### Community 19 - "dependencies"
-Cohesion: 0.07
-Nodes (27): dependencies, @blocknote/ariakit@0.56.0, @blocknote/core@0.56.0, @blocknote/react@0.56.0, chrono-node@2.10.3, dexie@4.4.6, @dnd-kit/core@6.3.1, @dnd-kit/utilities@3.2.2 (+19 more)
+Cohesion: 0.06
+Nodes (34): dependencies, @blocknote/ariakit@0.56.0, @blocknote/core@0.56.0, @blocknote/react@0.56.0, chrono-node@2.10.3, dexie@4.4.6, @dnd-kit/core@6.3.1, @dnd-kit/sortable@10.0.0 (+26 more)
 
 ### Community 20 - "Expo Animation Recipes"
 Cohesion: 0.06
@@ -403,8 +412,8 @@ Cohesion: 0.09
 Nodes (38): abandonForeignSession(), abandonSupersededGo(), applyOriginalAttrsToSvelteAnchor(), cleanup(), clearMountErrorCard(), clearScrollY(), clearSession(), commitAcceptedSvelteComponentToDom() (+30 more)
 
 ### Community 24 - "index.ts"
-Cohesion: 0.07
-Nodes (48): Card(), Column(), ProjectBoard(), parseQuickAdd(), QuickAdd(), Reminders(), TaskFields(), TaskPrioritySelect() (+40 more)
+Cohesion: 0.03
+Nodes (132): Task 5: Overview on phone, Task 7: Tasks and the remaining screens, lucide-react, @radix-ui/react-dialog, @radix-ui/react-popover, react, @tanstack/react-virtual, zustand (+124 more)
 
 ### Community 25 - "initGlobalBar"
 Cohesion: 0.10
@@ -420,7 +429,7 @@ Nodes (86): applyPlaceholderDimensions(), applySavedSessionMeta(), buildParamsPa
 
 ### Community 28 - "Decisions"
 Cohesion: 0.05
-Nodes (44): D-03 Danger and success text colors, D-04 Light yellow palette color (SPEC §9 contrast fix), D-05 Specimen token labels use primary text, D-06 Tooling, D-07 Stitch supersedes the first Claude UI, D-08 Local UI milestone before backend acceptance, D-09 Initial blocks and task interaction, D-10 Reference details and accessibility (+36 more)
+Nodes (42): D-03 Danger and success text colors, D-04 Light yellow palette color (SPEC §9 contrast fix), D-05 Specimen token labels use primary text, D-06 Tooling, D-07 Stitch supersedes the first Claude UI, D-08 Local UI milestone before backend acceptance, D-09 Initial blocks and task interaction, D-10 Reference details and accessibility (+34 more)
 
 ### Community 29 - ".agents/skills/impeccable/scripts/modern-screenshot.umd.js"
 Cohesion: 0.09
@@ -435,7 +444,7 @@ Cohesion: 0.09
 Nodes (45): armPageChatForTyping(), attachSteerFocusDebug(), buildSteerProcessingDots(), buildSteerQueueHint(), clearSteerAwaitTimer(), collapsePageChat(), configureVoiceContext(), expandPageChat() (+37 more)
 
 ### Community 32 - "run"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (15): append-arrays, append-string, Consent prompt (use this phrasing), CSP detection (first-time only), append-arrays, append-string, Consent prompt (use this phrasing), CSP detection (first-time only) (+7 more)
 
 ### Community 33 - "initPageChat"
@@ -455,8 +464,8 @@ Cohesion: 0.10
 Nodes (24): addManualContextText(), canRestoreManualEditElement(), collectEditableTextRows(), visit(), collectManualContextPieces(), walk(), contextElementForManualEdit(), directMixedTextRestoreNodes() (+16 more)
 
 ### Community 37 - "stage.ts"
-Cohesion: 0.10
-Nodes (51): D-64 Material list: Submission and Procurement columns, Delivering, a Timeline column, revertable activity, and a ruled Sheet - November 26, 2026, D-66 Material list: one quantity per box, two-team note history, plain capsules, the panel's timeline in the List; changed floors in Project Progress - November 26, 2026, effective(), n(), resolve(), Derived, derivedOf(), MatItems() (+43 more)
+Cohesion: 0.12
+Nodes (43): D-64 Material list: Submission and Procurement columns, Delivering, a Timeline column, revertable activity, and a ruled Sheet - November 26, 2026, D-66 Material list: one quantity per box, two-team note history, plain capsules, the panel's timeline in the List; changed floors in Project Progress - November 26, 2026, colPatchValue(), n(), derivedOf(), MatItems(), MenuButton(), Overview() (+35 more)
 
 ### Community 38 - "el"
 Cohesion: 0.08
@@ -464,7 +473,7 @@ Nodes (52): actionLabel(), applyConfigureBarChrome(), bindConfigureCountPillTool
 
 ### Community 39 - "mat/store.ts"
 Cohesion: 0.07
-Nodes (53): File Structure, Task 4: Data module, Task 5: Page and material table, Task 6: Summary and notes tabs, decision record, Task 7 (Fable): Import, apply, verify, devSaved(), fetchAccess(), fetchPackage() (+45 more)
+Nodes (57): File Structure, Task 1: Database migration, Task 4: Data module, Task 5: Page and material table, Task 6: Summary and notes tabs, decision record, Task 7 (Fable): Import, apply, verify, devSaved(), fetchAccess() (+49 more)
 
 ### Community 40 - "el"
 Cohesion: 0.08
@@ -475,20 +484,20 @@ Cohesion: 0.14
 Nodes (18): averageRgb01(), captureElementFromRenderedAncestor(), captureElementToBlob(), compileShader(), cssColorToRgb01(), dominantRgb01(), findBackdropAncestor(), findShaderProxyCaptureRoot() (+10 more)
 
 ### Community 42 - "react"
-Cohesion: 0.07
-Nodes (48): Narrative mapping, Narrative mapping, Task 2: Types and formulas, Task 3: Workbook importer, Data, arrived(), waiting(), average() (+40 more)
+Cohesion: 0.09
+Nodes (46): Task 3: Workbook importer, CELL_KEYS, changedCells(), changedColumns(), IMAGE_KEYS, NONE, previousCellValue(), REMARK_COLUMNS (+38 more)
 
-### Community 43 - "versionGate.ts"
-Cohesion: 0.26
-Nodes (10): checkAppVersion(), enforceLatestVersion(), EnforceOptions, fetchLatestVersion(), forceReloadLatest(), readGuard(), ReloadGuard, VersionCheckResult (+2 more)
+### Community 43 - "main.tsx"
+Cohesion: 0.09
+Nodes (31): D-59 App-shell CSS back under its 15 KiB budget - November 26, 2026, D-59 follow-up: first paint for signed-out visitors, and the CI checks it unblocked, App(), failedChunkUrl(), HealOptions, healStaleChunk(), installChunkRecovery(), isChunkLoadError() (+23 more)
 
 ### Community 44 - "setLiveState"
 Cohesion: 0.07
 Nodes (75): abortSvelteComponentInjection(), applyEditing(), applyLiveBarPreference(), beginNewLiveConfiguration(), buildInsertPlaceholderSnapshotFromDom(), buildLocatorForLeaf(), buildPickedAnchorSnapshot(), cancelEditing() (+67 more)
 
-### Community 45 - "RichEditor.tsx"
-Cohesion: 0.12
-Nodes (26): @radix-ui/react-dialog, zustand, blockType, Bookmark, Callout, Columns, EmbeddedTasks(), Mention (+18 more)
+### Community 45 - "n"
+Cohesion: 0.24
+Nodes (12): Task 2: Types and formulas, Data, arrived(), difference(), get(), is_text(), n(), not_yet_po() (+4 more)
 
 ### Community 46 - "handleKeyDown"
 Cohesion: 0.07
@@ -499,8 +508,8 @@ Cohesion: 0.05
 Nodes (45): env, needs, runs-on, steps, strategy, timeout-minutes, env, runs-on (+37 more)
 
 ### Community 48 - "App.tsx"
-Cohesion: 0.08
-Nodes (33): D-59 follow-up: first paint for signed-out visitors, and the CI checks it unblocked, 2. What the backend is today, App(), AppShell, Design, MaterialTracker, PageEditor, Projects (+25 more)
+Cohesion: 0.19
+Nodes (14): AppShell, Design, MaterialTracker, PageEditor, Projects, SearchPage, Settings, Tasks (+6 more)
 
 ### Community 49 - "AccountSettings.tsx"
 Cohesion: 0.10
@@ -515,16 +524,16 @@ Cohesion: 0.06
 Nodes (31): Accordion / collapse, Animation Recipes, Button press, Drag to dismiss, Drawer / sheet, Dropdown, popover, menu, select, Hold to confirm, Masking a crossfade that won't settle (+23 more)
 
 ### Community 52 - "edits"
-Cohesion: 0.11
-Nodes (20): D-44 Material list: per-cell "Changed this week" outline that clears on undo, and spreadsheet keys - November 21, 2026, D-57 Material list: item-centric List and Board views, workbook kept as Sheet - November 26, 2026, D-60 Material list: 21 November workbooks, nested List sections, photos, and Export to workbook - November 26, 2026, D-61 Material list: panel outlines, quieter pills, a labelled Changed tag, a working Next step, and a reset to the workbooks - November 26, 2026, D-67 Material list: the timeline everywhere, a clearer step editor, expand/collapse in the List, a reset to the workbooks, and a lighter load - November 26, 2026, Changes on `main` this branch had to keep (D-37, 15 November), Decisions made along the way, Done (+12 more)
+Cohesion: 0.15
+Nodes (15): D-38 Material list tracker for BP03 and BP04 on a hidden /admin page - November 16, 2026, D-44 Material list: per-cell "Changed this week" outline that clears on undo, and spreadsheet keys - November 21, 2026, D-57 Material list: item-centric List and Board views, workbook kept as Sheet - November 26, 2026, D-60 Material list: 21 November workbooks, nested List sections, photos, and Export to workbook - November 26, 2026, D-61 Material list: panel outlines, quieter pills, a labelled Changed tag, a working Next step, and a reset to the workbooks - November 26, 2026, D-67 Material list: the timeline everywhere, a clearer step editor, expand/collapse in the List, a reset to the workbooks, and a lighter load - November 26, 2026, Access, Design (+7 more)
 
 ### Community 53 - "RichEditor.tsx"
-Cohesion: 0.11
-Nodes (27): D-35 Phone app overhaul: dedicated phone views below 768 px; calendar removed - November 13, 2026, Task 4: Progress view (drill-down), ActivitySheet(), ActivitySheetProps, points(), Calculation, DrillOptions, DrillRow (+19 more)
+Cohesion: 0.09
+Nodes (36): Task 4: Progress view (drill-down), ActivitySheet(), ActivitySheetProps, points(), Calculation, DrillOptions, DrillRow, drillRows() (+28 more)
 
 ### Community 54 - "captureElementToBlob"
-Cohesion: 0.09
-Nodes (25): 10. ARC and object lifetime, 11. Testing — Swift Testing by default, 12. Macros, 13. Logging and debugging, 14. Unsafe code and interop, 15. Modern syntax you should be using, 16. Migrating an existing codebase to Swift 6, 2. Errors and optionals — make the failure paths visible (+17 more)
+Cohesion: 0.12
+Nodes (15): 10. ARC and object lifetime, 12. Macros, 13. Logging and debugging, 14. Unsafe code and interop, 15. Modern syntax you should be using, 16. Migrating an existing codebase to Swift 6, 2. Errors and optionals — make the failure paths visible, 4. Sendable and sharing data (+7 more)
 
 ### Community 55 - "captureElementToBlob"
 Cohesion: 0.12
@@ -534,49 +543,49 @@ Nodes (15): 1. Accessibility (VoiceOver / TalkBack), 2. Performance, 3. Appearan
 Cohesion: 0.13
 Nodes (14): 19 November 2026 - Weekly 28: ID-71 removed, MEP weighted by zone (D-41), 21 November 2026 - Weekly 28 sync: label, project progress, and S-curve plan (D-47), 3 November 2026 — Vuth added as the seventh handler, 6 November 2026 — weekly report 26 (1–7 November) applied, 7 November 2026 - MEP sheet formulas (column C) applied, Authorized sources, Live release · 30 October 2026, Local review (+6 more)
 
-### Community 57 - "syncWorkspace"
-Cohesion: 0.08
-Nodes (41): fflate, ExportWorkbook(), choose(), download(), cachedTemplates, show(), hasReportPatch(), num() (+33 more)
+### Community 57 - "reportPatch.test.ts"
+Cohesion: 0.36
+Nodes (5): hasReportPatch(), num(), report(), sheet(), text()
 
 ### Community 58 - "check-budgets.mjs"
 Cohesion: 0.12
 Nodes (10): sharp@^0.35.5, sharp, collect(), files, hash, manifest, dir, out (+2 more)
 
 ### Community 59 - "Animation Performance"
-Cohesion: 0.12
-Nodes (16): Animation Performance, Hard Rules, Initial Response, Operating Posture, Phase 1: Find what animates, Phase 2: Diagnose, Phase 3: Report, React: Don't Animate Through State (+8 more)
+Cohesion: 0.05
+Nodes (35): Animation Performance, Hard Rules, Initial Response, Operating Posture, Phase 1: Find what animates, Phase 2: Diagnose, Phase 3: Report, React: Don't Animate Through State (+27 more)
 
 ### Community 60 - "captureElementToBlob"
 Cohesion: 0.14
 Nodes (18): averageRgb01(), captureElementFromRenderedAncestor(), captureElementToBlob(), compileShader(), cssColorToRgb01(), dominantRgb01(), findBackdropAncestor(), findShaderProxyCaptureRoot() (+10 more)
 
-### Community 61 - "pullCloud"
-Cohesion: 0.20
-Nodes (18): acknowledgeSavedRow(), applyDeletedRow(), applyRealtimeRow(), applyRow(), cacheSnapshot(), fetchRows(), isNewer(), keyFor() (+10 more)
+### Community 61 - "bp02.perf.ts"
+Cohesion: 0.21
+Nodes (6): bp02Activities(), bp02Project, HANDLERS, ROOMS, Action, seed()
 
-### Community 62 - "NbcProject.tsx"
-Cohesion: 0.09
-Nodes (37): Task 3: Projects list and project frame, react-router-dom, BRAND_ICON, formatDate(), ProjectCard(), projectTile(), Tile(), UploadedIcon() (+29 more)
+### Community 62 - "Glass"
+Cohesion: 0.42
+Nodes (7): Glass(), GlassProps, useSheen(), ButtonStatus, GlassButtonProps, GlassPanel(), GlassPanelProps
 
 ### Community 63 - "fixtures.ts"
-Cohesion: 0.34
-Nodes (13): ago(), demo(), fixturePackage(), huge(), item(), one(), PCT_FORMULAS, PHOTO (+5 more)
+Cohesion: 0.30
+Nodes (14): ago(), demo(), fixturePackage(), huge(), item(), one(), PCT_FORMULAS, PHOTO (+6 more)
 
-### Community 64 - "TopBar.tsx"
+### Community 64 - "actor"
 Cohesion: 0.20
-Nodes (10): Breakpoints: Content-Driven, Detect Input Method, Not Just Screen Size, Layout Adaptation Patterns, Mobile-First: Write It Right, Picture Element for Art Direction, Responsive Design, Responsive Images: Get It Right, Safe Areas: Handle the Notch (+2 more)
+Nodes (8): 11. Testing — Swift Testing by default, Initial Response, Quick Reference, 11. Testing — Swift Testing by default, Initial Response, Quick Reference, D-58 Material list activity: who changed what, and the logo opens the material list - November 26, 2026, actor()
 
 ### Community 65 - "SingBuild Workspace"
 Cohesion: 0.13
 Nodes (11): Commands and Environment, graphify, Optimize usage, Project Agent Instructions, Supabase Log Query Optimization (Free Plan), Supabase Pooler Egress (Free Plan), Claude Agent Instructions, graphify (+3 more)
 
 ### Community 66 - "NBC BP03 weekly progress UX"
-Cohesion: 0.10
-Nodes (20): 1. Model data with value types, 10. ARC and object lifetime, 12. Macros, 13. Logging and debugging, 14. Unsafe code and interop, 15. Modern syntax you should be using, 16. Migrating an existing codebase to Swift 6, 1. Model data with value types (+12 more)
+Cohesion: 0.12
+Nodes (15): 10. ARC and object lifetime, 12. Macros, 13. Logging and debugging, 14. Unsafe code and interop, 15. Modern syntax you should be using, 16. Migrating an existing codebase to Swift 6, 2. Errors and optionals — make the failure paths visible, 4. Sendable and sharing data (+7 more)
 
-### Community 67 - "initializeData"
-Cohesion: 0.09
-Nodes (33): areaWorkbook(), itemValue(), mean(), Num, Place, quoted(), Report, REPORTS (+25 more)
+### Community 67 - "ExportWorkbook.tsx"
+Cohesion: 0.05
+Nodes (64): fflate, areaWorkbook(), itemValue(), mean(), Num, Place, quoted(), Report (+56 more)
 
 ### Community 68 - ".agents/skills/impeccable/reference/doctor.md"
 Cohesion: 0.18
@@ -591,24 +600,24 @@ Cohesion: 0.15
 Nodes (13): 2026-10-20 — Google Calendar connection handoff, Build status · October 20, 2026, Continuation verification · October 20, evening, Current calendar safeguard validation, Current checkpoint, Design reference, Historical checkpoints, Historical takeover checkpoint · October 19 (+5 more)
 
 ### Community 71 - "Region map"
-Cohesion: 0.05
-Nodes (75): D-39 Material list expansion: inline submission/procurement editing, Material Source slide-over, private photo uploads, and layout updates - November 19, 2026, CELL_KEYS, changedCells(), changedColumns(), IMAGE_KEYS, NONE, previousCellValue(), REMARK_COLUMNS (+67 more)
+Cohesion: 0.06
+Nodes (54): D-39 Material list expansion: inline submission/procurement editing, Material Source slide-over, private photo uploads, and layout updates - November 19, 2026, CellFailure, CellMove, OnCell, OnRemark, COUNT, distinct(), ExportNote (+46 more)
 
-### Community 72 - "Animation Performance"
-Cohesion: 0.12
-Nodes (16): Animation Performance, Hard Rules, Initial Response, Operating Posture, Phase 1: Find what animates, Phase 2: Diagnose, Phase 3: Report, React: Don't Animate Through State (+8 more)
+### Community 72 - "TabBar.tsx"
+Cohesion: 0.24
+Nodes (7): Amendment — 13 November 2026 (owner: Tasks and Search are retired), Workspace UI and data contract, aliases, ic, TabBar(), tabFor(), tabs
 
 ### Community 74 - "shape"
 Cohesion: 0.08
 Nodes (23): Completion gate, Init flow, Step 1: Load current state, Step 2: Explore the project, Step 3: Interview for product truth, Step 4: Write PRODUCT.md, Step 5: Record workflow defaults, Step 6: Wrap up or resume (+15 more)
 
 ### Community 75 - ".claude/skills/impeccable/reference/document.md"
-Cohesion: 0.09
-Nodes (21): Component translation rules, Scan mode (approach C: auto-extract, then confirm descriptive language), Schema, Seed mode, Step 1: Find the design assets, Step 1: Route through new-work's workshop, Step 2: Auto-extract what can be auto-extracted, Step 2: Write seed DESIGN.md (+13 more)
-
-### Community 76 - "switchAccount"
 Cohesion: 0.08
-Nodes (61): D-36 Completion breakdown keeps Floor and Work area; the weekly report sheet follows Apple grouping - November 13, 2026, Task 5: Overview on phone, Global Constraints, Material List Tracker Implementation Plan, Weeks and the rollover, confirmationTime(), delta(), exportSubmission() (+53 more)
+Nodes (23): Component translation rules, Narrative mapping, Pitfalls, Scan mode (approach C: auto-extract, then confirm descriptive language), Schema, Seed mode, Step 1: Find the design assets, Step 1: Route through new-work's workshop (+15 more)
+
+### Community 76 - "NbcProject.tsx"
+Cohesion: 0.06
+Nodes (71): D-35 Phone app overhaul: dedicated phone views below 768 px; calendar removed - November 13, 2026, File Structure, Task 1: Remove the calendar, Task 3: Projects list and project frame, Task 6: Update Progress on phone, Task 8: Clean-up and full verification, Global Constraints, Weeks and the rollover (+63 more)
 
 ### Community 77 - "Phone app overhaul — design"
 Cohesion: 0.08
@@ -619,20 +628,20 @@ Cohesion: 0.16
 Nodes (29): clearStoredManualApplyState(), dismissToast(), fetchPendingCount(), handleManualEditActivity(), hidePendingApplyDock(), manualApplyLoadingText(), manualApplyStateKey(), manualEditEventForCurrentPage() (+21 more)
 
 ### Community 80 - "Removing Animations"
-Cohesion: 0.06
-Nodes (32): Cleanup, Hard Rules, Initial Response, Operating Posture, Part 1 — Removed and reduced, Part 2 — Kept (REQUIRED), Part 3 — Cleanup and verdict, Reducing (+24 more)
+Cohesion: 0.12
+Nodes (15): Cleanup, Hard Rules, Initial Response, Operating Posture, Part 1 — Removed and reduced, Part 2 — Kept (REQUIRED), Part 3 — Cleanup and verdict, Reducing (+7 more)
 
 ### Community 81 - ".claude/skills/impeccable/reference/new-work.md"
-Cohesion: 0.06
-Nodes (27): Craft (deprecated alias), Impeccable Documenter, Input Contract, Output Contract, Workflow, Apply, Live-mode signature params, Set the spatial thesis (+19 more)
+Cohesion: 0.07
+Nodes (25): Assess Adaptation Challenge, Implement & Verify, Recommended Actions, Save the Report, Craft (deprecated alias), Impeccable Documenter, Input Contract, Output Contract (+17 more)
 
 ### Community 82 - "Build status · October 20, 2026"
 Cohesion: 0.17
 Nodes (10): Data, Features, Run locally, SingBuild Workspace, Verify, Calendar behavior, Cloud-first workspace update · October 25, 2026, Existing cloud implementation (+2 more)
 
 ### Community 83 - ".agents/skills/impeccable/reference/new-work.md"
-Cohesion: 0.06
-Nodes (28): Craft (deprecated alias), Apply, Live-mode signature params, Set the spatial thesis, Two isolated assessments, Verify, Visitor mode, Comps (+20 more)
+Cohesion: 0.05
+Nodes (35): Assess Adaptation Challenge, Implement & Verify, Accessibility and control, Choose material by meaning, Find the job, Implement to the runtime, Set the motion thesis, Timing and easing (+27 more)
 
 ### Community 84 - ".claude/skills/impeccable/reference/live.md"
 Cohesion: 0.08
@@ -656,31 +665,31 @@ Nodes (29): Collections, Emails, URLs, identifiers, Environment, Images and medi
 
 ### Community 89 - "Responsive Design"
 Cohesion: 0.08
-Nodes (22): Assess Adaptation Challenge, Content Adaptation, Desktop Adaptation (Mobile → Desktop), Email Adaptation (Web → Email), Implement Adaptations, Layout Adaptation Techniques, Mobile Adaptation (Desktop → Mobile), Adaptation Strategies (+14 more)
+Nodes (25): Assess Adaptation Challenge, Breakpoints: Content-Driven, Content Adaptation, Desktop Adaptation (Mobile → Desktop), Detect Input Method, Not Just Screen Size, Email Adaptation (Web → Email), Implement Adaptations, Layout Adaptation Patterns (+17 more)
 
 ### Community 90 - "public.kw_projects"
 Cohesion: 0.08
 Nodes (29): public.kw_projects, kw_private.nbc_activity_guard(), kw_private.nbc_report_guard(), kw_private.nbc_task_guard(), nbc_activity_guard, nbc_report_guard, nbc_task_guard, public.kw_nbc_activities (+21 more)
 
 ### Community 91 - "nbc-bp03-db-check.mjs"
-Cohesion: 0.10
-Nodes (16): D-38 Material list tracker for BP03 and BP04 on a hidden /admin page - November 16, 2026, Structure, Task 1: Database migration, batchExpected, beforeBp03, bp04Activity, bp04Project, call() (+8 more)
+Cohesion: 0.13
+Nodes (12): batchExpected, beforeBp03, bp04Activity, bp04Project, call(), db, frozen, last (+4 more)
 
 ### Community 92 - ".agents/skills/impeccable/reference/live.md"
 Cohesion: 0.08
 Nodes (22): Step 1: Parse the request, Step 2: Reuse the page, then start, Step 3: Generate, Step 4: Accept and close, Cleanup, Exit, First-time setup, Handle `accept` (+14 more)
 
 ### Community 93 - "glass.ts"
-Cohesion: 0.15
-Nodes (7): cors, @supabase/supabase-js@2.118.0, @playwright/test@^1.64.1, @playwright/test, @supabase/supabase-js, env, headless
+Cohesion: 0.22
+Nodes (4): cors, @playwright/test, env, headless
 
 ### Community 94 - ".claude/skills/impeccable/reference/adapt.md"
 Cohesion: 0.08
-Nodes (22): Assess Adaptation Challenge, Content Adaptation, Desktop Adaptation (Mobile → Desktop), Email Adaptation (Web → Email), Implement Adaptations, Layout Adaptation Techniques, Mobile Adaptation (Desktop → Mobile), Adaptation Strategies (+14 more)
+Nodes (25): Assess Adaptation Challenge, Breakpoints: Content-Driven, Content Adaptation, Desktop Adaptation (Mobile → Desktop), Detect Input Method, Not Just Screen Size, Email Adaptation (Web → Email), Implement Adaptations, Layout Adaptation Patterns (+17 more)
 
 ### Community 95 - "Scan mode (approach C: auto-extract, then confirm descriptive language)"
-Cohesion: 0.09
-Nodes (21): Component translation rules, Scan mode (approach C: auto-extract, then confirm descriptive language), Schema, Seed mode, Step 1: Find the design assets, Step 1: Route through new-work's workshop, Step 2: Auto-extract what can be auto-extracted, Step 2: Write seed DESIGN.md (+13 more)
+Cohesion: 0.08
+Nodes (23): Component translation rules, Narrative mapping, Pitfalls, Scan mode (approach C: auto-extract, then confirm descriptive language), Schema, Seed mode, Step 1: Find the design assets, Step 1: Route through new-work's workshop (+15 more)
 
 ### Community 96 - ".agents/skills/impeccable/reference/onboard.md"
 Cohesion: 0.09
@@ -754,9 +763,9 @@ Nodes (15): beginEditPin(), buildAnnotationsForCapture(), buildPinElement(), can
 Cohesion: 0.12
 Nodes (10): calendar_oauth_requests_user_id_idx, connected_accounts_user_id_idx, kw_nbc_activities_parent_idx, kw_nbc_activities_project_sync_idx, kw_oauth_states_user_id_idx, kw_projects_nbc_owner_idx, page_doc_updates_user_id_page_id_idx, page_versions_user_id_page_id_idx (+2 more)
 
-### Community 114 - ".agents/skills/impeccable/reference/animate.md"
-Cohesion: 0.12
-Nodes (14): Accessibility and control, Choose material by meaning, Find the job, Implement to the runtime, Set the motion thesis, Timing and easing, Verify, Visitor mode (+6 more)
+### Community 114 - ".agents/skills/impeccable/reference/delight.md"
+Cohesion: 0.29
+Nodes (6): Build for the emotional moment, Define one delight thesis, Find the opportunity, Protect the experience, Verify, Visitor mode
 
 ### Community 115 - "Handle `generate`"
 Cohesion: 0.12
@@ -770,9 +779,9 @@ Nodes (14): Accessibility and control, Choose material by meaning, Find the job,
 Cohesion: 0.12
 Nodes (16): 1. Read the screenshot (if present), 2. Wrap the element, 3. Load the action's reference, 4. Plan three variants: identity first, then mode, then axes, 5. Apply the freeform prompt (if present), 6. Deliver variants, 7. Parameters (composition-sized, 0-4 per variant), 8. Signal done (+8 more)
 
-### Community 118 - "persistence.ts"
-Cohesion: 0.14
-Nodes (13): Review Focus, Collection, collections, db, Pending, persist(), purgedRows(), SnapshotMeta (+5 more)
+### Community 118 - "Material List Tracker Implementation Plan"
+Cohesion: 0.50
+Nodes (3): Material List Tracker Implementation Plan, Review Focus, Pending
 
 ### Community 119 - "auth.users"
 Cohesion: 0.23
@@ -811,8 +820,8 @@ Cohesion: 0.14
 Nodes (13): Animation Performance, Assess Performance Issues, Core Web Vitals Optimization, Cumulative Layout Shift (CLS < 0.1), Interaction to Next Paint (INP < 200ms), Largest Contentful Paint (LCP < 2.5s), Loading Performance, Network Optimization (+5 more)
 
 ### Community 128 - "Extract Flow"
-Cohesion: 0.06
-Nodes (43): @dnd-kit/sortable@10.0.0, @fontsource-variable/inter@5.3.0, react-dom@^19.3.1, devDependencies, @axe-core/playwright@^4.14.0, jsdom@^30.1.3, oxlint@1.88.0, tailwindcss@^4.3.3 (+35 more)
+Cohesion: 0.07
+Nodes (38): devDependencies, @axe-core/playwright@^4.14.0, jsdom@^30.1.3, oxlint@1.88.0, @playwright/test@^1.64.1, tailwindcss@^4.3.3, @tailwindcss/vite@^4.3.3, @testing-library/jest-dom@^7.0.1 (+30 more)
 
 ### Community 129 - ".agents/skills/impeccable/reference/critique.md"
 Cohesion: 0.17
@@ -834,9 +843,9 @@ Nodes (13): acceptedDomAlreadyClean(), clearHandledWrapperReloadStamp(), commitA
 Cohesion: 0.22
 Nodes (9): Color & materials, Components & controls, iOS platform, Layout & structure, Motion, The iOS slop test, Touch targets, Typography (+1 more)
 
-### Community 134 - "select"
-Cohesion: 0.25
-Nodes (7): Monorepo notes, Opting out of the boot check, Step 1: Run the pass, Step 2: Act by severity, Step 3: Deprecated fields are binding, Step 4: Do not overclaim on truth drift, What this owns, and what it does not
+### Community 134 - "Operate mode depth (and Read notes)"
+Cohesion: 0.22
+Nodes (9): Color, Components, Layout, Motion, Operate mode depth (and Read notes), Product constraints, Product permissions, The product slop test (+1 more)
 
 ### Community 135 - "Simplify the Design"
 Cohesion: 0.17
@@ -899,8 +908,8 @@ Cohesion: 0.14
 Nodes (13): 12 November 2026 - Weekly 63 structure and formulas, 19 November 2026 - Weekly 64: the corridor no longer counts toward MEP (D-41), 21 November 2026 - Weekly 64 finalized (`P.sum!G18` formula fix, labels, S-curve plan) (D-46), 3 November 2026 — new baseline workbook, 5 November 2026 — 1–7 November room workbook baseline, 6 November 2026 - weekly report 60 (1-7 November) applied, 7 November 2026 - report formulas applied to the ID weights, Earlier setup (30 October 2026) (+5 more)
 
 ### Community 152 - "NBC BP03 weekly progress UX"
-Cohesion: 0.18
-Nodes (8): Local SingBuild update · October 25, 2026, NBC BP03 local implementation · October 26, 2026, Activities, NBC BP03 weekly progress UX, Overview, Release boundary, Update Progress, WBS table
+Cohesion: 0.15
+Nodes (10): Local SingBuild update · October 25, 2026, NBC BP03 local implementation · October 26, 2026, Activities, NBC BP03 weekly progress UX, Overview, Release boundary, Structure, Update Progress (+2 more)
 
 ### Community 153 - "Animation Audit Playbook"
 Cohesion: 0.08
@@ -910,21 +919,21 @@ Nodes (22): 1. Purpose & frequency, 2. Easing & duration, 3. Physicality & origi
 Cohesion: 0.20
 Nodes (10): Design Health Score, Design Specificity Verdict, Generate Combined Critique Report, Minor Observations, Overall Impression, Persona Red Flags, Priority Issues, Questions to Consider (+2 more)
 
-### Community 155 - "Responsive Design"
-Cohesion: 0.20
-Nodes (10): Breakpoints: Content-Driven, Detect Input Method, Not Just Screen Size, Layout Adaptation Patterns, Mobile-First: Write It Right, Picture Element for Art Direction, Responsive Design, Responsive Images: Get It Right, Safe Areas: Handle the Notch (+2 more)
+### Community 155 - ".agents/skills/impeccable/reference/typeset.md"
+Cohesion: 0.25
+Nodes (7): Apply, Line breaks, Live-mode signature params, Set the system, Two isolated assessments, Verify, Visitor mode
 
-### Community 156 - "switchAccount"
-Cohesion: 0.38
-Nodes (10): contentFields(), markWritten(), normalize(), readSnapshot(), recoverAbandoned(), recoverLegacy(), recoveryKey(), retired() (+2 more)
+### Community 156 - "Extract Flow"
+Cohesion: 0.25
+Nodes (7): Extract Flow, Step 1: Discover the Design System, Step 2: Identify Patterns, Step 3: Plan Extraction, Step 4: Extract & Enrich, Step 5: Migrate, Step 6: Document
 
 ### Community 157 - "Common Cognitive Load Violations"
 Cohesion: 0.22
 Nodes (9): 1. The Wall of Options, 2. The Memory Bridge, 3. The Hidden Navigation, 4. The Jargon Barrier, 5. The Visual Noise Floor, 6. The Inconsistent Pattern, 7. The Multi-Task Demand, 8. The Context Switch (+1 more)
 
-### Community 158 - "initializeData"
-Cohesion: 0.24
-Nodes (7): applyRemotePatch(), initializeCloud(), initializeData(), pendingCollectionIds(), cloud, cloud, local
+### Community 158 - "AccountSettings.tsx"
+Cohesion: 0.11
+Nodes (17): D-54 Minimal SingBuild sign-in gate - November 23, 2026, D-55 Apple-style centered Google-only sign-in screen - November 23, 2026, @supabase/supabase-js@2.118.0, @supabase/supabase-js, AccountSettings(), backupWorkspace(), GoogleMark(), AuthGate() (+9 more)
 
 ### Community 159 - "Operate mode depth (and Read notes)"
 Cohesion: 0.22
@@ -934,9 +943,9 @@ Nodes (9): Color, Components, Layout, Motion, Operate mode depth (and Read notes
 Cohesion: 0.22
 Nodes (8): Cadence, Confirm and stop, Phase 1: Discovery interview, Phase 2: Resolve the design direction, Phase 3: Write the brief, Round 1: purpose, people, and outcome, Round 2: material, behavior, and boundaries, Shape
 
-### Community 161 - "phoneHeader.ts"
-Cohesion: 0.15
-Nodes (20): Pitfalls, 6. Concurrency in SwiftUI, Pitfalls, 6. Concurrency in SwiftUI, Task 7: Tasks and the remaining screens, computeActive(), Entry, PhoneHeader (+12 more)
+### Community 161 - "TopBar.tsx"
+Cohesion: 0.26
+Nodes (13): Task 2: Phone shell, useSyncStatus(), useHeaders, usePhoneHeaderState(), ic, PhoneTopBar(), SyncButton(), SyncGlyph() (+5 more)
 
 ### Community 162 - "Common Cognitive Load Violations"
 Cohesion: 0.22
@@ -963,36 +972,36 @@ Cohesion: 0.25
 Nodes (8): 1. Impatient Power User: "Alex", 2. Confused First-Timer: "Jordan", 3. Accessibility-Dependent User: "Sam", 4. Deliberate Stress Tester: "Riley", 5. Distracted Mobile User: "Casey", Persona-Based Design Testing, Project-Specific Personas, Selecting Personas
 
 ### Community 168 - "normalize.ts"
-Cohesion: 0.36
-Nodes (6): D-31 Sunday-to-Saturday reporting weeks - November 12, 2026, StoredActivity, sundayOf(), sundayWeekSubmission(), sundayWeekSummary(), stored
+Cohesion: 0.31
+Nodes (8): D-31 Sunday-to-Saturday reporting weeks - November 12, 2026, contentOf(), normalizeActivity(), StoredActivity, sundayOf(), sundayWeekSubmission(), sundayWeekSummary(), stored
 
-### Community 169 - "NbcProject"
-Cohesion: 0.46
-Nodes (8): D-37 Staff-only company data, legacy quarantine, id-only Realtime and a per-row local snapshot - November 15, 2026, D-48 Sync watermark ordering, restore-flush guard, and NBC calculation self-healing - November 21, 2026, flushNotices(), receiveChangeNotice(), receiveDeleteNotice(), refreshCollections(), NbcProject(), reloadActivities()
+### Community 169 - "Material tracker: handoff (finished 16 November 2026)"
+Cohesion: 0.29
+Nodes (6): Changes on `main` this branch had to keep (D-37, 15 November), Decisions made along the way, Done, Left to the owner, Live database (already done; do not redo), Material tracker: handoff (finished 16 November 2026)
 
-### Community 170 - ".agents/skills/impeccable/reference/bolder.md"
+### Community 170 - "Diagnostic Scan"
 Cohesion: 0.33
-Nodes (5): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat
+Nodes (6): 1. Accessibility (VoiceOver / TalkBack), 2. Performance, 3. Appearance & Theming, 4. Platform Conformance (CRITICAL), 5. Adaptivity, Diagnostic Scan
 
 ### Community 171 - "Persona-Based Design Testing"
 Cohesion: 0.25
 Nodes (8): 1. Impatient Power User: "Alex", 2. Confused First-Timer: "Jordan", 3. Accessibility-Dependent User: "Sam", 4. Deliberate Stress Tester: "Riley", 5. Distracted Mobile User: "Casey", Persona-Based Design Testing, Project-Specific Personas, Selecting Personas
 
 ### Community 172 - ".claude/skills/impeccable/SKILL.md"
-Cohesion: 0.06
-Nodes (25): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat, Craft floor, Refuse, Verify (+17 more)
+Cohesion: 0.09
+Nodes (18): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat, Craft floor, Refuse, Verify (+10 more)
 
-### Community 173 - "pwa.ts"
-Cohesion: 0.47
-Nodes (4): D-70 Always load the latest version on open/refresh and block outdated loads - November 26, 2026, registerUpdates(), announceUpdate(), clearClientCaches()
+### Community 173 - "AppShell.tsx"
+Cohesion: 0.23
+Nodes (12): D-70 Always load the latest version on open/refresh and block outdated loads - November 26, 2026, prefetchRoutes(), registerUpdates(), AppShell(), BottomSheet, isTyping(), QuickAdd, Sidebar (+4 more)
 
 ### Community 174 - "Prototyping Variants"
 Cohesion: 0.10
 Nodes (19): Behavior contract, Markup, Reference wiring, Rules, Styles, The Picker, Hard Rules, Initial Response (+11 more)
 
-### Community 175 - "syncWorkspace"
-Cohesion: 0.17
-Nodes (12): syncWorkspaceFiles(), compactSubmissionPayload(), flushPending(), changedFields(), equal(), rebaseWrite(), RecordData, recoverConflict() (+4 more)
+### Community 175 - "sync-merge.ts"
+Cohesion: 0.70
+Nodes (4): changedFields(), equal(), rebaseWrite(), RecordData
 
 ### Community 176 - "Cognitive Load Assessment"
 Cohesion: 0.29
@@ -1054,25 +1063,25 @@ Nodes (4): interface, default_prompt, display_name, short_description
 Cohesion: 0.25
 Nodes (7): Extract Flow, Step 1: Discover the Design System, Step 2: Identify Patterns, Step 3: Plan Extraction, Step 4: Extract & Enrich, Step 5: Migrate, Step 6: Document
 
-### Community 192 - "visibility"
-Cohesion: 0.67
-Nodes (3): What You Animate, What You Animate, visibility()
+### Community 192 - "atom"
+Cohesion: 0.53
+Nodes (5): weightValues(), value(), atom(), expression(), product()
 
 ### Community 193 - "Impeccable Documenter"
 Cohesion: 0.40
 Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
 
-### Community 194 - "submission-actions.ts"
-Cohesion: 0.11
-Nodes (34): D-32 Editing and snapshot performance at BOQ scale - November 12, 2026, changedAppliedActivityIds(), assignActivities(), isSharedHalf(), sharedHalfIds(), updateActivity(), clearHandlerDraft(), draftKey() (+26 more)
+### Community 194 - "NbcActivity"
+Cohesion: 0.06
+Nodes (73): D-27 Room cells shared 50/50 by two handlers - November 11, 2026, D-32 Editing and snapshot performance at BOQ scale - November 12, 2026, Global Constraints, Phone App Overhaul Implementation Plan, Review Focus, pendingCollectionIds(), assignActivities(), isSharedHalf() (+65 more)
 
 ### Community 196 - "Extract Flow"
 Cohesion: 0.50
 Nodes (3): bp04_gone, bp04_leaf, bp04_na
 
 ### Community 197 - "contrast.test.ts"
-Cohesion: 0.25
-Nodes (9): css, light, lum(), over(), pair(), palette, parse(), ratio() (+1 more)
+Cohesion: 0.15
+Nodes (13): css, light, lum(), over(), pair(), palette, parse(), ratio() (+5 more)
 
 ### Community 198 - "overrides"
 Cohesion: 0.40
@@ -1098,9 +1107,41 @@ Nodes (4): Impeccable Documenter, Input Contract, Output Contract, Workflow
 Cohesion: 0.40
 Nodes (4): Containment, Painted material, Region map, What varies independently
 
+### Community 215 - "Adaptation Strategies"
+Cohesion: 0.40
+Nodes (5): Adaptation Strategies, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app)
+
+### Community 216 - "Adaptation Strategies"
+Cohesion: 0.40
+Nodes (5): Adaptation Strategies, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app)
+
+### Community 217 - "Persuade and Experience"
+Cohesion: 0.50
+Nodes (3): Comps, Directions, Persuade and Experience
+
+### Community 218 - "Persuade and Experience"
+Cohesion: 0.50
+Nodes (3): Comps, Directions, Persuade and Experience
+
+### Community 219 - "Read"
+Cohesion: 0.50
+Nodes (3): Comps, Directions, Read
+
+### Community 227 - "Material"
+Cohesion: 0.67
+Nodes (3): 1. Model data with value types, 1. Model data with value types, Material
+
+### Community 228 - "3. Concurrency: stay single-threaded until profiling says otherwise"
+Cohesion: 0.67
+Nodes (3): 3. Concurrency: stay single-threaded until profiling says otherwise, Actor reentrancy, The rule that changed
+
+### Community 229 - "3. Concurrency: stay single-threaded until profiling says otherwise"
+Cohesion: 0.67
+Nodes (3): 3. Concurrency: stay single-threaded until profiling says otherwise, Actor reentrancy, The rule that changed
+
 ### Community 235 - "Moving off Supabase: backend analysis and migration study"
-Cohesion: 0.15
-Nodes (12): 10. What I did not check, 1. Recommendation, 3. Where the egress and log-query usage come from, 4. Options checked against current free tiers, 5. Target architecture, 6. Egress by design (worth doing on either platform), 7. Data and auth mapping, 8. Phased plan (+4 more)
+Cohesion: 0.14
+Nodes (14): 10. What I did not check, 1. Recommendation, 2. What the backend is today, 3. Where the egress and log-query usage come from, 4. Options checked against current free tiers, 5. Target architecture, 6. Egress by design (worth doing on either platform), 7. Data and auth mapping (+6 more)
 
 ### Community 236 - "Finding Animation Opportunities"
 Cohesion: 0.12
@@ -1115,8 +1156,8 @@ Cohesion: 0.12
 Nodes (16): Conflicts, Hard Rules, Invocation Variants, Learning Taste, Make it a check, Needs your answer, Phase 1: Collect corrections, Phase 2: Filter (+8 more)
 
 ### Community 287 - "install.ts"
-Cohesion: 0.30
-Nodes (6): AppUpdate, InstallPrompt, UpdateStatus, useInstall, UPDATE_NOTICE_DELAY, UpdateNotice()
+Cohesion: 0.23
+Nodes (8): AppUpdate, InstallPrompt, UpdateStatus, useInstall, announceUpdate(), UPDATE_NOTICE_DELAY, clearClientCaches(), UpdateNotice()
 
 ### Community 308 - "20261115021338_material_tracker.sql"
 Cohesion: 0.10
@@ -1135,24 +1176,24 @@ Cohesion: 0.13
 Nodes (14): First decision: build it, or use a solution that exists?, Gesture-Driven UI, Hold gestures are asymmetric, Interruptibility is non-negotiable, Linked values, Motion drag props, Reduced motion, Release phase rules (+6 more)
 
 ### Community 374 - "MatCells.tsx"
-Cohesion: 0.15
-Nodes (27): D-40 Material list responsiveness: click-to-edit cells, spacer-row virtualization, single-pass averages, and column views - November 19, 2026, parseInput(), patchForSource(), DateTextCell(), cancel(), commit(), onBlur(), onKeyDown() (+19 more)
+Cohesion: 0.11
+Nodes (40): D-40 Material list responsiveness: click-to-edit cells, spacer-row virtualization, single-pass averages, and column views - November 19, 2026, isIsoDate(), parseDateTextInput(), parseInput(), parseTextInput(), patchForSource(), validCalendarDate(), ActiveCellCallbacks (+32 more)
 
 ### Community 378 - "Impeccable Finish Reviewer"
 Cohesion: 0.29
 Nodes (6): Checks, in order, Disposition, Impeccable Finish Reviewer, Input Contract, Output Contract, Verdict Pass
 
 ### Community 381 - ".agents/skills/impeccable/SKILL.md"
-Cohesion: 0.08
-Nodes (22): Craft floor, Refuse, Verify, $impeccable foundations, What "done" means, With an id: fix that one item, Without an argument: the roadmap, Color (+14 more)
+Cohesion: 0.09
+Nodes (18): Before you finish, Scope is sovereign, The amplification, The skeleton test, Why it reads flat, Craft floor, Refuse, Verify (+10 more)
 
 ### Community 384 - "Working With Sonner"
 Cohesion: 0.08
 Nodes (23): Functions, Sonner API Reference, `toast()` options, `<Toaster />`, Initial Response, Picking the right call, Recipes, Setup (+15 more)
 
-### Community 395 - ".claude/skills/impeccable/reference/audit.native.md"
-Cohesion: 0.12
-Nodes (15): 1. Accessibility (VoiceOver / TalkBack), 2. Performance, 3. Appearance & Theming, 4. Platform Conformance (CRITICAL), 5. Adaptivity, Audit Health Score, Detailed Findings by Severity, Diagnostic Scan (+7 more)
+### Community 395 - "Generate Report"
+Cohesion: 0.29
+Nodes (7): Audit Health Score, Detailed Findings by Severity, Executive Summary, Generate Report, Patterns & Systemic Issues, Platform Conformance Verdict, Positive Findings
 
 ### Community 405 - "Worst-Case Catalog"
 Cohesion: 0.06
@@ -1331,22 +1372,22 @@ Cohesion: 0.50
 Nodes (4): Debugging Animations, Frame-by-frame inspection, Slow motion testing, Test on real devices
 
 ## Knowledge Gaps
-- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **31 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `TopBar.tsx` to `Extract Flow`, `ProjectBoard.tsx`, `NbcActivity`, `PhoneUpdate.tsx`, `nbc-export.spec.ts`, `react`, `index.ts`, `initializeData`, `install.ts`, `phoneHeader.ts`, `stage.ts`, `mat/store.ts`, `normalize.ts`, `react`, `versionGate.ts`, `RichEditor.tsx`, `syncWorkspace`, `RichEditor.tsx`, `syncWorkspace`, `NbcProject.tsx`, `contrast.test.ts`, `switchAccount`, `persistence.ts`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+- **Why does `Layout()` connect `RichEditor.tsx` to `NBC BP03 weekly progress UX`, `.claude/skills/impeccable/reference/document.md`, `captureElementToBlob`, `Scan mode (approach C: auto-extract, then confirm descriptive language)`?**
+  _High betweenness centrality (0.086) - this node is a cross-community bridge._
 - **Should `sync.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.09666666666666666 - nodes in this community are weakly interconnected._
-- **Why does `Write` connect `$impeccable hooks` to `sync.ts`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+  _Cohesion score 0.0608250526949714 - nodes in this community are weakly interconnected._
+- **Why does `vitest` connect `vitest` to `Extract Flow`, `sync.ts`, `SidebarContent.tsx`, `ProjectBoard.tsx`, `NbcActivity`, `index.ts`, `AccountSettings.tsx`, `install.ts`, `stage.ts`, `mat/store.ts`, `normalize.ts`, `react`, `main.tsx`, `RichEditor.tsx`, `reportPatch.test.ts`, `NbcActivity`, `ExportWorkbook.tsx`, `contrast.test.ts`, `NbcProject.tsx`?**
+  _High betweenness centrality (0.058) - this node is a cross-community bridge._
 - **Should `extract` be split into smaller, more focused modules?**
   _Cohesion score 0.1225296442687747 - nodes in this community are weakly interconnected._
+- **Why does `Write` connect `$impeccable hooks` to `sync.ts`?**
+  _High betweenness centrality (0.048) - this node is a cross-community bridge._
 - **Should `nbc-confirm-conflict.test.ts` be split into smaller, more focused modules?**
-  _Cohesion score 0.04878048780487805 - nodes in this community are weakly interconnected._
-- **Should `AppShell.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.07662337662337662 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.04664224664224664 - nodes in this community are weakly interconnected._
 - **Should `ProjectBoard.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.08325624421831637 - nodes in this community are weakly interconnected._

@@ -582,3 +582,15 @@ Not changed:
    - Undo shows on the hovered or focused activity entry only, and is always visible on touch screens.
    - In the panel, the status pills align with the title, the owner sits on its own line, "Shipped" lines up with the date fields, and the photo strip runs to the panel's edges.
    - The stage and activity popovers are wider, so their options wrap less.
+
+## D-72 A code chunk that will not load heals itself instead of leaving a blank page - November 26, 2026
+
+On 26 November 2026, Firefox showed a blank page on `/admin`. The console said the module `assets/hooks-CikKq20Y.js` "was blocked because of a disallowed MIME type (text/html)". At some point the browser had requested that hashed file before the deployment holding it was live. The SPA rewrite (`/((?!api/).*)` → `/index.html`) answered with the HTML page, status 200, under the `/assets/(.*)` header `public, max-age=31536000, immutable`. Firefox kept that HTML as the chunk for a year, so even a hard reload failed. Clearing Firefox's cached files fixed that browser.
+
+1. **Missing assets are a real 404.** The rewrite now excludes `assets/` (`/((?!api/|assets/).*)`), so a missing chunk is never answered with index.html.
+2. **Client self-heal** (`src/lib/chunkRecovery.ts`, wired in `src/main.tsx` for production builds). On `vite:preloadError`, or an unhandled rejection that reads like a failed dynamic import in any browser, it does three things in order:
+   - refetches the named chunk with `fetch(url, { cache: 'reload' })`, which goes to the network and replaces the bad cache entry;
+   - clears service-worker caches;
+   - reloads once.
+
+   A second failure within 30 seconds does not loop. It shows **Could not load this page** with a Reload button instead of a blank page. A Playwright run against a production build in Firefox confirmed that a chunk served as HTML once recovers and the app loads.
