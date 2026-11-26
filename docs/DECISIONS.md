@@ -420,3 +420,13 @@ Built from `docs/prototypes/material-tracker-redesign.html`. `/admin` now opens 
 4. **Client state.** `MatState` carries `log`, `people` and `remarkBy`. IndexedDB `kw-mat` moves to `DB_VERSION = 5`, so cached packages reload with them.
 5. **Dry run.** Before commit, the migration and a smoke test (one fields save, one remark, one delta load as an allowed account) ran against production inside one transaction that ended by raising an exception: both log kinds were written, the load returned the editor ids, log rows and names, and a follow-up query confirmed nothing persisted (no table, no test edits). The first dry run caught `by` as a reserved column name; it is `actor`.
 6. **Logo.** The sidebar logo and name are one link to `/admin`. People not on the material list's access list get the ordinary Not found page there, as before.
+
+## D-59 App-shell CSS back under its 15 KiB budget - November 26, 2026
+
+`scripts/check-budgets.mjs` failed CI on `main` since D-56: the CSS loaded with the app shell was 15.5 KiB gzip against a 15 KiB limit. Two changes bring it to 14.3 KiB:
+
+1. **Dead rules removed from `workspace.css`.** Ten class families had no user anywhere in `src`, `e2e` or `index.html`: `home-page`, `recent-card`, `scratchpad`, `block-content`, `block-controls`, `slash-option`, `metrics-grid`, `page-tree-*`, `progress-ring` and `property-list` (left from the old home page, block editor and page tree). 60 selector groups went; shared rules only lost the dead selector (for example `.recent-card` inside the press-feedback `:is(...)` lists). 15.5 to 14.8 KiB.
+2. **Project board styles load with the board.** The 21 rules whose every class is `.board` or `.board-*` moved to `src/components/project-board.css`, imported by `ProjectBoard.tsx`, which only the lazy Projects route uses. No other stylesheet targets those classes, and the board rules that stay in `workspace.css` combine a board class with a shared one and target other elements, so the later load order changes nothing. 14.8 to 14.3 KiB.
+
+The material list's own styles (`mat.css`, `mat-items.css`) already load only with `/admin`. The board and layout browser tests (`workspace`, `project-layout`, `a11y`, `ui-polish`, `stitch-design`, `navigation`) pass.
+

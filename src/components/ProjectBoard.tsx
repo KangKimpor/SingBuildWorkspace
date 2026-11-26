@@ -1,3 +1,4 @@
+import './project-board.css'
 import { completeTask } from './TaskRow'
 import { TaskFields, TaskPrioritySelect, TaskStatusSelect } from './TaskFields'
 import {
