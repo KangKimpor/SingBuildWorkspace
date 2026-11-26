@@ -121,21 +121,41 @@ test('Delivering marks the quantity as on the way', async () => {
   expect(within(x1).getByRole('button', { name: /^Procurement: Delivering/ })).toBeInTheDocument()
 })
 
-test('the row shows a timeline and all four quantities', async () => {
+test('the row shows the timeline points and all four quantities', async () => {
   open()
   const x1 = await row('XX-01')
-  expect(within(x1).getByRole('button', { name: /^Timeline: Submitted, Approved, Ordered\. Next: First delivery/ })).toBeInTheDocument()
-  const qty = within(x1).getByRole('button', { name: /^Total 10, ordered 4, approved SHD 0, on site 0/ })
-  for (const label of ['Total', 'Ordered', 'SHD', 'On site']) expect(within(qty).getByText(label)).toBeInTheDocument()
+  // Approved by status (no dates), so submitted and approved; ordered; the sample, delivery and arrival are not reached.
+  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: First delivery/ })).toBeInTheDocument()
+  expect(x1.querySelectorAll('.mi-track i')).toHaveLength(6)
+  for (const name of ['Total by QS: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
+})
+
+test('each quantity box edits its own value', async () => {
+  open()
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: 'Ordered: 4. Change' }))
+  const pop = await screen.findByRole('dialog', { name: 'Change quantity' })
+  fireEvent.change(within(pop).getByLabelText('Ordered'), { target: { value: '7' } })
+  fireEvent.click(within(pop).getByRole('button', { name: 'Set' }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { po: 7 }))
+})
+
+test('the notes cell shows Purchase and PM notes for this week, last week and the week before', async () => {
+  open()
+  const x1 = await row('XX-01')
+  for (const body of ['Quote received', 'Waiting for supplier quote', 'Lead time 3 weeks', 'Budget checked']) expect(within(x1).getByText(body)).toBeInTheDocument()
+  expect(within(x1).getAllByText('PM')).toHaveLength(1)
+  expect(within(x1).getAllByText('Purchase')).toHaveLength(1)
+  expect(within(x1).getByText('2 wks ago')).toBeInTheDocument()
 })
 
 test('the on-site popover sets the total on site', async () => {
   open()
   const x2 = await row('XX-02')
-  fireEvent.click(within(x2).getByRole('button', { name: /^Total 10, ordered 8, approved SHD 0, on site 0/ }))
-  const pop = await screen.findByRole('dialog', { name: 'Quantity on site' })
+  fireEvent.click(within(x2).getByRole('button', { name: 'On site: 0. Change' }))
+  const pop = await screen.findByRole('dialog', { name: 'Change quantity' })
   expect(within(pop).queryByText(/Received/)).toBeNull()
-  fireEvent.change(within(pop).getByLabelText('Total on site'), { target: { value: '4' } })
+  fireEvent.change(within(pop).getByLabelText('On site'), { target: { value: '4' } })
   fireEvent.click(within(pop).getByRole('button', { name: 'Set' }))
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x2', expect.objectContaining({ onsite: 4 })))
   expect(screen.getByText('On site updated')).toBeInTheDocument()

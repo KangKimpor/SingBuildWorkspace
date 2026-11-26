@@ -139,3 +139,6 @@ html[data-nbc] .canvas { padding-top: 0; }
 .nbc-seg button { border: 1px solid transparent; color: var(--pp-ink-2); }
 .nbc-seg button:hover:not(:disabled) { color: var(--pp-ink); background: var(--pp-wash); }
 .nbc-seg button[aria-pressed=true] { background: var(--pp-l3); color: var(--pp-ink); border-color: var(--pp-line-strong); box-shadow: 0 1px 2px rgb(0 0 0 / .14); }
+/* "Changed this week" on: floors holding a changed cell carry the accent dot, top right, like a changed cell. */
+.nbc-floor-row .nbc-seg button { position: relative; }
+.nbc-seg-chg { position: absolute; top: 3px; right: 3px; width: 6px; height: 6px; border-radius: 50%; background: var(--pp-accent); box-shadow: 0 0 0 1.5px var(--pp-l3); pointer-events: none; }

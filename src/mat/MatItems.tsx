@@ -22,8 +22,9 @@ import type { CellKey, EditableColKey, FieldKey, FieldValue, MatItem, MatLog, Sh
 type Patch = Partial<Record<FieldKey, FieldValue>>
 type Group = 'section' | 'stage' | 'owner' | 'none'
 type Sort = 'pos' | 'urgency' | 'recent'
-type PopType = 'sub' | 'proc' | 'next' | 'deliver' | 'owner' | 'note' | 'filter-owner' | 'group' | 'sort' | 'bulk-stage' | 'bulk-owner' | 'activity'
-interface Pop { type: PopType; id: string | null; anchor: HTMLElement }
+type PopType = 'sub' | 'proc' | 'next' | 'qty' | 'owner' | 'note' | 'filter-owner' | 'group' | 'sort' | 'bulk-stage' | 'bulk-owner' | 'activity'
+/** `field`: which quantity a `qty` popover edits. */
+interface Pop { type: PopType; id: string | null; anchor: HTMLElement; field?: QtyField }
 interface Toast { message: string; undo?: { id: string; patch: Patch }[]; key: number }
 interface Note { team: Team; week: string; body: string; by?: string }
 
@@ -125,22 +126,39 @@ function StagePill({ stage, caret }: { stage: ChipStage; caret?: boolean }) {
   return <span className="mi-stage" data-stage={stage}><StageIcon stage={stage} size={19}/><span>{stageLabel(stage)}</span>{caret && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span>
 }
 
-/** The five points a material passes, for the List's timeline column. */
-interface Milestone { label: string; done: boolean; date: string | null }
-function milestones(item: MatItem, sub: SubStage, proc: ProcStage): Milestone[] {
-  const d = (key: EditableColKey) => { const v = effectiveCol(item, key); return isIsoDate(v) ? v : null }
-  return [
-    { label: 'Submitted', done: sub !== 'notsub', date: d('msActual') },
-    { label: 'Approved', done: sub === 'approved', date: d('msApproved') },
-    { label: 'Ordered', done: proc !== 'none', date: d('poActual') },
-    { label: 'Shipped', done: proc === 'delivering' || proc === 'partial' || proc === 'onsite', date: null },
-    { label: 'On site', done: proc === 'onsite', date: d('arrActual') },
-  ]
+/**
+ * The six points a material passes (D-66), the same in the List's Timeline column and the panel's Timeline: submitted,
+ * approved, sample approved, ordered, delivering and fully on site. A point is reached by its date, or by the stage the
+ * material is in (an approved status with no approval date is still approved); Delivering has no date column and follows the
+ * procurement stage. An unreached point whose plan date has passed is overdue.
+ */
+interface Stone {
+  key: string; title: string; plan: string; planKey: EditableColKey | null; actual: EditableColKey | null
+  /** The real date it was reached, when there is one; `note` holds workbook text such as "TBC" in that column. */
+  date: string; note: string; done: boolean; late: boolean; sub?: string
 }
-function Track({ steps }: { steps: Milestone[] }) {
-  const current = steps.findIndex((m) => !m.done)
+function stonesOf(item: MatItem, today: string): Stone[] {
+  const iso = (key: EditableColKey) => { const v = effectiveCol(item, key); return isIsoDate(v) ? v : '' }
+  const raw = (key: EditableColKey) => { const v = text(item, key); return v && !isIsoDate(effectiveCol(item, key)) ? v : '' }
+  const sub = submissionOf(item), proc = procurementOf(item), submitted = iso('msActual')
+  const defs: (Omit<Stone, 'date' | 'note' | 'done' | 'late'> & { reached: boolean })[] = [
+    { key: 'submitted', title: 'Material submitted', plan: iso('msPlan'), planKey: 'msPlan', actual: 'msActual', reached: sub !== 'notsub' },
+    { key: 'approved', title: 'Material approved', plan: submitted ? addDaysIso(submitted, 14) : '', planKey: null, actual: 'msApproved', reached: sub === 'approved', sub: text(item, 'msStatus') },
+    { key: 'sample', title: 'Sample approved', plan: iso('ssPlan'), planKey: 'ssPlan', actual: 'ssApproved', reached: false },
+    { key: 'ordered', title: 'Order placed', plan: iso('poPlan'), planKey: 'poPlan', actual: 'poActual', reached: proc !== 'none' },
+    { key: 'delivering', title: 'Delivering', plan: '', planKey: null, actual: null, reached: proc === 'delivering' || proc === 'partial' || proc === 'onsite' },
+    { key: 'onsite', title: 'Fully on site', plan: iso('arrPlan'), planKey: 'arrPlan', actual: 'arrActual', reached: proc === 'onsite' },
+  ]
+  return defs.map(({ reached, ...d }) => {
+    const date = d.actual ? iso(d.actual) : '', done = !!date || reached
+    return { ...d, date, note: d.actual ? raw(d.actual) : '', done, late: !done && !!d.plan && days(d.plan, today) < 0 }
+  })
+}
+const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
+/** The panel's timeline in one line of points: green with a check when reached, a red ring when overdue, grey when pending. */
+function Track({ stones }: { stones: Stone[] }) {
   return <span className="mi-track" aria-hidden="true">
-    {steps.map((m, i) => <i key={m.label} data-done={m.done || undefined} data-current={i === current || undefined}/>)}
+    {stones.map((m) => <i key={m.key} data-state={m.done ? 'done' : m.late ? 'late' : undefined}>{m.done && <Check size={8} strokeWidth={3.6}/>}</i>)}
   </span>
 }
 /** When the next step is due: "139d late · due 10 Jul", "In 5d · due 1 Dec", "Expected 10 Dec" for an approval. */
@@ -208,7 +226,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     for (const i of items) {
       const next = nextOf(i, today), name = text(i, 'description') || codeOf(i), sub = submissionOf(i), proc = procurementOf(i)
       out.set(i.id, {
-        stage: stageOf(i), subStage: sub, proc, steps: milestones(i, sub, proc), next, qty: qtyOf(i), name, owner: text(i, 'pic'),
+        stage: stageOf(i), subStage: sub, proc, stones: stonesOf(i, today), next, qty: qtyOf(i), name, owner: text(i, 'pic'),
         sub: [codeOf(i), text(i, 'brand'), text(i, 'location')].filter(Boolean).join(' · '),
         search: `${codeOf(i)} ${name} ${text(i, 'brand')} ${text(i, 'location')} ${text(i, 'spec')}`.toLowerCase(),
         photos: effectiveImages(i, 'image').length + effectiveImages(i, 'sample').length,
@@ -320,8 +338,8 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     if (b.team) await saveNote(item.id, b.team, b.body ?? '')
   }, [apply, byId, saveNote])
   // ---- popovers ----
-  const openPop = useCallback((type: PopType, id: string | null, anchor: HTMLElement) =>
-    setPop((cur) => cur && cur.anchor === anchor && cur.type === type ? null : { type, id, anchor }), [])
+  const openPop = useCallback((type: PopType, id: string | null, anchor: HTMLElement, field?: QtyField) =>
+    setPop((cur) => cur && cur.anchor === anchor && cur.type === type ? null : { type, id, anchor, field }), [])
   const closePop = useCallback(() => setPop(null), [])
 
   // ---- selection, panel navigation, keys ----
@@ -408,12 +426,12 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
       ? <ListView list={list} group={group} tree={tree} collapsed={collapsed} ctx={ctx}
           onToggleGroup={(k) => setCollapsed((old) => { const n = new Set(old); if (!n.delete(k)) n.add(k); return n })}/>
       : <BoardView list={list} ctx={ctx} onDrop={(id, to, card) => {
-          if (to === 'partial') { const el = document.querySelector<HTMLElement>(`[data-mi-card="${CSS.escape(id)}"]`) ?? card; openPop('deliver', id, el); return }
+          if (to === 'partial') { const el = document.querySelector<HTMLElement>(`[data-mi-card="${CSS.escape(id)}"]`) ?? card; openPop('qty', id, el, 'onsite'); return }
           moveTo([id], to as MoveStage)
         }}/>}
 
     <Panel item={openItem} ctx={ctx} section={openItem ? tree.pathOf.get(openItem.id) ?? [] : []} week={state.week} remarks={state.remarks}
-      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty}
+      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty} onShip={(it) => moveProc(it, 'delivering')}
       onNote={saveNote} onOpenSource={onOpenSource}/>
 
     <RevertDialog entry={reverting} item={reverting ? byId.get(reverting.itemId) ?? null : null} people={people} activity={activity}
@@ -424,14 +442,14 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
         week={state.week} remarks={state.remarks}
         onSub={(to) => { closePop(); if (popItem) moveSub(popItem, to) }}
         onProc={(to) => {
-          if (to === 'partial') { setPop({ type: 'deliver', id: pop.id!, anchor: pop.anchor }); return }
+          if (to === 'partial') { setPop({ type: 'qty', id: pop.id!, anchor: pop.anchor, field: 'onsite' }); return }
           closePop(); if (popItem) moveProc(popItem, to)
         }}
         onNextAction={(to, on) => { closePop(); moveTo([pop.id!], to, on) }}
         onPlan={(key, value) => { closePop(); if (popItem) setDate(popItem, key, value) }}
-        onDeliver={() => setPop({ type: 'deliver', id: pop.id!, anchor: pop.anchor })}
+        onDeliver={() => setPop({ type: 'qty', id: pop.id!, anchor: pop.anchor, field: 'onsite' })}
         onEditDates={() => { const id = pop.id!; closePop(); setOpen(id) }}
-        onSetOnsite={(v) => { closePop(); if (popItem) setOnsite(popItem, v, 'On site updated') }}
+        onSetQty={(field, v) => { closePop(); if (popItem) { if (field === 'onsite') setOnsite(popItem, v, 'On site updated'); else setQty(popItem, field, v) } }}
         onOwner={(name) => { closePop(); assign([pop.id!], name) }}
         onNote={(team, body) => { closePop(); void saveNote(pop.id!, team, body) }}
         onFilterOwner={(name) => { closePop(); setOwner(name) }}
@@ -490,9 +508,9 @@ function Overview({ scope, derived, today, attn, stage, onAttn, onStage }: { sco
   </section>
 }
 
-interface Derived { stage: StageId; subStage: SubStage; proc: ProcStage; steps: Milestone[]; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; photo: string | null; late: boolean }
+interface Derived { stage: StageId; subStage: SubStage; proc: ProcStage; stones: Stone[]; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; photo: string | null; late: boolean }
 interface RowActions {
-  openPop: (type: PopType, id: string | null, anchor: HTMLElement) => void
+  openPop: (type: PopType, id: string | null, anchor: HTMLElement, field?: QtyField) => void
   toggleCheck: (id: string, range: boolean) => void
   openPanel: (id: string) => void
   openPicture: (picture: MatPicture) => void
@@ -586,7 +604,7 @@ function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
       <span role="columnheader"><span className="sr-only">Photo and select</span></span><span role="columnheader">Material</span>
       <span role="columnheader">Submission</span><span role="columnheader" className="mi-c-proc">Procurement</span>
       <span role="columnheader" className="mi-c-time">Timeline</span><span role="columnheader" className="mi-c-qty">Quantity</span>
-      {ctx.hasOwner && <span role="columnheader" className="mi-c-who">Owner</span>}<span role="columnheader" className="mi-c-note">Latest note</span>
+      {ctx.hasOwner && <span role="columnheader" className="mi-c-who">Owner</span>}<span role="columnheader" className="mi-c-note">Notes</span>
     </div>
     {entries.map((e) => e.kind === 'head'
       ? <div key={e.key} role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns}>
@@ -596,9 +614,9 @@ function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
             <span className="mi-grp-meta"><span className="mi-grp-n" aria-label={`${e.count} materials`}>{e.count}</span></span>
           </button>
         </div></div>
-      : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} note={ctx.notes.get(e.item.id)?.[0]} week={ctx.week}
+      : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} notes={ctx.notes.get(e.item.id)} week={ctx.week} today={ctx.today}
           changed={ctx.changed.has(e.item.id)} picked={ctx.checked.has(e.item.id)} sel={ctx.open === e.item.id} flash={ctx.flash.has(e.item.id)}
-          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}/>)}
+          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} popField={ctx.pop?.id === e.item.id ? ctx.pop.field : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}/>)}
   </div>
 }
 
@@ -611,12 +629,12 @@ function Photo({ src: ref }: { src: string }) {
 }
 
 interface RowProps {
-  item: MatItem; d: Derived; note: Note | undefined; week: string; changed: boolean; picked: boolean; sel: boolean; flash: boolean
-  popType: PopType | undefined; hasOwner: boolean; actions: RowActions
+  item: MatItem; d: Derived; notes: Note[] | undefined; week: string; today: string; changed: boolean; picked: boolean; sel: boolean; flash: boolean
+  popType: PopType | undefined; popField: QtyField | undefined; hasOwner: boolean; actions: RowActions
 }
 /** Memoized on plain props: opening a popover or ticking one row re-renders that row, not all of them. */
-const Row = memo(function Row({ item, d, note, week, changed, picked, sel, flash, popType, hasOwner, actions }: RowProps) {
-  const { subStage: sub, proc, steps, next, qty: q, name, owner } = d
+const Row = memo(function Row({ item, d, notes, week, today, changed, picked, sel, flash, popType, popField, hasOwner, actions }: RowProps) {
+  const { subStage: sub, proc, stones, next, qty: q, name, owner } = d
   const cell = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => { e.stopPropagation(); actions.openPop(type, item.id, e.currentTarget) }
   // oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- A click anywhere on the row is a pointer shortcut; the name button is the keyboard path to the same panel.
   return <div className="mi-grid mi-row" role="row" data-mi-row={item.id} data-owner={hasOwner || undefined} data-sel={sel || undefined}
@@ -639,26 +657,29 @@ const Row = memo(function Row({ item, d, note, week, changed, picked, sel, flash
     <span role="cell"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
     <span role="cell" className="mi-c-proc"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'proc'} aria-label={`Procurement: ${stageLabel(proc)}. Change`} onClick={cell('proc')}><StagePill stage={proc}/></button></span>
     <span role="cell" className="mi-c-time"><button type="button" className="mi-cell mi-time" aria-haspopup="dialog" aria-expanded={popType === 'next'}
-      aria-label={`Timeline: ${steps.filter((m) => m.done).map((m) => m.label).join(', ') || 'nothing done yet'}. ${next.done ? 'Complete' : `Next: ${next.label}`}. Update`}
-      title={steps.map((m) => `${m.label}: ${m.done ? m.date ? shortDate(m.date) : 'done' : 'not yet'}`).join('\n')} onClick={cell('next')}>
-      <Track steps={steps}/>
+      aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${next.done ? 'Complete' : `Next: ${next.label}`}. Update`}
+      title={stones.map((m) => stoneLine(m, today)).join('\n')} onClick={cell('next')}>
+      <Track stones={stones}/>
       {next.done ? <span className="mi-s"><span className="mi-due" data-tone="done">All on site</span></span>
         : <><span className="mi-time-l" title={next.label}>{next.label}</span><span className="mi-s"><Due next={next}/></span></>}
     </button></span>
-    <span role="cell" className="mi-c-qty"><button type="button" className="mi-cell mi-qstats" aria-haspopup="dialog" aria-expanded={popType === 'deliver'}
-      aria-label={`Total ${q.totalText ?? NUM.format(q.total)}, ordered ${NUM.format(q.po)}, approved SHD ${NUM.format(q.shd)}, on site ${NUM.format(q.onsite)} ${q.unit}. Set the quantity on site`} onClick={cell('deliver')}>
-      <span><small>Total</small><b title={`${q.totalText ?? NUM.format(q.total)} ${q.unit}`.trim()}>{q.totalText ?? NUM.format(q.total)}{q.unit && <i className="mi-qunit">{q.unit}</i>}</b></span>
-      <span><small>Ordered</small><b>{NUM.format(q.po)}</b></span>
-      <span><small>SHD</small><b>{NUM.format(q.shd)}</b></span>
-      <span data-k="onsite" data-some={q.onsite > 0 || undefined}><small>On site</small><b>{NUM.format(q.onsite)}</b></span>
-    </button></span>
+    <span role="cell" className="mi-c-qty"><span className="mi-qstats">
+      {QTY_FIELDS.map(([k, short]) => {
+        const exact = k === 'total' ? q.totalText ?? NUM.format(q.total) : NUM.format(q[k])
+        const shown = k === 'total' && q.totalText ? q.totalText : boxNumber(q[k])
+        return <button key={k} type="button" className="mi-qbox" data-k={k} data-some={(k === 'onsite' && q.onsite > 0) || undefined}
+          data-text={(k === 'total' && !!q.totalText) || undefined}
+          aria-haspopup="dialog" aria-expanded={popType === 'qty' && popField === k} aria-label={`${QTY_LABEL[k]}: ${exact} ${q.unit}. Change`.replace(/ +\./, '.')}
+          title={`${QTY_LABEL[k]}: ${exact} ${q.unit}`.trim()} onClick={(e) => { e.stopPropagation(); actions.openPop('qty', item.id, e.currentTarget, k) }}>
+          <small>{short}{k === 'total' && q.unit && <i className="mi-qunit">{q.unit}</i>}</small><b>{shown}</b>
+        </button>
+      })}
+    </span></span>
     {hasOwner && <span role="cell" className="mi-c-who"><button type="button" className="mi-cell mi-who" aria-haspopup="dialog" aria-expanded={popType === 'owner'} aria-label={`Owner: ${owner || 'none'}. Change`} onClick={cell('owner')}>
       {owner ? <><Avatar name={owner}/><span title={owner}>{owner}</span></> : <span className="mi-faint">Assign</span>}
     </button></span>}
     <span role="cell" className="mi-c-note"><button type="button" className="mi-cell mi-note" aria-haspopup="dialog" aria-expanded={popType === 'note'} onClick={cell('note')}>
-      {note ? <><span className="mi-tx"><span className="mi-team" data-team={note.team}>{TEAM_LABEL[note.team]}</span>{note.body}</span>
-        <span className="mi-by">{note.by ? `${note.by} · ` : ''}{weekName(note.week, week)}</span></>
-        : <span className="mi-add">+ Add note</span>}
+      {notes?.length ? <NoteStack notes={notes} week={week}/> : <span className="mi-add">+ Add note</span>}
     </button></span>
   </div>
 })
@@ -748,9 +769,9 @@ const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem;
 })
 
 /* ---------------- popover: anchored to its trigger, grows from it ---------------- */
-const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, deliver: 260, sub: 280, proc: 280, activity: 380, next: 352 }
+const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 280, proc: 280, activity: 380, next: 352 }
 const POP_LABEL: Record<PopType, string> = {
-  sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Next step', deliver: 'Quantity on site', owner: 'Change owner', note: 'This week\'s note',
+  sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Next step', qty: 'Change quantity', owner: 'Change owner', note: 'This week\'s note',
   'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', 'bulk-stage': 'Move selected to stage', 'bulk-owner': 'Assign selected to', activity: 'Recent activity',
 }
 function Popover({ pop, onClose, children }: { pop: Pop; onClose: () => void; children: ReactNode }) {
@@ -800,7 +821,7 @@ function Opt({ on, onClick, children, autoFocus }: { on?: boolean; onClick: () =
 interface PopBodyProps {
   pop: Pop; item: MatItem | null; today: string; owners: string[]; owner: string; group: Group; sort: Sort; count: number; week: string; remarks: Record<string, string>; hasOwner: boolean
   onSub: (to: SubStage) => void; onProc: (to: ProcStage) => void; onNextAction: (to: MoveStage, on: string) => void; onEditDates: () => void
-  onPlan: (key: EditableColKey, value: string) => void; onDeliver: () => void; onSetOnsite: (v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
+  onPlan: (key: EditableColKey, value: string) => void; onDeliver: () => void; onSetQty: (field: QtyField, v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
   onFilterOwner: (name: string) => void; onGroup: (g: Group) => void; onSort: (s: Sort) => void
   onBulkStage: (to: MoveStage) => void; onBulkOwner: (name: string) => void
   activity: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; onOpenItem: (id: string) => void
@@ -845,12 +866,12 @@ function PopBody(p: PopBodyProps) {
       </div>
     </>
   }
-  if (pop.type === 'deliver' && item) {
-    const q = qtyOf(item), rem = Math.max(0, q.total - q.onsite)
+  if (pop.type === 'qty' && item) {
+    const q = qtyOf(item), field = pop.field ?? 'onsite', rem = Math.max(0, q.total - q.onsite)
     return <div className="mi-pad">
-      <SetOnsite key={item.id} value={q.onsite} unit={q.unit} onSet={p.onSetOnsite}/>
-      <p className="mi-faint mi-small">{q.totalText
-        ? `${NUM.format(q.onsite)} on site · total in the workbook: ${q.totalText}`
+      <SetOnsite key={`${item.id}:${field}`} label={QTY_LABEL[field]} value={q[field]} unit={q.unit} onSet={(v) => p.onSetQty(field, v)}/>
+      <p className="mi-faint mi-small">{field !== 'onsite' ? `On site ${NUM.format(q.onsite)} · total ${q.totalText ?? NUM.format(q.total)}`
+        : q.totalText ? `${NUM.format(q.onsite)} on site · total in the workbook: ${q.totalText}`
         : `${NUM.format(q.onsite)} of ${NUM.format(q.total)} on site · ${NUM.format(rem)} to go`}</p>
     </div>
   }
@@ -903,16 +924,41 @@ function PopBody(p: PopBodyProps) {
   </>
   return null
 }
-function SetOnsite({ value, unit, onSet }: { value: number; unit: string; onSet: (v: number) => void }) {
+function SetOnsite({ label = 'Total on site', value, unit, onSet }: { label?: string; value: number; unit: string; onSet: (v: number) => void }) {
   const [v, setV] = useState(String(value))
   const x = Number(v.replace(/,/g, ''))
   const ok = v.trim() !== '' && Number.isFinite(x) && x >= 0
   const set = () => { if (ok && x !== value) onSet(x) }
   return <form onSubmit={(e) => { e.preventDefault(); set() }}>
-    <label className="mi-l" htmlFor="mi-set">Total on site{unit ? ` (${unit})` : ''}</label>
+    <label className="mi-l" htmlFor="mi-set">{label}{unit ? ` (${unit})` : ''}</label>
     <div className="mi-row2"><input id="mi-set" className="mi-field" inputMode="decimal" value={v} data-autofocus onFocus={(e) => e.currentTarget.select()} onChange={(e) => setV(e.target.value)}/>
       <button type="submit" className="mi-btn" data-primary disabled={!ok || x === value}>Set</button></div>
   </form>
+}
+/** The four quantities, as the List shows them and as their popover names them. */
+type QtyField = 'total' | 'po' | 'shd' | 'onsite'
+const QTY_FIELDS: [QtyField, string][] = [['total', 'Total'], ['po', 'Ordered'], ['shd', 'SHD'], ['onsite', 'On site']]
+/** A box is about 50 px wide: from 100,000 up a value is written compactly (642K, 1.28M); the tooltip and the popover keep it exact. */
+const COMPACT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 })
+const boxNumber = (v: number) => Math.abs(v) >= 1e5 ? COMPACT.format(v) : NUM.format(v)
+const QTY_LABEL: Record<QtyField, string> = { total: 'Total by QS', po: 'Ordered', shd: 'Approved SHD', onsite: 'On site' }
+const WEEK_SHORT = (week: string, current: string) => week === current ? 'This wk' : week === addDaysIso(current, -7) ? 'Last wk' : '2 wks ago'
+/**
+ * The notes cell (D-66): Purchase and PM each get their own block, newest week first, with this week, last week and the week
+ * before when they were written. Each note is one line; the whole note and its author are in the tooltip and the panel.
+ */
+function NoteStack({ notes, week }: { notes: Note[]; week: string }) {
+  return <span className="mi-notes">
+    {(['purchase', 'pm'] as Team[]).map((team) => {
+      const own = notes.filter((n) => n.team === team)
+      if (!own.length) return null
+      return <span key={team} className="mi-nt">
+        <span className="mi-team" data-team={team}>{TEAM_LABEL[team]}</span>
+        <span className="mi-nl-list">{own.map((n) => <span key={n.week} className="mi-nl" data-week={n.week === week ? 'now' : undefined}
+          title={`${weekName(n.week, week)}${n.by ? ` · ${n.by}` : ''}\n${n.body}`}><span className="mi-nw">{WEEK_SHORT(n.week, week)}</span>{n.body}</span>)}</span>
+      </span>
+    })}
+  </span>
 }
 /** One-tap dates for "when did this happen": today (the default), yesterday, or any other day from the calendar. */
 function DateChips({ today, primary, onPick }: { today: string; primary: boolean; onPick: (day: string) => void }) {
@@ -942,6 +988,7 @@ interface PanelProps {
   onClose: () => void; onNav: (dir: number) => void
   onDate: (item: MatItem, key: EditableColKey, value: string) => void
   onQty: (item: MatItem, key: CellKey, value: number) => void
+  onShip: (item: MatItem) => void
   onNote: (id: string, team: Team, body: string) => Promise<void>
   onOpenSource: (id: string) => void
 }
@@ -1020,7 +1067,7 @@ function Panel(props: PanelProps) {
   </motion.aside>
 }
 
-function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
+function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onShip, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
   const sub = submissionOf(item), proc = procurementOf(item), next = nextOf(item, ctx.today), q = qtyOf(item), owner = text(item, 'pic')
   const [team, setTeam] = useState<Team>('purchase')
   const [draft, setDraft] = useState('')
@@ -1032,16 +1079,8 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
   const thread = (ctx.notes.get(item.id) ?? []).filter((n) => n.team === team && n.week !== week)
   const thisWeekBy = (ctx.notes.get(item.id) ?? []).find((n) => n.team === team && n.week === week)?.by
   const history = ctx.activity.filter((l) => l.itemId === item.id).slice(0, 8)
-  const iso = (key: EditableColKey) => { const v = effectiveCol(item, key); return isIsoDate(v) ? v : '' }
   const raw = (key: EditableColKey) => { const v = text(item, key); return v && !isIsoDate(effectiveCol(item, key)) ? v : '' }
-  const submitted = iso('msActual')
-  const stones: { title: string; plan: string; planKey: EditableColKey | null; actual: EditableColKey; sub?: string }[] = [
-    { title: 'Material submitted', plan: iso('msPlan'), planKey: 'msPlan', actual: 'msActual' },
-    { title: 'Material approved', plan: submitted ? addDaysIso(submitted, 14) : '', planKey: null, actual: 'msApproved', sub: text(item, 'msStatus') },
-    { title: 'Sample approved', plan: iso('ssPlan'), planKey: 'ssPlan', actual: 'ssApproved' },
-    { title: 'Order placed', plan: iso('poPlan'), planKey: 'poPlan', actual: 'poActual' },
-    { title: 'Fully on site', plan: iso('arrPlan'), planKey: 'arrPlan', actual: 'arrActual' },
-  ]
+  const stones = stonesOf(item, ctx.today)
   const pct = (v: number) => q.total > 0 ? Math.round(Math.min(1, v / q.total) * 100) : 0
   // The submitted image and the approved sample are different things: one is what was proposed, the other what the
   // consultant signed off. They are shown as two labelled groups, never mixed in one strip.
@@ -1094,16 +1133,17 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <h4>Timeline<span className="mi-spacer"/><span className="mi-faint">Plan · Actual · Variance</span></h4>
         <ol className="mi-tl">
           {stones.map((s) => {
-            // Only a real date completes a step; workbook text such as "TBC" stays pending and is shown beside the field.
-            const actual = iso(s.actual), done = !!actual, late = !done && !!s.plan && days(s.plan, ctx.today) < 0
+            const { date: actual, done, late } = s
             const v = actual && s.plan ? days(actual, s.plan) : null
-            return <li key={s.title} className="mi-ms" data-state={done ? 'done' : late ? 'late' : undefined}>
+            return <li key={s.key} className="mi-ms" data-state={done ? 'done' : late ? 'late' : undefined}>
               <span className="mi-o" aria-hidden="true">{done && <Check size={9} strokeWidth={3.4}/>}</span>
               <div><div className="mi-t">{s.title}</div>
                 <div className="mi-s">Plan {s.planKey
                   ? <DateField label={`${s.title} plan date`} value={s.plan} plain onSave={(val) => onDate(item, s.planKey!, val)}/>
                   : <span className="mi-num">{shortDate(s.plan || null)}</span>}{raw(s.planKey ?? 'msPlan') && s.planKey && !s.plan ? ` (${raw(s.planKey)})` : ''}{s.sub ? ` · ${s.sub}` : ''}</div></div>
-              <DateField label={`${s.title} actual date`} value={actual} note={raw(s.actual)} onSave={(val) => onDate(item, s.actual, val)}/>
+              {s.actual ? <DateField label={`${s.title} actual date`} value={actual} note={s.note} onSave={(val) => onDate(item, s.actual!, val)}/>
+                : done ? <span className="mi-faint mi-ship">Shipped</span>
+                : <button type="button" className="mi-btn mi-ship" disabled={proc === 'none'} title={proc === 'none' ? 'Place the order first' : undefined} onClick={() => onShip(item)}>Mark shipped</button>}
               <div className="mi-var">{done
                 ? v === null ? <span className="mi-faint">Done</span> : v > 0 ? <span className="mi-late">{v}d late</span> : v < 0 ? <span className="mi-early">{-v}d early</span> : <span className="mi-faint">On time</span>
                 : late ? <span className="mi-late">{-days(s.plan, ctx.today)}d overdue</span> : <span className="mi-faint">Pending</span>}</div>

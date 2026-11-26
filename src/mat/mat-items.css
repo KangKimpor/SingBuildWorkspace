@@ -67,6 +67,11 @@
 .mi-sicon .g { fill: none; stroke: var(--st); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .mi-sicon .d { fill: var(--st); }
 .mi .mi-cell.mi-stage-cell { width: auto; max-width: calc(100% + 16px); padding: 4px 6px; margin: 0 -6px; }
+/* No grey ground around a capsule (D-66): the capsule is the control. It brightens on hover and rings while its menu is open. */
+.mi .mi-cell.mi-stage-cell:is(:hover, [aria-expanded='true']) { background: none; }
+.mi-stage-cell .mi-stage { transition: background-color 120ms, box-shadow 120ms; }
+.mi-stage-cell:hover .mi-stage { background: color-mix(in srgb, var(--st) 18%, #fff); }
+.mi-stage-cell[aria-expanded='true'] .mi-stage { box-shadow: 0 1px 0 var(--st), 0 0 0 3px color-mix(in srgb, var(--st) 22%, transparent); }
 .mi-caret { margin-inline-start: -2px; opacity: 0; transition: opacity 120ms; }
 .mi-cell:hover .mi-caret, .mi-cell[aria-expanded='true'] .mi-caret { opacity: 0.6; }
 
@@ -481,21 +486,25 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 /* Timeline column (D-64): the five points a material passes, then what comes next and when. */
 .mi-time { display: flex; flex-direction: column; gap: 2px; }
 .mi-time .mi-track { margin-bottom: 4px; }
-.mi-track { position: relative; display: flex; justify-content: space-between; width: 116px; height: 10px; }
-.mi-track::before { content: ''; position: absolute; left: 5px; right: 5px; top: 4px; height: 2px; border-radius: 1px; background: rgb(118 118 128 / 0.2); }
-.mi-track i { position: relative; width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1.5px rgb(60 60 67 / 0.3); }
-.mi-track i[data-done] { background: var(--mi-green); box-shadow: none; }
-.mi-track i[data-current] { box-shadow: inset 0 0 0 2.5px var(--mi-blue); }
+/* The panel's Timeline in a row of six points (D-66): green with a check when reached, a red ring when overdue, grey when pending. */
+.mi-track { position: relative; display: flex; justify-content: space-between; width: 140px; height: 13px; }
+.mi-track::before { content: ''; position: absolute; left: 6px; right: 6px; top: 5.5px; height: 2px; border-radius: 1px; background: rgb(60 60 67 / 0.16); }
+.mi-track i { position: relative; display: grid; place-items: center; width: 13px; height: 13px; box-sizing: border-box; border: 2px solid rgb(60 60 67 / 0.24); border-radius: 50%; background: #fff; color: #fff; }
+.mi-track i[data-state='done'] { border-color: var(--mi-green); background: var(--mi-green); }
+.mi-track i[data-state='late'] { border-color: var(--mi-red); }
 .mi-time .mi-s { display: flex; align-items: baseline; gap: 4px; min-width: 0; white-space: nowrap; }
 .mi-time-l { overflow: hidden; font-size: 13px; font-weight: 600; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; }
 
 /* Quantity column: the four figures of the panel side by side, on site last and in green once anything has arrived. */
-.mi .mi-cell.mi-qstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; }
-.mi-qstats > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 7px; border-radius: 8px; background: rgb(118 118 128 / 0.08); }
-.mi-qstats small { overflow: hidden; font-size: 10px; font-weight: 600; line-height: 13px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
-.mi-qstats b { overflow: hidden; font-size: 13px; font-weight: 650; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
-.mi-qstats > [data-k='onsite'][data-some] { background: rgb(36 138 61 / 0.1); }
-.mi-qstats > [data-k='onsite'][data-some] b { color: var(--mi-green); }
+/* Each quantity is its own button (D-66): the box you press is the value you change. */
+.mi-qstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.mi-qbox { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 7px; border: 0; border-radius: 8px; background: rgb(118 118 128 / 0.08); text-align: start; }
+.mi-qbox:hover { background: rgb(118 118 128 / 0.16); }
+.mi-qbox[aria-expanded='true'] { background: #fff; box-shadow: 0 0 0 1.5px var(--mi-accent), 0 0 0 4px var(--mi-accent-soft); }
+.mi-qbox small { overflow: hidden; font-size: 10px; font-weight: 600; line-height: 13px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
+.mi-qbox b { overflow: hidden; font-size: 13px; font-weight: 650; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.mi-qbox[data-k='onsite'][data-some] { background: rgb(36 138 61 / 0.1); }
+.mi-qbox[data-k='onsite'][data-some] b { color: var(--mi-green); }
 
 /* Panel photos: the submission image and the approved sample as two labelled groups, each with its own colour key. */
 [data-set='image'] { --set: #0066cc; }
@@ -533,3 +542,14 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-confirm-actions .mi-btn { height: 32px; padding: 0 16px; font-size: 13px; cursor: pointer; }
 .mi-confirm-actions .mi-btn[data-primary] { background: #d70015; }
 .mi-qunit { margin-inline-start: 3px; font-size: 10.5px; font-style: normal; font-weight: 500; color: var(--mi-ink-3); }
+
+/* Notes column (D-66): a Purchase block and a PM block, each listing this week, last week and the week before when written. */
+.mi-notes { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.mi-nt { display: flex; align-items: flex-start; gap: 6px; min-width: 0; }
+.mi-nt > .mi-team { flex: none; margin: 1px 0 0; }
+.mi-nl-list { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mi-nl { overflow: hidden; font-size: 12.5px; line-height: 17px; color: var(--mi-ink-2); white-space: nowrap; text-overflow: ellipsis; }
+.mi-nl[data-week='now'] { color: var(--mi-ink); }
+.mi-nw { margin-inline-end: 5px; font-size: 10.5px; font-weight: 600; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
+.mi-ship { justify-self: start; }
+.mi-qbox[data-text] b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 11.5px; line-height: 14px; white-space: normal; overflow-wrap: anywhere; }

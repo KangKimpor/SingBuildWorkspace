@@ -86,6 +86,9 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
       && (!wbs || a.wbs === wbs || a.wbs.startsWith(`${wbs}.`)) && (!changed || Math.abs(p - b) > 1e-12)
   }
   const rows = roomMode ? [] : buildWbsRows(activities, { leaf, collapsed })
+  // Floors with a cell that moved this week: marked on the floor picker while "Changed this week" is on.
+  const changedFloors = useMemo(() => new Set(floors.filter((f) => f.rows.some((r) => r.leaves.some((l) =>
+    Math.abs((live.progress.get(l.id) ?? 0) - (before.progress.get(l.id) ?? 0)) > 1e-12))).map((f) => f.root.id)), [floors, live, before])
   const active = !!(q || handler || area || location || trade || wbs || changed)
   function filter(key: string, value: string) { setCollapsed(new Set()); const next = new URLSearchParams(params); if (value) next.set(key, value); else next.delete(key); setParams(next) }
   function clear() { setParams({}); setQuery(''); setChanged(false) }
@@ -95,7 +98,8 @@ function ActivityTable({ projectId, activities, baseline, controls, rollups }: {
 
   return <section className="nbc-activities">
     <div className="nbc-filters">
-      {floor && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor!.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div></div>}
+      {floor && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => { const moved = changed && changedFloors.has(f.root.id)
+        return <button key={f.root.id} aria-pressed={f.root.id === pressedFloor!.root.id} aria-label={moved ? `${f.root.name}, changed this week` : f.root.name} data-changed={moved || undefined} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}{moved && <span className="nbc-seg-chg" aria-hidden="true"/>}</button> })}</div></div>}
       <div className="nbc-filter-line">
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activity" placeholder="Search activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/></label>
       <button className="nbc-chip nbc-filters-toggle" aria-expanded={filtersOpen} aria-controls="nbc-filter-selects" onClick={() => setFiltersOpen(!filtersOpen)}>Filters{selectFilters > 0 && <span className="nbc-filters-count">{selectFilters}</span>}</button>
