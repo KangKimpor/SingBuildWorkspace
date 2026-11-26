@@ -49,7 +49,8 @@ export function stageOf(item: MatItem): StageId {
   return 'notsub'
 }
 
-export interface NextStep { label: string; date: string | null; diff: number | null; done: boolean }
+/** `expected`: the date is derived (approval 14 days after submission), not a plan column. */
+export interface NextStep { label: string; date: string | null; diff: number | null; done: boolean; expected: boolean }
 /** What has to happen next and when it was planned. Approval has no plan column: it is due 14 days after submission. */
 export function nextOf(item: MatItem, today: string): NextStep {
   const submitted = date(item, 'msActual')
@@ -64,7 +65,7 @@ export function nextOf(item: MatItem, today: string): NextStep {
   }
   const stage = stageOf(item)
   const [label, when] = plan[stage]
-  return { label, date: when, diff: when ? days(when, today) : null, done: stage === 'onsite' }
+  return { label, date: when, diff: when ? days(when, today) : null, done: stage === 'onsite', expected: stage === 'review' || stage === 'revise' }
 }
 
 export const ATTENTION = [
@@ -107,7 +108,8 @@ export function stagePatch(item: MatItem, stage: MoveStage, on: string): Patch {
     if (q.po <= 0 && q.total > 0) patch.po = cellPatch(item, 'po', q.total)
   }
   if (stage === 'notsub') { clearDate('msActual'); col(item, 'msStatus', 'Not Yet Submit', patch); clearAfter('approval') }
-  if (stage === 'review') { col(item, 'msActual', keep('msActual'), patch); col(item, 'msStatus', 'Under Review', patch); clearAfter('approval') }
+  // A resubmission is a new submission: it takes the date given, where a first submission keeps a date already recorded.
+  if (stage === 'review') { col(item, 'msActual', stageOf(item) === 'revise' ? on : keep('msActual'), patch); col(item, 'msStatus', 'Under Review', patch); clearAfter('approval') }
   if (stage === 'revise') { col(item, 'msActual', keep('msActual'), patch); col(item, 'msStatus', 'Revise & Resubmit', patch); clearAfter('approval') }
   if (stage === 'approved' || stage === 'ordered' || stage === 'onsite') {
     col(item, 'msActual', keep('msActual'), patch)
@@ -151,13 +153,39 @@ export function effectivePatch(item: MatItem, patch: Patch): Patch {
   return out
 }
 
-/** Each material's top-level section (the nearest level-0 section row above it), by item id. */
-export function sectionsOf(rows: MatItem[]): Map<string, { id: string; code: string; name: string }> {
-  const out = new Map<string, { id: string; code: string; name: string }>()
-  let current: { id: string; code: string; name: string } | null = null
+/** One section header row of the workbook: its number ("1.1.2"), its name, and how deep it sits. */
+export interface SectionInfo { id: string; no: string; name: string; label: string; depth: number; parent: string | null }
+export interface SectionTree {
+  /** Every section, in workbook order. */
+  sections: SectionInfo[]
+  /** Each material's enclosing sections, outermost first, by item id. Materials above the first section have none. */
+  pathOf: Map<string, SectionInfo[]>
+}
+
+/**
+ * The workbook's section nesting (1 Wall Finishing > 1.1 L23 Club Lounge > 1.1.1 Stone/Marble), as the Sheet shows it.
+ * The name is the section row's text columns joined, the same text the Sheet's section band shows after the number.
+ * A section covers rows up to its `end` (the importer's SUBTOTAL range); `level` says how deep it is.
+ */
+export function sectionTree(rows: MatItem[]): SectionTree {
+  const sections: SectionInfo[] = []
+  const pathOf = new Map<string, SectionInfo[]>()
+  const stack: { info: SectionInfo; level: number; end: number }[] = []
+  const leave = (pos: number) => { while (stack.length && stack.at(-1)!.end < pos) stack.pop() }
   for (const row of rows) {
-    if (row.kind === 'section' && (row.data.level ?? 0) === 0) current = { id: row.id, code: text(row, 'no'), name: text(row, 'description') }
-    else if (row.kind === 'item' && current) out.set(row.id, current)
+    if (row.kind === 'section') {
+      const level = row.data.level ?? 0
+      leave(row.pos)
+      while (stack.length && stack.at(-1)!.level >= level) stack.pop()
+      const no = text(row, 'no')
+      const name = (['pic', 'bp02', 'code', 'description'] as const).map((k) => text(row, k)).filter(Boolean).join(' ')
+      const info: SectionInfo = { id: row.id, no, name, label: [no, name].filter(Boolean).join(' ') || 'Section', depth: stack.length, parent: stack.at(-1)?.info.id ?? null }
+      sections.push(info)
+      stack.push({ info, level, end: row.data.end ?? Infinity })
+    } else if (row.kind === 'item') {
+      leave(row.pos)
+      if (stack.length) pathOf.set(row.id, stack.map((s) => s.info))
+    }
   }
-  return out
+  return { sections, pathOf }
 }

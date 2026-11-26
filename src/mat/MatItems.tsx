@@ -4,15 +4,17 @@ import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
 import { Activity, Check, ChevronDown, ChevronUp, ImageIcon, Search, X } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
+import { useMatImageSrc } from './images'
+import type { MatPicture } from './MatSourcePanel'
 import { changedCells } from './changes'
 import { codeOf, colPatchValue, effectiveCol, effectiveImages, formatCol, isIsoDate } from './formulas'
 import type { OnFields, OnRemark } from './MatCells'
 import { remarkKey } from './store'
 import type { MatState } from './store'
 import {
-  ATTENTION, STAGE, STAGES, addDaysIso, cellPatch, days, effectivePatch, nextOf, onsitePatch, qtyOf, sectionsOf, snapshot, stageOf, stagePatch, todayIso,
+  ATTENTION, STAGE, STAGES, addDaysIso, cellPatch, days, effectivePatch, nextOf, onsitePatch, qtyOf, sectionTree, snapshot, stageOf, stagePatch, todayIso,
 } from './stage'
-import type { AttentionId, MoveStage, NextStep, Qty, StageId } from './stage'
+import type { AttentionId, MoveStage, NextStep, Qty, SectionInfo, SectionTree, StageId } from './stage'
 import type { CellKey, EditableColKey, FieldKey, FieldValue, MatItem, MatLog, Sheet, Team } from './types'
 
 type Patch = Partial<Record<FieldKey, FieldValue>>
@@ -27,15 +29,20 @@ const NUM = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 const TEAM_LABEL: Record<Team, string> = { purchase: 'Purchase', pm: 'PM' }
 const GROUPS: [Group, string][] = [['section', 'Section'], ['stage', 'Stage'], ['owner', 'Owner'], ['none', 'None']]
 const SORTS: [Sort, string][] = [['pos', 'Workbook order'], ['urgency', 'Most urgent'], ['recent', 'Recently updated']]
-const NEXT_ACTIONS: Record<StageId, [MoveStage | 'deliver', string][]> = {
-  notsub: [['review', 'Submitted today']],
-  review: [['approved', 'Approved today'], ['revise', 'Needs revision']],
-  revise: [['review', 'Resubmitted today']],
-  approved: [['ordered', 'Order placed today']],
-  ordered: [['deliver', 'Log a delivery…']],
-  partial: [['deliver', 'Log a delivery…'], ['onsite', 'All delivered today']],
+/** How each next step can end. Each choice saves with the date picked for it (today, yesterday or another day). */
+const STEP_ACTIONS: Record<StageId, { to: MoveStage; label: string; undated?: true }[]> = {
+  notsub: [{ to: 'review', label: 'Submitted to the consultant' }],
+  // No column records when a revision was asked for, so that choice has no date to pick.
+  review: [{ to: 'approved', label: 'Approved' }, { to: 'revise', label: 'Consultant asked to revise', undated: true }],
+  revise: [{ to: 'review', label: 'Resubmitted' }],
+  approved: [{ to: 'ordered', label: 'Order placed' }],
+  ordered: [{ to: 'onsite', label: 'Everything delivered' }],
+  partial: [{ to: 'onsite', label: 'Everything delivered' }],
   onsite: [],
 }
+/** The workbook column holding the step's plan date. Approval has none: it is expected 14 days after submission (10 for a resubmission). */
+const PLAN_KEY: Partial<Record<StageId, EditableColKey>> = { notsub: 'msPlan', approved: 'poPlan', ordered: 'arrPlan', partial: 'arrPlan' }
+const realYear = (iso: string) => /^20\d\d-\d\d-\d\d$/.test(iso)
 const text = (item: MatItem, key: EditableColKey) => formatCol(effectiveCol(item, key)).trim()
 // One formatter each, built once: a list of 2,000 rows formats a date in every row.
 const DAY_MONTH = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short' })
@@ -83,13 +90,16 @@ function Avatar({ name, large }: { name: string; large?: boolean }) {
 function StagePill({ stage, caret }: { stage: StageId; caret?: boolean }) {
   return <span className="mi-pill" data-stage={stage}><span className="mi-dot" aria-hidden="true"/>{STAGE[stage].label}{caret && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span>
 }
+/** When the next step is due: "139d late · due 10 Jul", "In 5d · due 1 Dec", "Expected 10 Dec" for an approval. */
 function Due({ next }: { next: NextStep }) {
-  if (next.done) return <span className="mi-faint">All delivered</span>
+  if (next.done) return <span className="mi-due" data-tone="done">All delivered</span>
   if (next.diff === null) return <span className="mi-faint">No plan date</span>
-  if (next.diff < 0) return <><span className="mi-late">{-next.diff}d late</span> <span className="mi-faint">· {shortDate(next.date)}</span></>
-  if (next.diff === 0) return <span className="mi-soon">Today</span>
-  if (next.diff <= 14) return <><span className="mi-soon">In {next.diff}d</span> <span className="mi-faint">· {shortDate(next.date)}</span></>
-  return <span className="mi-muted">{shortDate(next.date)}</span>
+  const word = next.expected ? 'expected' : 'due'
+  const when = <span className="mi-faint">{word} {shortDate(next.date)}</span>
+  if (next.diff < 0) return <><span className="mi-due" data-tone="late">{-next.diff}d late</span> {when}</>
+  if (next.diff === 0) return <><span className="mi-due" data-tone="soon">Today</span> {when}</>
+  if (next.diff <= 14) return <><span className="mi-due" data-tone="soon">In {next.diff}d</span> {when}</>
+  return <span className="mi-muted">{next.expected ? 'Expected' : 'Due'} {shortDate(next.date)}</span>
 }
 function QtyBar({ q, large }: { q: Qty; large?: boolean }) {
   const of = (v: number) => q.total > 0 ? Math.min(1, v / q.total) : 0
@@ -108,14 +118,16 @@ export interface MatItemsProps {
   onFields: OnFields
   onRemark: OnRemark
   onOpenSource: (id: string) => void
+  /** Opens a photo full size. */
+  onPicture: (picture: MatPicture) => void
 }
 
 /** The List and Board views of one material sheet (D-57): every value is edited in place, every change can be undone. */
-export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource }: MatItemsProps) {
+export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource, onPicture }: MatItemsProps) {
   const rows = useMemo(() => state.items.filter((i) => i.sheet === sheet), [state.items, sheet])
   const items = useMemo(() => rows.filter((r) => r.kind === 'item'), [rows])
   const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items])
-  const sections = useMemo(() => sectionsOf(rows), [rows])
+  const tree = useMemo(() => sectionTree(rows), [rows])
   const changed = useMemo(() => changedCells(rows, state.remarks, state.week), [rows, state.remarks, state.week])
   const notes = useMemo(() => {
     const out = new Map<string, Note[]>()
@@ -147,6 +159,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource 
         sub: [codeOf(i), text(i, 'brand'), text(i, 'location')].filter(Boolean).join(' · '),
         search: `${codeOf(i)} ${name} ${text(i, 'brand')} ${text(i, 'location')} ${text(i, 'spec')}`.toLowerCase(),
         photos: effectiveImages(i, 'image').length + effectiveImages(i, 'sample').length,
+        photo: effectiveImages(i, 'image')[0] ?? effectiveImages(i, 'sample')[0] ?? null,
         late: i.data.mark !== 'omit' && next.diff !== null && next.diff < 0,
       })
     }
@@ -289,7 +302,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource 
     return () => removeEventListener('keydown', onKey)
   }, [pop, checked, open, nav, toast, undo])
 
-  const actions = useMemo<RowActions>(() => ({ openPop, toggleCheck, openPanel: setOpen }), [openPop, toggleCheck])
+  const actions = useMemo<RowActions>(() => ({ openPop, toggleCheck, openPanel: setOpen, openPicture: onPicture }), [openPop, toggleCheck, onPicture])
   const ctx: RowCtx = { today, week: state.week, changed, notes, people, activity, hasOwner, checked, flash, open, pop, derived, actions, openPop, openPanel: setOpen, selecting: checked.size > 0 }
   const openItem = open ? byId.get(open) ?? null : null
   const popItem = pop?.id ? byId.get(pop.id) ?? null : null
@@ -326,14 +339,14 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource 
       : list.length === 0
       ? <div className="mi-empty">No materials match.<button type="button" className="mi-btn" onClick={clearFilters}>Clear filters</button></div>
       : view === 'list'
-      ? <ListView list={list} group={group} sections={sections} collapsed={collapsed} ctx={ctx}
+      ? <ListView list={list} group={group} tree={tree} collapsed={collapsed} ctx={ctx}
           onToggleGroup={(k) => setCollapsed((old) => { const n = new Set(old); if (!n.delete(k)) n.add(k); return n })}/>
       : <BoardView list={list} ctx={ctx} onDrop={(id, to, card) => {
           if (to === 'partial') { const el = document.querySelector<HTMLElement>(`[data-mi-card="${CSS.escape(id)}"]`) ?? card; openPop('deliver', id, el); return }
           moveTo([id], to as MoveStage)
         }}/>}
 
-    <Panel item={openItem} ctx={ctx} section={openItem ? sections.get(openItem.id)?.name ?? '' : ''} week={state.week} remarks={state.remarks}
+    <Panel item={openItem} ctx={ctx} section={openItem ? tree.pathOf.get(openItem.id) ?? [] : []} week={state.week} remarks={state.remarks}
       onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty} onReceive={(it, v) => setOnsite(it, qtyOf(it).onsite + v, `Received ${NUM.format(v)} ${qtyOf(it).unit}`)}
       onNote={saveNote} onOpenSource={onOpenSource}/>
 
@@ -345,13 +358,10 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource 
           if (to === 'partial') { setPop({ type: 'deliver', id, anchor: pop.anchor }); return }
           closePop(); moveTo([id], to as MoveStage, on)
         }}
-        onNextAction={(to) => {
-          const id = pop.id!
-          if (to === 'deliver') { setPop({ type: 'deliver', id, anchor: pop.anchor }); return }
-          closePop(); moveTo([id], to)
-        }}
+        onNextAction={(to, on) => { closePop(); moveTo([pop.id!], to, on) }}
+        onPlan={(key, value) => { closePop(); if (popItem) setDate(popItem, key, value) }}
+        onDeliver={() => setPop({ type: 'deliver', id: pop.id!, anchor: pop.anchor })}
         onEditDates={() => { const id = pop.id!; closePop(); setOpen(id) }}
-        onReceive={(v) => { closePop(); if (popItem) setOnsite(popItem, qtyOf(popItem).onsite + v, `Received ${NUM.format(v)} ${qtyOf(popItem).unit}`.trim()) }}
         onSetOnsite={(v) => { closePop(); if (popItem) setOnsite(popItem, v, 'On site updated') }}
         onOwner={(name) => { closePop(); assign([pop.id!], name) }}
         onNote={(team, body) => { closePop(); void saveNote(pop.id!, team, body) }}
@@ -410,11 +420,12 @@ function Overview({ scope, derived, today, attn, stage, onAttn, onStage }: { sco
   </section>
 }
 
-interface Derived { stage: StageId; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; late: boolean }
+interface Derived { stage: StageId; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; photo: string | null; late: boolean }
 interface RowActions {
   openPop: (type: PopType, id: string | null, anchor: HTMLElement) => void
   toggleCheck: (id: string, range: boolean) => void
   openPanel: (id: string) => void
+  openPicture: (picture: MatPicture) => void
 }
 interface RowCtx {
   today: string
@@ -436,46 +447,93 @@ interface RowCtx {
   openPanel: (id: string) => void
 }
 
-function ListView({ list, group, sections, collapsed, ctx, onToggleGroup }: {
-  list: MatItem[]; group: Group; sections: ReturnType<typeof sectionsOf>; collapsed: ReadonlySet<string>; ctx: RowCtx; onToggleGroup: (key: string) => void
-}) {
-  const { derived } = ctx
-  const groups = useMemo(() => {
-    const lateOf = (rows: MatItem[]) => rows.reduce((n, i) => n + (derived.get(i.id)!.late ? 1 : 0), 0)
-    if (group === 'none') return [{ key: 'all', label: null as string | null, rows: list, late: lateOf(list) }]
-    const keyOf = group === 'section' ? (i: MatItem) => sections.get(i.id)?.id ?? '—'
-      : group === 'stage' ? (i: MatItem) => derived.get(i.id)!.stage : (i: MatItem) => derived.get(i.id)!.owner || 'Unassigned'
+type Entry =
+  | { kind: 'head'; key: string; no: string; name: string; title: string; depth: number; count: number; late: number }
+  | { kind: 'item'; item: MatItem }
+
+/**
+ * The rows the list shows, in order. Grouped by section it follows the Sheet's nesting: every workbook section with
+ * materials in it gets a header at its own depth (1 Wall Finishing > 1.1 L23 Club Lounge > 1.1.1 Stone/Marble), and
+ * collapsing a section hides everything inside it. Counts and "late" cover a section's sub-sections too.
+ */
+function listEntries(list: MatItem[], group: Group, tree: SectionTree, derived: Map<string, Derived>, collapsed: ReadonlySet<string>): Entry[] {
+  const out: Entry[] = []
+  const isLate = (i: MatItem) => derived.get(i.id)!.late
+  const flat = (key: string, label: string, rows: MatItem[]) => {
+    out.push({ kind: 'head', key, no: '', name: label, title: label, depth: 0, count: rows.length, late: rows.filter(isLate).length })
+    if (!collapsed.has(key)) for (const item of rows) out.push({ kind: 'item', item })
+  }
+  if (group === 'none') { for (const item of list) out.push({ kind: 'item', item }); return out }
+  if (group !== 'section') {
+    const keyOf = group === 'stage' ? (i: MatItem) => derived.get(i.id)!.stage : (i: MatItem) => derived.get(i.id)!.owner || 'Unassigned'
     const map = new Map<string, MatItem[]>()
     for (const i of list) { const k = keyOf(i); const g = map.get(k) ?? []; g.push(i); map.set(k, g) }
     const order = group === 'stage' ? STAGES.map((s) => s.id).filter((k) => map.has(k)) : [...map.keys()]
-    return order.map((k) => {
-      const rows = map.get(k)!, sec = sections.get(rows[0]!.id)
-      const label = group === 'section' ? (sec ? [sec.code, sec.name].filter(Boolean).join(' · ') : 'No section') : group === 'stage' ? STAGE[k as StageId].label : k
-      return { key: `${group}:${k}`, label, rows, late: lateOf(rows) }
-    })
-  }, [list, group, sections, derived])
+    for (const k of order) flat(`${group}:${k}`, group === 'stage' ? STAGE[k as StageId].label : k, map.get(k)!)
+    return out
+  }
+  const direct = new Map<string, MatItem[]>(), count = new Map<string, number>(), late = new Map<string, number>()
+  const loose: MatItem[] = []
+  for (const i of list) {
+    const path = tree.pathOf.get(i.id)
+    if (!path) { loose.push(i); continue }
+    const leaf = path.at(-1)!.id
+    const rows = direct.get(leaf) ?? []
+    rows.push(i)
+    direct.set(leaf, rows)
+    for (const s of path) {
+      count.set(s.id, (count.get(s.id) ?? 0) + 1)
+      if (isLate(i)) late.set(s.id, (late.get(s.id) ?? 0) + 1)
+    }
+  }
+  const children = new Map<string | null, typeof tree.sections>()
+  for (const s of tree.sections) { const c = children.get(s.parent) ?? []; c.push(s); children.set(s.parent, c) }
+  if (loose.length) flat('section:none', 'No section', loose)
+  const walk = (s: (typeof tree.sections)[number], trail: string) => {
+    const n = count.get(s.id)
+    if (!n) return
+    const key = `section:${s.id}`, title = trail ? `${trail} › ${s.label}` : s.label
+    out.push({ kind: 'head', key, no: s.no, name: s.name || (s.no ? '' : 'Section'), title, depth: s.depth, count: n, late: late.get(s.id) ?? 0 })
+    if (collapsed.has(key)) return
+    for (const item of direct.get(s.id) ?? []) out.push({ kind: 'item', item })
+    for (const c of children.get(s.id) ?? []) walk(c, title)
+  }
+  for (const s of children.get(null) ?? []) walk(s, '')
+  return out
+}
+
+function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
+  list: MatItem[]; group: Group; tree: SectionTree; collapsed: ReadonlySet<string>; ctx: RowCtx; onToggleGroup: (key: string) => void
+}) {
+  const { derived } = ctx
+  const entries = useMemo(() => listEntries(list, group, tree, derived, collapsed), [list, group, tree, derived, collapsed])
   const columns = ctx.hasOwner ? 7 : 6
   return <div className="mi-list" data-selecting={ctx.selecting || undefined} role="table" aria-label="Materials">
     <div className="mi-grid mi-lh" role="row" data-owner={ctx.hasOwner || undefined}>
-      <span role="columnheader"><span className="sr-only">Select</span></span><span role="columnheader">Material</span><span role="columnheader">Stage</span>
+      <span role="columnheader"><span className="sr-only">Photo and select</span></span><span role="columnheader">Material</span><span role="columnheader">Stage</span>
       <span role="columnheader">Next step</span><span role="columnheader">On site</span>
       {ctx.hasOwner && <span role="columnheader" className="mi-c-who">Owner</span>}<span role="columnheader" className="mi-c-note">Latest note</span>
     </div>
-    {groups.map((g) => {
-      const isOpen = !collapsed.has(g.key)
-      return <div key={g.key} role="rowgroup">
-        {g.label !== null && <div role="row"><div role="rowheader" aria-colspan={columns}>
-          <button type="button" className="mi-grp" aria-expanded={isOpen} onClick={() => onToggleGroup(g.key)}>
-            <ChevronDown className="mi-chev" size={13} aria-hidden="true"/><span className="mi-grp-l" title={g.label}>{g.label}<span className="mi-grp-n"> {g.rows.length}</span></span>
-            {g.late > 0 ? <span className="mi-grp-late">{g.late} late</span> : <span/>}
+    {entries.map((e) => e.kind === 'head'
+      ? <div key={e.key} role="row" className="mi-gh" data-depth={Math.min(e.depth, 3)}><div role="rowheader" aria-colspan={columns}>
+          <button type="button" className="mi-grp" aria-expanded={!collapsed.has(e.key)} style={{ ['--depth' as string]: e.depth }} title={e.title} onClick={() => onToggleGroup(e.key)}>
+            <ChevronDown className="mi-chev" size={13} aria-hidden="true"/>
+            <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}<span className="mi-grp-n">{e.count}</span></span>
+            {e.late > 0 ? <span className="mi-grp-late">{e.late} late</span> : <span/>}
           </button>
-        </div></div>}
-        {isOpen && g.rows.map((item) => <Row key={item.id} item={item} d={derived.get(item.id)!} note={ctx.notes.get(item.id)?.[0]} week={ctx.week}
-          changed={ctx.changed.has(item.id)} picked={ctx.checked.has(item.id)} sel={ctx.open === item.id} flash={ctx.flash.has(item.id)}
-          popType={ctx.pop?.id === item.id ? ctx.pop.type : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}/>)}
-      </div>
-    })}
+        </div></div>
+      : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} note={ctx.notes.get(e.item.id)?.[0]} week={ctx.week}
+          changed={ctx.changed.has(e.item.id)} picked={ctx.checked.has(e.item.id)} sel={ctx.open === e.item.id} flash={ctx.flash.has(e.item.id)}
+          popType={ctx.pop?.id === e.item.id ? ctx.pop.type : undefined} hasOwner={ctx.hasOwner} actions={ctx.actions}/>)}
   </div>
+}
+
+/** A material photo: the workbook thumbnail or an uploaded one. Falls back to the placeholder icon if it cannot load. */
+function Photo({ src: ref }: { src: string }) {
+  const src = useMatImageSrc(ref)
+  const [failed, setFailed] = useState<string | null>(null)
+  if (!src || failed === src) return <ImageIcon size={16} aria-hidden="true"/>
+  return <img src={src} alt="" loading="lazy" decoding="async" draggable={false} onError={() => setFailed(src)}/>
 }
 
 interface RowProps {
@@ -491,23 +549,26 @@ const Row = memo(function Row({ item, d, note, week, changed, picked, sel, flash
     data-picked={picked || undefined} data-flash={flash || undefined} data-mark={item.data.mark}
     onClick={(e) => { if (!(e.target as HTMLElement).closest('button,input')) actions.openPanel(item.id) }}>
     <span className="mi-lead" role="cell">
-      <span className="mi-thumb" aria-hidden="true">{d.photos > 0 && <ImageIcon size={15}/>}</span>
+      {d.photo
+        ? <button type="button" className="mi-thumb" aria-label={`View photo of ${name}`} onClick={(e) => { e.stopPropagation(); actions.openPicture({ ref: d.photo!, alt: name, itemId: item.id }) }}>
+            <Photo src={d.photo}/>{d.photos > 1 && <span className="mi-thumb-n" aria-hidden="true">{d.photos}</span>}
+          </button>
+        : <span className="mi-thumb" data-empty aria-hidden="true"><ImageIcon size={16}/></span>}
       <button type="button" className="mi-ck" role="checkbox" aria-checked={picked} aria-label={`Select ${name}`} onClick={(e) => { e.stopPropagation(); actions.toggleCheck(item.id, e.shiftKey) }}>
-        <Check size={12} strokeWidth={3} aria-hidden="true"/>
+        <Check size={11} strokeWidth={3} aria-hidden="true"/>
       </button>
     </span>
     <span className="mi-name" role="cell">
-      <button type="button" className="mi-t" onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>
-        {changed && <span className="mi-chg" title="Changed this week" aria-label="Changed this week"/>}{name}
-      </button>
-      <span className="mi-s">{d.sub}</span>
+      <button type="button" className="mi-t" onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
+      <span className="mi-s">{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub">{d.sub}</span></span>
     </span>
     <span role="cell"><button type="button" className="mi-cell" aria-haspopup="dialog" aria-expanded={popType === 'stage'} aria-label={`Stage: ${STAGE[st].label}. Change`} onClick={cell('stage')}><StagePill stage={st} caret/></button></span>
     <span role="cell"><button type="button" className="mi-cell mi-next" aria-haspopup="dialog" aria-expanded={popType === 'next'} onClick={cell('next')}>
-      <span className="mi-t">{next.label}</span><span className="mi-s"><Due next={next}/></span>
+      <span className="mi-t">{next.label}{!next.done && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span><span className="mi-s"><Due next={next}/></span>
     </button></span>
-    <span role="cell"><button type="button" className="mi-cell mi-qty" aria-haspopup="dialog" aria-expanded={popType === 'deliver'} aria-label={`On site ${NUM.format(q.onsite)} of ${NUM.format(q.total)} ${q.unit}. Log a delivery`} onClick={cell('deliver')}>
-      <QtyBar q={q}/><span className="mi-s">{NUM.format(q.onsite)} / {NUM.format(q.total)} {q.unit}</span>
+    <span role="cell"><button type="button" className="mi-cell mi-qty" aria-haspopup="dialog" aria-expanded={popType === 'deliver'} aria-label={`On site ${NUM.format(q.onsite)} of ${NUM.format(q.total)} ${q.unit}. Set the quantity on site`} onClick={cell('deliver')}>
+      <span className="mi-qty-v"><b>{NUM.format(q.onsite)}</b><span> / {NUM.format(q.total)}</span>{q.unit && <span className="mi-qty-u">{q.unit}</span>}</span>
+      <QtyBar q={q}/>
     </button></span>
     {hasOwner && <span role="cell" className="mi-c-who"><button type="button" className="mi-cell mi-who" aria-haspopup="dialog" aria-expanded={popType === 'owner'} aria-label={`Owner: ${owner || 'none'}. Change`} onClick={cell('owner')}>
       {owner ? <><Avatar name={owner}/><span>{owner}</span></> : <span className="mi-faint">Assign</span>}
@@ -590,16 +651,16 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
 const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem; d: Derived; changed: boolean }) {
   const { qty: q, next, owner } = d
   return <>
-    <span className="mi-t">{changed && <span className="mi-chg" aria-label="Changed this week"/>}{d.name}</span>
-    <span className="mi-s">{codeOf(item)} · {NUM.format(q.onsite)}/{NUM.format(q.total)} {q.unit}</span>
+    <span className="mi-t">{d.name}</span>
+    <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{NUM.format(q.total)} {q.unit}</span>
     <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{next.done ? <span className="mi-faint">Complete</span> : <Due next={next}/>}</span></span>
   </>
 })
 
 /* ---------------- popover: anchored to its trigger, grows from it ---------------- */
-const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, deliver: 300, stage: 270, activity: 360 }
+const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, deliver: 260, stage: 270, activity: 360, next: 352 }
 const POP_LABEL: Record<PopType, string> = {
-  stage: 'Change stage', next: 'Next step', deliver: 'Log a delivery', owner: 'Change owner', note: 'This week\'s note',
+  stage: 'Change stage', next: 'Next step', deliver: 'Quantity on site', owner: 'Change owner', note: 'This week\'s note',
   'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', 'bulk-stage': 'Move selected to stage', 'bulk-owner': 'Assign selected to', activity: 'Recent activity',
 }
 function Popover({ pop, onClose, children }: { pop: Pop; onClose: () => void; children: ReactNode }) {
@@ -648,8 +709,8 @@ function Opt({ on, onClick, children, autoFocus }: { on?: boolean; onClick: () =
 
 interface PopBodyProps {
   pop: Pop; item: MatItem | null; today: string; owners: string[]; owner: string; group: Group; sort: Sort; count: number; week: string; remarks: Record<string, string>; hasOwner: boolean
-  onStage: (to: StageId, on: string) => void; onNextAction: (to: MoveStage | 'deliver') => void; onEditDates: () => void
-  onReceive: (v: number) => void; onSetOnsite: (v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
+  onStage: (to: StageId, on: string) => void; onNextAction: (to: MoveStage, on: string) => void; onEditDates: () => void
+  onPlan: (key: EditableColKey, value: string) => void; onDeliver: () => void; onSetOnsite: (v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
   onFilterOwner: (name: string) => void; onGroup: (g: Group) => void; onSort: (s: Sort) => void
   onBulkStage: (to: MoveStage) => void; onBulkOwner: (name: string) => void
   activity: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; onOpenItem: (id: string) => void
@@ -657,7 +718,6 @@ interface PopBodyProps {
 function PopBody(p: PopBodyProps) {
   const { pop, item } = p
   const [on, setOn] = useState(p.today)
-  const [recv, setRecv] = useState('')
   const [team, setTeam] = useState<Team>('purchase')
   const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, 'purchase', p.week)] ?? '' : '')
   // Keyed by popover type and row (see MatItems), so a draft never carries over to another material.
@@ -674,30 +734,33 @@ function PopBody(p: PopBodyProps) {
     </>
   }
   if (pop.type === 'next' && item) {
-    const next = nextOf(item, p.today), acts = NEXT_ACTIONS[stageOf(item)]
+    const st = stageOf(item), next = nextOf(item, p.today), acts = STEP_ACTIONS[st], planKey = PLAN_KEY[st]
+    const summary = next.done ? 'Everything is on site.'
+      : !next.date ? 'No plan date yet.'
+      : `${next.expected ? 'Expected' : 'Planned'} ${shortDate(next.date)} · ${next.diff! < 0 ? `${-next.diff!} days late` : next.diff === 0 ? 'today' : `in ${next.diff} days`}`
     return <>
-      <div className="mi-pop-t">{next.label}{next.date ? ` · planned ${shortDate(next.date)}` : ''}</div>
-      {acts.length ? acts.map(([to, label], i) => <Opt key={to} autoFocus={i === 0} onClick={() => p.onNextAction(to)}><span>{label}</span></Opt>) : <p className="mi-pad mi-faint">Nothing left to do.</p>}
+      <div className="mi-step-h"><b>{next.done ? 'Complete' : next.label}</b><span data-tone={next.diff !== null && next.diff < 0 && !next.done ? 'late' : undefined}>{summary}</span></div>
+      {acts.map((a, i) => <div key={a.to} className="mi-step-act" role="group" aria-label={a.label}>
+        <b>{a.label}</b>
+        {a.undated
+          ? <div className="mi-step-when"><button type="button" className="mi-chip" onClick={() => p.onNextAction(a.to, p.today)}>Mark as revise</button></div>
+          : <DateChips today={p.today} primary={i === 0} onPick={(day) => p.onNextAction(a.to, day)}/>}
+      </div>)}
+      {planKey && <PlanDate key={`${item.id}:${planKey}`} label={`${next.label} plan date`} value={next.date ?? ''} onSave={(v) => p.onPlan(planKey, v)}/>}
+      {(st === 'review' || st === 'revise') && <p className="mi-pad mi-faint mi-small">Expected {st === 'review' ? 14 : 10} days after the submission date.</p>}
       <div className="mi-sep"/>
-      <Opt onClick={p.onEditDates}><span>Edit dates…</span></Opt>
+      <div className="mi-step-links">
+        {(st === 'ordered' || st === 'partial') && <button type="button" className="mi-link" onClick={p.onDeliver}>Set quantity on site…</button>}
+        <button type="button" className="mi-link" onClick={p.onEditDates}>All dates…</button>
+      </div>
     </>
   }
   if (pop.type === 'deliver' && item) {
     const q = qtyOf(item), rem = Math.max(0, q.total - q.onsite)
-    const quick = [...new Set([0.1, 0.25, 0.5].map((f) => Math.round(q.total * f)))].filter((v) => v > 0 && v < rem)
-    const add = () => { const v = Number(recv.replace(/,/g, '')); if (v > 0) p.onReceive(v) }
-    return <form className="mi-pad" onSubmit={(e) => { e.preventDefault(); add() }}>
-      <label className="mi-l" htmlFor="mi-recv">Received just now{q.unit ? ` (${q.unit})` : ''}</label>
-      <div className="mi-row2"><input id="mi-recv" className="mi-field" inputMode="decimal" placeholder="0" value={recv} onChange={(e) => setRecv(e.target.value)} data-autofocus/>
-        <button type="submit" className="mi-btn" data-primary disabled={!(Number(recv.replace(/,/g, '')) > 0)}>Add</button></div>
-      <div className="mi-qchips">
-        {rem > 0 && <button type="button" className="mi-chip" onClick={() => setRecv(String(rem))}>All remaining · {NUM.format(rem)}</button>}
-        {quick.map((v) => <button key={v} type="button" className="mi-chip" onClick={() => setRecv(String(v))}>{NUM.format(v)}</button>)}
-      </div>
+    return <div className="mi-pad">
+      <SetOnsite key={item.id} value={q.onsite} unit={q.unit} onSet={p.onSetOnsite}/>
       <p className="mi-faint mi-small">{NUM.format(q.onsite)} of {NUM.format(q.total)} on site · {NUM.format(rem)} to go</p>
-      <div className="mi-sep"/>
-      <SetOnsite key={item.id} value={q.onsite} onSet={p.onSetOnsite}/>
-    </form>
+    </div>
   }
   if ((pop.type === 'owner' && item) || pop.type === 'bulk-owner') {
     const current = item ? text(item, 'pic') : ''
@@ -745,19 +808,42 @@ function PopBody(p: PopBodyProps) {
   </>
   return null
 }
-function SetOnsite({ value, onSet }: { value: number; onSet: (v: number) => void }) {
+function SetOnsite({ value, unit, onSet }: { value: number; unit: string; onSet: (v: number) => void }) {
   const [v, setV] = useState(String(value))
-  const set = () => { const x = Number(v.replace(/,/g, '')); if (Number.isFinite(x)) onSet(x) }
-  return <>
-    <label className="mi-l" htmlFor="mi-set">Or set total on site</label>
-    <div className="mi-row2"><input id="mi-set" className="mi-field" inputMode="decimal" value={v} onChange={(e) => setV(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); set() } }}/>
-      <button type="button" className="mi-btn" onClick={set}>Set</button></div>
-  </>
+  const x = Number(v.replace(/,/g, ''))
+  const ok = v.trim() !== '' && Number.isFinite(x) && x >= 0
+  const set = () => { if (ok && x !== value) onSet(x) }
+  return <form onSubmit={(e) => { e.preventDefault(); set() }}>
+    <label className="mi-l" htmlFor="mi-set">Total on site{unit ? ` (${unit})` : ''}</label>
+    <div className="mi-row2"><input id="mi-set" className="mi-field" inputMode="decimal" value={v} data-autofocus onFocus={(e) => e.currentTarget.select()} onChange={(e) => setV(e.target.value)}/>
+      <button type="submit" className="mi-btn" data-primary disabled={!ok || x === value}>Set</button></div>
+  </form>
+}
+/** One-tap dates for "when did this happen": today (the default), yesterday, or any other day from the calendar. */
+function DateChips({ today, primary, onPick }: { today: string; primary: boolean; onPick: (day: string) => void }) {
+  return <div className="mi-step-when">
+    <button type="button" className="mi-chip" data-primary={primary || undefined} data-autofocus={primary || undefined} onClick={() => onPick(today)}>Today<small>{shortDate(today)}</small></button>
+    <button type="button" className="mi-chip" onClick={() => onPick(addDaysIso(today, -1))}>Yesterday</button>
+    <span className="mi-pick"><span className="mi-chip" aria-hidden="true">Other date…</span>
+      <input type="date" max={today} aria-label="Other date" onClick={(e) => { try { e.currentTarget.showPicker() } catch { /* older browsers open it themselves */ } }}
+        onChange={(e) => { if (realYear(e.target.value)) onPick(e.target.value) }}/></span>
+  </div>
+}
+/** The step's plan date: saved with Save or Enter, never while a date is half typed. Clearing it and saving removes the date. */
+function PlanDate({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => void }) {
+  const [v, setV] = useState(value)
+  const ok = (v === '' || realYear(v)) && v !== value
+  const save = () => { if (ok) onSave(v) }
+  return <form className="mi-step-plan" onSubmit={(e) => { e.preventDefault(); save() }}>
+    <label htmlFor="mi-plan">Plan date</label>
+    <input id="mi-plan" type="date" className="mi-field" value={v} aria-label={label} onChange={(e) => setV(e.target.value)}/>
+    <button type="submit" className="mi-btn" data-primary={ok || undefined} disabled={!ok}>Save</button>
+  </form>
 }
 
 /* ---------------- detail panel: non-modal, slides in from the right and leaves the same way ---------------- */
 interface PanelProps {
-  item: MatItem | null; ctx: RowCtx; section: string; week: string; remarks: Record<string, string>
+  item: MatItem | null; ctx: RowCtx; section: SectionInfo[]; week: string; remarks: Record<string, string>
   onClose: () => void; onNav: (dir: number) => void
   onDate: (item: MatItem, key: EditableColKey, value: string) => void
   onQty: (item: MatItem, key: CellKey, value: number) => void
@@ -865,12 +951,17 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
   ]
   const pct = (v: number) => q.total > 0 ? Math.round(Math.min(1, v / q.total) * 100) : 0
   const receive = () => { const v = Number(recv.replace(/,/g, '')); if (v > 0) { onReceive(item, v); setRecv('') } }
-  const photos = effectiveImages(item, 'image').length + effectiveImages(item, 'sample').length
+  const gallery = [
+    ...effectiveImages(item, 'image').map((ref) => ({ ref, sample: false })),
+    ...effectiveImages(item, 'sample').map((ref) => ({ ref, sample: true })),
+  ]
+  const photos = gallery.length
+  const name = text(item, 'description') || codeOf(item)
   const popBtn = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => ctx.openPop(type, item.id, e.currentTarget)
   return <>
     <div className="mi-ph" onPointerDown={onGrab}>
       <span className="mi-handle" aria-hidden="true"/>
-      <div className="mi-ph-top"><span>{codeOf(item)}</span>{section && <><span aria-hidden="true">·</span><span className="mi-ph-sec" title={section}>{section}</span></>}<span className="mi-spacer"/>
+      <div className="mi-ph-top"><span>{codeOf(item)}</span>{section.length > 0 && <><span aria-hidden="true">·</span><span className="mi-ph-sec" title={section.map((x) => x.label).join(' › ')}>{section.at(-1)!.label}</span></>}<span className="mi-spacer"/>
         <button type="button" className="mi-ibtn" aria-label="Previous material" title="Previous (K)" onClick={() => onNav(-1)}><ChevronUp size={15} aria-hidden="true"/></button>
         <button type="button" className="mi-ibtn" aria-label="Next material" title="Next (J)" onClick={() => onNav(1)}><ChevronDown size={15} aria-hidden="true"/></button>
         <button type="button" className="mi-ibtn" aria-label="Close" title="Close (Esc)" onClick={onClose}><X size={15} aria-hidden="true"/></button>
@@ -887,6 +978,16 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
     </div>
     <div className="mi-edge" data-on={edge || undefined}/>
     <div className="mi-pbody" ref={bodyRef} onScroll={(e) => setEdge(e.currentTarget.scrollTop > 2)}>
+      {photos > 0 && <div className="mi-sec mi-gallery-sec">
+        <ul className="mi-gallery" aria-label="Photos">
+          {gallery.map((g, i) => <li key={`${g.ref}:${i}`}>
+            <button type="button" className="mi-gallery-btn" aria-label={`View ${g.sample ? 'approved sample' : 'photo'} ${i + 1} of ${photos}`}
+              onClick={() => ctx.actions.openPicture({ ref: g.ref, alt: g.sample ? `${name} · approved sample` : name, itemId: item.id })}>
+              <Photo src={g.ref}/>{g.sample && <span className="mi-gallery-tag">Sample</span>}
+            </button>
+          </li>)}
+        </ul>
+      </div>}
       {!next.done && <div className="mi-sec"><div className="mi-nextcard">
         <div><div className="mi-t">Next: {next.label}</div><div className="mi-s"><Due next={next}/></div></div>
         <button type="button" className="mi-btn" data-primary aria-haspopup="dialog" onClick={popBtn('next')}>Update…</button>

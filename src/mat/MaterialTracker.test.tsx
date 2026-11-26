@@ -205,7 +205,7 @@ test('a failed save keeps the typed text, marks the cell invalid and offers Retr
   await waitFor(() => expect(screen.getByText('Saved')).toBeInTheDocument())
 })
 
-test('a section row shows the average Placed Order of its items, and the first row the sheet average', async () => {
+test('a section row shows the average Placed Order of its items, and there is no sheet-average row', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([
     section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 4), material('x2', 3, 'XX-02', 8),
     section('s2', 4, 'Floor Finishing'), material('x3', 5, 'XX-03', 10),
@@ -215,7 +215,7 @@ test('a section row shows the average Placed Order of its items, and the first r
   const placedOf = (name: RegExp) => within(screen.getByRole('row', { name })).getAllByText(/%$/)[1]
   expect(placedOf(/Wall Finishing/)).toHaveTextContent('60%')
   expect(placedOf(/Floor Finishing/)).toHaveTextContent('100%')
-  expect(placedOf(/Sheet average/)).toHaveTextContent('73%')
+  expect(screen.queryByRole('row', { name: /Sheet average/ })).toBeNull()
 })
 
 test('a parent section averages the items of its nested sections, and collapsing it hides them all', async () => {

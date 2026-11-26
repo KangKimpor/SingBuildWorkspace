@@ -58,8 +58,9 @@ export function useSyncView() {
 }
 
 export function TopBar({ crumb, bp }: { crumb: Crumb; bp: Breakpoint }) {
-  // Project Progress and Settings keep search on the keyboard shortcut and omit the bar on desktop unless sync fails.
-  const hideSearch = crumb.parent === 'Projects Progress' || (!crumb.parent && crumb.label === 'Settings')
+  // Project Progress, Settings and the Material list keep search on the keyboard shortcut and omit the bar on desktop
+  // unless sync fails: a bar holding only a search icon left an empty band above their headings.
+  const hideSearch = crumb.parent === 'Projects Progress' || (!crumb.parent && (crumb.label === 'Settings' || crumb.label === 'Material list'))
   const { sync, tone, retry } = useSyncView()
   const syncFailed = sync.kind === 'error'
   const { setDrawerOpen } = useShell()

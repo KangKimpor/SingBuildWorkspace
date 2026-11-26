@@ -88,12 +88,12 @@ html[data-mat-expanded] .sidebar-slot,
 html[data-mat-expanded] .topbar { visibility: hidden; }
 @media (max-width: 900px) { .mat-expand-label { display: none; } }
 
-/* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 48, Code 120, Description 240. */
+/* The table: one scroll container for both axes, a two-row sticky header and three frozen columns. Widths come from the colgroup (table-layout: fixed), so the offsets below are exact: No 84, Code 120, Description 240. */
 .mat-scroll {
   flex: 1 1 auto; min-height: 8rem; overflow: auto;
   border: 1px solid var(--pp-line-strong); border-radius: 12px; background: var(--pp-l3);
-  /* A cell focused by the keyboard scrolls clear of the sticky header and the frozen columns (48 + 120 + 240). */
-  scroll-padding: calc(var(--mat-h1) + var(--mat-h2)) 0 0 408px;
+  /* A cell focused by the keyboard scrolls clear of the sticky header and the frozen columns (84 + 120 + 240). */
+  scroll-padding: calc(var(--mat-h1) + var(--mat-h2)) 0 0 444px;
   scrollbar-width: thin; scrollbar-color: rgb(0 0 0 / 0.2) transparent;
 }
 .mat-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
@@ -126,14 +126,16 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-table .mat-f { position: sticky; z-index: 2; }
 .mat-table thead .mat-f { z-index: 5; }
 .mat-f1, .mat-f-span { left: 0; }
-.mat-f2 { left: 48px; }
-.mat-f3 { left: 168px; }
+.mat-f2 { left: 84px; }
+.mat-f3 { left: 204px; }
 .mat-table :is(.mat-f3, .mat-f-span) { border-right: 1px solid var(--pp-line-strong); }
 .mat-scroll[data-scrolled] .mat-table :is(.mat-f3, .mat-f-span) { box-shadow: 5px 0 6px -4px var(--pp-edge); }
 
 /* Rows keep one plain background. The workbook's status marks live in the small dot on the Code cell and in the legend. */
 .mat-table tbody th.mat-f2 { padding: 0; font-family: inherit; font-size: 12px; font-weight: 500; }
 .mat-table td.mat-f1 { font-size: 12px; color: var(--pp-ink-muted); }
+/* No: the workbook number ("1.1.2.1") on one line in tabular figures, never broken at its dots; the full text is in the title. */
+.mat-table td.mat-f1 .mat-clamp { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; overflow-wrap: normal; font-weight: 500; letter-spacing: 0.01em; font-variant-numeric: tabular-nums; }
 /* Solid background-color hover avoids gradient repaints across 40 cells per mouse move. */
 .mat-table tbody tr:not(.mat-section, .mat-total, .mat-spacer):hover > :is(td, th) { background-color: var(--mat-row-hover); }
 .mat-mark-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--mat-mark); }
@@ -343,3 +345,15 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
   .mat-source-panel[data-state='closed'], .mat-picture[data-state='closed'] { animation: mat-fade-out 140ms ease-out forwards; }
   .mat-picture img { transition: none; }
 }
+
+/* Export to workbook (D-60): a file picker styled as the header's secondary button, and the result line under the tabs. */
+.mat-export { cursor: pointer; }
+.mat-export[data-busy] { opacity: 0.7; cursor: progress; }
+.mat-export:has(input:focus-visible) { outline: 2px solid var(--pp-accent-ink); outline-offset: 2px; }
+.mat-export-note { display: flex; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4) var(--space-12); padding: var(--space-8) var(--space-8) var(--space-8) var(--space-12); border-radius: 10px; background: var(--chip-green, #e4f6e8); color: var(--pp-ink); font-size: var(--fs-small); }
+.mat-export-note[data-tone='error'] { background: var(--chip-red); color: var(--danger-text); }
+.mat-export-note > span { flex: 1 1 320px; align-self: center; }
+.mat-export-note details { flex-basis: 100%; order: 3; color: var(--pp-ink-2); }
+.mat-export-note summary { cursor: pointer; }
+.mat-export-note ul { margin: var(--space-4) 0 0; padding-inline-start: var(--space-16); }
+.mat-export-note .ibtn { flex: none; width: 24px; height: 24px; }

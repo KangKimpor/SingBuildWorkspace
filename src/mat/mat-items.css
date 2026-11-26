@@ -1,10 +1,14 @@
 /* Material list, List and Board views (D-57). Item-centric rows on a quiet grouped surface; every value is a calm
    button that reveals its affordance on hover and opens an anchored popover. Light mode only, like the rest of /admin. */
 .mat-page[data-view='list'], .mat-page[data-view='board'] { padding-bottom: 0; }
-.mat-view-tabs { padding: 2px; border-radius: 9px; background: rgb(118 118 128 / 0.1); }
-.mat-view-tabs { display: inline-flex; align-items: center; height: 32px; box-sizing: border-box; }
-.mat-view-tabs .view-tab { display: inline-flex; align-items: center; height: 28px; padding-block: 0; border: 0; background: transparent; cursor: pointer; border-radius: 7px; }
-.mat-view-tabs .view-tab[aria-pressed='true'] { color: var(--text-primary); background: var(--bg-canvas); box-shadow: 0 1px 3px rgb(0 0 0 / 0.1), 0 0 0 0.5px rgb(0 0 0 / 0.04); }
+/* The List / Board / Sheet switch: the same gray-track segment as the package and sheet pickers. The shared `.view-tabs`
+   scrolls sideways (`overflow-x: auto`), and its taller `.view-tab` min-height overflowed the 32 px track, which showed
+   a vertical scroll spinner; this track never scrolls and every key fits inside it. */
+.mat-view-tabs.view-tabs { display: inline-flex; align-items: center; gap: 0; width: fit-content; height: 32px; box-sizing: border-box; padding: 2px; overflow: visible; border-radius: 9px; background: rgb(118 118 128 / 0.12); }
+.mat-view-tabs .view-tab { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; height: 28px; min-height: 0; padding: 0 14px; border: 0; border-radius: 7px; background: transparent; color: #1d1d1f; font-size: 13px; font-weight: 500; cursor: pointer; transition: background-color 160ms ease, box-shadow 160ms ease; }
+.mat-view-tabs .view-tab:hover:not([aria-pressed='true']) { background: rgb(118 118 128 / 0.12); }
+.mat-view-tabs .view-tab[aria-pressed='true'] { color: #1d1d1f; font-weight: 600; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.1), 0 0 0 0.5px rgb(0 0 0 / 0.05); }
+@media (prefers-reduced-motion: reduce) { .mat-view-tabs .view-tab { transition: none; } }
 
 .mi {
   --mi-surface: #fff; --mi-page: #f5f5f7; --mi-fill: rgb(118 118 128 / 0.08); --mi-fill-2: rgb(118 118 128 / 0.14);
@@ -47,16 +51,19 @@
 .mi [data-stage='partial'] { --st: #c25100; --st-bg: #fff0e0; }
 .mi [data-stage='onsite'] { --st: #248a3d; --st-bg: #e4f6e8; }
 .mi-dot { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--st, currentColor); }
-.mi-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 8px; border-radius: 999px; background: var(--st-bg); color: var(--st); font-size: 12px; font-weight: 600; white-space: nowrap; }
+/* Status pill: a light tint with a hairline ring in the stage's hue, so a column of pills reads as labels, not blocks of colour. */
+.mi-pill { display: inline-flex; align-items: center; gap: 5px; height: 22px; box-sizing: border-box; padding: 0 9px 0 7px; border-radius: 999px; background: color-mix(in srgb, var(--st) 7%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--st) 18%, transparent); color: var(--st); font-size: 12px; font-weight: 600; letter-spacing: -0.005em; white-space: nowrap; }
+.mi-pill .mi-dot { width: 6px; height: 6px; }
 .mi-pill .mi-dot { background: var(--st); }
 .mi-caret { margin-inline-start: -2px; opacity: 0; transition: opacity 120ms; }
 .mi-cell:hover .mi-caret, .mi-cell[aria-expanded='true'] .mi-caret { opacity: 0.6; }
 
 /* Overview: four attention counts that filter, and the pipeline across all seven stages. */
-.mi-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin: 4px 0 6px; }
-.mi-card { display: flex; flex-direction: column; gap: 1px; padding: 12px 14px; border: 0; border-radius: 14px; background: var(--mi-surface); text-align: start; box-shadow: var(--mi-shadow); }
-.mi-card:hover { box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 4px 14px rgb(0 0 0 / 0.06); }
-.mi-card[aria-pressed='true'] { box-shadow: 0 0 0 2px var(--mi-accent), 0 4px 14px rgb(0 113 227 / 0.12); }
+.mi-overview { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 4px 0 8px; }
+/* Overview cards, the pipeline and the list share the Project Progress panel outline, so both pages read as one design. */
+.mi-card { display: flex; flex-direction: column; gap: 2px; padding: 16px 18px; text-align: start; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
+.mi-card:hover { border-color: var(--border-strong, rgb(0 0 0 / 0.14)); }
+.mi-card[aria-pressed='true'] { border-color: var(--mi-accent); box-shadow: 0 0 0 1px var(--mi-accent), 0 12px 32px rgb(0 113 227 / 0.06); }
 .mi-card-k { display: flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; color: var(--mi-ink-2); }
 .mi-card[data-attn='late'] .mi-dot { background: var(--mi-red); }
 .mi-card[data-attn='soon'] .mi-dot { background: #ff9500; }
@@ -64,7 +71,7 @@
 .mi-card[data-attn='quiet'] .mi-dot { background: #8e8e93; }
 .mi-card-v { font-size: 26px; font-weight: 700; line-height: 1.15; letter-spacing: -0.025em; }
 .mi-card-d { font-size: 11.5px; color: var(--mi-ink-3); }
-.mi-pipe { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px 14px; border-radius: 14px; background: var(--mi-surface); box-shadow: var(--mi-shadow); min-width: 0; }
+.mi-pipe { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 16px 18px; min-width: 0; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
 .mi-pipe-h { display: flex; align-items: baseline; gap: 12px; font-size: 12.5px; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
 .mi-pipe-h b { font-weight: 600; color: var(--mi-ink-2); }
 .mi-pipe-bar { display: flex; gap: 2px; height: 8px; border-radius: 4px; overflow: hidden; background: var(--mi-fill); }
@@ -100,36 +107,52 @@
 .mi-chip[aria-pressed='true'] .mi-chip-n { color: rgb(255 255 255 / 0.7); }
 .mi-chg { display: inline-block; flex: none; width: 6px; height: 6px; margin-inline-end: 6px; border-radius: 50%; background: var(--mi-accent); vertical-align: 2px; }
 .mi-chip .mi-chg { margin: 0; vertical-align: 0; }
-/* The changed dot hangs in the gutter before the name, so every name starts on one left edge. */
-.mi-name { position: relative; }
-.mi-name .mi-chg { position: absolute; left: -10px; top: 7px; margin: 0; }
+/* Changed this week: a small labelled tag leading the subtitle, so the name keeps its left edge and the mark says what it means. */
+.mi-chg-tag { display: inline-flex; align-items: center; gap: 4px; flex: none; height: 17px; margin-inline-end: 6px; padding: 0 6px; border-radius: 5px; background: rgb(0 113 227 / 0.09); color: var(--mi-blue); font-size: 10.5px; font-weight: 650; letter-spacing: 0.01em; vertical-align: 1px; }
+.mi-chg-tag::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.mi-name .mi-s { display: flex; align-items: center; min-width: 0; }
+.mi-name .mi-s > .mi-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mi-toolbar .mi-chip { height: 32px; }
 .mi-link { border: 0; padding: 0 4px; background: none; color: var(--mi-blue); font-size: 13px; }
 .mi-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mi-count { font-size: 12px; color: var(--mi-ink-3); }
 
 /* List: one grid shared by the header and every row. */
-.mi-list { margin-top: 10px; border-radius: 14px; background: var(--mi-surface); box-shadow: var(--mi-shadow); overflow: clip; }
-.mi-grid { display: grid; grid-template-columns: 40px minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 160px minmax(200px, 1.7fr); align-items: center; column-gap: 10px; padding: 0 14px 0 8px; }
-.mi-grid[data-owner] { grid-template-columns: 40px minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 160px 128px minmax(200px, 1.7fr); }
+.mi-list { margin-top: 10px; overflow: clip; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
+.mi-list { --mi-lead: 60px; }
+.mi-grid { display: grid; grid-template-columns: var(--mi-lead) minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 148px minmax(200px, 1.7fr); align-items: center; column-gap: 14px; padding: 0 16px 0 12px; }
+.mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 148px 132px minmax(200px, 1.7fr); }
 .mi-lh { height: 34px; box-shadow: inset 0 -0.5px 0 var(--mi-sep); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mi-ink-3); }
-.mi-grp { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; column-gap: 10px; width: 100%; padding: 16px 14px 6px 8px; border: 0; background: none; font-size: 13px; font-weight: 650; letter-spacing: -0.005em; text-align: start; }
-.mi-grp-l { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+/* Section headers follow the workbook's nesting: each level steps in by 20 px and gets a little quieter, so
+   "1 Wall Finishing > 1.1 L23 Club Lounge > 1.1.1 Stone/Marble" reads as a tree. The number keeps its own muted ink. */
+.mi-row + .mi-gh { box-shadow: inset 0 0.5px 0 var(--mi-sep); }
+.mi-grp { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: center; column-gap: 8px; width: 100%; min-height: 40px; padding: 8px 16px 8px calc(12px + var(--depth, 0) * 20px); border: 0; background: none; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; text-align: start; }
+.mi-grp:hover { background: var(--mi-hover); }
+.mi-gh[data-depth='0'] .mi-grp { min-height: 48px; padding-block: 14px 8px; font-size: 15px; font-weight: 700; letter-spacing: -0.015em; }
+.mi-lh + .mi-gh .mi-grp { min-height: 42px; padding-top: 10px; }
+.mi-gh[data-depth='1'] .mi-grp { font-size: 13.5px; font-weight: 650; }
+.mi-gh:is([data-depth='2'], [data-depth='3']) .mi-grp { color: var(--mi-ink-2); }
+.mi-grp-l { display: flex; align-items: baseline; gap: 8px; min-width: 0; overflow: hidden; white-space: nowrap; }
+.mi-grp-no { flex: none; color: var(--mi-ink-3); font-weight: 600; font-variant-numeric: tabular-nums; }
+.mi-grp-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .mi-chev { justify-self: center; color: var(--mi-ink-3); transition: transform 250ms var(--mi-ease); }
 .mi-grp[aria-expanded='false'] .mi-chev { transform: rotate(-90deg); }
-.mi-grp-n { color: var(--mi-ink-3); font-weight: 500; font-variant-numeric: tabular-nums; }
+.mi-grp-n { flex: none; align-self: center; min-width: 20px; padding: 0 6px; border-radius: 999px; background: var(--mi-fill); color: var(--mi-ink-3); font-size: 11.5px; font-weight: 600; letter-spacing: 0; line-height: 18px; text-align: center; font-variant-numeric: tabular-nums; }
 .mi-grp-late { font-size: 12px; font-weight: 600; color: var(--mi-red); }
-.mi-row { position: relative; min-height: 60px; transition: background-color 120ms; content-visibility: auto; contain-intrinsic-size: auto 60px; }
-.mi-row::after { content: ''; position: absolute; left: 58px; right: 0; bottom: 0; height: 0.5px; background: var(--mi-sep); }
+.mi-row { position: relative; min-height: 76px; padding-block: 8px; box-sizing: border-box; transition: background-color 120ms; content-visibility: auto; contain-intrinsic-size: auto 76px; }
+.mi-row::after { content: ''; position: absolute; left: calc(12px + var(--mi-lead) + 14px); right: 0; bottom: 0; height: 0.5px; background: var(--mi-sep); }
 .mi-row:hover { background: var(--mi-hover); }
 .mi-row[data-picked] { background: rgb(0 113 227 / 0.05); }
 .mi-row[data-sel] { background: var(--mi-sel); }
 .mi-row[data-flash] { animation: mi-flash 1.2s var(--mi-ease); }
 @keyframes mi-flash { from { background-color: rgb(52 199 89 / 0.16); } }
-.mi-lead { position: relative; display: flex; align-items: center; justify-content: center; height: 36px; }
-.mi-thumb { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 8px; background: linear-gradient(135deg, #f0efec, #e2ded7); color: rgb(0 0 0 / 0.32); }
+/* The material's photo: big enough to recognise the finish, opens full size. The select box sits on its corner. */
+.mi-lead { position: relative; display: flex; align-items: center; justify-content: center; width: var(--mi-lead); height: var(--mi-lead); }
+.mi-thumb { position: relative; display: grid; place-items: center; width: 100%; height: 100%; padding: 0; overflow: hidden; border: 0; border-radius: 10px; background: linear-gradient(135deg, #f0efec, #e2ded7); color: rgb(0 0 0 / 0.3); box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08); }
+.mi-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.mi-thumb-n { position: absolute; right: 3px; bottom: 3px; min-width: 16px; padding: 0 4px; border-radius: 999px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 10px; font-weight: 600; line-height: 16px; text-align: center; font-variant-numeric: tabular-nums; }
 .mi-row[data-mark='omit'] { opacity: 0.6; }
-.mi-ck { position: absolute; inset: 0; display: grid; place-items: center; width: 20px; height: 20px; margin: auto; padding: 0; border: 1.5px solid var(--mi-sep-2); border-radius: 50%; background: var(--mi-surface); color: #fff; opacity: 0; }
+.mi-ck { position: absolute; top: -6px; left: -6px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1.5px solid var(--mi-sep-2); border-radius: 50%; background: var(--mi-surface); color: #fff; opacity: 0; box-shadow: 0 1px 3px rgb(0 0 0 / 0.12); }
 .mi-ck svg { opacity: 0; }
 .mi-row:hover .mi-ck, .mi-ck:focus-visible, .mi-ck[aria-checked='true'], .mi-list[data-selecting] .mi-ck { opacity: 1; }
 .mi-ck[aria-checked='true'] { border-color: var(--mi-accent); background: var(--mi-accent); }
@@ -144,15 +167,28 @@
 .mi-cell:hover { background: var(--mi-fill); }
 .mi-cell[aria-expanded='true'] { background: var(--mi-fill-2); }
 .mi-cell.mi-inline { display: inline-flex; align-items: center; gap: 7px; width: auto; margin: 0; }
-.mi-next .mi-t { display: block; font-size: 13px; font-weight: 600; line-height: 18px; }
+.mi-next .mi-t { display: flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; line-height: 18px; }
+.mi-next .mi-caret { flex: none; }
+.mi-next .mi-s { display: flex; align-items: center; gap: 6px; }
+/* Due state as a small tinted label ahead of the plan date: "139d late · due 10 Jul", "In 5d · due 1 Dec". */
+.mi-due { display: inline-flex; align-items: center; height: 17px; padding: 0 6px; border-radius: 5px; font-size: 11px; font-weight: 650; white-space: nowrap; }
+.mi-due[data-tone='late'] { background: rgb(215 0 21 / 0.08); color: var(--mi-red); }
+.mi-due[data-tone='soon'] { background: rgb(194 81 0 / 0.09); color: var(--mi-orange); }
+.mi-due[data-tone='done'] { background: rgb(36 138 61 / 0.09); color: var(--mi-green); }
 .mi-cell .mi-s { line-height: 17px; }
-.mi-qbar { display: flex; height: 5px; margin: 6.5px 0; border-radius: 3px; background: var(--mi-fill-2); overflow: hidden; }
+.mi-qbar { display: flex; height: 4px; margin: 0; border-radius: 2px; background: var(--mi-fill-2); overflow: hidden; }
 .mi-qbar[data-large] { height: 10px; margin: 0; border-radius: 5px; }
 .mi-qbar i { display: block; height: 100%; transition: width 500ms var(--mi-ease); }
 :is(.mi-qbar, .mi-legend) i[data-k='onsite'] { background: #34c759; }
 :is(.mi-qbar, .mi-legend) i[data-k='shd'] { background: var(--mi-blue); }
 :is(.mi-qbar, .mi-legend) i[data-k='po'] { background: rgb(0 102 204 / 0.25); }
-.mi-qty .mi-s { color: var(--mi-ink-2); }
+/* On site: the count first ("12 / 89 m2"), the bar under it, both on one left edge. */
+.mi-qty { display: flex; flex-direction: column; gap: 7px; }
+.mi-qty .mi-qbar { width: min(100%, 120px); }
+.mi-qty-v { display: flex; align-items: baseline; min-width: 0; overflow: hidden; font-size: 13px; color: var(--mi-ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mi-qty-v b { color: var(--mi-ink); font-weight: 600; }
+.mi-qty-v > span { white-space: pre; }
+.mi-qty-u { margin-inline-start: 4px; font-size: 12px; }
 .mi-who { display: flex; align-items: center; gap: 7px; font-size: 13px; white-space: nowrap; min-width: 0; }
 .mi-who > span:not(.mi-av) { overflow: hidden; text-overflow: ellipsis; }
 .mi-av { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: hsl(var(--h) 62% 46%); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; }
@@ -164,7 +200,7 @@
 .mi-team { margin-inline-end: 5px; padding: 1px 5px; border-radius: 4px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
 .mi-team[data-team='purchase'] { background: #e3f0ff; color: #0066cc; }
 .mi-team[data-team='pm'] { background: #f3e8fa; color: #8944ab; }
-.mi-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 10px; padding: 56px 16px; border-radius: 14px; background: var(--mi-surface); box-shadow: var(--mi-shadow); color: var(--mi-ink-2); text-align: center; }
+.mi-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 10px; padding: 56px 16px; color: var(--mi-ink-2); text-align: center; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
 
 /* Board: one column per stage; cards lift and follow the pointer from where they were grabbed. */
 .mi-board { display: grid; grid-template-columns: repeat(7, minmax(200px, 1fr)); gap: 12px; margin: 10px calc(-1 * var(--space-32)) 0; overflow-x: auto; padding: 2px var(--space-32) 8px; scroll-padding-inline: var(--space-32); }
@@ -322,20 +358,20 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 /* Columns drop by the room the list actually has (the sidebar takes part of the viewport), owner first, then the note, then quantity. */
 .mi-list, .mi-overview { container: mi / inline-size; }
 @container mi (max-width: 1180px) {
-  .mi-grid[data-owner] { grid-template-columns: 40px minmax(220px, 2.3fr) 148px minmax(160px, 1.15fr) 150px minmax(180px, 1.5fr); }
+  .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(220px, 2.3fr) 148px minmax(160px, 1.15fr) 148px minmax(180px, 1.5fr); }
   .mi-grid > .mi-c-who { display: none; }
 }
 @container mi (max-width: 1000px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: 40px minmax(180px, 2fr) 140px minmax(140px, 1.2fr) minmax(110px, 1fr); }
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(180px, 2fr) 140px minmax(140px, 1.2fr) minmax(110px, 1fr); }
   .mi-grid > .mi-c-note { display: none; }
 }
 @container mi (max-width: 700px) {
   .mi-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: 40px minmax(0, 1fr) 136px minmax(120px, 0.8fr); }
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(0, 1fr) 136px minmax(120px, 0.8fr); }
   .mi-grid > :nth-child(5) { display: none; }
 }
 @container mi (max-width: 560px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(0, 1fr) auto; }
   .mi-grid > :nth-child(4) { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -359,3 +395,33 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-act b { font-weight: 600; color: #1d1d1f; }
 .mi-act time { font-size: 12px; color: rgb(60 60 67 / 0.72); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .mi-note-by { margin: 8px 0 0; }
+
+/* Panel photos: every picture of the material at a size you can judge the finish from; each opens full size. */
+.mi-gallery { display: flex; gap: 8px; margin: 0; padding: 0 0 4px; overflow-x: auto; list-style: none; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.mi-gallery li { flex: none; scroll-snap-align: start; }
+.mi-gallery-btn { position: relative; display: grid; place-items: center; width: 112px; height: 112px; padding: 0; overflow: hidden; border: 0; border-radius: 12px; background: linear-gradient(135deg, #f0efec, #e2ded7); color: rgb(0 0 0 / 0.3); box-shadow: inset 0 0 0 0.5px rgb(0 0 0 / 0.08); cursor: zoom-in; transition: transform 90ms ease-out; }
+.mi-gallery-btn:active { transform: scale(0.97); }
+.mi-gallery-btn img { width: 100%; height: 100%; object-fit: cover; }
+.mi-gallery-tag { position: absolute; left: 6px; bottom: 6px; padding: 1px 6px; border-radius: 5px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 10.5px; font-weight: 600; }
+.mi .mi-thumb:not([data-empty]) { cursor: zoom-in; }
+
+/* Next step popover: one row per way the step can end, each with one-tap dates; then the step's plan date. */
+.mi-step-h { padding: 8px 10px 2px; }
+.mi-step-h b { display: block; font-size: 14px; font-weight: 650; letter-spacing: -0.01em; }
+.mi-step-h span { display: block; margin-top: 2px; font-size: 12px; color: var(--mi-ink-3); }
+.mi-step-h span[data-tone='late'] { color: var(--mi-red); }
+.mi-step-act { display: grid; gap: 7px; padding: 8px 10px; }
+.mi-step-act + .mi-step-act { border-top: 0.5px solid var(--mi-sep); }
+.mi-step-act > b { font-size: 12.5px; font-weight: 600; }
+.mi-step-when { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mi-step-when .mi-chip { height: 28px; padding: 0 11px; font-variant-numeric: tabular-nums; }
+.mi-step-when .mi-chip[data-primary] { background: var(--mi-accent); color: #fff; }
+.mi-step-when .mi-chip[data-primary]:hover { background: var(--mi-accent-press); }
+.mi-step-when .mi-chip small { margin-inline-start: 4px; font-size: 11px; font-weight: 500; opacity: 0.75; }
+.mi-pick { position: relative; display: inline-flex; }
+.mi-pick input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+.mi-pick:focus-within .mi-chip { box-shadow: 0 0 0 3px var(--mi-accent-soft), 0 0 0 1px var(--mi-accent); }
+.mi-step-plan { display: flex; align-items: center; gap: 8px; padding: 8px 10px 4px; font-size: 12.5px; color: var(--mi-ink-2); }
+.mi-step-plan .mi-field { flex: 1; }
+.mi-step-links { display: flex; gap: 2px; padding: 2px 4px 2px; }
+.mi-step-links .mi-link { height: 28px; font-size: 12.5px; }

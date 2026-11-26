@@ -97,14 +97,48 @@ test('changing the stage saves column edits at once and Undo puts the old edits 
   expect(within(x1).getByRole('button', { name: /^Stage: Ordered/ })).toBeInTheDocument()
 })
 
-test('a delivery adds to the quantity on site', async () => {
+test('the on-site popover sets the total on site', async () => {
   open()
   const x2 = await row('XX-02')
   fireEvent.click(within(x2).getByRole('button', { name: /^On site 0 of 10/ }))
-  fireEvent.change(await screen.findByLabelText(/Received just now/), { target: { value: '4' } })
-  fireEvent.click(screen.getByRole('button', { name: 'Add' }))
+  const pop = await screen.findByRole('dialog', { name: 'Quantity on site' })
+  expect(within(pop).queryByText(/Received/)).toBeNull()
+  fireEvent.change(within(pop).getByLabelText('Total on site'), { target: { value: '4' } })
+  fireEvent.click(within(pop).getByRole('button', { name: 'Set' }))
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x2', expect.objectContaining({ onsite: 4 })))
-  expect(screen.getByText(/^Received 4/)).toBeInTheDocument()
+  expect(screen.getByText('On site updated')).toBeInTheDocument()
+})
+
+test('the next step says when it is due and finishes with a one-tap date', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    material('x1', 2, 'XX-01', 0, { data: { ...material('x1', 2, 'XX-01', 0).data, cols: { ...material('x1', 2, 'XX-01', 0).data.cols, poPlan: '2025-10-07' } } }),
+  ]))
+  open()
+  const x1 = await row('XX-01')
+  expect(within(x1).getByText('Place order')).toBeInTheDocument()
+  expect(within(x1).getByText(/^\d+d late$/)).toBeInTheDocument()
+  expect(within(x1).getByText('due 7 Oct')).toBeInTheDocument()
+  fireEvent.click(within(x1).getByText('Place order'))
+  const pop = await screen.findByRole('dialog', { name: 'Next step' })
+  expect(within(pop).getByText(/^Planned 7 Oct · \d+ days late$/)).toBeInTheDocument()
+  fireEvent.click(within(within(pop).getByRole('group', { name: 'Order placed' })).getByRole('button', { name: 'Yesterday' }))
+  const yesterday = new Date(Date.now() - 864e5)
+  const iso = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ poActual: iso, po: 10 })))
+})
+
+test('a plan date set from the next step saves that column', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 0),
+  ]))
+  open()
+  fireEvent.click(within(await row('XX-01')).getByText('Place order'))
+  const pop = await screen.findByRole('dialog', { name: 'Next step' })
+  fireEvent.change(within(pop).getByLabelText('Place order plan date'), { target: { value: '2026-12-15' } })
+  expect(saveFields).not.toHaveBeenCalled() // a date being typed is not saved until Save or Enter
+  fireEvent.click(within(pop).getByRole('button', { name: 'Save' }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { poPlan: '2026-12-15' }))
 })
 
 test('a note is saved as the remark for this week and the chosen team', async () => {
@@ -175,4 +209,37 @@ test('a save shows who made it in the panel and in the Activity list', async () 
   fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
   const list = await screen.findByRole('dialog', { name: 'Recent activity' })
   expect(within(list).getByText('Kimpor Kang')).toBeInTheDocument()
+})
+
+test('List groups materials under the same nested sections as the Sheet, and collapsing a parent hides its children', async () => {
+  const head = (id: string, pos: number, no: string, name: string, level: number, end: number): MatItem =>
+    ({ ...section(id, pos, '', { level, end }), data: { cols: { no, code: name }, cells: {}, level, end } })
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    head('s1', 1, '1', 'Wall Finishing', 0, 6), head('s11', 2, '1.1', 'L23 Club Lounge', 1, 6),
+    head('s111', 3, '1.1.1', 'Stone/Marble', 2, 4), material('x1', 4, 'XX-01', 4),
+    head('s112', 5, '1.1.2', 'Wall Column Finishes', 2, 6), material('x2', 6, 'XX-02', 8),
+  ]))
+  open()
+  await row('XX-01')
+  const group = (name: string) => screen.getByRole('button', { name: new RegExp(name) })
+  expect(within(group('Wall Finishing')).getByText('1')).toBeInTheDocument()
+  expect(within(group('Wall Finishing')).getByText('2')).toBeInTheDocument()
+  expect(group('L23 Club Lounge')).toHaveAttribute('title', '1 Wall Finishing › 1.1 L23 Club Lounge')
+  expect(group('Stone/Marble').closest('[role="row"]')).toHaveAttribute('data-depth', '2')
+  fireEvent.click(group('Wall Finishing'))
+  expect(screen.queryByText('Sample panel XX-01')).toBeNull()
+  expect(screen.queryByRole('button', { name: /Stone\/Marble/ })).toBeNull()
+})
+
+test('a material photo shows in its List row and opens full size', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    material('x1', 2, 'XX-01', 4, { data: { ...material('x1', 2, 'XX-01', 4).data, images: { image: ['abc.webp'] } } }),
+  ]))
+  open()
+  const x1 = await row('XX-01')
+  const thumb = within(x1).getByRole('button', { name: 'View photo of Sample panel XX-01' })
+  expect(thumb.querySelector('img')).toHaveAttribute('src', '/mat/abc.webp')
+  fireEvent.click(thumb)
+  expect(await screen.findByRole('dialog', { name: 'Sample panel XX-01' })).toBeInTheDocument()
 })

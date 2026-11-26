@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { nextOf, onsitePatch, sectionsOf, snapshot, stageOf, stagePatch } from './stage'
+import { nextOf, onsitePatch, sectionTree, snapshot, stageOf, stagePatch } from './stage'
 import type { MatItem } from './types'
 
 const item = (cols: MatItem['data']['cols'], qty: [number, number, number] = [10, 0, 0], edits: MatItem['edits'] = {}): MatItem => ({
@@ -52,11 +52,23 @@ test('a delivery that reaches the total stamps arrival; undo restores the previo
   expect(snapshot(it, patch)).toEqual({ onsite: 6, arrActual: null })
 })
 
-test('each material belongs to the nearest top-level section above it', () => {
-  const sec = (id: string, pos: number, level: number): MatItem => ({ id, package: 'bp03', sheet: 'id', pos, kind: 'section', edits: {}, updatedAt: '', data: { cols: { no: id, description: `S ${id}` }, cells: {}, level } })
-  const rows = [sec('A', 1, 0), { ...item({}), id: 'a1' }, sec('A1', 3, 1), { ...item({}), id: 'a2' }, sec('B', 5, 0), { ...item({}), id: 'b1' }]
-  const map = sectionsOf(rows)
-  expect([map.get('a1')?.id, map.get('a2')?.id, map.get('b1')?.id]).toEqual(['A', 'A', 'B'])
+test('each material sits under the same nested sections as on the Sheet', () => {
+  const sec = (id: string, pos: number, level: number, end?: number, cols: MatItem['data']['cols'] = { no: id, description: `S ${id}` }): MatItem =>
+    ({ id, package: 'bp03', sheet: 'id', pos, kind: 'section', edits: {}, updatedAt: '', data: { cols, cells: {}, level, end } })
+  const at = (id: string, pos: number): MatItem => ({ ...item({}), id, pos })
+  const rows = [
+    sec('1', 1, 0, 6, { no: '1', code: 'Wall Finishing' }), sec('1.1', 2, 1, 6, { no: '1.1', pic: 'L23 Club Lounge' }), sec('1.1.1', 3, 2, 4), at('a', 4),
+    sec('1.1.2', 5, 2, 6), at('b', 6), at('c', 7), sec('2', 8, 0), at('d', 9),
+  ]
+  const { sections, pathOf } = sectionTree(rows)
+  const ids = (id: string) => pathOf.get(id)?.map((s) => s.id)
+  expect(ids('a')).toEqual(['1', '1.1', '1.1.1'])
+  expect(ids('b')).toEqual(['1', '1.1', '1.1.2'])
+  expect(ids('c')).toBeUndefined() // past every enclosing section's end
+  expect(ids('d')).toEqual(['2'])
+  expect(sections.map((s) => [s.label, s.depth, s.parent])).toEqual([
+    ['1 Wall Finishing', 0, null], ['1.1 L23 Club Lounge', 1, '1'], ['1.1.1 S 1.1.1', 2, '1.1'], ['1.1.2 S 1.1.2', 2, '1.1'], ['2 S 2', 0, null],
+  ])
 })
 
 test('activity entries read as plain sentences', async () => {
@@ -68,4 +80,12 @@ test('activity entries read as plain sentences', async () => {
   expect(describeLog(log('fields', { onsite: 40, arrActual: '2026-11-25' }))).toBe('set on site to 40')
   expect(describeLog(log('fields', { msPlan: '2026-12-01' }))).toBe('edited the submission plan date')
   expect(describeLog(log('fields', { brand: null }))).toBe('reset the brand')
+})
+
+test('a resubmission takes the date given; a first submission keeps the date already recorded', () => {
+  const revise = item({ msActual: '2026-10-01', msStatus: 'Revise & Resubmit' })
+  expect(stagePatch(revise, 'review', '2026-11-25')).toMatchObject({ msActual: '2026-11-25', msStatus: 'Under Review' })
+  // Already submitted on 1 Oct and marked Under Review again: the recorded date stays (null = the workbook's own value).
+  const submitted = item({ msActual: '2026-10-01', msStatus: 'Approved' })
+  expect(stagePatch(submitted, 'review', '2026-11-25')).toMatchObject({ msActual: null })
 })

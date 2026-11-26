@@ -69,6 +69,14 @@ describe('TopBar', () => {
     expect(container.querySelector('.topbar')).toBeNull()
     expect(screen.queryByRole('button', { name: 'Open command palette' })).toBeNull()
 
+    // The material list starts its heading at the top of the page instead of under a bar holding only a search icon.
+    rerender(
+      <MemoryRouter>
+        <TopBar crumb={{ label: 'Material list' }} bp="expanded" />
+      </MemoryRouter>,
+    )
+    expect(container.querySelector('.topbar')).toBeNull()
+
     rerender(
       <MemoryRouter>
         <TopBar crumb={{ label: 'Workspace' }} bp="expanded" />

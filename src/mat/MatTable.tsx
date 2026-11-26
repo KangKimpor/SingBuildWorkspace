@@ -67,7 +67,7 @@ const MS = 'Material Submission', SS = 'Sample Submission', PROC = 'Procurement'
 const PM = 'PM Remarks'
 /** The workbook's columns, left to right. The first three stay frozen while scrolling sideways. */
 const COLUMNS: Column[] = [
-  col('no', 'No', 48, undefined, { source: true }),
+  col('no', 'No', 84, undefined, { source: true }),
   col('code', 'Code', 120, undefined, { source: true }),
   col('description', 'Description', 240, undefined, { long: true, source: true }),
   col('pic', 'Person In Charge', 120, undefined, { source: true, view: 'details' }),
@@ -306,7 +306,7 @@ const ItemRow = memo(function ItemRow({
       if (c.type === 'col') {
         const raw = effectiveCol(item, c.col)
         const text = formatCol(raw)
-        const title = notes?.[c.col] ?? (c.long && text ? text : undefined)
+        const title = notes?.[c.col] ?? ((c.long || c.col === 'no') && text ? text : undefined)
         if (c.col === 'code') {
           const mark = item.data.mark
           return <th key={c.key} scope="row" className={frozen} title={notes?.code ?? (text || undefined)} data-changed={changed}>
@@ -762,8 +762,6 @@ export const MatTable = memo(function MatTable({
         </tr>
       </thead>
       <tbody>
-        <SummaryRow label="Sheet average" values={sums.sheet}
-          hasPct={viewConfig.hasPct} colSpanMiddle={viewConfig.colSpanMiddle} colSpanAfter={viewConfig.colSpanAfter}/>
         {padTop > 0 && <tr className="mat-spacer" aria-hidden="true"><td aria-hidden="true" colSpan={viewConfig.columns.length} style={{ height: padTop }}/></tr>}
         {visibleRows.map(({ row, index }) => row.kind === 'section'
           ? <SummaryRow key={row.id} id={row.id} label={sectionLabel(row)} values={sums.byId.get(row.id)!} level={row.data.level ?? 0}

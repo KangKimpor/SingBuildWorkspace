@@ -3,11 +3,11 @@ import './mat-items.css'
 import '@/styles/apple-controls.css'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronsDown, ChevronsUp, Maximize2, Minimize2, RefreshCw, Search } from 'lucide-react'
+import { ChevronsDown, ChevronsUp, FileDown, Maximize2, Minimize2, RefreshCw, Search, X } from 'lucide-react'
 import { GlassSelect } from '@/components/glass/GlassSelect'
 import { NotFound } from '@/components/NotFound'
 import { Tile } from '@/components/WorkspaceUI'
-import { weekLabel } from '@/nbc/submissions'
+import { addDays, weekLabel } from '@/nbc/submissions'
 import { usePhone } from '@/shell/usePhone'
 import { fetchAccess } from './api'
 import { changedCells } from './changes'
@@ -20,6 +20,7 @@ import { COLUMN_VIEWS, MatPictureDialog, MatTable } from './MatTable'
 import type { ColumnView } from './MatTable'
 import { useMat } from './store'
 import type { MatState, SaveStatus } from './store'
+import { todayIso } from './stage'
 import { MARK_LABELS } from './types'
 import type { MatItem, Pkg, Sheet } from './types'
 
@@ -75,6 +76,7 @@ function MaterialList() {
   const view = VIEWS.find((v) => v.id === params.get('v'))?.id ?? 'list'
   const setView = (next: View) => setParams((prev) => { prev.set('v', next); return prev })
   const [expanded, setExpanded] = useState(false)
+  const [exportNote, setExportNote] = useState<ExportNote | null>(null)
   const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams((prev) => { prev.set('p', nextPkg); prev.set('s', nextTab); return prev })
   const toggleExpand = useCallback(() => setExpanded((e) => !e), [])
@@ -137,6 +139,7 @@ function MaterialList() {
         <div className="view-tabs mat-view-tabs" role="group" aria-label="View">
           {VIEWS.map((v) => <button key={v.id} type="button" className="view-tab" aria-pressed={v.id === view} onClick={() => setView(v.id)}>{v.label}</button>)}
         </div>
+        {state && <WorkbookExport pkg={pkg} state={state} onDone={setExportNote}/>}
         <button type="button" className="btn-secondary" onClick={() => void refresh()} disabled={loading}>
           <RefreshCw size={14} aria-hidden="true" className={loading ? 'mat-spin' : undefined}/>{loading ? 'Refreshing…' : 'Refresh'}
         </button>
@@ -151,9 +154,63 @@ function MaterialList() {
         {SHEETS.map((t) => <button key={t.id} type="button" className="view-tab" aria-current={t.id === tab ? 'page' : undefined} onClick={() => go(pkg, t.id)}>{t.label}</button>)}
       </div>
     </nav>
+    {exportNote && <div className="mat-export-note" role="status" data-tone={exportNote.tone}>
+      <span>{exportNote.text}</span>
+      {exportNote.detail && <details><summary>Show which</summary><ul>{exportNote.detail.map((d) => <li key={d}>{d}</li>)}</ul></details>}
+      <button type="button" className="ibtn" aria-label="Dismiss" onClick={() => setExportNote(null)}><X size={14} aria-hidden="true"/></button>
+    </div>}
     {state && error && <p className="mat-error" role="alert">Could not refresh. {error}</p>}
     {body}
   </div>
+}
+
+interface ExportNote { text: string; tone: 'success' | 'error'; detail?: string[] }
+const XLSX_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+
+/**
+ * "Export to workbook" (D-60): pick this package's workbook, get it back with the app's changes written into it. The work
+ * runs in the browser; the workbook never leaves the computer.
+ */
+function WorkbookExport({ pkg, state, onDone }: { pkg: Pkg; state: MatState; onDone: (note: ExportNote | null) => void }) {
+  const [busy, setBusy] = useState(false)
+  const run = async (file: File) => {
+    setBusy(true)
+    onDone(null)
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer())
+      // Let the "Exporting…" state paint before the synchronous unzip of a 60 to 90 MB workbook.
+      await new Promise((resolve) => setTimeout(resolve, 30))
+      const { exportToWorkbook, updatedName } = await import('./workbookExport')
+      const result = exportToWorkbook(bytes, pkg, state.items, state.remarks, state.week, addDays(state.week, -7))
+      const missing = result.notFound.length
+      const tail = [
+        missing ? `${missing} ${missing === 1 ? 'material is' : 'materials are'} not in this workbook.` : '',
+        result.photos ? 'Photos stay in the app.' : '',
+      ].filter(Boolean).join(' ')
+      if (!result.cells) {
+        onDone({ text: `The workbook already has every change from the app. ${tail}`.trim(), tone: 'success', detail: missing ? result.notFound : undefined })
+        return
+      }
+      const link = document.createElement('a'), url = URL.createObjectURL(new Blob([result.bytes as Uint8Array<ArrayBuffer>], { type: XLSX_TYPE }))
+      link.href = url
+      link.download = updatedName(file.name, todayIso())
+      link.click()
+      setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      onDone({
+        text: `Saved ${link.download}: ${result.cells} ${result.cells === 1 ? 'cell' : 'cells'} updated on ${result.materials} ${result.materials === 1 ? 'material' : 'materials'}. ${tail}`.trim(),
+        tone: 'success', detail: missing ? result.notFound : undefined,
+      })
+    } catch (e) {
+      onDone({ text: e instanceof Error ? e.message : 'Could not update that workbook.', tone: 'error' })
+    } finally {
+      setBusy(false)
+    }
+  }
+  return <label className="btn-secondary mat-export" data-busy={busy || undefined} title={`Choose the ${pkg.toUpperCase()} workbook (.xlsx) to write the app's changes into`}>
+    <FileDown size={14} aria-hidden="true"/>{busy ? 'Exporting…' : 'Export to workbook'}
+    <input type="file" accept=".xlsx" className="sr-only" aria-label={`${pkg.toUpperCase()} workbook to update`} disabled={busy}
+      onChange={(e) => { const file = e.target.files?.[0]; e.target.value = ''; if (file) void run(file) }}/>
+  </label>
 }
 
 /** List and Board, with the existing details-and-photos panel and picture viewer behind "edit details". */
@@ -163,9 +220,10 @@ function ItemsView({ sheet, state, view, onFields, onRemark }: { sheet: Tab; sta
   const item = sourceId ? state.items.find((i) => i.id === sourceId && i.kind === 'item') ?? null : null
   const pics = useMemo(() => sheet === 'mep' ? [] : distinct(state.items.filter((i) => i.sheet === sheet && i.kind === 'item').map((i) => text(i, 'pic'))), [state.items, sheet])
   return <>
-    <MatItems sheet={sheet} state={state} view={view} onFields={onFields} onRemark={onRemark} onOpenSource={setSourceId}/>
+    <MatItems sheet={sheet} state={state} view={view} onFields={onFields} onRemark={onRemark} onOpenSource={setSourceId} onPicture={setPicture}/>
     <MatSourcePanel item={item} picOptions={pics} pictureOpen={!!picture} onClose={() => setSourceId(null)} onFields={onFields} onPicture={setPicture}/>
-    <MatPictureDialog picture={picture} onClose={() => setPicture(null)}/>
+    <MatPictureDialog picture={picture} onClose={() => setPicture(null)}
+      onEditPhotos={item ? undefined : (id) => { setPicture(null); setSourceId(id) }}/>
   </>
 }
 
