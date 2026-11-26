@@ -614,6 +614,34 @@ export const MatTable = memo(function MatTable({
 
   const sums = useMemo(() => computeSheetAverages(items), [items])
 
+  // Crosshair, as in Project Progress: hovering a material cell washes its whole column and its header, the row hover marks
+  // the row, and the cell under the pointer gets both. One style rule per hovered column, so virtualised rows that mount
+  // while the pointer rests still pick it up, and no row re-renders.
+  const hotStyle = useRef<HTMLStyleElement>(null), hot = useRef(-1)
+  useEffect(() => {
+    const el = scrollRef.current
+    const mark = (index: number) => {
+      if (index === hot.current || !hotStyle.current) return
+      hot.current = index
+      const key = index >= 0 ? viewConfig.columns[index]?.key : undefined
+      hotStyle.current.textContent = key === undefined ? '' : [
+        `.mat-table tbody tr[data-item] > :nth-child(${index + 1}), .mat-table thead th[data-col="${CSS.escape(key)}"] { background-image: linear-gradient(var(--mat-col-wash), var(--mat-col-wash)); }`,
+        `.mat-table tbody tr[data-item]:hover > :nth-child(${index + 1}) { background-image: linear-gradient(var(--mat-cross-wash), var(--mat-cross-wash)); }`,
+      ].join('\n')
+    }
+    hot.current = -2
+    mark(-1)
+    if (!el) return
+    const over = (event: MouseEvent) => {
+      const cell = (event.target as HTMLElement).closest<HTMLTableCellElement>('td, th')
+      mark(cell?.parentElement?.hasAttribute('data-item') ? cell.cellIndex : -1)
+    }
+    const leave = () => mark(-1)
+    el.addEventListener('mouseover', over)
+    el.addEventListener('mouseleave', leave)
+    return () => { el.removeEventListener('mouseover', over); el.removeEventListener('mouseleave', leave) }
+  }, [viewConfig])
+
   const rows = useMemo(() => {
     let matchedPos: number[] | null = null
     if (match) {
@@ -744,6 +772,7 @@ export const MatTable = memo(function MatTable({
   }
 
   return <div className="mat-scroll" ref={scrollRef} onScroll={onScroll}>
+    <style ref={hotStyle}/>
     <table className="mat-table" style={{ width: viewConfig.width }}>
       <caption className="sr-only">{caption}</caption>
       {viewConfig.groups.map((run, i) => <colgroup key={i}>{run.columns.map((c) => <col key={c.key} style={{ width: c.width }}/>)}</colgroup>)}
@@ -753,11 +782,11 @@ export const MatTable = memo(function MatTable({
             ? [<th key={run.group} scope="colgroup" colSpan={run.columns.length} data-band={WORK_GROUPS.has(run.group) ? 'work' : 'group'}>{run.group}</th>]
             : run.columns.map((c) => {
               const index = viewConfig.columns.indexOf(c)
-              return <th key={c.key} scope="col" rowSpan={2} className={index < FROZEN ? `mat-f mat-f${index + 1}` : undefined}>{c.label}</th>
+              return <th key={c.key} scope="col" rowSpan={2} data-col={c.key} className={index < FROZEN ? `mat-f mat-f${index + 1}` : undefined}>{c.label}</th>
             }))}
         </tr>
         <tr className="mat-head-2">
-          {viewConfig.columns.filter((c) => c.group).map((c) => <th key={c.key} scope="col" data-band={WORK_GROUPS.has(c.group!) ? 'work' : 'group'}
+          {viewConfig.columns.filter((c) => c.group).map((c) => <th key={c.key} scope="col" data-col={c.key} data-band={WORK_GROUPS.has(c.group!) ? 'work' : 'group'}
             className={c.type === 'cell' ? 'mat-num-head' : undefined}>{c.label}</th>)}
         </tr>
       </thead>

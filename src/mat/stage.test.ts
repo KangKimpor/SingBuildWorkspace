@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { nextOf, onsitePatch, qtyOf, sectionTree, snapshot, stageOf, stagePatch } from './stage'
+import { nextOf, onsitePatch, procurementOf, procurementPatch, qtyOf, sectionTree, snapshot, stageOf, stagePatch, submissionOf, submissionPatch } from './stage'
 import type { MatItem } from './types'
 
 const item = (cols: MatItem['data']['cols'], qty: [number, number, number] = [10, 0, 0], edits: MatItem['edits'] = {}): MatItem => ({
@@ -104,4 +104,20 @@ test('initials use the first and last word, skip suffixes and keep whole charact
   expect(initials('dara')).toBe('D')
   expect(initials('🦊 Fox')).toBe('🦊F')
   expect(initials('  ')).toBe('?')
+})
+
+test('submission and procurement are separate tracks, and Delivering sits between ordered and on site', () => {
+  const ordered = item({ msStatus: 'Under Review', msActual: '2026-10-01' }, [10, 10, 0])
+  expect([submissionOf(ordered), procurementOf(ordered), stageOf(ordered)]).toEqual(['review', 'ordered', 'ordered'])
+  const shipping: MatItem = { ...ordered, data: { ...ordered.data, cells: { ...ordered.data.cells, shipping: { v: 0.5 } } } }
+  expect(procurementOf(shipping)).toBe('delivering')
+  expect(procurementOf(item({}, [10, 0, 0]))).toBe('none')
+  // Moving the submission leaves the order alone; moving procurement leaves the submission alone.
+  const sub = submissionPatch(ordered, 'approved', '2026-11-25')
+  expect(sub).toMatchObject({ msStatus: 'Approved', msApproved: '2026-11-25' })
+  expect(sub).not.toHaveProperty('po')
+  const proc = procurementPatch(ordered, 'delivering', '2026-11-25')
+  expect(proc).toMatchObject({ shipping: 1 })
+  expect(proc).not.toHaveProperty('msStatus')
+  expect(procurementPatch(shipping, 'onsite', '2026-11-25')).toMatchObject({ shipping: 0, onsite: 10, arrActual: '2026-11-25' })
 })

@@ -70,4 +70,6 @@ export interface MatLog {
   kind: 'fields' | 'remark'
   /** `fields`: the patch as saved (null puts the imported value back). `remark`: `{ team, body }`, the body cut to 160 characters. */
   detail: Record<string, unknown>
+  /** What the change replaced (D-64): `fields`, the previous override of each key (null: none, the workbook value); `remark`, `{ team, week, body }`. Absent on older rows. */
+  before?: Record<string, unknown> | null
 }

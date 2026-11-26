@@ -6,6 +6,9 @@ html[data-mat] .canvas { padding-block: 0; }
   --mat-head-group: var(--pp-band);
   --mat-head-work: var(--pp-l1);
   --mat-row-hover: #f8f8f8;
+  /* Hover crosshair, the Project Progress washes: the column under the pointer, and the cell where row and column meet. */
+  --mat-col-wash: var(--pp-col-wash, rgb(0 0 0 / 0.02));
+  --mat-cross-wash: rgb(0 0 0 / 0.045);
   display: flex; flex-direction: column; gap: var(--space-12); min-width: 0;
   height: calc(100dvh - var(--h-topbar) - var(--safe-top));
   padding: var(--space-24) var(--space-32);
@@ -103,7 +106,9 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 .mat-scroll ::selection { background: rgb(0 113 227 / 0.18); color: inherit; }
 
 .mat-table { table-layout: fixed; border-collapse: separate; border-spacing: 0; font-size: 13px; line-height: 16px; font-variant-numeric: tabular-nums; color: var(--pp-ink); }
-.mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 0; border-bottom: 1px solid var(--pp-line); }
+/* Every cell is ruled on its right and bottom (D-64), so a value always sits in a box you can read across and down. */
+.mat-table th, .mat-table td { position: relative; box-sizing: border-box; border: 0; border-right: 1px solid var(--pp-line); border-bottom: 1px solid var(--pp-line); }
+.mat-table tr > :last-child { border-right: 0; }
 .mat-table td { height: var(--pp-row); padding: 4px 10px; vertical-align: middle; background-color: var(--pp-l3); }
 .mat-table tbody th { padding: 4px 10px; text-align: start; font-weight: 400; background-color: var(--pp-l3); }
 .mat-table tr.mat-spacer > td { height: auto; padding: 0; border: 0; background: transparent; pointer-events: none; }
@@ -113,7 +118,7 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
   background: var(--pp-band); color: var(--pp-ink-2);
   font-size: 11px; font-weight: 600; line-height: 13px; letter-spacing: .02em; text-transform: uppercase;
   text-align: start; vertical-align: middle;
-  border-bottom: 1px solid var(--pp-line-strong); border-right: 0;
+  border-bottom: 1px solid var(--pp-line-strong); border-right: 1px solid var(--pp-line);
 }
 .mat-table .mat-head-1 th { height: var(--mat-h1); border-bottom-color: var(--pp-line); }
 .mat-table .mat-head-1 th[rowspan] { height: calc(var(--mat-h1) + var(--mat-h2)); border-bottom: 1px solid var(--pp-line-strong); }
@@ -258,57 +263,58 @@ html[data-mat-expanded] .topbar { visibility: hidden; }
 /* While focused the remark grows over the rows below instead of stretching its own row. */
 .mat-remark textarea:focus { bottom: auto; z-index: 1; min-height: 112px; max-height: 240px; field-sizing: content; overflow: auto; outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
 
-/* Material Source slide-over side panel. */
+/* Material Source (D-64): the same floating card as the material panel (rounded, inset from the window edge, soft shadow),
+   with its header type, grey filled fields and the photo groups keyed by colour: blue for the submission image, green for
+   the approved sample. */
 .mat-source-panel {
-  position: fixed; top: 0; right: 0; bottom: 0; z-index: 50;
-  display: flex; flex-direction: column; width: min(500px, 94vw);
-  background: var(--bg-raised); border-left: 1px solid var(--border-subtle); box-shadow: var(--shadow-popover);
-  color: var(--text-primary);
+  position: fixed; top: calc(12px + var(--safe-top)); right: 12px; bottom: 12px; z-index: 50;
+  display: flex; flex-direction: column; width: min(500px, calc(100vw - 24px)); overflow: hidden;
+  border-radius: 18px; background: #fff; box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), -12px 0 40px rgb(0 0 0 / 0.12);
+  color: #1d1d1f; font-size: 14px; line-height: 1.4;
 }
-.mat-source-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-12);
-  padding: var(--space-16) var(--space-20); border-bottom: 1px solid var(--border-subtle);
-}
-.mat-source-title { margin: 0; font-size: var(--fs-h3); line-height: var(--lh-h3); font-weight: 600; }
-.mat-source-sub { margin: 2px 0 0; font-family: var(--font-mono); font-size: var(--fs-small); color: var(--text-secondary); }
+.mat-source-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px 14px; box-shadow: inset 0 -0.5px 0 rgb(60 60 67 / 0.12); }
+.mat-source-head > div { display: flex; flex-direction: column-reverse; gap: 4px; min-width: 0; }
+.mat-source-title { margin: 0; font-size: 20px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; }
+.mat-source-sub { margin: 0; font-size: 12px; font-weight: 600; color: rgb(60 60 67 / 0.72); }
 .mat-source-close {
-  display: grid; place-items: center; width: 28px; height: 28px; padding: 0; border: 0;
-  border-radius: var(--radius-control); background: transparent; color: var(--text-secondary); cursor: pointer;
+  display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0;
+  border-radius: 50%; background: rgb(118 118 128 / 0.12); color: rgb(60 60 67 / 0.86); cursor: pointer;
 }
-.mat-source-close:hover { background: var(--bg-hover); color: var(--text-primary); }
-.mat-source-body {
-  flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: var(--space-12);
-  padding: var(--space-16) var(--space-20);
-}
-.mat-source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-12); }
-.mat-field { display: flex; flex-direction: column; gap: 4px; font-size: var(--fs-small); font-weight: 500; color: var(--text-secondary); }
+.mat-source-close:hover { background: rgb(118 118 128 / 0.2); color: #1d1d1f; }
+.mat-source-body { flex: 1 1 auto; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 20px; scrollbar-width: thin; }
+.mat-source-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.mat-field { display: flex; flex-direction: column; gap: 5px; font-size: 12px; font-weight: 650; letter-spacing: 0.01em; color: rgb(60 60 67 / 0.72); }
 .mat-field input, .mat-field textarea {
-  box-sizing: border-box; width: 100%; padding: 6px 10px;
-  border: 1px solid var(--border-strong); border-radius: var(--radius-control);
-  background: var(--bg-raised); color: var(--text-primary);
-  font: inherit; font-size: var(--fs-label); line-height: var(--lh-label); font-weight: 400;
+  box-sizing: border-box; width: 100%; min-height: 34px; padding: 7px 11px;
+  border: 0; border-radius: 9px; background: rgb(118 118 128 / 0.1); color: #1d1d1f;
+  font: inherit; font-size: 13.5px; line-height: 1.4; font-weight: 400; letter-spacing: -0.005em;
 }
 .mat-field textarea { resize: vertical; }
-.mat-field input:focus, .mat-field textarea:focus { border-color: var(--pp-accent-ink); outline: 2px solid var(--pp-accent-ink); outline-offset: -1px; }
+.mat-field input:focus, .mat-field textarea:focus { background: #fff; outline: 0; box-shadow: 0 0 0 1px #0071e3, 0 0 0 4px rgb(0 113 227 / 0.16); }
 .mat-source-mono { font-family: var(--font-mono) !important; }
-.mat-source-photos { margin: 0; padding: var(--space-12); border: 1px solid var(--border-subtle); border-radius: var(--radius-card); }
-.mat-source-photos legend { padding: 0 4px; font-size: var(--fs-small); font-weight: 500; color: var(--text-secondary); }
-.mat-source-thumbs { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-8); }
-.mat-source-thumb { position: relative; width: 64px; height: 64px; border: 1px solid var(--border-strong); border-radius: var(--radius-chip); overflow: hidden; background: var(--bg-sidebar); }
+.mat-source-photos { --set: #0066cc; margin: 0; padding: 12px 14px 14px; border: 0; border-radius: 14px; background: rgb(118 118 128 / 0.06); }
+.mat-source-photos[data-set='sample'] { --set: #248a3d; }
+.mat-source-photos legend { float: left; display: flex; align-items: center; gap: 6px; width: 100%; margin: 0 0 10px; padding: 0; font-size: 12.5px; font-weight: 650; color: #1d1d1f; }
+.mat-source-photos legend::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--set); }
+.mat-source-photos legend .muted { font-weight: 500; color: rgb(60 60 67 / 0.72); }
+.mat-source-thumbs { clear: both; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mat-source-thumb { position: relative; width: 72px; height: 72px; overflow: hidden; border-radius: 10px; background: #f0efec; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--set) 70%, transparent); }
 .mat-source-thumb-img { display: block; width: 100%; height: 100%; padding: 0; border: 0; background: transparent; cursor: zoom-in; }
 .mat-source-thumb-img img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .mat-source-thumb-remove {
-  position: absolute; top: 2px; right: 2px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0;
-  border: 0; border-radius: 50%; background: rgb(15 15 15 / 0.72); color: #ffffff; cursor: pointer;
+  position: absolute; top: 4px; right: 4px; display: grid; place-items: center; width: 20px; height: 20px; padding: 0;
+  border: 0; border-radius: 50%; background: rgb(0 0 0 / 0.6); color: #ffffff; cursor: pointer;
 }
-.mat-source-thumb-remove:hover { background: var(--danger); }
+.mat-source-thumb-remove:hover { background: #d70015; }
+.mat-source-photos .mat-upload-btn { height: 72px; padding: 0 14px; border: 1.5px dashed rgb(60 60 67 / 0.28); border-radius: 10px; background: #fff; box-shadow: none; color: #0066cc; font-size: 12.5px; font-weight: 600; }
+.mat-source-photos .mat-upload-btn:hover { border-color: #0066cc; background: rgb(0 113 227 / 0.04); }
 .mat-upload-btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
-.mat-source-error { margin: 0; font-size: var(--fs-small); color: var(--danger-text); }
-.mat-source-foot {
-  display: flex; flex-direction: column; gap: var(--space-8);
-  padding: var(--space-12) var(--space-20); border-top: 1px solid var(--border-subtle); background: var(--bg-sidebar);
-}
-.mat-source-actions { display: flex; justify-content: flex-end; gap: var(--space-8); }
+.mat-source-error { margin: 0; font-size: 12.5px; color: #d70015; }
+.mat-source-foot { display: flex; flex-direction: column; gap: 8px; padding: 12px 20px; box-shadow: inset 0 0.5px 0 rgb(60 60 67 / 0.12); background: #fff; }
+.mat-source-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.mat-source-actions :is(.btn-accent, .btn-secondary) { height: 34px; padding: 0 18px; border: 0; border-radius: 999px; font-size: 13px; font-weight: 600; box-shadow: none; }
+.mat-source-actions .btn-secondary { background: rgb(118 118 128 / 0.12); color: #1d1d1f; }
+.mat-source-actions .btn-accent { background: #0071e3; color: #fff; }
 .mat-source-actions :is(.btn-accent, .btn-secondary):disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ── Apple touches ────────────────────────────────────────────────────────────

@@ -234,12 +234,12 @@ function SourceForm({ item, picOptions, onClose, onFields, onPicture }: SourceFo
         <input value={draft.location} maxLength={MAX_SHORT_TEXT} onChange={(e) => setCol('location', e.target.value)}/>
       </label>
       {([
-        ['image', 'Image'],
-        ['sample', 'Approved Sample'],
+        ['image', 'Submission image'],
+        ['sample', 'Approved sample'],
       ] as const).map(([set, label]) => {
         const list = images[set]
         const disabled = !!uploading || list.length >= MAX_IMAGES_PER_SET
-        return <fieldset key={set} className="mat-source-photos">
+        return <fieldset key={set} className="mat-source-photos" data-set={set}>
           <legend>{label} <span className="muted">({list.length}/{MAX_IMAGES_PER_SET})</span></legend>
           <div className="mat-source-thumbs">
             {list.map((ref, i) => <div key={`${ref}-${i}`} className="mat-source-thumb">

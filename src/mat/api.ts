@@ -11,8 +11,8 @@ export interface MatSaved { log?: MatLog; byName?: string | null }
 type ItemRow = Omit<MatItem, 'package' | 'updatedAt' | 'changedWeek' | 'weekEdits' | 'updatedBy'>
   & { updated_at: string; changed_week: string | null; week_edits?: MatItem['weekEdits']; updated_by?: string | null }
 type RemarkRow = { item_id: string; team: Team; week_start: string; body: string; updated_by?: string | null }
-type LogRow = { id: number; item_id: string; at: string; by: string | null; by_name?: string | null; kind: MatLog['kind']; detail: Record<string, unknown> }
-const toLog = (r: LogRow): MatLog => ({ id: r.id, itemId: r.item_id, at: r.at, by: r.by, kind: r.kind, detail: r.detail ?? {} })
+type LogRow = { id: number; item_id: string; at: string; by: string | null; by_name?: string | null; kind: MatLog['kind']; detail: Record<string, unknown>; before?: Record<string, unknown> | null }
+const toLog = (r: LogRow): MatLog => ({ id: r.id, itemId: r.item_id, at: r.at, by: r.by, kind: r.kind, detail: r.detail ?? {}, before: r.before ?? null })
 const toSaved = (data: { log?: LogRow } | null | undefined): MatSaved => data?.log ? { log: toLog(data.log), byName: data.log.by_name ?? null } : {}
 
 /** In the dev datasets nothing is saved; this stands in for the server's log row so the activity views show something. */

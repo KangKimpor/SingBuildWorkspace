@@ -43,21 +43,30 @@
 .mi-num, .mi-count, .mi-qty, .mi-card-v, .mi-qcell input { font-variant-numeric: tabular-nums; }
 
 /* Stage colors: one hue per stage, text >= 4.5:1 on its tint. */
-.mi [data-stage] { --st: #6e6e73; --st-bg: #eeeef0; }
-.mi [data-stage='review'] { --st: #a05a00; --st-bg: #fff5d6; }
-.mi [data-stage='revise'] { --st: #d70015; --st-bg: #ffe8ea; }
-.mi [data-stage='approved'] { --st: #8944ab; --st-bg: #f3e8fa; }
-.mi [data-stage='ordered'] { --st: #0066cc; --st-bg: #e3f0ff; }
-.mi [data-stage='partial'] { --st: #c25100; --st-bg: #fff0e0; }
-.mi [data-stage='onsite'] { --st: #248a3d; --st-bg: #e4f6e8; }
+/* Stage hues (D-64), vivid like the reference capsules; labels take a deeper shade of the same hue for contrast. */
+.mi [data-stage] { --st: #8e8e93; }
+.mi [data-stage='review'] { --st: #f27a0c; }
+.mi [data-stage='revise'] { --st: #e5484d; }
+.mi [data-stage='approved'] { --st: #8b5cf6; }
+.mi [data-stage='ordered'] { --st: #0a6cff; }
+.mi [data-stage='delivering'] { --st: #06aed4; }
+.mi [data-stage='partial'] { --st: #3b4fd8; }
+.mi [data-stage='onsite'] { --st: #0a9e6a; }
 .mi-dot { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--st, currentColor); }
-/* Stage: a coloured symbol beside a plain label, the way Reminders and Mail show state. No capsule: a column of
-   stages reads as text, and the hue lives only in the symbol. Revise is the one stage that asks for action, so its label
-   takes the hue too. */
-.mi-stage { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 500; letter-spacing: -0.005em; color: var(--mi-ink); white-space: nowrap; }
-.mi-sicon { flex: none; color: var(--st); }
-.mi-stage[data-stage='notsub'] { color: var(--mi-ink-2); }
-.mi-stage[data-stage='revise'] { color: var(--st); font-weight: 600; }
+/* Stage capsule (D-64), drawn after the reference: a pale ground of the hue, a solid 1.5 px ring that sits a little heavier
+   along the bottom, the two-tone symbol, and a medium label in a deep shade of the hue. Grey states follow the same recipe. */
+.mi-stage {
+  display: inline-flex; align-items: center; gap: 5px; height: 28px; box-sizing: border-box; padding: 0 12px 0 5px;
+  border: 1.5px solid var(--st); border-radius: 999px; box-shadow: 0 1px 0 var(--st);
+  background: color-mix(in srgb, var(--st) 11%, #fff); color: color-mix(in srgb, var(--st) 78%, #000);
+  font-size: 13px; font-weight: 500; letter-spacing: -0.01em; line-height: 1; white-space: nowrap;
+}
+.mi-stage:is([data-stage='notsub'], [data-stage='none']) { color: #55555c; }
+.mi-sicon { flex: none; overflow: visible; }
+.mi-sicon .b { fill: color-mix(in srgb, var(--st) 42%, #fff); }
+.mi-sicon .g { fill: none; stroke: var(--st); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mi-sicon .d { fill: var(--st); }
+.mi .mi-cell.mi-stage-cell { width: auto; max-width: calc(100% + 16px); padding: 4px 6px; margin: 0 -6px; }
 .mi-caret { margin-inline-start: -2px; opacity: 0; transition: opacity 120ms; }
 .mi-cell:hover .mi-caret, .mi-cell[aria-expanded='true'] .mi-caret { opacity: 0.6; }
 
@@ -123,8 +132,8 @@
 /* List: one grid shared by the header and every row. */
 .mi-list { margin-top: 10px; overflow: clip; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
 .mi-list { --mi-lead: 44px; }
-.mi-grid { display: grid; grid-template-columns: var(--mi-lead) minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 148px minmax(200px, 1.7fr); align-items: center; column-gap: 14px; padding: 0 16px 0 12px; }
-.mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(240px, 2.3fr) 148px minmax(160px, 1.15fr) 148px 132px minmax(200px, 1.7fr); }
+.mi-grid { display: grid; grid-template-columns: var(--mi-lead) minmax(200px, 1.7fr) 150px 150px 170px 236px minmax(170px, 1.2fr); align-items: center; column-gap: 12px; padding: 0 16px 0 12px; }
+.mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1.7fr) 150px 150px 170px 236px 124px minmax(170px, 1.2fr); }
 .mi-lh { height: 34px; box-shadow: inset 0 -0.5px 0 var(--mi-sep); font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--mi-ink-3); }
 /* Section headers follow the workbook's nesting: each level steps in by 20 px and gets a little quieter, so
    "1 Wall Finishing > 1.1 L23 Club Lounge > 1.1.1 Stone/Marble" reads as a tree. The number keeps its own muted ink. */
@@ -208,7 +217,7 @@
 .mi-empty { display: flex; flex-direction: column; align-items: center; gap: 14px; margin-top: 10px; padding: 56px 16px; color: var(--mi-ink-2); text-align: center; border: 1px solid var(--border-subtle); border-radius: 22px; background: var(--bg-raised, #fff); box-shadow: 0 2px 6px rgb(0 0 0 / 0.02), 0 12px 32px rgb(0 0 0 / 0.02); }
 
 /* Board: one column per stage; cards lift and follow the pointer from where they were grabbed. */
-.mi-board { display: grid; grid-template-columns: repeat(7, minmax(200px, 1fr)); gap: 12px; margin: 10px calc(-1 * var(--space-32)) 0; overflow-x: auto; padding: 2px var(--space-32) 8px; scroll-padding-inline: var(--space-32); }
+.mi-board { display: grid; grid-template-columns: repeat(8, minmax(190px, 1fr)); gap: 12px; margin: 10px calc(-1 * var(--space-32)) 0; overflow-x: auto; padding: 2px var(--space-32) 8px; scroll-padding-inline: var(--space-32); }
 .mi-col { min-height: 360px; padding: 8px; border-radius: 14px; background: rgb(118 118 128 / 0.06); transition: background-color 150ms, box-shadow 150ms; }
 .mi-col[data-over] { background: var(--mi-sel); box-shadow: inset 0 0 0 2px rgb(0 113 227 / 0.35); }
 .mi-col h3 { display: flex; align-items: center; gap: 7px; margin: 4px 4px 10px; font-size: 12.5px; font-weight: 650; }
@@ -363,24 +372,32 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-kv dd { margin: 0; overflow-wrap: anywhere; }
 .mi-src { margin-top: 14px; }
 
-/* Columns drop by the room the list actually has (the sidebar takes part of the viewport), owner first, then the note, then quantity. */
+/* Columns drop by the room the list actually has (the sidebar takes part of the viewport): the note first, then the owner,
+   the timeline, the quantities and the procurement stage. */
 .mi-list, .mi-overview { container: mi / inline-size; }
-@container mi (max-width: 1180px) {
-  .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(220px, 2.3fr) 148px minmax(160px, 1.15fr) 148px minmax(180px, 1.5fr); }
+@container mi (max-width: 1440px) {
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1fr) 150px 150px 170px 236px; }
+  .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1fr) 150px 150px 170px 236px 124px; }
+  .mi-grid > .mi-c-note { display: none; }
+}
+@container mi (max-width: 1240px) {
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(200px, 1fr) 150px 150px 170px 236px; }
   .mi-grid > .mi-c-who { display: none; }
 }
-@container mi (max-width: 1000px) {
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(180px, 2fr) 140px minmax(140px, 1.2fr) minmax(110px, 1fr); }
-  .mi-grid > .mi-c-note { display: none; }
+@container mi (max-width: 1060px) {
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(180px, 1fr) 150px 150px 236px; }
+  .mi-grid > .mi-c-time { display: none; }
+}
+@container mi (max-width: 860px) {
+  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(160px, 1fr) 150px 150px; }
+  .mi-grid > .mi-c-qty { display: none; }
 }
 @container mi (max-width: 700px) {
   .mi-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(0, 1fr) 136px minmax(120px, 0.8fr); }
-  .mi-grid > :nth-child(5) { display: none; }
 }
-@container mi (max-width: 560px) {
+@container mi (max-width: 620px) {
   .mi-grid, .mi-grid[data-owner] { grid-template-columns: var(--mi-lead) minmax(0, 1fr) auto; }
-  .mi-grid > :nth-child(4) { display: none; }
+  .mi-grid > .mi-c-proc { display: none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .mi :is(button, .mi-kc), .mi-pop, .mi-bulk, .mi-toast, .mi-chev, .mi-qbar i, .mi-pipe-bar i { transition-duration: 1ms; }
@@ -399,7 +416,7 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-act-tx { display: flex; flex-direction: column; min-width: 0; }
 .mi-act-tx .mi-opt-h { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .mi-acts { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
-.mi-act { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; color: rgb(60 60 67 / 0.86); }
+.mi-act { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 28px; align-items: center; gap: 8px; padding: 4px 0; font-size: 12.5px; color: rgb(60 60 67 / 0.86); }
 .mi-act b { font-weight: 600; color: #1d1d1f; }
 .mi-act time { font-size: 12px; color: rgb(60 60 67 / 0.72); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .mi-note-by { margin: 8px 0 0; }
@@ -435,7 +452,9 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-step-links .mi-link { height: 28px; font-size: 12.5px; }
 
 /* Apple pass (D-62): one type scale, symbols that follow the highlight, quieter separators. */
-.mi-opt:is(:hover, :focus-visible) .mi-sicon { color: currentColor; }
+.mi-opt:is(:hover, :focus-visible) .mi-sicon .b { fill: rgb(255 255 255 / 0.32); }
+.mi-opt:is(:hover, :focus-visible) .mi-sicon .g { stroke: #fff; }
+.mi-opt:is(:hover, :focus-visible) .mi-sicon .d { fill: #fff; }
 .mi-col h3 .mi-sicon { margin-inline-end: -1px; }
 .mi-card-k { font-size: 13px; font-weight: 600; letter-spacing: -0.005em; }
 .mi-card-v { font-size: 28px; line-height: 1.1; letter-spacing: -0.03em; }
@@ -448,3 +467,59 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 
 /* An author the app has no name for: a neutral mark, not a coloured "S" for "Someone". */
 .mi-av[data-unknown] { background: rgb(118 118 128 / 0.24); color: var(--mi-ink-2); }
+
+/* Timeline column (D-64): the five points a material passes, then what comes next and when. */
+.mi-time { display: flex; flex-direction: column; gap: 2px; }
+.mi-time .mi-track { margin-bottom: 4px; }
+.mi-track { position: relative; display: flex; justify-content: space-between; width: 116px; height: 10px; }
+.mi-track::before { content: ''; position: absolute; left: 5px; right: 5px; top: 4px; height: 2px; border-radius: 1px; background: rgb(118 118 128 / 0.2); }
+.mi-track i { position: relative; width: 10px; height: 10px; box-sizing: border-box; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1.5px rgb(60 60 67 / 0.3); }
+.mi-track i[data-done] { background: var(--mi-green); box-shadow: none; }
+.mi-track i[data-current] { box-shadow: inset 0 0 0 2.5px var(--mi-blue); }
+.mi-time .mi-s { display: flex; align-items: baseline; gap: 4px; min-width: 0; white-space: nowrap; }
+.mi-time-l { overflow: hidden; font-size: 13px; font-weight: 600; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; }
+
+/* Quantity column: the four figures of the panel side by side, on site last and in green once anything has arrived. */
+.mi .mi-cell.mi-qstats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; padding: 4px; }
+.mi-qstats > span { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 7px; border-radius: 8px; background: rgb(118 118 128 / 0.08); }
+.mi-qstats small { overflow: hidden; font-size: 10px; font-weight: 600; line-height: 13px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
+.mi-qstats b { overflow: hidden; font-size: 13px; font-weight: 650; line-height: 17px; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
+.mi-qstats > [data-k='onsite'][data-some] { background: rgb(36 138 61 / 0.1); }
+.mi-qstats > [data-k='onsite'][data-some] b { color: var(--mi-green); }
+
+/* Panel photos: the submission image and the approved sample as two labelled groups, each with its own colour key. */
+[data-set='image'] { --set: #0066cc; }
+[data-set='sample'] { --set: #248a3d; }
+.mi-photos { display: grid; gap: 14px; }
+.mi-photo-set h4 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 8px; }
+.mi-photo-k { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 650; letter-spacing: -0.005em; color: var(--mi-ink); text-transform: none; }
+.mi-photo-k::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--set); }
+.mi-photo-set h4 .mi-faint { font-size: 12px; font-weight: 500; text-transform: none; letter-spacing: 0; }
+.mi-gallery-btn[data-set] { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--set) 70%, transparent); }
+
+/* Activity: each change can be reverted after a confirmation. */
+.mi-act-row { display: flex; align-items: center; gap: 2px; }
+.mi-act-row .mi-opt { flex: 1; min-width: 0; }
+.mi-revert { display: grid; place-items: center; flex: none; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 8px; background: none; color: rgb(60 60 67 / 0.6); cursor: pointer; }
+.mi-revert:hover, .mi-revert:focus-visible { background: rgb(118 118 128 / 0.12); color: #1d1d1f; }
+.mi-pop-foot { margin-top: 4px; padding-top: 8px; border-top: 0.5px solid var(--mi-sep); }
+
+/* Revert confirmation. It renders in a portal, outside .mi, so it carries the few tokens it uses. */
+.mi-confirm-scrim { position: fixed; inset: 0; z-index: 70; background: rgb(0 0 0 / 0.24); }
+.mi-confirm {
+  --mi-fill: rgb(118 118 128 / 0.08); --mi-fill-2: rgb(118 118 128 / 0.14); --mi-accent: #0071e3; --mi-ink: #1d1d1f; --mi-ink-3: rgb(60 60 67 / 0.72);
+  position: fixed; z-index: 71; top: 50%; left: 50%; translate: -50% -50%; width: min(440px, calc(100vw - 32px)); box-sizing: border-box; padding: 20px;
+  border-radius: 18px; background: #fff; box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 24px 64px rgb(0 0 0 / 0.24); color: #1d1d1f; font-size: 13.5px; line-height: 1.45;
+}
+.mi-confirm-t { margin: 0 0 6px; font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+.mi-confirm-what { margin: 0; }
+.mi-confirm-what .mi-faint { color: rgb(60 60 67 / 0.72); }
+.mi-confirm-list { display: grid; gap: 6px; margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: rgb(118 118 128 / 0.08); list-style: none; }
+.mi-confirm-list li { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.mi-confirm-list li > span:first-child { color: rgb(60 60 67 / 0.86); text-transform: capitalize; }
+.mi-confirm-list li > span:last-child { font-weight: 600; text-align: end; overflow-wrap: anywhere; }
+.mi-confirm-warn { margin: 10px 0 0; font-size: 12.5px; font-weight: 600; color: #c25100; }
+.mi-confirm-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.mi-confirm-actions .mi-btn { height: 32px; padding: 0 16px; font-size: 13px; cursor: pointer; }
+.mi-confirm-actions .mi-btn[data-primary] { background: #d70015; }
+.mi-qunit { margin-inline-start: 3px; font-size: 10.5px; font-style: normal; font-weight: 500; color: var(--mi-ink-3); }

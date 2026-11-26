@@ -11,12 +11,24 @@ export const STAGES = [
   { id: 'review', label: 'Under review', hint: 'Submitted, waiting on the consultant' },
   { id: 'revise', label: 'Revise', hint: 'Consultant asked for a resubmission' },
   { id: 'approved', label: 'Approved', hint: 'Ready to order' },
-  { id: 'ordered', label: 'Ordered', hint: 'PO placed, nothing on site' },
+  { id: 'ordered', label: 'Ordered', hint: 'PO placed, nothing shipped yet' },
+  { id: 'delivering', label: 'Delivering', hint: 'Shipped, on the way to site' },
   { id: 'partial', label: 'Partly on site', hint: 'Some quantity delivered' },
   { id: 'onsite', label: 'On site', hint: 'Full quantity delivered' },
 ] as const
 export type StageId = (typeof STAGES)[number]['id']
 export const STAGE: Record<StageId, (typeof STAGES)[number]> = Object.fromEntries(STAGES.map((s) => [s.id, s])) as never
+
+/**
+ * The two tracks a material moves along (D-64). Submission is the consultant's side (submitted, approved), Procurement the
+ * purchase side (ordered, shipped, on site). They are shown as two columns and moved independently; the single `stageOf` is
+ * the furthest of the two, for the board, the pipeline and the overview counts.
+ */
+export const SUB_STAGES = ['notsub', 'review', 'revise', 'approved'] as const
+export type SubStage = (typeof SUB_STAGES)[number]
+export const PROC_STAGES = ['none', 'ordered', 'delivering', 'partial', 'onsite'] as const
+export type ProcStage = (typeof PROC_STAGES)[number]
+export const PROC_NONE = { id: 'none', label: 'Not ordered', hint: 'No purchase order yet' } as const
 
 const DAY = 864e5
 const toDay = (iso: string) => Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10))
@@ -40,15 +52,27 @@ export function qtyOf(item: MatItem): Qty {
   return { total: n(t), po: n(e.po), shd: n(e.shd), onsite: n(e.onsite), unit: text(item, 'unit'), totalText: typeof t === 'string' && t.trim() ? t.trim() : null }
 }
 
-export function stageOf(item: MatItem): StageId {
-  const q = qtyOf(item), status = text(item, 'msStatus')
-  if (q.total > 0 ? q.onsite >= q.total : !!date(item, 'arrActual')) return 'onsite'
-  if (q.onsite > 0) return 'partial'
-  if (date(item, 'poActual') || q.po > 0) return 'ordered'
+/** The share of the quantity on its way (the workbook's "Shipping on the way" percentage). */
+const shippingOf = (item: MatItem) => n(effective(item).shipping)
+
+export function submissionOf(item: MatItem): SubStage {
+  const status = text(item, 'msStatus')
   if (date(item, 'msApproved') || /^approved/i.test(status)) return 'approved'
   if (/revise|reject/i.test(status)) return 'revise'
   if (date(item, 'msActual') || /under review/i.test(status)) return 'review'
   return 'notsub'
+}
+export function procurementOf(item: MatItem): ProcStage {
+  const q = qtyOf(item)
+  if (q.total > 0 ? q.onsite >= q.total : !!date(item, 'arrActual')) return 'onsite'
+  if (q.onsite > 0) return 'partial'
+  const ordered = !!date(item, 'poActual') || q.po > 0
+  if (ordered && shippingOf(item) > 0) return 'delivering'
+  return ordered ? 'ordered' : 'none'
+}
+export function stageOf(item: MatItem): StageId {
+  const proc = procurementOf(item)
+  return proc === 'none' ? submissionOf(item) : proc
 }
 
 /** `expected`: the date is derived (approval 14 days after submission), not a plan column. */
@@ -62,6 +86,7 @@ export function nextOf(item: MatItem, today: string): NextStep {
     revise: ['Resubmit', submitted && addDaysIso(submitted, 10)],
     approved: ['Place order', date(item, 'poPlan')],
     ordered: ['First delivery', date(item, 'arrPlan')],
+    delivering: ['Arrival on site', date(item, 'arrPlan')],
     partial: ['Balance delivery', date(item, 'arrPlan')],
     onsite: ['Complete', null],
   }
@@ -86,47 +111,61 @@ export function cellPatch(item: MatItem, key: CellKey, value: number): FieldValu
   return src && 'v' in src && src.v === value ? null : value
 }
 
-/** Stages a person moves a material to directly; Partly on site comes from logging a delivery (`onsitePatch`). */
+/** Stages a person moves a material to directly; Partly on site comes from setting the quantity on site (`onsitePatch`). */
 export type MoveStage = Exclude<StageId, 'partial'>
 
 /**
- * The column and cell edits that put a material in `stage` on `on`. Earlier real dates are kept and
- * missing ones get `on`; later steps are cleared only where they hold a real date or a positive
- * quantity, so workbook text such as "TBC" or "n/a" and blank cells are never overwritten.
+ * Moves the Submission track only: the submission and approval dates and the status. Procurement is left as it is, so marking
+ * an ordered material "Under review" again does not cancel its order.
  */
-export function stagePatch(item: MatItem, stage: MoveStage, on: string): Patch {
-  const patch: Patch = {}, q = qtyOf(item)
+export function submissionPatch(item: MatItem, to: SubStage, on: string): Patch {
+  const patch: Patch = {}
   const keep = (key: EditableColKey) => date(item, key) ?? on
-  const status = text(item, 'msStatus')
   const clearDate = (key: EditableColKey) => { if (date(item, key)) col(item, key, '', patch) }
-  const clearQty = (key: 'po' | 'onsite') => { if (q[key] > 0) patch[key] = cellPatch(item, key, 0) }
-  const clearAfter = (from: 'approval' | 'order' | 'delivery') => {
-    if (from === 'approval') clearDate('msApproved')
-    if (from !== 'delivery') { clearDate('poActual'); clearQty('po') }
-    clearDate('arrActual'); clearQty('onsite')
-  }
-  const ordered = () => {
-    col(item, 'poActual', keep('poActual'), patch)
-    if (q.po <= 0 && q.total > 0) patch.po = cellPatch(item, 'po', q.total)
-  }
-  if (stage === 'notsub') { clearDate('msActual'); col(item, 'msStatus', 'Not Yet Submit', patch); clearAfter('approval') }
+  if (to === 'notsub') { clearDate('msActual'); clearDate('msApproved'); col(item, 'msStatus', 'Not Yet Submit', patch) }
   // A resubmission is a new submission: it takes the date given, where a first submission keeps a date already recorded.
-  if (stage === 'review') { col(item, 'msActual', stageOf(item) === 'revise' ? on : keep('msActual'), patch); col(item, 'msStatus', 'Under Review', patch); clearAfter('approval') }
-  if (stage === 'revise') { col(item, 'msActual', keep('msActual'), patch); col(item, 'msStatus', 'Revise & Resubmit', patch); clearAfter('approval') }
-  if (stage === 'approved' || stage === 'ordered' || stage === 'onsite') {
+  if (to === 'review') { col(item, 'msActual', submissionOf(item) === 'revise' ? on : keep('msActual'), patch); clearDate('msApproved'); col(item, 'msStatus', 'Under Review', patch) }
+  if (to === 'revise') { col(item, 'msActual', keep('msActual'), patch); clearDate('msApproved'); col(item, 'msStatus', 'Revise & Resubmit', patch) }
+  if (to === 'approved') {
     col(item, 'msActual', keep('msActual'), patch)
     col(item, 'msApproved', keep('msApproved'), patch)
-    if (!/^approved/i.test(status)) col(item, 'msStatus', 'Approved', patch)
+    if (!/^approved/i.test(text(item, 'msStatus'))) col(item, 'msStatus', 'Approved', patch)
   }
-  if (stage === 'approved') clearAfter('order')
-  if (stage === 'ordered') { ordered(); clearAfter('delivery') }
-  if (stage === 'onsite') {
+  return patch
+}
+
+/**
+ * Moves the Procurement track only: order date and quantity, the shipping share, the quantity on site and the arrival date.
+ * Delivering marks the whole quantity as on the way; reaching site clears it again. Later steps are cleared only where they hold
+ * a real date or a positive value, so workbook text such as "TBC" is never overwritten.
+ */
+export function procurementPatch(item: MatItem, to: Exclude<ProcStage, 'partial'>, on: string): Patch {
+  const patch: Patch = {}, q = qtyOf(item)
+  const keep = (key: EditableColKey) => date(item, key) ?? on
+  const clearDate = (key: EditableColKey) => { if (date(item, key)) col(item, key, '', patch) }
+  const setQty = (key: 'po' | 'onsite' | 'shipping', value: number) => { if (n(effective(item)[key]) !== value) patch[key] = cellPatch(item, key, value) }
+  const ordered = () => { col(item, 'poActual', keep('poActual'), patch); if (q.po <= 0 && q.total > 0) patch.po = cellPatch(item, 'po', q.total) }
+  if (to === 'none') { clearDate('poActual'); if (q.po > 0) setQty('po', 0); setQty('shipping', 0); if (q.onsite > 0) setQty('onsite', 0); clearDate('arrActual') }
+  if (to === 'ordered') { ordered(); setQty('shipping', 0); if (q.onsite > 0) setQty('onsite', 0); clearDate('arrActual') }
+  if (to === 'delivering') { ordered(); if (shippingOf(item) <= 0) setQty('shipping', 1); if (q.onsite > 0) setQty('onsite', 0); clearDate('arrActual') }
+  if (to === 'onsite') {
     ordered()
+    setQty('shipping', 0)
     // Raise the quantity to the total only when it is short; an over-delivery stays as counted.
     if (q.total > 0 && q.onsite < q.total) patch.onsite = cellPatch(item, 'onsite', q.total)
     col(item, 'arrActual', keep('arrActual'), patch)
   }
   return patch
+}
+
+/**
+ * The column and cell edits that put a material in `stage` on `on` (the board and bulk moves). A submission stage also takes
+ * the order back; a procurement stage also marks the submission approved. Earlier real dates are kept and missing ones get
+ * `on`; later steps are cleared only where they hold a real date or a positive quantity.
+ */
+export function stagePatch(item: MatItem, stage: MoveStage, on: string): Patch {
+  if ((SUB_STAGES as readonly string[]).includes(stage)) return { ...procurementPatch(item, 'none', on), ...submissionPatch(item, stage as SubStage, on) }
+  return { ...submissionPatch(item, 'approved', on), ...procurementPatch(item, stage as Exclude<ProcStage, 'partial'>, on) }
 }
 
 /** Sets the quantity on site; reaching the total stamps the arrival date and a first delivery stamps the order. More than the total is kept. */

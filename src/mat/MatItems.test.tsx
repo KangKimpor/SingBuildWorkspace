@@ -79,28 +79,60 @@ const row = async (code: string) => (await screen.findByText(`Sample panel ${cod
 test('List shows one row per material with its stage, next step and latest note', async () => {
   open()
   const x1 = await row('XX-01')
-  expect(within(x1).getByRole('button', { name: /^Stage: Ordered/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Submission: Approved/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
   expect(within(x1).getByText('First delivery')).toBeInTheDocument()
   expect(within(x1).getByText('Quote received')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /Wall Finishing/ })).toHaveAttribute('aria-expanded', 'true')
 })
 
-test('changing the stage saves column edits at once and Undo puts the old edits back', async () => {
+test('changing the procurement stage saves column edits at once and Undo puts the old edits back', async () => {
   open()
   const x1 = await row('XX-01')
-  fireEvent.click(within(x1).getByRole('button', { name: /^Stage:/ }))
-  fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: /^On site/ }))
+  fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
+  const pop = await screen.findByRole('dialog', { name: 'Change procurement stage' })
+  expect(within(pop).queryByLabelText(/Effective date/)).toBeNull()
+  fireEvent.click(within(pop).getByRole('button', { name: /^On site/ }))
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ onsite: 10 })))
-  expect(within(x1).getByRole('button', { name: /^Stage: On site/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Procurement: On site/ })).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }))
   await waitFor(() => expect(saveFields).toHaveBeenLastCalledWith('x1', expect.objectContaining({ onsite: null })))
-  expect(within(x1).getByRole('button', { name: /^Stage: Ordered/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
+})
+
+test('the submission stage moves on its own and leaves the order alone', async () => {
+  open()
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: /^Submission:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change submission stage' })).getByRole('button', { name: /^Under review/ }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ msStatus: 'Under Review' })))
+  const patch = vi.mocked(saveFields).mock.calls.at(-1)![1]
+  expect(patch).not.toHaveProperty('po')
+  expect(patch).not.toHaveProperty('poActual')
+  expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
+})
+
+test('Delivering marks the quantity as on the way', async () => {
+  open()
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Delivering/ }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ shipping: 1 })))
+  expect(within(x1).getByRole('button', { name: /^Procurement: Delivering/ })).toBeInTheDocument()
+})
+
+test('the row shows a timeline and all four quantities', async () => {
+  open()
+  const x1 = await row('XX-01')
+  expect(within(x1).getByRole('button', { name: /^Timeline: Submitted, Approved, Ordered\. Next: First delivery/ })).toBeInTheDocument()
+  const qty = within(x1).getByRole('button', { name: /^Total 10, ordered 4, approved SHD 0, on site 0/ })
+  for (const label of ['Total', 'Ordered', 'SHD', 'On site']) expect(within(qty).getByText(label)).toBeInTheDocument()
 })
 
 test('the on-site popover sets the total on site', async () => {
   open()
   const x2 = await row('XX-02')
-  fireEvent.click(within(x2).getByRole('button', { name: /^On site 0 of 10/ }))
+  fireEvent.click(within(x2).getByRole('button', { name: /^Total 10, ordered 8, approved SHD 0, on site 0/ }))
   const pop = await screen.findByRole('dialog', { name: 'Quantity on site' })
   expect(within(pop).queryByText(/Received/)).toBeNull()
   fireEvent.change(within(pop).getByLabelText('Total on site'), { target: { value: '4' } })
@@ -164,7 +196,7 @@ test('the detail panel opens from the name and closes with Escape', async () => 
 test('Board shows one column per stage and Sheet keeps the workbook table', async () => {
   open('/admin?v=board')
   expect(await screen.findByRole('region', { name: 'Ordered, 2' })).toBeInTheDocument()
-  expect(screen.getAllByRole('region', { name: /, \d+$/ })).toHaveLength(7)
+  expect(screen.getAllByRole('region', { name: /, \d+$/ })).toHaveLength(8)
   fireEvent.click(screen.getByRole('button', { name: 'Sheet' }))
   expect(await screen.findByRole('searchbox', { name: 'Search material' })).toBeInTheDocument()
   expect(document.querySelector('.mat-table')).not.toBeNull()
@@ -202,8 +234,8 @@ test('a save shows who made it in the panel and in the Activity list', async () 
   open()
   fireEvent.click(await screen.findByRole('button', { name: /Sample panel XX-01$/ }))
   const panel = await screen.findByRole('complementary', { name: 'Sample panel XX-01 details' })
-  fireEvent.click(within(panel).getByRole('button', { name: /^Stage:/ }))
-  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change stage' })).getByRole('button', { name: /^On site/ }))
+  fireEvent.click(within(panel).getByRole('button', { name: /^Procurement:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^On site/ }))
   expect(await within(panel).findByText(/Edited by Kimpor Kang · just now/)).toBeInTheDocument()
   expect(within(panel).getByText('assigned it to Sokha')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
@@ -252,7 +284,7 @@ test('a text total shows the workbook words, and an unnamed author gets no made-
   })
   open()
   const row1 = await row('XX-01')
-  expect(within(row1).getByText('/ As per BOQ')).toBeInTheDocument()
+  expect(within(row1).getByText('As per BOQ')).toBeInTheDocument()
   fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
   const list = await screen.findByRole('dialog', { name: 'Recent activity' })
   expect(within(list).getByText('Someone')).toBeInTheDocument()
@@ -263,4 +295,47 @@ test('an empty sheet says so instead of "0 of 0 fully on site"', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([]))
   open()
   expect(await screen.findByText('No materials yet')).toBeInTheDocument()
+})
+
+test('an activity entry is reverted only after confirming, and writes back what it replaced', async () => {
+  // The change being reverted is still in place: x1 holds the status and quantity it wrote.
+  vi.mocked(fetchPackage).mockResolvedValue({
+    ...load([section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 4, { edits: { msStatus: 'Rejected', po: 9 } }), material('x2', 3, 'XX-02', 8)]),
+    log: [{ id: 5, itemId: 'x1', at: new Date().toISOString(), by: 'u1', kind: 'fields', detail: { msStatus: 'Rejected', po: 9 }, before: { msStatus: null, po: 4 } }],
+    people: { u1: 'Dara' },
+  })
+  open()
+  await row('XX-01')
+  fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
+  const list = await screen.findByRole('dialog', { name: 'Recent activity' })
+  fireEvent.click(within(list).getByRole('button', { name: /^Revert: Dara set the status to Rejected/ }))
+  const confirm = await screen.findByRole('dialog', { name: 'Revert this change?' })
+  expect(saveFields).not.toHaveBeenCalled()
+  expect(within(confirm).getByText('goes back to the workbook value')).toBeInTheDocument()
+  expect(within(confirm).getByText('goes back to 4')).toBeInTheDocument()
+  fireEvent.click(within(confirm).getByRole('button', { name: 'Revert' }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { msStatus: null, po: 4 }))
+})
+
+test('an entry from before revert existed offers no revert', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue({ ...load(), log: [{ id: 6, itemId: 'x1', at: new Date().toISOString(), by: null, kind: 'fields', detail: { pic: 'Sokha' } }] })
+  open()
+  await row('XX-01')
+  fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
+  const list = await screen.findByRole('dialog', { name: 'Recent activity' })
+  expect(within(list).queryByRole('button', { name: /^Revert/ })).toBeNull()
+})
+
+test('the panel shows the submission image and the approved sample as separate groups', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    material('x1', 2, 'XX-01', 4, { data: { ...material('x1', 2, 'XX-01', 4).data, images: { image: ['a.webp'], sample: ['b.webp', 'c.webp'] } } }),
+  ]))
+  open()
+  fireEvent.click(await screen.findByRole('button', { name: 'Sample panel XX-01' }))
+  const panel = await screen.findByRole('complementary', { name: 'Sample panel XX-01 details' })
+  const image = within(panel).getByRole('region', { name: 'Submission image' }), sample = within(panel).getByRole('region', { name: 'Approved sample' })
+  expect(within(image).getAllByRole('button')).toHaveLength(1)
+  expect(within(sample).getAllByRole('button')).toHaveLength(2)
+  expect(within(panel).queryByLabelText(/Received/)).toBeNull()
 })

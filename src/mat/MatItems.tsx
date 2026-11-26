@@ -1,9 +1,9 @@
 import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import * as Dialog from '@radix-ui/react-dialog'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
-import { Activity, Check, ChevronDown, ChevronUp, CircleCheck, CircleDashed, Clock3, ImageIcon, Package, PackageCheck, RotateCcw, Search, Truck, X } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import { Activity, Check, ChevronDown, ChevronUp, ImageIcon, Search, Undo2, X } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
 import { useMatImageSrc } from './images'
 import type { MatPicture } from './MatSourcePanel'
@@ -13,15 +13,16 @@ import type { OnFields, OnRemark } from './MatCells'
 import { remarkKey } from './store'
 import type { MatState } from './store'
 import {
-  ATTENTION, STAGE, STAGES, addDaysIso, cellPatch, days, effectivePatch, nextOf, onsitePatch, qtyOf, sectionTree, snapshot, stageOf, stagePatch, todayIso,
+  ATTENTION, PROC_NONE, PROC_STAGES, STAGE, STAGES, SUB_STAGES, addDaysIso, cellPatch, days, effectivePatch, nextOf, onsitePatch, procurementOf, procurementPatch,
+  qtyOf, sectionTree, snapshot, stageOf, stagePatch, submissionOf, submissionPatch, todayIso,
 } from './stage'
-import type { AttentionId, MoveStage, NextStep, Qty, SectionInfo, SectionTree, StageId } from './stage'
+import type { AttentionId, MoveStage, NextStep, ProcStage, Qty, SectionInfo, SectionTree, StageId, SubStage } from './stage'
 import type { CellKey, EditableColKey, FieldKey, FieldValue, MatItem, MatLog, Sheet, Team } from './types'
 
 type Patch = Partial<Record<FieldKey, FieldValue>>
 type Group = 'section' | 'stage' | 'owner' | 'none'
 type Sort = 'pos' | 'urgency' | 'recent'
-type PopType = 'stage' | 'next' | 'deliver' | 'owner' | 'note' | 'filter-owner' | 'group' | 'sort' | 'bulk-stage' | 'bulk-owner' | 'activity'
+type PopType = 'sub' | 'proc' | 'next' | 'deliver' | 'owner' | 'note' | 'filter-owner' | 'group' | 'sort' | 'bulk-stage' | 'bulk-owner' | 'activity'
 interface Pop { type: PopType; id: string | null; anchor: HTMLElement }
 interface Toast { message: string; undo?: { id: string; patch: Patch }[]; key: number }
 interface Note { team: Team; week: string; body: string; by?: string }
@@ -37,12 +38,13 @@ const STEP_ACTIONS: Record<StageId, { to: MoveStage; label: string; undated?: tr
   review: [{ to: 'approved', label: 'Approved' }, { to: 'revise', label: 'Consultant asked to revise', undated: true }],
   revise: [{ to: 'review', label: 'Resubmitted' }],
   approved: [{ to: 'ordered', label: 'Order placed' }],
-  ordered: [{ to: 'onsite', label: 'Everything delivered' }],
+  ordered: [{ to: 'delivering', label: 'Shipped' }, { to: 'onsite', label: 'Everything delivered' }],
+  delivering: [{ to: 'onsite', label: 'Everything delivered' }],
   partial: [{ to: 'onsite', label: 'Everything delivered' }],
   onsite: [],
 }
 /** The workbook column holding the step's plan date. Approval has none: it is expected 14 days after submission (10 for a resubmission). */
-const PLAN_KEY: Partial<Record<StageId, EditableColKey>> = { notsub: 'msPlan', approved: 'poPlan', ordered: 'arrPlan', partial: 'arrPlan' }
+const PLAN_KEY: Partial<Record<StageId, EditableColKey>> = { notsub: 'msPlan', approved: 'poPlan', ordered: 'arrPlan', delivering: 'arrPlan', partial: 'arrPlan' }
 const realYear = (iso: string) => /^20\d\d-\d\d-\d\d$/.test(iso)
 const text = (item: MatItem, key: EditableColKey) => formatCol(effectiveCol(item, key)).trim()
 // One formatter each, built once: a list of 2,000 rows formats a date in every row.
@@ -97,13 +99,49 @@ function Avatar({ name, large }: { name: string | null; large?: boolean }) {
 }
 /** One symbol per stage, read left to right as the material moves: dashed (nothing yet), clock (waiting), back arrow (revise),
  * check (approved), box (ordered), truck (arriving), checked box (all on site). The symbol carries the colour; the label stays ink. */
-const STAGE_ICON: Record<StageId, LucideIcon> = { notsub: CircleDashed, review: Clock3, revise: RotateCcw, approved: CircleCheck, ordered: Package, partial: Truck, onsite: PackageCheck }
-function StageIcon({ stage, size = 14 }: { stage: StageId; size?: number }) {
-  const Icon = STAGE_ICON[stage]
-  return <Icon className="mi-sicon" data-stage={stage} size={size} strokeWidth={2.1} aria-hidden="true"/>
+type ChipStage = StageId | 'none'
+/**
+ * Two-tone stage symbols (D-64), drawn the way the reference capsules are: a soft shape in a light tint of the stage's hue
+ * (`b`), and the glyph on it in the full hue (`g` stroked, `d` filled). A 20 × 20 grid, 2 px strokes, round ends.
+ */
+const GLYPH: Record<ChipStage, ReactNode> = {
+  notsub: <><rect className="b" x="4" y="2" width="12" height="16" rx="3"/><path className="g" d="M7.5 7.5h5M7.5 11h5M7.5 14.5h2.5"/></>,
+  review: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="M10 5.8V10l2.9 1.9"/></>,
+  revise: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="M6.2 7.6a4.4 4.4 0 1 1-.3 4.7"/><path className="g" d="M5.8 4.6v3.3h3.3"/></>,
+  approved: <><circle className="b" cx="10" cy="10" r="8"/><path className="g" d="m6.5 10.3 2.4 2.4 4.6-4.9"/></>,
+  none: <><rect className="b" x="2" y="5" width="16" height="12" rx="3"/><path className="g" d="M7 11h6"/></>,
+  ordered: <><rect className="b" x="2" y="5.5" width="16" height="11.5" rx="3"/><path className="g" d="M7 5.5V3.8c0-.4.4-.8.8-.8h4.4c.4 0 .8.4.8.8v1.7M2 10.3h16M10 9v2.6"/></>,
+  delivering: <><path className="b" d="M2 6.5A1.5 1.5 0 0 1 3.5 5h8A1.5 1.5 0 0 1 13 6.5V14H2zM13 8h2.6l2.4 3v3h-5z"/><circle className="d" cx="6" cy="14.6" r="1.9"/><circle className="d" cx="14.6" cy="14.6" r="1.9"/></>,
+  partial: <><rect className="b" x="2" y="4" width="16" height="13" rx="3"/><path className="g" d="M10 7.2v5.6M7.4 10.4 10 13l2.6-2.6"/></>,
+  onsite: <><rect className="b" x="2" y="4" width="16" height="13" rx="3"/><path className="g" d="m6.6 10.6 2.3 2.3 4.5-4.8"/></>,
 }
-function StagePill({ stage, caret }: { stage: StageId; caret?: boolean }) {
-  return <span className="mi-stage" data-stage={stage}><StageIcon stage={stage}/><span>{STAGE[stage].label}</span>{caret && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span>
+const stageLabel = (stage: ChipStage) => stage === 'none' ? PROC_NONE.label : STAGE[stage].label
+const stageHint = (stage: ChipStage) => stage === 'none' ? PROC_NONE.hint : STAGE[stage].hint
+function StageIcon({ stage, size = 16 }: { stage: ChipStage; size?: number }) {
+  return <svg className="mi-sicon" data-stage={stage} width={size} height={size} viewBox="0 0 20 20" aria-hidden="true" focusable="false">{GLYPH[stage]}</svg>
+}
+/** A stage as a capsule in its hue: a pale ground, a solid ring (a little heavier underneath), the two-tone symbol, the label in a deep shade. */
+function StagePill({ stage, caret }: { stage: ChipStage; caret?: boolean }) {
+  return <span className="mi-stage" data-stage={stage}><StageIcon stage={stage} size={19}/><span>{stageLabel(stage)}</span>{caret && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span>
+}
+
+/** The five points a material passes, for the List's timeline column. */
+interface Milestone { label: string; done: boolean; date: string | null }
+function milestones(item: MatItem, sub: SubStage, proc: ProcStage): Milestone[] {
+  const d = (key: EditableColKey) => { const v = effectiveCol(item, key); return isIsoDate(v) ? v : null }
+  return [
+    { label: 'Submitted', done: sub !== 'notsub', date: d('msActual') },
+    { label: 'Approved', done: sub === 'approved', date: d('msApproved') },
+    { label: 'Ordered', done: proc !== 'none', date: d('poActual') },
+    { label: 'Shipped', done: proc === 'delivering' || proc === 'partial' || proc === 'onsite', date: null },
+    { label: 'On site', done: proc === 'onsite', date: d('arrActual') },
+  ]
+}
+function Track({ steps }: { steps: Milestone[] }) {
+  const current = steps.findIndex((m) => !m.done)
+  return <span className="mi-track" aria-hidden="true">
+    {steps.map((m, i) => <i key={m.label} data-done={m.done || undefined} data-current={i === current || undefined}/>)}
+  </span>
 }
 /** When the next step is due: "139d late · due 10 Jul", "In 5d · due 1 Dec", "Expected 10 Dec" for an approval. */
 function Due({ next }: { next: NextStep }) {
@@ -168,9 +206,9 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
   const derived = useMemo(() => {
     const out = new Map<string, Derived>()
     for (const i of items) {
-      const next = nextOf(i, today), name = text(i, 'description') || codeOf(i)
+      const next = nextOf(i, today), name = text(i, 'description') || codeOf(i), sub = submissionOf(i), proc = procurementOf(i)
       out.set(i.id, {
-        stage: stageOf(i), next, qty: qtyOf(i), name, owner: text(i, 'pic'),
+        stage: stageOf(i), subStage: sub, proc, steps: milestones(i, sub, proc), next, qty: qtyOf(i), name, owner: text(i, 'pic'),
         sub: [codeOf(i), text(i, 'brand'), text(i, 'location')].filter(Boolean).join(' · '),
         search: `${codeOf(i)} ${name} ${text(i, 'brand')} ${text(i, 'location')} ${text(i, 'spec')}`.toLowerCase(),
         photos: effectiveImages(i, 'image').length + effectiveImages(i, 'sample').length,
@@ -249,6 +287,8 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     const targets = ids.map((id) => byId.get(id)).filter((i): i is MatItem => !!i)
     void apply(targets.map((item) => ({ item, patch: stagePatch(item, to, on) })), ids.length > 1 ? `${ids.length} moved to ${STAGE[to].label}` : `Moved to ${STAGE[to].label}`)
   }, [apply, byId, today])
+  const moveSub = useCallback((item: MatItem, to: SubStage) => void apply([{ item, patch: submissionPatch(item, to, today) }], `Submission: ${STAGE[to].label}`), [apply, today])
+  const moveProc = useCallback((item: MatItem, to: Exclude<ProcStage, 'partial'>) => void apply([{ item, patch: procurementPatch(item, to, today) }], `Procurement: ${stageLabel(to)}`), [apply, today])
   const assign = useCallback((ids: string[], name: string) => {
     const targets = ids.map((id) => byId.get(id)).filter((i): i is MatItem => !!i)
     void apply(targets.map((item) => ({ item, patch: { pic: colPatchValue(item, 'pic', name) } })), ids.length > 1 ? `${ids.length} assigned to ${name}` : `Assigned to ${name}`)
@@ -270,6 +310,15 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     try { await onRemark(id, team, body.trim()) } catch { say('Could not save the note.') }
   }, [state.remarks, state.week, onRemark, say])
 
+  // ---- revert an activity entry: writes back what the change replaced, after a confirmation ----
+  const [reverting, setReverting] = useState<MatLog | null>(null)
+  const revert = useCallback(async (entry: MatLog) => {
+    const item = byId.get(entry.itemId), before = entry.before
+    if (!item || !before) return
+    if (entry.kind === 'fields') { await apply([{ item, patch: before as Patch }], 'Change reverted'); return }
+    const b = before as { team?: Team; body?: string }
+    if (b.team) await saveNote(item.id, b.team, b.body ?? '')
+  }, [apply, byId, saveNote])
   // ---- popovers ----
   const openPop = useCallback((type: PopType, id: string | null, anchor: HTMLElement) =>
     setPop((cur) => cur && cur.anchor === anchor && cur.type === type ? null : { type, id, anchor }), [])
@@ -318,7 +367,9 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
   }, [pop, checked, open, nav, toast, undo])
 
   const actions = useMemo<RowActions>(() => ({ openPop, toggleCheck, openPanel: setOpen, openPicture: onPicture }), [openPop, toggleCheck, onPicture])
-  const ctx: RowCtx = { today, week: state.week, changed, notes, people, activity, hasOwner, checked, flash, open, pop, derived, actions, openPop, openPanel: setOpen, selecting: checked.size > 0 }
+  const canRevert = useCallback((l: MatLog) => !!l.before && byId.has(l.itemId)
+    && (l.kind === 'fields' || (l.before as { week?: string }).week === state.week), [byId, state.week])
+  const ctx: RowCtx = { today, week: state.week, changed, notes, people, activity, hasOwner, checked, flash, open, pop, derived, actions, openPop, openPanel: setOpen, selecting: checked.size > 0, canRevert, askRevert: setReverting }
   const openItem = open ? byId.get(open) ?? null : null
   const popItem = pop?.id ? byId.get(pop.id) ?? null : null
 
@@ -362,16 +413,19 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
         }}/>}
 
     <Panel item={openItem} ctx={ctx} section={openItem ? tree.pathOf.get(openItem.id) ?? [] : []} week={state.week} remarks={state.remarks}
-      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty} onReceive={(it, v) => setOnsite(it, qtyOf(it).onsite + v, `Received ${NUM.format(v)} ${qtyOf(it).unit}`)}
+      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty}
       onNote={saveNote} onOpenSource={onOpenSource}/>
+
+    <RevertDialog entry={reverting} item={reverting ? byId.get(reverting.itemId) ?? null : null} people={people} activity={activity}
+      onClose={() => setReverting(null)} onConfirm={(e) => { setReverting(null); void revert(e) }}/>
 
     {pop && <Popover pop={pop} onClose={closePop}>
       <PopBody key={`${pop.type}:${pop.id ?? ''}`} pop={pop} item={popItem} today={today} owners={owners} owner={owner} group={group} sort={sort} count={checked.size} hasOwner={hasOwner}
         week={state.week} remarks={state.remarks}
-        onStage={(to, on) => {
-          const id = pop.id!
-          if (to === 'partial') { setPop({ type: 'deliver', id, anchor: pop.anchor }); return }
-          closePop(); moveTo([id], to as MoveStage, on)
+        onSub={(to) => { closePop(); if (popItem) moveSub(popItem, to) }}
+        onProc={(to) => {
+          if (to === 'partial') { setPop({ type: 'deliver', id: pop.id!, anchor: pop.anchor }); return }
+          closePop(); if (popItem) moveProc(popItem, to)
         }}
         onNextAction={(to, on) => { closePop(); moveTo([pop.id!], to, on) }}
         onPlan={(key, value) => { closePop(); if (popItem) setDate(popItem, key, value) }}
@@ -384,6 +438,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
         onGroup={(g) => { closePop(); setGroup(g) }}
         onSort={(s) => { closePop(); setSort(s) }}
         activity={activity} people={people} byId={byId} onOpenItem={(id) => { closePop(); setOpen(id) }}
+        canRevert={canRevert} onRevert={(l) => { closePop(); setReverting(l) }}
         onBulkStage={(to) => { closePop(); moveTo([...checked], to) }}
         onBulkOwner={(name) => { closePop(); assign([...checked], name) }}/>
     </Popover>}
@@ -435,7 +490,7 @@ function Overview({ scope, derived, today, attn, stage, onAttn, onStage }: { sco
   </section>
 }
 
-interface Derived { stage: StageId; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; photo: string | null; late: boolean }
+interface Derived { stage: StageId; subStage: SubStage; proc: ProcStage; steps: Milestone[]; next: NextStep; qty: Qty; name: string; owner: string; sub: string; search: string; photos: number; photo: string | null; late: boolean }
 interface RowActions {
   openPop: (type: PopType, id: string | null, anchor: HTMLElement) => void
   toggleCheck: (id: string, range: boolean) => void
@@ -460,6 +515,9 @@ interface RowCtx {
   actions: RowActions
   openPop: RowActions['openPop']
   openPanel: (id: string) => void
+  /** Whether an activity entry can be reverted (it carries what it replaced, and a note is still this week's). */
+  canRevert: (entry: MatLog) => boolean
+  askRevert: (entry: MatLog) => void
 }
 
 type Entry =
@@ -522,11 +580,12 @@ function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
 }) {
   const { derived } = ctx
   const entries = useMemo(() => listEntries(list, group, tree, derived, collapsed), [list, group, tree, derived, collapsed])
-  const columns = ctx.hasOwner ? 7 : 6
+  const columns = ctx.hasOwner ? 8 : 7
   return <div className="mi-list" data-selecting={ctx.selecting || undefined} role="table" aria-label="Materials">
     <div className="mi-grid mi-lh" role="row" data-owner={ctx.hasOwner || undefined}>
-      <span role="columnheader"><span className="sr-only">Photo and select</span></span><span role="columnheader">Material</span><span role="columnheader">Stage</span>
-      <span role="columnheader">Next step</span><span role="columnheader">On site</span>
+      <span role="columnheader"><span className="sr-only">Photo and select</span></span><span role="columnheader">Material</span>
+      <span role="columnheader">Submission</span><span role="columnheader" className="mi-c-proc">Procurement</span>
+      <span role="columnheader" className="mi-c-time">Timeline</span><span role="columnheader" className="mi-c-qty">Quantity</span>
       {ctx.hasOwner && <span role="columnheader" className="mi-c-who">Owner</span>}<span role="columnheader" className="mi-c-note">Latest note</span>
     </div>
     {entries.map((e) => e.kind === 'head'
@@ -534,7 +593,7 @@ function ListView({ list, group, tree, collapsed, ctx, onToggleGroup }: {
           <button type="button" className="mi-grp" aria-expanded={!collapsed.has(e.key)} style={{ ['--depth' as string]: e.depth }} title={e.title} onClick={() => onToggleGroup(e.key)}>
             <ChevronDown className="mi-chev" size={13} aria-hidden="true"/>
             <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}</span>
-            <span className="mi-grp-meta">{e.late > 0 && <span className="mi-grp-late">{e.late} late</span>}<span className="mi-grp-n" aria-label={`${e.count} materials`}>{e.count}</span></span>
+            <span className="mi-grp-meta"><span className="mi-grp-n" aria-label={`${e.count} materials`}>{e.count}</span></span>
           </button>
         </div></div>
       : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} note={ctx.notes.get(e.item.id)?.[0]} week={ctx.week}
@@ -557,7 +616,7 @@ interface RowProps {
 }
 /** Memoized on plain props: opening a popover or ticking one row re-renders that row, not all of them. */
 const Row = memo(function Row({ item, d, note, week, changed, picked, sel, flash, popType, hasOwner, actions }: RowProps) {
-  const { stage: st, next, qty: q, name, owner } = d
+  const { subStage: sub, proc, steps, next, qty: q, name, owner } = d
   const cell = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => { e.stopPropagation(); actions.openPop(type, item.id, e.currentTarget) }
   // oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- A click anywhere on the row is a pointer shortcut; the name button is the keyboard path to the same panel.
   return <div className="mi-grid mi-row" role="row" data-mi-row={item.id} data-owner={hasOwner || undefined} data-sel={sel || undefined}
@@ -577,13 +636,21 @@ const Row = memo(function Row({ item, d, note, week, changed, picked, sel, flash
       <button type="button" className="mi-t" title={name} onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
       <span className="mi-s">{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub" title={d.sub}>{d.sub}</span></span>
     </span>
-    <span role="cell"><button type="button" className="mi-cell" aria-haspopup="dialog" aria-expanded={popType === 'stage'} aria-label={`Stage: ${STAGE[st].label}. Change`} onClick={cell('stage')}><StagePill stage={st} caret/></button></span>
-    <span role="cell"><button type="button" className="mi-cell mi-next" aria-haspopup="dialog" aria-expanded={popType === 'next'} onClick={cell('next')}>
-      <span className="mi-t">{next.label}{!next.done && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span><span className="mi-s"><Due next={next}/></span>
+    <span role="cell"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
+    <span role="cell" className="mi-c-proc"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'proc'} aria-label={`Procurement: ${stageLabel(proc)}. Change`} onClick={cell('proc')}><StagePill stage={proc}/></button></span>
+    <span role="cell" className="mi-c-time"><button type="button" className="mi-cell mi-time" aria-haspopup="dialog" aria-expanded={popType === 'next'}
+      aria-label={`Timeline: ${steps.filter((m) => m.done).map((m) => m.label).join(', ') || 'nothing done yet'}. ${next.done ? 'Complete' : `Next: ${next.label}`}. Update`}
+      title={steps.map((m) => `${m.label}: ${m.done ? m.date ? shortDate(m.date) : 'done' : 'not yet'}`).join('\n')} onClick={cell('next')}>
+      <Track steps={steps}/>
+      {next.done ? <span className="mi-s"><span className="mi-due" data-tone="done">All on site</span></span>
+        : <><span className="mi-time-l" title={next.label}>{next.label}</span><span className="mi-s"><Due next={next}/></span></>}
     </button></span>
-    <span role="cell"><button type="button" className="mi-cell mi-qty" aria-haspopup="dialog" aria-expanded={popType === 'deliver'} aria-label={`On site ${NUM.format(q.onsite)} of ${q.totalText ?? NUM.format(q.total)} ${q.unit}. Set the quantity on site`} onClick={cell('deliver')}>
-      <span className="mi-qty-v"><b>{NUM.format(q.onsite)}</b><span> / {q.totalText ?? NUM.format(q.total)}</span>{q.unit && <span className="mi-qty-u">{q.unit}</span>}</span>
-      <QtyBar q={q}/>
+    <span role="cell" className="mi-c-qty"><button type="button" className="mi-cell mi-qstats" aria-haspopup="dialog" aria-expanded={popType === 'deliver'}
+      aria-label={`Total ${q.totalText ?? NUM.format(q.total)}, ordered ${NUM.format(q.po)}, approved SHD ${NUM.format(q.shd)}, on site ${NUM.format(q.onsite)} ${q.unit}. Set the quantity on site`} onClick={cell('deliver')}>
+      <span><small>Total</small><b title={`${q.totalText ?? NUM.format(q.total)} ${q.unit}`.trim()}>{q.totalText ?? NUM.format(q.total)}{q.unit && <i className="mi-qunit">{q.unit}</i>}</b></span>
+      <span><small>Ordered</small><b>{NUM.format(q.po)}</b></span>
+      <span><small>SHD</small><b>{NUM.format(q.shd)}</b></span>
+      <span data-k="onsite" data-some={q.onsite > 0 || undefined}><small>On site</small><b>{NUM.format(q.onsite)}</b></span>
     </button></span>
     {hasOwner && <span role="cell" className="mi-c-who"><button type="button" className="mi-cell mi-who" aria-haspopup="dialog" aria-expanded={popType === 'owner'} aria-label={`Owner: ${owner || 'none'}. Change`} onClick={cell('owner')}>
       {owner ? <><Avatar name={owner}/><span title={owner}>{owner}</span></> : <span className="mi-faint">Assign</span>}
@@ -653,7 +720,7 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
     {STAGES.map((s) => {
       const rows = columns[s.id]
       return <section key={s.id} className="mi-col" data-mi-col={s.id} data-over={over === s.id || undefined} aria-label={`${s.label}, ${rows.length}`}>
-        <h3><StageIcon stage={s.id}/>{s.label}<span className="mi-col-n">{rows.length}</span></h3>
+        <h3><StageIcon stage={s.id} size={15}/>{s.label}<span className="mi-col-n">{rows.length}</span></h3>
         {rows.map((item) => <div key={item.id} className="mi-kc" role="button" tabIndex={0} aria-label={`${derived.get(item.id)!.name}. Open details`} data-mi-card={item.id} data-ghosted={drag?.id === item.id || undefined}
           onPointerDown={(e) => start(e, item.id)} onKeyDown={(e) => onKey(e, item.id)}>
           <BoardCard item={item} d={derived.get(item.id)!} changed={ctx.changed.has(item.id)}/>
@@ -673,9 +740,9 @@ const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem;
 })
 
 /* ---------------- popover: anchored to its trigger, grows from it ---------------- */
-const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, deliver: 260, stage: 270, activity: 360, next: 352 }
+const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, deliver: 260, sub: 280, proc: 280, activity: 380, next: 352 }
 const POP_LABEL: Record<PopType, string> = {
-  stage: 'Change stage', next: 'Next step', deliver: 'Quantity on site', owner: 'Change owner', note: 'This week\'s note',
+  sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Next step', deliver: 'Quantity on site', owner: 'Change owner', note: 'This week\'s note',
   'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', 'bulk-stage': 'Move selected to stage', 'bulk-owner': 'Assign selected to', activity: 'Recent activity',
 }
 function Popover({ pop, onClose, children }: { pop: Pop; onClose: () => void; children: ReactNode }) {
@@ -724,28 +791,28 @@ function Opt({ on, onClick, children, autoFocus }: { on?: boolean; onClick: () =
 
 interface PopBodyProps {
   pop: Pop; item: MatItem | null; today: string; owners: string[]; owner: string; group: Group; sort: Sort; count: number; week: string; remarks: Record<string, string>; hasOwner: boolean
-  onStage: (to: StageId, on: string) => void; onNextAction: (to: MoveStage, on: string) => void; onEditDates: () => void
+  onSub: (to: SubStage) => void; onProc: (to: ProcStage) => void; onNextAction: (to: MoveStage, on: string) => void; onEditDates: () => void
   onPlan: (key: EditableColKey, value: string) => void; onDeliver: () => void; onSetOnsite: (v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
   onFilterOwner: (name: string) => void; onGroup: (g: Group) => void; onSort: (s: Sort) => void
   onBulkStage: (to: MoveStage) => void; onBulkOwner: (name: string) => void
   activity: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; onOpenItem: (id: string) => void
+  canRevert: (entry: MatLog) => boolean; onRevert: (entry: MatLog) => void
 }
 function PopBody(p: PopBodyProps) {
   const { pop, item } = p
-  const [on, setOn] = useState(p.today)
   const [team, setTeam] = useState<Team>('purchase')
   const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, 'purchase', p.week)] ?? '' : '')
   // Keyed by popover type and row (see MatItems), so a draft never carries over to another material.
   const switchTeam = (t: Team) => { setTeam(t); if (item) setBody(p.remarks[remarkKey(item.id, t, p.week)] ?? '') }
-  if (pop.type === 'stage' && item) {
-    const st = stageOf(item)
+  if ((pop.type === 'sub' || pop.type === 'proc') && item) {
+    const isSub = pop.type === 'sub', current: ChipStage = isSub ? submissionOf(item) : procurementOf(item)
+    const ids: readonly ChipStage[] = isSub ? SUB_STAGES : PROC_STAGES
     return <>
-      <div className="mi-pop-t">Move to stage</div>
-      {STAGES.map((s) => <Opt key={s.id} on={s.id === st} autoFocus={s.id === st} onClick={() => p.onStage(s.id, on)}>
-        <StageIcon stage={s.id} size={15}/><span>{s.label}<span className="mi-opt-h">{s.hint}</span></span>
+      <div className="mi-pop-t">{isSub ? 'Submission' : 'Procurement'}</div>
+      {ids.map((id) => <Opt key={id} on={id === current} autoFocus={id === current} onClick={() => isSub ? p.onSub(id as SubStage) : p.onProc(id as ProcStage)}>
+        <StageIcon stage={id} size={17}/><span>{stageLabel(id)}<span className="mi-opt-h">{stageHint(id)}</span></span>
       </Opt>)}
-      <div className="mi-sep"/>
-      <label className="mi-pad mi-l">Effective date<input type="date" className="mi-field" value={on} onChange={(e) => setOn(e.target.value || p.today)}/></label>
+      <p className="mi-pad mi-faint mi-small mi-pop-foot">Dates are recorded as today. Change them in the timeline.</p>
     </>
   }
   if (pop.type === 'next' && item) {
@@ -765,7 +832,7 @@ function PopBody(p: PopBodyProps) {
       {(st === 'review' || st === 'revise') && <p className="mi-pad mi-faint mi-small">Expected {st === 'review' ? 14 : 10} days after the submission date.</p>}
       <div className="mi-sep"/>
       <div className="mi-step-links">
-        {(st === 'ordered' || st === 'partial') && <button type="button" className="mi-link" onClick={p.onDeliver}>Set quantity on site…</button>}
+        {(st === 'ordered' || st === 'delivering' || st === 'partial') && <button type="button" className="mi-link" onClick={p.onDeliver}>Set quantity on site…</button>}
         <button type="button" className="mi-link" onClick={p.onEditDates}>All dates…</button>
       </div>
     </>
@@ -811,17 +878,20 @@ function PopBody(p: PopBodyProps) {
       <div className="mi-pop-t">Recent activity · everyone</div>
       {recent.length ? recent.map((l, i) => {
         const known = l.by ? p.people[l.by] ?? null : null, name = known ?? 'Someone', it = p.byId.get(l.itemId)
-        return <button key={l.id} type="button" className="mi-opt mi-act-opt" data-autofocus={i === 0 || undefined} onClick={() => p.onOpenItem(l.itemId)}>
-          <Avatar name={known}/>
-          <span className="mi-act-tx"><span><b>{name}</b> {describeLog(l)}</span>
-            <span className="mi-opt-h">{it ? text(it, 'description') || codeOf(it) : ''} · {ago(l.at)}</span></span>
-        </button>
+        return <div key={l.id} className="mi-act-row">
+          <button type="button" className="mi-opt mi-act-opt" data-autofocus={i === 0 || undefined} onClick={() => p.onOpenItem(l.itemId)}>
+            <Avatar name={known}/>
+            <span className="mi-act-tx"><span><b>{name}</b> {describeLog(l)}</span>
+              <span className="mi-opt-h">{it ? text(it, 'description') || codeOf(it) : ''} · {ago(l.at)}</span></span>
+          </button>
+          {p.canRevert(l) && <button type="button" className="mi-revert" title="Revert this change" aria-label={`Revert: ${name} ${describeLog(l)}`} onClick={() => p.onRevert(l)}><Undo2 size={14} aria-hidden="true"/></button>}
+        </div>
       }) : <p className="mi-pad mi-faint">No changes in the last three weeks.</p>}
     </>
   }
   if (pop.type === 'bulk-stage') return <>
     <div className="mi-pop-t">Move {p.count} to stage</div>
-    {STAGES.filter((s): s is (typeof STAGES)[number] & { id: MoveStage } => s.id !== 'partial').map((s, i) => <Opt key={s.id} autoFocus={i === 0} onClick={() => p.onBulkStage(s.id)}><StageIcon stage={s.id} size={15}/><span>{s.label}</span></Opt>)}
+    {STAGES.filter((s): s is (typeof STAGES)[number] & { id: MoveStage } => s.id !== 'partial').map((s, i) => <Opt key={s.id} autoFocus={i === 0} onClick={() => p.onBulkStage(s.id)}><StageIcon stage={s.id} size={17}/><span>{s.label}</span></Opt>)}
   </>
   return null
 }
@@ -864,7 +934,6 @@ interface PanelProps {
   onClose: () => void; onNav: (dir: number) => void
   onDate: (item: MatItem, key: EditableColKey, value: string) => void
   onQty: (item: MatItem, key: CellKey, value: number) => void
-  onReceive: (item: MatItem, v: number) => void
   onNote: (id: string, team: Team, body: string) => Promise<void>
   onOpenSource: (id: string) => void
 }
@@ -943,16 +1012,15 @@ function Panel(props: PanelProps) {
   </motion.aside>
 }
 
-function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onReceive, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
-  const st = stageOf(item), next = nextOf(item, ctx.today), q = qtyOf(item), owner = text(item, 'pic')
+function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
+  const sub = submissionOf(item), proc = procurementOf(item), next = nextOf(item, ctx.today), q = qtyOf(item), owner = text(item, 'pic')
   const [team, setTeam] = useState<Team>('purchase')
   const [draft, setDraft] = useState('')
-  const [recv, setRecv] = useState('')
   const [edge, setEdge] = useState(false)
   const bodyRef = useRef<HTMLDivElement>(null)
   const thisWeek = remarks[remarkKey(item.id, team, week)] ?? ''
   useEffect(() => { setDraft(thisWeek) }, [item.id, team, thisWeek])
-  useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0; setRecv('') }, [item.id])
+  useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0 }, [item.id])
   const thread = (ctx.notes.get(item.id) ?? []).filter((n) => n.team === team && n.week !== week)
   const thisWeekBy = (ctx.notes.get(item.id) ?? []).find((n) => n.team === team && n.week === week)?.by
   const history = ctx.activity.filter((l) => l.itemId === item.id).slice(0, 8)
@@ -967,12 +1035,13 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
     { title: 'Fully on site', plan: iso('arrPlan'), planKey: 'arrPlan', actual: 'arrActual' },
   ]
   const pct = (v: number) => q.total > 0 ? Math.round(Math.min(1, v / q.total) * 100) : 0
-  const receive = () => { const v = Number(recv.replace(/,/g, '')); if (v > 0) { onReceive(item, v); setRecv('') } }
-  const gallery = [
-    ...effectiveImages(item, 'image').map((ref) => ({ ref, sample: false })),
-    ...effectiveImages(item, 'sample').map((ref) => ({ ref, sample: true })),
+  // The submitted image and the approved sample are different things: one is what was proposed, the other what the
+  // consultant signed off. They are shown as two labelled groups, never mixed in one strip.
+  const sets = [
+    { key: 'image' as const, title: 'Submission image', hint: 'What was submitted', refs: effectiveImages(item, 'image') },
+    { key: 'sample' as const, title: 'Approved sample', hint: 'What the consultant approved', refs: effectiveImages(item, 'sample') },
   ]
-  const photos = gallery.length
+  const photos = sets[0]!.refs.length + sets[1]!.refs.length
   const name = text(item, 'description') || codeOf(item)
   const popBtn = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => ctx.openPop(type, item.id, e.currentTarget)
   return <>
@@ -985,7 +1054,8 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
       </div>
       <h2 title={text(item, 'description') || undefined}>{text(item, 'description') || codeOf(item)}</h2>
       <div className="mi-ph-row">
-        <button type="button" className="mi-cell mi-inline" aria-haspopup="dialog" aria-label={`Stage: ${STAGE[st].label}. Change`} onClick={popBtn('stage')}><StagePill stage={st} caret/></button>
+        <button type="button" className="mi-cell mi-inline mi-stage-cell" aria-haspopup="dialog" aria-label={`Submission: ${stageLabel(sub)}. Change`} title="Submission" onClick={popBtn('sub')}><StagePill stage={sub}/></button>
+        <button type="button" className="mi-cell mi-inline mi-stage-cell" aria-haspopup="dialog" aria-label={`Procurement: ${stageLabel(proc)}. Change`} title="Procurement" onClick={popBtn('proc')}><StagePill stage={proc}/></button>
         {ctx.hasOwner && <button type="button" className="mi-cell mi-inline mi-who" aria-haspopup="dialog" aria-label={`Owner: ${owner || 'none'}. Change`} onClick={popBtn('owner')}>
           {owner ? <><Avatar name={owner}/><span>{owner}</span></> : <span className="mi-faint">Assign owner</span>}<ChevronDown size={11} className="mi-caret" aria-hidden="true"/></button>}
       </div>
@@ -995,15 +1065,18 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
     </div>
     <div className="mi-edge" data-on={edge || undefined}/>
     <div className="mi-pbody" ref={bodyRef} onScroll={(e) => setEdge(e.currentTarget.scrollTop > 2)}>
-      {photos > 0 && <div className="mi-sec mi-gallery-sec">
-        <ul className="mi-gallery" aria-label="Photos">
-          {gallery.map((g, i) => <li key={`${g.ref}:${i}`}>
-            <button type="button" className="mi-gallery-btn" aria-label={`View ${g.sample ? 'approved sample' : 'photo'} ${i + 1} of ${photos}`}
-              onClick={() => ctx.actions.openPicture({ ref: g.ref, alt: g.sample ? `${name} · approved sample` : name, itemId: item.id })}>
-              <Photo src={g.ref}/>{g.sample && <span className="mi-gallery-tag">Sample</span>}
-            </button>
-          </li>)}
-        </ul>
+      {photos > 0 && <div className="mi-sec mi-photos">
+        {sets.map((set) => <section key={set.key} className="mi-photo-set" data-set={set.key} aria-label={set.title}>
+          <h4><span className="mi-photo-k" data-set={set.key}>{set.title}</span><span className="mi-faint">{set.refs.length ? `${set.refs.length} · ${set.hint}` : 'None yet'}</span></h4>
+          {set.refs.length > 0 && <ul className="mi-gallery">
+            {set.refs.map((ref, i) => <li key={`${ref}:${i}`}>
+              <button type="button" className="mi-gallery-btn" data-set={set.key} aria-label={`View ${set.title.toLowerCase()} ${i + 1} of ${set.refs.length}`}
+                onClick={() => ctx.actions.openPicture({ ref, alt: `${name} · ${set.title.toLowerCase()}`, itemId: item.id })}>
+                <Photo src={ref}/>
+              </button>
+            </li>)}
+          </ul>}
+        </section>)}
       </div>}
       {!next.done && <div className="mi-sec"><div className="mi-nextcard">
         <div><div className="mi-t">Next: {next.label}</div><div className="mi-s"><Due next={next}/></div></div>
@@ -1034,11 +1107,6 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <h4>Quantity{q.unit ? ` · ${q.unit}` : ''}</h4>
         <QtyBar q={q} large/>
         <div className="mi-legend"><span><i data-k="onsite"/>On site {pct(q.onsite)}%</span><span><i data-k="shd"/>Approved SHD {pct(q.shd)}%</span><span><i data-k="po"/>Ordered {pct(q.po)}%</span></div>
-        <form className="mi-recv" onSubmit={(e) => { e.preventDefault(); receive() }}>
-          <label htmlFor="mi-precv" className="mi-muted">Received</label>
-          <input id="mi-precv" className="mi-field" inputMode="decimal" placeholder="0" value={recv} onChange={(e) => setRecv(e.target.value)}/>
-          <span className="mi-muted">{q.unit} today</span><button type="submit" className="mi-btn" disabled={!(Number(recv.replace(/,/g, '')) > 0)}>Add</button>
-        </form>
         <div className="mi-qgrid">
           {([['total', 'Total by QS'], ['po', 'Ordered'], ['shd', 'Approved SHD'], ['onsite', 'On site']] as [CellKey, string][]).map(([k, l]) =>
             <QtyField key={`${item.id}:${k}`} label={l} value={q[k as 'total']} onSave={(v) => onQty(item, k, v)}/>)}
@@ -1062,7 +1130,8 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <h4>Activity</h4>
         {history.length ? <ul className="mi-acts">
           {history.map((l) => { const known = l.by ? ctx.people[l.by] ?? null : null, name = known ?? 'Someone'
-            return <li key={l.id} className="mi-act"><Avatar name={known}/><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at}>{ago(l.at)}</time></li> })}
+            return <li key={l.id} className="mi-act"><Avatar name={known}/><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at}>{ago(l.at)}</time>
+              {ctx.canRevert(l) ? <button type="button" className="mi-revert" title="Revert this change" aria-label={`Revert: ${name} ${describeLog(l)}`} onClick={() => ctx.askRevert(l)}><Undo2 size={14} aria-hidden="true"/></button> : <span/>}</li> })}
         </ul> : <p className="mi-faint mi-small">No changes in the last three weeks.</p>}
       </div>
       <div className="mi-sec">
@@ -1103,4 +1172,48 @@ function QtyField({ label, value, onSave }: { label: string; value: number; onSa
   return <label className="mi-qcell"><span className="mi-k">{label}</span>
     <input inputMode="decimal" value={v} onChange={(e) => { setV(e.target.value); setDirty(true) }} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() } }}/>
   </label>
+}
+
+/** How a value reads in the revert confirmation: dates as "10 Jul", an empty override as the workbook's own value. */
+function showValue(key: string, value: unknown) {
+  if (value === null || value === undefined) return 'the workbook value'
+  if (value === '') return 'empty'
+  if (typeof value === 'number') return NUM.format(value)
+  if (typeof value === 'string' && isIsoDate(value)) return DAY_MONTH_YEAR.format(asDate(value))
+  if (Array.isArray(value)) return `${value.length} photo${value.length === 1 ? '' : 's'}`
+  return key === 'body' && !String(value).trim() ? 'no note' : `"${String(value)}"`
+}
+
+/**
+ * Asks before an activity entry is reverted. It names the change and what each field goes back to, and warns when a later
+ * change touched the same field, because the revert replaces that one too.
+ */
+function RevertDialog({ entry, item, people, activity, onClose, onConfirm }: {
+  entry: MatLog | null; item: MatItem | null; people: Record<string, string>; activity: MatLog[]; onClose: () => void; onConfirm: (entry: MatLog) => void
+}) {
+  const before = (entry?.before ?? {}) as Record<string, unknown>
+  const keys = entry ? (entry.kind === 'remark' ? ['body'] : Object.keys(before)) : []
+  const later = entry ? activity.filter((l) => l.itemId === entry.itemId && l.at > entry.at
+    && (entry.kind === 'remark' ? l.kind === 'remark' && l.detail.team === before.team : l.kind === 'fields' && Object.keys(l.detail).some((k) => k in before))) : []
+  const who = entry?.by ? people[entry.by] ?? 'Someone' : 'Someone'
+  return <Dialog.Root open={!!entry} onOpenChange={(o) => { if (!o) onClose() }}>
+    <Dialog.Portal>
+      <Dialog.Overlay className="mi-confirm-scrim"/>
+      <Dialog.Content className="mi-confirm" aria-describedby="mi-confirm-d">
+        <Dialog.Title className="mi-confirm-t">Revert this change?</Dialog.Title>
+        {entry && <div id="mi-confirm-d">
+          <p className="mi-confirm-what"><b>{who}</b> {describeLog(entry)} · {ago(entry.at)}<br/><span className="mi-faint">{item ? text(item, 'description') || codeOf(item) : ''}</span></p>
+          <ul className="mi-confirm-list">
+            {keys.map((k) => <li key={k}><span>{entry.kind === 'remark' ? `${before.team === 'pm' ? 'PM' : 'Purchase'} note` : FIELD_NAMES[k] ?? k}</span>
+              <span>goes back to {showValue(k, before[k])}</span></li>)}
+          </ul>
+          {later.length > 0 && <p className="mi-confirm-warn">{later.length === 1 ? 'A later change' : `${later.length} later changes`} to the same {keys.length === 1 ? 'field' : 'fields'} will be replaced too.</p>}
+        </div>}
+        <div className="mi-confirm-actions">
+          <Dialog.Close className="mi-btn">Cancel</Dialog.Close>
+          <button type="button" className="mi-btn" data-primary data-autofocus onClick={() => entry && onConfirm(entry)}>Revert</button>
+        </div>
+      </Dialog.Content>
+    </Dialog.Portal>
+  </Dialog.Root>
 }

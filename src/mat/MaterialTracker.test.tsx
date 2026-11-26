@@ -517,13 +517,13 @@ test('Material Source panel edits all source fields and photos via saveFields, a
   for (const label of ['No', 'Code', 'Description', 'Person In Charge', 'BP02 Mat Approval', 'Location', 'Specification', 'Brand', 'Source Location']) {
     expect(within(dialog).getByLabelText(label)).toBeInTheDocument()
   }
-  expect(within(dialog).getByText('Image')).toBeInTheDocument()
-  expect(within(dialog).getByText('Approved Sample')).toBeInTheDocument()
+  expect(within(dialog).getByText('Submission image')).toBeInTheDocument()
+  expect(within(dialog).getByText('Approved sample')).toBeInTheDocument()
 
   fireEvent.change(within(dialog).getByLabelText('Brand'), { target: { value: 'Brand B' } })
-  fireEvent.click(within(dialog).getByRole('button', { name: 'Remove Image 1' }))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Remove Submission image 1' }))
   const file = new File(['img'], 'photo.png', { type: 'image/png' })
-  fireEvent.change(within(dialog).getByLabelText('Add Image photo'), { target: { files: [file] } })
+  fireEvent.change(within(dialog).getByLabelText('Add Submission image photo'), { target: { files: [file] } })
   await waitFor(() => expect(uploadMatImage).toHaveBeenCalledWith('x1', 'image', file))
 
   fireEvent.click(within(dialog).getByRole('button', { name: 'Save changes' }))
@@ -537,7 +537,7 @@ test('Material Source panel edits all source fields and photos via saveFields, a
   vi.mocked(uploadMatImage).mockResolvedValueOnce('storage:x1/sample/temp.webp')
   fireEvent.click(screen.getByRole('button', { name: 'XX-01 — Edit material source' }))
   const reopened = await screen.findByRole('dialog', { name: 'Material Source' })
-  fireEvent.change(within(reopened).getByLabelText('Add Approved Sample photo'), { target: { files: [file] } })
+  fireEvent.change(within(reopened).getByLabelText('Add Approved sample photo'), { target: { files: [file] } })
   await waitFor(() => expect(uploadMatImage).toHaveBeenCalledWith('x1', 'sample', file))
   fireEvent.click(within(reopened).getByRole('button', { name: 'Cancel' }))
   await waitFor(() => expect(deleteMatImages).toHaveBeenCalledWith(['storage:x1/sample/temp.webp']))

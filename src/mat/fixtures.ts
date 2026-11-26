@@ -130,12 +130,16 @@ function worst(pkg: Pkg, week: string): MatPackage {
     // Ordered with an arrival far ahead; a total of zero that has arrived; no unit at all.
     items.push(item(pkg, sheet, { no: '7.2.8.2.5', code: `${pre}-TL-08`, description: 'Door stopper', pic: 'Sokha', msStatus: 'Approved', poActual: ago(10), arrPlan: ago(-90) }, [12, 12, 0, 5]))
     items.push(item(pkg, sheet, { no: '7.2.8.2.6', code: `${pre}-TL-09`, description: 'Signage plate (by others)', pic: 'Sokha', msStatus: 'Information only', arrActual: ago(2) }, [0, 0, 0, 0]))
+    // On the way: ordered, 60% shipped, nothing on site yet.
+    items.push(item(pkg, sheet, { no: '7.2.8.2.7', code: `${pre}-TL-10`, description: 'Door viewer', pic: 'Vanna', msStatus: 'Approved', poActual: ago(20), arrPlan: ago(-6), unit: 'nr' }, [24, 24, 24, 0], { cells: { total: v(24), po: v(24), shd: v(24), onsite: v(0), shipping: v(0.6), ...PCT_FORMULAS } }))
   }
   const firstLate = items.find((i) => i.kind === 'item' && i.data.cols.code === 'ID-TL-04')
   const log = firstLate ? Array.from({ length: 24 }, (_, n) => ({
     id: 900 + n, itemId: firstLate.id, at: new Date(Date.now() - n * 3.6e6 * 7).toISOString(), by: n % 5 === 4 ? null : n % 2 ? 'u-long' : 'u-short',
     kind: (n % 3 ? 'fields' : 'remark') as 'fields' | 'remark',
     detail: n % 3 ? (n % 2 ? { msStatus: 'Approved with comments' } : { onsite: 1284.5, arrActual: ago(1) }) : { team: n % 2 ? 'pm' : 'purchase', body: LONG_REMARK.slice(0, 160) },
+    // What each change replaced (D-64): the newest rows can be reverted; the oldest predate it and cannot.
+    before: n > 15 ? null : n % 3 ? (n % 2 ? { msStatus: null } : { onsite: 0, arrActual: null }) : { team: n % 2 ? 'pm' : 'purchase', week, body: '' },
   })) : []
   return { week, now: new Date().toISOString(), items, remarks, log, people: { 'u-long': 'Aleksandra Wiśniewska-Kowalczyk', 'u-short': 'Jo' } }
 }
