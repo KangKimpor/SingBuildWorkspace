@@ -594,3 +594,14 @@ On 26 November 2026, Firefox showed a blank page on `/admin`. The console said t
    - reloads once.
 
    A second failure within 30 seconds does not loop. It shows **Could not load this page** with a Reload button instead of a blank page. A Playwright run against a production build in Firefox confirmed that a chunk served as HTML once recovers and the app loads.
+
+## D-73 Compact overview, Add note pill, detailed Activity, narrower sidebar, week-named remark columns - November 26, 2026
+
+1. **Compact overview cards.** Each attention card is one short row: the label with its hint on the left and the count on the right. A count of zero is greyed. The Pipeline card is tighter, with a 6 px bar and smaller stage labels.
+2. **Add note.** An empty notes cell shows a small dashed **+ Add note** pill instead of a full-width grey hover band. It is faint until its row is hovered, and turns blue on its own hover or while its popover is open.
+3. **Activity.** One `ActivityFeed` serves the toolbar popover and the panel.
+   - **Grouping.** Entries sit under Today, Yesterday or weekday-date headings. Today's entries show "5m ago"; older ones show the clock time.
+   - **Each entry.** It names who did what and, in the popover, the material (a link that opens it). A field change shows every field from its old value to its new one, with the workbook's own value written out and marked "(workbook)". A note shows its team and its text; a cleared note shows the old text struck through. Undo appears on hover.
+   - **Filter.** The popover can show All, Changes or Notes, with counts.
+4. **Narrower sidebar.** `--w-sidebar` and the shell store go from 264 px to 224 px (the NBC override goes from 260 px). The sidebar header, padding and sub-item indent are tightened so "SingBuild Workspace" still fits whole. With the narrower sidebar, a 1,536 px wide screen (1920 at 125%) leaves the Material list about 1,180 px. Below 1,340 px of list width, the Submission and Procurement capsules stack in one **Status** column. Below 1,300 px of page width, the search narrows and Expand shows only its icon. The List no longer scrolls sideways at these widths.
+5. **Remark columns.** The Sheet's Procurement remark columns read **2 weeks ago remark**, **Last week remark** and **This week remark**.

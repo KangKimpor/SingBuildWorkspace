@@ -23,7 +23,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
     if (width >= 1024) {
       const sidebar = page.getByTestId('sidebar')
       expect(await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(245, 245, 247)')
-      await expect(sidebar).toHaveCSS('width', '264px')
+      await expect(sidebar).toHaveCSS('width', '224px')
       await expect(page.locator('.topbar .brand-logo')).toHaveCount(0)
       await expect(sidebar.getByRole('button', { name: new RegExp(`(Collapse|Expand) ${fixtureProject.name}`) })).toHaveCount(0)
       await expect(sidebar.getByText('44%', { exact: true })).toBeVisible()
@@ -42,11 +42,11 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       await sidebar.getByRole('button', { name: 'Collapse sidebar', exact: true }).click()
       await expect(sidebar).toHaveCSS('width', '70px')
       await sidebar.getByRole('button', { name: 'Expand sidebar', exact: true }).click()
-      await expect(sidebar).toHaveCSS('width', '264px')
+      await expect(sidebar).toHaveCSS('width', '224px')
       await page.keyboard.press('ControlOrMeta+Backslash')
       await expect(sidebar).toHaveCSS('width', '70px')
       await page.keyboard.press('ControlOrMeta+Backslash')
-      await expect(sidebar).toHaveCSS('width', '264px')
+      await expect(sidebar).toHaveCSS('width', '224px')
     } else if (width >= 768) {
       await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
       const drawer = page.getByRole('dialog', { name: 'Sidebar', exact: true })

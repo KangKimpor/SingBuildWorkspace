@@ -461,3 +461,14 @@ html[data-nbc] .topbar .sync-retry {
 }
 html[data-motion='reduced'] .sync-check-mark,
 html[data-motion='reduced'] .sync-glyph-saving .sync-upload-arrow { animation: none; }
+
+/* Narrower sidebar (D-73, 264 → 224 px): tighter header and outer padding so "SingBuild Workspace" still fits whole,
+   and the project views' indent follows the smaller project ring. */
+.sidebar { padding: 12px 8px 10px; }
+.sidebar-header { gap: 4px; padding: 0 0 6px 4px; }
+.sidebar-header .brand-logo { width: 22px; height: 22px; }
+.sidebar-home { gap: 8px; }
+.sidebar-brand { font-size: 13px; letter-spacing: -0.02em; }
+.sidebar-header .sidebar-icon-btn { width: 26px; height: 26px; }
+.nav-project-toggle { gap: 8px; }
+.nav-project-views .nav-item { padding-left: 34px; }

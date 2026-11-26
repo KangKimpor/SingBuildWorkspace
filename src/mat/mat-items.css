@@ -407,6 +407,27 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 
 /* Narrow viewports drop the outer columns so the table fits without crowding; desktop widths keep all 8 columns inside .mi-list. */
 .mi-list, .mi-overview { container: mi / inline-size; }
+.mi-lh-both { display: none; }
+/* The toolbar fits one line beside the narrower sidebar (D-73): below 1,300 px the search narrows and Expand shows its icon only. */
+.mi { container: mi-page / inline-size; }
+@container mi-page (max-width: 1300px) {
+  .mi-search { flex-basis: 220px; min-width: 170px; }
+  .mi-tb-l { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .mi-menu:has(> .mi-tb-l) { width: 32px; padding: 0; justify-content: center; }
+}
+/* Medium widths (D-73): a narrower sidebar leaves the List about 1,150 to 1,340 px. Rather than scroll sideways, the
+   Submission and Procurement capsules stack in one column (the rows are tall enough for two), and the header reads
+   "Submission · Procurement". */
+@container mi (min-width: 761px) and (max-width: 1339px) {
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(170px, 1.5fr) 174px 184px 228px minmax(130px, 1fr) minmax(130px, 1fr); column-gap: 12px; min-width: 1160px; }
+  .mi-gh { min-width: 1160px; }
+  .mi-row { grid-template-rows: auto auto; row-gap: 6px; }
+  .mi-row > * { grid-row: 1 / span 2; }
+  .mi-row > .mi-c-sub { grid-column: 3; grid-row: 1; align-self: end; }
+  .mi-row > .mi-c-proc { grid-column: 3; grid-row: 2; align-self: start; }
+  .mi-lh > .mi-c-proc, .mi-lh-one { display: none; }
+  .mi-lh-both { display: inline; }
+}
 @container mi (max-width: 760px) {
   .mi-grid, .mi-gh { min-width: 0; }
   .mi-grid { grid-template-columns: var(--mi-lead) minmax(150px, 1fr) 138px 170px; }
@@ -646,3 +667,76 @@ div.mi-tlp-row { cursor: default; }
 .mi-past { display: grid; gap: 10px; max-height: 220px; margin: 10px 0 0; padding: 10px 2px 0; overflow: auto; border-top: 0.5px solid var(--mi-sep); list-style: none; }
 .mi-past .mi-wk { margin: 0 0 2px; }
 .mi-past .mi-b { font-size: 12.5px; line-height: 1.45; color: var(--mi-ink-2); }
+
+/* Compact overview (D-73): each attention card is one short row (label and hint left, count right), and the
+   pipeline card is tighter, so the list starts higher on the page. */
+.mi-overview { gap: 10px; margin: 2px 0 6px; }
+.mi-card { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; min-width: 0; padding: 10px 14px 10px 14px; border-radius: 14px; }
+.mi-card-tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.mi-card-k { font-size: 13px; line-height: 18px; white-space: nowrap; }
+.mi-card-d { overflow: hidden; font-size: 11.5px; line-height: 15px; white-space: nowrap; text-overflow: ellipsis; }
+.mi-card-v { flex: none; font-size: 24px; line-height: 1; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.mi-card[data-zero]:not([aria-pressed='true']) .mi-card-v { color: var(--mi-ink-3); font-weight: 600; }
+.mi-pipe { gap: 7px; padding: 10px 14px 8px; border-radius: 14px; }
+.mi-pipe-h { font-size: 12px; }
+.mi-pipe-bar { height: 6px; border-radius: 3px; }
+.mi-pipe-stages { gap: 0 2px; }
+.mi-pipe-stages button { padding: 2px 6px; font-size: 11.5px; }
+
+/* Add note (D-73): an empty notes cell shows a small dashed pill, quiet until its row is hovered, blue on its own hover.
+   The cell keeps no grey band of its own, so the pill is the control people see. */
+.mi .mi-cell.mi-note[data-empty] { width: auto; max-width: 100%; margin: 0 -4px; padding: 4px; background: none; }
+.mi-note[data-empty] .mi-add { display: inline-flex; align-items: center; gap: 4px; height: 24px; box-sizing: border-box; padding: 0 10px 0 7px;
+  border: 1px dashed rgb(60 60 67 / 0.22); border-radius: 999px; color: var(--mi-ink-3); font-size: 12px; font-weight: 500; white-space: nowrap;
+  opacity: 0.55; transition: opacity 120ms, color 120ms, border-color 120ms, background-color 120ms; }
+.mi-row:hover .mi-note[data-empty] .mi-add, .mi-note[data-empty]:focus-visible .mi-add { opacity: 1; }
+.mi-note[data-empty]:is(:hover, [aria-expanded='true']) .mi-add { opacity: 1; border-style: solid; border-color: rgb(0 113 227 / 0.35); background: rgb(0 113 227 / 0.07); color: var(--mi-blue); }
+
+/* Activity (D-73): one feed for the toolbar popover and the panel. Day headings, then each entry with who and what,
+   the material (popover only), and the change itself: each field from → to, or the note's text. */
+.mi-pop[data-type='activity'] { max-height: min(680px, calc(100dvh - 16px)); padding: 0 0 6px; }
+.mi-af-title { display: flex; align-items: baseline; gap: 8px; padding: 12px 14px 4px; }
+.mi-af-title b { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--mi-ink); }
+.mi-af-title span { font-size: 12px; font-weight: 500; color: var(--mi-ink-3); }
+.mi-af-bar { padding: 6px 14px 4px; }
+.mi-af-bar .mi-seg { display: flex; margin: 0; }
+.mi-af-bar .mi-seg button { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 5px; }
+.mi-af-n { font-size: 11px; font-weight: 500; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
+.mi-af-dh { position: sticky; top: 0; z-index: 1; margin: 0; padding: 10px 14px 4px; background: rgb(252 252 253 / 0.94); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  font-size: 11px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mi-ink-3); }
+.mi-panel .mi-af-dh { position: static; padding: 8px 0 2px; background: none; }
+.mi-af-list { display: grid; margin: 0; padding: 0 6px; list-style: none; }
+.mi-panel .mi-af-list { padding: 0; }
+.mi-ae { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 8px 8px; border-radius: 10px; }
+.mi-panel .mi-ae { padding-inline: 0; }
+.mi-ae:hover { background: rgb(118 118 128 / 0.06); }
+.mi-panel .mi-ae:hover { background: none; }
+.mi-ae > .mi-av { margin-top: 1px; }
+.mi-ae-main { display: grid; gap: 4px; min-width: 0; }
+.mi-ae-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 13px; line-height: 18px; color: var(--mi-ink-2); }
+.mi-ae-head b { font-weight: 650; color: var(--mi-ink); }
+.mi-ae-head time { flex: none; font-size: 11.5px; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
+.mi .mi-ae-item { display: flex; align-items: baseline; gap: 6px; max-width: 100%; margin: 0; padding: 0; border: 0; background: none; color: var(--mi-blue); font-size: 12.5px; font-weight: 600; text-align: start; }
+.mi-ae-item span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mi-ae-item small { flex: none; font-size: 11px; font-weight: 500; color: var(--mi-ink-3); }
+.mi-ae-item:hover span { text-decoration: underline; text-underline-offset: 2px; }
+.mi-ae-changes { display: grid; gap: 3px; margin: 0; padding: 6px 9px; border-radius: 8px; background: rgb(118 118 128 / 0.07); list-style: none; font-size: 12px; line-height: 16px; }
+.mi-ae-changes li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
+.mi-ae-k { flex: none; color: var(--mi-ink-3); }
+.mi-ae-v { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 2px 5px; min-width: 0; overflow-wrap: anywhere; }
+.mi-ae-v svg { flex: none; color: var(--mi-ink-3); }
+.mi-ae-from { color: var(--mi-ink-3); text-decoration: line-through; text-decoration-color: rgb(60 60 67 / 0.35); }
+.mi-ae-to { font-weight: 600; color: var(--mi-ink); }
+.mi-ae-note { display: flex; align-items: flex-start; gap: 7px; min-width: 0; padding: 6px 9px; border-radius: 8px; background: rgb(118 118 128 / 0.07); font-size: 12px; line-height: 16px; }
+.mi-ae-team { flex: none; margin-top: 1px; padding: 0 5px; border-radius: 4px; font-size: 10px; font-weight: 700; line-height: 15px; letter-spacing: 0.03em; text-transform: uppercase; }
+.mi-ae-note[data-team='purchase'] .mi-ae-team { background: #e3f0ff; color: #0066cc; }
+.mi-ae-note[data-team='pm'] .mi-ae-team { background: #f3e8fa; color: #8944ab; }
+.mi-ae-note :is(q, s) { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; min-width: 0; color: var(--mi-ink); overflow-wrap: anywhere; }
+.mi-ae-note s { color: var(--mi-ink-3); }
+.mi-ae .mi-revert { margin-top: -2px; }
+@media (hover: hover) {
+  .mi-ae .mi-revert { opacity: 0; transition: opacity 120ms; }
+  .mi-ae:is(:hover, :focus-within) .mi-revert { opacity: 1; }
+}
+
+.mi-panel .mi-af > .mi-pad { padding-inline: 0; }

@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
-import { Activity, ArrowRight, CalendarDays, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, History, ImageIcon, Maximize2, Minimize2, Search, Undo2, X } from 'lucide-react'
+import { Activity, ArrowRight, CalendarDays, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, History, ImageIcon, Maximize2, Minimize2, Plus, Search, Undo2, X } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
 import { useMatImageSrc } from './images'
 import type { MatPicture } from './MatSourcePanel'
@@ -391,7 +391,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     <div className="mi-toolbar">
       <label className="mi-search">
         <Search size={15} aria-hidden="true"/>
-        <input ref={searchRef} type="search" aria-label="Search material" placeholder="Search code, name, brand, location" value={query}
+        <input ref={searchRef} type="search" aria-label="Search material" placeholder="Search materials" value={query}
           onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Escape' && query) { e.preventDefault(); setQuery('') } }}/>
         <kbd aria-hidden="true">/</kbd>
       </label>
@@ -414,7 +414,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
       </button>
       <span className="mi-count" role="status" aria-live="polite">{NUM.format(list.length)} of {NUM.format(items.length)}</span>
       {onToggleExpand && <button type="button" className="mi-menu" aria-pressed={!!expanded} title={expanded ? 'Leave full screen (Esc)' : 'Full screen'} onClick={onToggleExpand}>
-        {expanded ? <Minimize2 size={14} aria-hidden="true"/> : <Maximize2 size={14} aria-hidden="true"/>}{expanded ? 'Collapse' : 'Expand'}
+        {expanded ? <Minimize2 size={14} aria-hidden="true"/> : <Maximize2 size={14} aria-hidden="true"/>}<span className="mi-tb-l">{expanded ? 'Collapse' : 'Expand'}</span>
       </button>}
     </div>
 
@@ -480,10 +480,13 @@ function Overview({ scope, derived, today, attn, stage, onAttn, onStage }: { sco
   }, [scope, derived])
   const attention = useMemo(() => ATTENTION.map((a) => ({ ...a, count: scope.filter((i) => i.data.mark !== 'omit' && a.test(i, today)).length })), [scope, today])
   return <section className="mi-overview" aria-label="Overview">
-    {attention.map((a) => <button key={a.id} type="button" className="mi-card" data-attn={a.id} aria-pressed={attn === a.id} onClick={() => onAttn(a.id)}>
-      <span className="mi-card-k"><span className="mi-dot" aria-hidden="true"/>{a.label}</span>
+    {/* Compact cards (D-73): the label and its hint on the left, the count on the right, one short row each. */}
+    {attention.map((a) => <button key={a.id} type="button" className="mi-card" data-attn={a.id} data-zero={a.count === 0 || undefined} aria-pressed={attn === a.id} onClick={() => onAttn(a.id)}>
+      <span className="mi-card-tx">
+        <span className="mi-card-k"><span className="mi-dot" aria-hidden="true"/>{a.label}</span>
+        <span className="mi-card-d" title={a.hint}>{a.hint}</span>
+      </span>
       <span className="mi-card-v">{NUM.format(a.count)}</span>
-      <span className="mi-card-d">{a.hint}</span>
     </button>)}
     <div className="mi-pipe">
       <div className="mi-pipe-h"><b>Pipeline</b><span>{scope.length ? `${NUM.format(counts.stages.onsite)} of ${NUM.format(scope.length)} fully on site · ${counts.pct}% of quantity delivered` : 'No materials yet'}</span></div>
@@ -673,7 +676,7 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
     <div className="mi-lh-wrap" role="rowgroup">
       <div ref={headRef} className="mi-grid mi-lh" role="row" aria-rowindex={virtual ? 1 : undefined}>
         <span role="columnheader"><span className="sr-only">Photo</span></span><span role="columnheader">Material</span>
-        <span role="columnheader">Submission</span><span role="columnheader" className="mi-c-proc">Procurement</span>
+        <span role="columnheader" className="mi-c-sub"><span className="mi-lh-one">Submission</span><span className="mi-lh-both" title="Submission and Procurement">Status</span></span><span role="columnheader" className="mi-c-proc">Procurement</span>
         <span role="columnheader" className="mi-c-time">Timeline</span><span role="columnheader" className="mi-c-qty">Quantity</span>
         <span role="columnheader" className="mi-c-note">Purchase notes</span><span role="columnheader" className="mi-c-note" title="Project Management notes">PM notes</span>
       </div>
@@ -733,7 +736,7 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash
       <button type="button" className="mi-t" title={name} onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
       <span className="mi-s">{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub" title={d.sub}>{d.sub}</span></span>
     </span>
-    <span role="cell"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
+    <span role="cell" className="mi-c-sub"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
     <span role="cell" className="mi-c-proc"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'proc'} aria-label={`Procurement: ${stageLabel(proc)}. Change`} onClick={cell('proc')}><StagePill stage={proc}/></button></span>
     <span role="cell" className="mi-c-time"><button type="button" className="mi-cell mi-time" aria-haspopup="dialog" aria-expanded={popType === 'next'}
       aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${current ? `Next: ${current.todo}, ${stoneStatus(current, today).text}` : 'Complete'}. Update`}
@@ -757,10 +760,11 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash
     </span></span>
     {(['purchase', 'pm'] as Team[]).map((team) => {
       const own = notes?.filter((n) => n.team === team) ?? []
-      return <span key={team} role="cell" className="mi-c-note"><button type="button" className="mi-cell mi-note" aria-haspopup="dialog" aria-expanded={popType === 'note' && popKey === team}
+      return <span key={team} role="cell" className="mi-c-note"><button type="button" className="mi-cell mi-note" data-empty={!own.length || undefined} aria-haspopup="dialog" aria-expanded={popType === 'note' && popKey === team}
         aria-label={`${TEAM_LABEL[team]} notes: ${own.length ? own.map((n) => `${weekName(n.week, week)}, ${n.body}`).join('. ') : 'none'}. ${own.some((n) => n.week === week) ? 'Edit' : 'Add'} this week's note`}
         onClick={cell('note', { team })}>
-        {own.length ? <NoteLines notes={own} week={week}/> : <span className="mi-add">+ Add note</span>}
+        {/* An empty cell is a small "Add note" pill (D-73), not a full-width grey hover band. */}
+        {own.length ? <NoteLines notes={own} week={week}/> : <span className="mi-add"><Plus size={12} strokeWidth={2.4} aria-hidden="true"/>Add note</span>}
       </button></span>
     })}
   </div>
@@ -867,7 +871,7 @@ const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: M
 })
 
 /* ---------------- popover: anchored to its trigger, grows from it ---------------- */
-const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 300, proc: 300, activity: 420, next: 400 }
+const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 300, proc: 300, activity: 460, next: 400 }
 const POP_LABEL: Record<PopType, string> = {
   sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Timeline', qty: 'Change quantity', owner: 'Change owner', note: 'This week\'s note',
   'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', activity: 'Recent activity',
@@ -920,7 +924,7 @@ function Popover({ pop, onClose, children }: { pop: Pop; onClose: () => void; ch
     opts[(i + (e.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length]!.focus()
   }
   // oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Arrow keys move between the menu options inside this dialog.
-  return <div ref={ref} className="mi-pop" role="dialog" aria-label={POP_LABEL[pop.type]} data-on={pos ? '' : undefined} onKeyDown={onKey}
+  return <div ref={ref} className="mi-pop" role="dialog" aria-label={POP_LABEL[pop.type]} data-type={pop.type} data-on={pos ? '' : undefined} onKeyDown={onKey}
     style={{ width, left: pos?.left ?? -9999, top: pos?.top ?? 0, transformOrigin: pos?.origin }}>{children}</div>
 }
 function Opt({ on, onClick, children, autoFocus }: { on?: boolean; onClick: () => void; children: ReactNode; autoFocus?: boolean }) {
@@ -1003,23 +1007,11 @@ function PopBody(p: PopBodyProps) {
   </>
   if (pop.type === 'group') return <><div className="mi-pop-t">Group by</div>{GROUPS.filter(([g]) => p.hasOwner || g !== 'owner').map(([g, l]) => <Opt key={g} on={p.group === g} autoFocus={p.group === g} onClick={() => p.onGroup(g)}><span>{l}</span></Opt>)}</>
   if (pop.type === 'sort') return <><div className="mi-pop-t">Sort by</div>{SORTS.map(([s, l]) => <Opt key={s} on={p.sort === s} autoFocus={p.sort === s} onClick={() => p.onSort(s)}><span>{l}</span></Opt>)}</>
-  if (pop.type === 'activity') {
-    const recent = p.activity.slice(0, 20)
-    return <>
-      <div className="mi-pop-t">Recent activity · everyone</div>
-      {recent.length ? recent.map((l, i) => {
-        const known = l.by ? p.people[l.by] ?? null : null, name = known ?? 'Someone', it = p.byId.get(l.itemId)
-        return <div key={l.id} className="mi-act-row">
-          <button type="button" className="mi-opt mi-act-opt" data-autofocus={i === 0 || undefined} onClick={() => p.onOpenItem(l.itemId)}>
-            <Avatar name={known}/>
-            <span className="mi-act-tx"><span><b>{name}</b> {describeLog(l)}</span>
-              <span className="mi-opt-h">{it ? text(it, 'description') || codeOf(it) : ''} · {ago(l.at)}</span></span>
-          </button>
-          {p.canRevert(l) && <UndoButton label={`${name} ${describeLog(l)}`} onClick={() => p.onRevert(l)}/>}
-        </div>
-      }) : <p className="mi-pad mi-faint">No changes in the last three weeks.</p>}
-    </>
-  }
+  if (pop.type === 'activity') return <>
+    <div className="mi-pop-t mi-af-title"><b>Activity</b><span>Everyone · last three weeks</span></div>
+    <ActivityFeed entries={p.activity.slice(0, 80)} people={p.people} byId={p.byId} showItem filterable
+      canRevert={p.canRevert} onRevert={p.onRevert} onOpenItem={p.onOpenItem}/>
+  </>
   return null
 }
 function SetOnsite({ label = 'Total on site', value, unit, onSet }: { label?: string; value: number; unit: string; onSet: (v: number) => void }) {
@@ -1173,7 +1165,7 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
   useEffect(() => { if (bodyRef.current) bodyRef.current.scrollTop = 0 }, [item.id])
   const thread = (ctx.notes.get(item.id) ?? []).filter((n) => n.team === team && n.week !== week)
   const thisWeekBy = (ctx.notes.get(item.id) ?? []).find((n) => n.team === team && n.week === week)?.by
-  const history = ctx.activity.filter((l) => l.itemId === item.id).slice(0, 8)
+  const history = ctx.activity.filter((l) => l.itemId === item.id).slice(0, 12)
   const raw = (key: EditableColKey) => { const v = text(item, key); return v && !isIsoDate(effectiveCol(item, key)) ? v : '' }
   const stones = stonesOf(item, ctx.today)
   const pct = (v: number) => q.total > 0 ? Math.round(Math.min(1, v / q.total) * 100) : 0
@@ -1272,11 +1264,7 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
       </div>
       <div className="mi-sec">
         <h4>Activity</h4>
-        {history.length ? <ul className="mi-acts">
-          {history.map((l) => { const known = l.by ? ctx.people[l.by] ?? null : null, name = known ?? 'Someone'
-            return <li key={l.id} className="mi-act"><Avatar name={known}/><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at}>{ago(l.at)}</time>
-              {ctx.canRevert(l) ? <UndoButton label={`${name} ${describeLog(l)}`} onClick={() => ctx.askRevert(l)}/> : <span/>}</li> })}
-        </ul> : <p className="mi-faint mi-small">No changes in the last three weeks.</p>}
+        <ActivityFeed entries={history} people={ctx.people} byId={new Map([[item.id, item]])} canRevert={ctx.canRevert} onRevert={ctx.askRevert}/>
       </div>
       <div className="mi-sec">
         <h4>Details</h4>
@@ -1401,6 +1389,93 @@ function RevertDialog({ entry, item, people, activity, remarks, onClose, onConfi
   </Dialog.Root>
 }
 const keysWord = (n: number) => n === 1 ? 'this field' : 'these fields'
+
+/* ---------------- activity feed (D-73): grouped by day, every change spelled out ---------------- */
+type ActFilter = 'all' | 'fields' | 'remark'
+const ACT_FILTERS: [ActFilter, string][] = [['all', 'All'], ['fields', 'Changes'], ['remark', 'Notes']]
+const TIME = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit' })
+const WEEKDAY = new Intl.DateTimeFormat('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+const localDay = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+/** "Today", "Yesterday", or "Mon 24 Nov" for the day an entry was made, in local time. */
+function dayLabel(at: string, now = new Date()) {
+  const d = new Date(at), key = localDay(d)
+  if (key === localDay(now)) return 'Today'
+  const y = new Date(now); y.setDate(y.getDate() - 1)
+  return key === localDay(y) ? 'Yesterday' : WEEKDAY.format(d)
+}
+const sentence = (label: string) => label.charAt(0).toUpperCase() + label.slice(1)
+/** A logged value as the material would show it; null (no override) is the workbook's own value. */
+function loggedValue(item: MatItem, key: string, value: unknown): string {
+  const shown = shownValue(withBefore(item, { [key]: value }), key)
+  return value === null || value === undefined ? `${shown} (workbook)` : shown
+}
+/** What one entry changed: each field from → to, or the note's text. */
+function ActDetail({ entry, item }: { entry: MatLog; item: MatItem }) {
+  const d = entry.detail, before = (entry.before ?? null) as Record<string, unknown> | null
+  if (entry.kind === 'remark') {
+    const body = typeof d.body === 'string' ? d.body.trim() : '', old = typeof before?.body === 'string' ? before.body.trim() : ''
+    return <div className="mi-ae-note" data-team={d.team === 'pm' ? 'pm' : 'purchase'}>
+      <span className="mi-ae-team">{d.team === 'pm' ? 'PM' : 'Purchase'}</span>
+      {body ? <q>{body}</q> : old ? <s title="The note that was cleared">{old}</s> : <span className="mi-faint">Note cleared</span>}
+    </div>
+  }
+  const keys = Object.keys(d)
+  const shown = keys.slice(0, 4)
+  return <ul className="mi-ae-changes">
+    {shown.map((k) => <li key={k}>
+      <span className="mi-ae-k">{sentence(FIELD_NAMES[k] ?? k)}</span>
+      <span className="mi-ae-v">
+        {before && k in before && <><span className="mi-ae-from">{loggedValue(item, k, before[k])}</span><ArrowRight size={11} aria-label="to"/></>}
+        <span className="mi-ae-to">{loggedValue(item, k, d[k])}</span>
+      </span>
+    </li>)}
+    {keys.length > shown.length && <li className="mi-faint">and {keys.length - shown.length} more</li>}
+  </ul>
+}
+/**
+ * Who changed what, newest first, under day headings. Each entry says what was changed (every field from its old value to
+ * the new one, or the note's text), on which material (in the toolbar's list), when, and offers Undo where it can.
+ */
+function ActivityFeed({ entries, people, byId, showItem, filterable, canRevert, onRevert, onOpenItem }: {
+  entries: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; showItem?: boolean; filterable?: boolean
+  canRevert: (entry: MatLog) => boolean; onRevert: (entry: MatLog) => void; onOpenItem?: (id: string) => void
+}) {
+  const [filter, setFilter] = useState<ActFilter>('all')
+  const counts = { all: entries.length, fields: entries.filter((l) => l.kind === 'fields').length, remark: entries.filter((l) => l.kind === 'remark').length }
+  const list = filter === 'all' ? entries : entries.filter((l) => l.kind === filter)
+  const days: { label: string; rows: MatLog[] }[] = []
+  for (const l of list) {
+    const label = dayLabel(l.at), last = days.at(-1)
+    if (last?.label === label) last.rows.push(l); else days.push({ label, rows: [l] })
+  }
+  return <div className="mi-af">
+    {filterable && <div className="mi-af-bar">
+      <span className="mi-seg" role="group" aria-label="Show">
+        {ACT_FILTERS.map(([f, label], i) => <button key={f} type="button" aria-pressed={filter === f} data-autofocus={i === 0 || undefined} onClick={() => setFilter(f)}>
+          {label}<span className="mi-af-n">{counts[f]}</span></button>)}
+      </span>
+    </div>}
+    {days.length ? days.map((day) => <section key={day.label} className="mi-af-day" aria-label={day.label}>
+      <h5 className="mi-af-dh">{day.label}</h5>
+      <ul className="mi-af-list">
+        {day.rows.map((l) => {
+          const known = l.by ? people[l.by] ?? null : null, name = known ?? 'Someone', item = byId.get(l.itemId)
+          const when = day.label === 'Today' ? ago(l.at) : TIME.format(new Date(l.at))
+          return <li key={l.id} className="mi-ae">
+            <Avatar name={known}/>
+            <div className="mi-ae-main">
+              <div className="mi-ae-head"><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at} title={new Date(l.at).toLocaleString('en-GB')}>{when}</time></div>
+              {showItem && item && <button type="button" className="mi-ae-item" onClick={() => onOpenItem?.(item.id)} title="Open this material">
+                <span>{text(item, 'description') || codeOf(item)}</span><small>{codeOf(item)}</small></button>}
+              {item && <ActDetail entry={l} item={item}/>}
+            </div>
+            {canRevert(l) ? <UndoButton label={`${name} ${describeLog(l)}`} onClick={() => onRevert(l)}/> : <span/>}
+          </li>
+        })}
+      </ul>
+    </section>) : <p className="mi-pad mi-faint mi-small">{entries.length ? 'Nothing of this kind in the last three weeks.' : 'No changes in the last three weeks.'}</p>}
+  </div>
+}
 
 /**
  * The timeline popover (D-67, D-69): the six steps as the panel shows them, read from the Submission and Procurement status.

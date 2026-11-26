@@ -59,7 +59,8 @@ const cell = (key: CellKey, label: string, group: string, view: ViewTag): Column
 const remark = (team: Team, week: RemarkWeek, group: string): Column =>
   ({ type: 'remark', key: `${team}-${week}`, team, week, group, view: group === PROC ? 'procurement' : 'remarks',
     label: group === PROC
-      ? week === 'now' ? 'Remarks' : week === 'last' ? 'Last week' : '2 weeks ago'
+      // D-73: each Procurement remark column says which week it holds.
+      ? week === 'now' ? 'This week remark' : week === 'last' ? 'Last week remark' : '2 weeks ago remark'
       : week === 'now' ? 'This week' : 'Last week',
     width: week === 'now' ? REMARK : REMARK_HISTORY })
 

@@ -466,3 +466,28 @@ test('an entry whose change is no longer in place has nothing to undo', async ()
   expect(within(confirm).getByText(/^Nothing to undo/)).toBeInTheDocument()
   expect(within(confirm).getByRole('button', { name: 'Undo change' })).toBeDisabled()
 })
+
+test('activity groups entries by day and spells out each change, with a Changes / Notes filter', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue({
+    ...load([section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 4, { edits: { po: 9 } }), material('x2', 3, 'XX-02', 8)]),
+    log: [
+      { id: 8, itemId: 'x1', at: new Date().toISOString(), by: 'u1', kind: 'fields', detail: { po: 9 }, before: { po: 4 } },
+      { id: 9, itemId: 'x1', at: new Date().toISOString(), by: 'u1', kind: 'remark', detail: { team: 'pm', body: 'Quote received' }, before: { team: 'pm', week: WEEK, body: '' } },
+    ],
+    people: { u1: 'Dara' },
+  })
+  open()
+  await row('XX-01')
+  fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
+  const pop = await screen.findByRole('dialog', { name: 'Recent activity' })
+  const today = within(pop).getByRole('region', { name: 'Today' })
+  // The field change reads from → to, and the note shows its text and team.
+  const change = within(today).getByText('Ordered quantity').closest('li') as HTMLElement
+  expect(within(change).getByText('4')).toHaveClass('mi-ae-from')
+  expect(within(change).getByText('9')).toHaveClass('mi-ae-to')
+  expect(within(today).getByText('Quote received')).toBeInTheDocument()
+  expect(within(today).getAllByRole('button', { name: /Sample panel XX-01/ }).length).toBeGreaterThan(0)
+  fireEvent.click(within(pop).getByRole('button', { name: /^Notes/ }))
+  expect(within(pop).queryByText('Ordered quantity')).toBeNull()
+  expect(within(pop).getByText('Quote received')).toBeInTheDocument()
+})

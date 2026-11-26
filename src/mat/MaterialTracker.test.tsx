@@ -124,7 +124,7 @@ test('the header shows the week label, an item shows last week as text and this 
   const last = screen.getByText('Waiting for supplier quote')
   expect(last.closest('textarea, input')).toBeNull()
   expect(cellButton('XX-01 PM Remarks This week')).toHaveTextContent('Quote received')
-  expect(cellButton('XX-01 Procurement Remarks')).toHaveTextContent('')
+  expect(cellButton('XX-01 Procurement This week remark')).toHaveTextContent('')
   expect(screen.getByText('Budget checked')).toBeInTheDocument()
   expect(screen.getByText('Lead time 3 weeks')).toBeInTheDocument()
   // ISO dates read as day, month and year inside the idle cell button.
@@ -404,13 +404,14 @@ test('the Summary tab is removed and ?s=summary falls back to ID Material', asyn
   expect(screen.getByRole('button', { name: 'ID Material' })).toHaveAttribute('aria-current', 'page')
 })
 
-test('the Procurement group carries three remark weeks, ending in the editable Remarks column', async () => {
+test('the Procurement group carries three remark weeks, ending in the editable This week remark column', async () => {
   await openList()
-  expect(screen.getByRole('columnheader', { name: '2 weeks ago' })).toBeInTheDocument()
-  expect(screen.getAllByRole('columnheader', { name: 'Last week' }).length).toBeGreaterThan(0)
+  expect(screen.getByRole('columnheader', { name: '2 weeks ago remark' })).toBeInTheDocument()
+  expect(screen.getByRole('columnheader', { name: 'Last week remark' })).toBeInTheDocument()
   const headers = screen.getAllByRole('columnheader').map((el) => el.textContent)
   expect(headers.indexOf('Procurement')).toBeLessThan(headers.indexOf('PM Remarks'))
-  expect(headers.indexOf('Procurement')).toBeLessThan(headers.lastIndexOf('Remarks'))
+  expect(headers.indexOf('2 weeks ago remark')).toBeLessThan(headers.indexOf('Last week remark'))
+  expect(headers.indexOf('Last week remark')).toBeLessThan(headers.indexOf('This week remark'))
 })
 
 test('Material Submission, Sample Submission, Procurement, and Quantity Unit are editable, with a Status selector', async () => {
