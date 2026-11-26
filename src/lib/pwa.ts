@@ -1,14 +1,34 @@
 import { registerSW } from 'virtual:pwa-register'
 import { useInstall } from './install'
 import { announceUpdate } from './update'
+import { checkAppVersion, clearClientCaches } from './versionGate'
 
 let registered = false
 
 export function registerUpdates() {
   if (registered) return
   registered = true
+  let registration: ServiceWorkerRegistration | undefined
+  const check = () => {
+    if (document.visibilityState !== 'visible' || !navigator.onLine) return
+    if (registration && !registration.installing) void registration.update().catch(() => {})
+    void checkAppVersion().then((result) => {
+      if (result.status === 'outdated') {
+        announceUpdate(async () => {
+          await clearClientCaches()
+          location.reload()
+        })
+      }
+    })
+  }
+  addEventListener('focus', check)
+  addEventListener('online', check)
+  document.addEventListener('visibilitychange', check)
+  // Focus, visibility and reconnects already check; the timer only covers a tab left open all day.
+  setInterval(check, 5 * 60_000)
+
   if ('serviceWorker' in navigator) {
-    const hadController = !!navigator.serviceWorker.controller
+    let hasController = !!navigator.serviceWorker.controller
     navigator.serviceWorker.addEventListener('controllerchange', () => {
       // This tab already shows its own notice, so reload it as soon as it is controlled.
       if (useInstall.getState().update) {
@@ -16,24 +36,18 @@ export function registerUpdates() {
         return
       }
       // A first installation claims this page, which already runs the newest build.
-      if (!hadController) return
-      // Another tab activated a deployment: show the notice here and adopt it too.
+      if (!hasController) {
+        hasController = true
+        return
+      }
+      // Another tab or skipWaiting activated a deployment: show the notice here and adopt it too.
       announceUpdate(async () => location.reload())
     })
   }
   const updateSW = registerSW({
     immediate: true,
-    onRegisteredSW(_url, registration) {
-      if (!registration) return
-      const check = () => {
-        if (document.visibilityState === 'visible' && navigator.onLine && !registration.installing)
-          void registration.update().catch(() => {})
-      }
-      addEventListener('focus', check)
-      addEventListener('online', check)
-      document.addEventListener('visibilitychange', check)
-      // Focus, visibility and reconnects already check; the timer only covers a tab left open all day.
-      setInterval(check, 30 * 60_000)
+    onRegisteredSW(_url, reg) {
+      registration = reg
       check()
     },
     onNeedReload() {},

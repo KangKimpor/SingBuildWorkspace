@@ -2,15 +2,39 @@ import { fileURLToPath, URL } from 'node:url'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import type { Plugin } from 'vite'
 import { defineConfig } from 'vitest/config'
 
+const buildVersion = `${(process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || 'build').slice(0, 12)}-${Date.now().toString(36)}`
+
+function versionManifestPlugin(version: string): Plugin {
+  const payload = JSON.stringify({ version })
+  return {
+    name: 'app-version-manifest',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'version.json', source: payload })
+    },
+    configureServer(server) {
+      server.middlewares.use('/version.json', (_req, res) => {
+        res.setHeader('Content-Type', 'application/json')
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
+        res.end(payload)
+      })
+    },
+  }
+}
+
 export default defineConfig({
+  define: {
+    __APP_VERSION__: JSON.stringify(buildVersion),
+  },
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
   plugins: [
     react(),
     tailwindcss(),
+    versionManifestPlugin(buildVersion),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['brand/favicon.svg', 'brand/apple-touch-icon.png'],
@@ -40,8 +64,10 @@ export default defineConfig({
       },
       workbox: {
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,svg,png,webmanifest,woff2}'],
-        navigateFallback: '/index.html',
+        // Never precache HTML or version.json so every refresh/open fetches the newest entry document from the network.
+        globPatterns: ['**/*.{js,css,svg,png,webmanifest,woff2}'],
+        globIgnores: ['**/index.html', '**/version.json'],
+        navigateFallback: null,
         cleanupOutdatedCaches: true,
       },
     }),

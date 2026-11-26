@@ -18,7 +18,7 @@ test('first install is offline-ready and later updates apply automatically', asy
   })
   let revision = 1
   const root = path.resolve('dist')
-  const types: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png' }
+  const types: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.woff2': 'font/woff2', '.png': 'image/png' }
   const server = createServer(async (request, response) => {
     try {
       let file = new URL(request.url!, 'http://localhost').pathname
@@ -65,4 +65,21 @@ test('first install is offline-ready and later updates apply automatically', asy
     server.closeAllConnections()
     await new Promise<void>((resolve) => server.close(() => resolve()))
   }
+})
+
+test('blocks loading when the running bundle is not the latest version or cannot be verified', async ({ page }) => {
+  await page.route('**/version.json*', (route) =>
+    route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ version: 'newer-deployment' }) }),
+  )
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Update required', exact: true })).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('button', { name: 'Reload latest version', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0)
+
+  await page.unroute('**/version.json*')
+  await page.route('**/version.json*', (route) => route.abort())
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: 'Latest version required', exact: true })).toBeVisible({ timeout: 10_000 })
+  await expect(page.getByRole('button', { name: 'Try again', exact: true })).toBeVisible()
+  await expect(page.getByRole('navigation', { name: 'Main navigation' })).toHaveCount(0)
 })
