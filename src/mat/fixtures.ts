@@ -4,6 +4,7 @@
  * Keep the worst case: it is the regression test for the next change to the table.
  */
 import { reportingDate, weekStart, addDays } from '@/nbc/submissions'
+import { addDaysIso, todayIso } from './stage'
 import type { MatPackage, MatRemark } from './api'
 import type { DevDataset } from './devData'
 import type { MatData, MatEdits, MatItem, Pkg, Sheet, Source } from './types'
@@ -46,6 +47,9 @@ function demo(pkg: Pkg, week: string): MatPackage {
   return { week, now: new Date().toISOString(), items, remarks: [], log: [], people: {} }
 }
 
+const ago = (n: number) => addDaysIso(todayIso(), -n)
+/** Real thumbnails from public/mat, so the photo paths render actual pictures. */
+const PHOTO = ['00aeb6ec9eb42e64.webp', '01875999e87bdefd.webp', '01fa5c71856a1bcc.webp']
 const LONG_DESC = 'Supply and install 12 mm thick tempered laminated safety glass partition with 1.52 mm PVB interlayer, polished edges, frameless system with concealed top track, floor channel and stainless steel patch fittings (SUS 316, satin finish) including all sealant, gaskets and fixing accessories as per drawing ID-GL-201 Rev. C and specification Section 08 81 00'
 const KHMER = 'ក្រឡាក្បឿងសេរ៉ាមិច ៦០០×៦០០ សម្រាប់ជាន់ផ្ទះល្វែង (ទិញក្នុងស្រុក)'
 const LONG_REMARK = 'Supplier confirmed revised ETA after customs hold at Sihanoukville port.\nContainer MSKU 7781234 released 18 Nov; trucking booked for 21 Nov.\nPending: consultant sign-off on colour variance (batch B vs. approved sample) — see RFI-ID-0142. If not approved by 28 Nov, fall back to local stock from Phnom Penh warehouse (approx. 60% of qty).'
@@ -101,14 +105,46 @@ function worst(pkg: Pkg, week: string): MatPackage {
     // Empty section: covers no items.
     items.push(section(pkg, sheet, 'B', 'Empty section (no items yet)'))
   }
-  return { week, now: new Date().toISOString(), items, remarks, log: [], people: {} }
+  // The List, Board and panel cases the workbook table never had (D-57 to D-62).
+  for (const sheet of ['id', 'mep'] as const) {
+    const pre = sheet === 'id' ? 'ID' : 'MEP'
+    // Nesting as the BP03 workbook writes it: names in the code column, four levels deep, a label-only heading.
+    items.push({ ...section(pkg, sheet, '7', ''), data: { cols: { no: '7', code: 'Doors & Ironmongery' }, cells: {}, level: 0 } })
+    items.push({ ...section(pkg, sheet, '7.2', ''), data: { cols: { no: '7.2', pic: 'L24 Specialty Restaurant / HLT and Private Dining Rooms 1–4' }, cells: {}, level: 1 } })
+    items.push({ ...section(pkg, sheet, '7.2.8', ''), data: { cols: { no: '7.2.8', code: 'Ironmongery' }, cells: {}, level: 2 } })
+    items.push({ ...section(pkg, sheet, '7.2.8.2', ''), data: { cols: { no: '7.2.8.2', code: 'Miscellaneous' }, cells: {}, level: 3 } })
+    // Very late plan, real photo with a sample, an owner with a suffix, a note by a named person, quiet for a month.
+    const late = item(pkg, sheet, {
+      no: '7.2.8.2.1', code: `${pre}-TL-04`, description: 'Door handle', pic: 'Christopher Alexander Montgomery III', location: 'L24 Specialty Restaurant / HLT',
+      msStatus: 'Approved', msActual: ago(420), msApproved: ago(400), poPlan: ago(412), unit: 'nr',
+    }, [1, 0, 0, 0], { images: { image: [PHOTO[0]!], sample: [PHOTO[1]!, PHOTO[2]!] } }, { updatedAt: `${ago(35)}T02:00:00Z`, updatedBy: 'u-long' })
+    items.push(late)
+    remarks.push({ itemId: late.id, team: 'pm', weekStart: week, body: 'Chased the supplier twice; PO on hold until the revised quote arrives.', updatedBy: 'u-long' })
+    // Under review: approval expected from the submission date, already overdue by a few days.
+    items.push(item(pkg, sheet, {
+      no: '7.2.8.2.2', code: `${pre}-TL-05`, description: 'Concealed door closer', pic: 'Đặng Thị Ngọc Hân', msStatus: 'Under Review', msActual: ago(17), unit: 'nr',
+    }, [3, 0, 0, 0], { images: { image: [PHOTO[2]!] } }))
+    // Due today, and due in 3 days.
+    items.push(item(pkg, sheet, { no: '7.2.8.2.3', code: `${pre}-TL-06`, description: 'Floor spring', pic: 'dara', msStatus: 'Not Yet Submit', msPlan: ago(0), unit: 'nr' }, [2, 0, 0, 0]))
+    items.push(item(pkg, sheet, { no: '7.2.8.2.4', code: `${pre}-TL-07`, description: 'Kick plate', pic: 'J', msStatus: 'Approved', msApproved: ago(3), poPlan: ago(-3), unit: 'nr' }, [8, 0, 0, 0]))
+    // Ordered with an arrival far ahead; a total of zero that has arrived; no unit at all.
+    items.push(item(pkg, sheet, { no: '7.2.8.2.5', code: `${pre}-TL-08`, description: 'Door stopper', pic: 'Sokha', msStatus: 'Approved', poActual: ago(10), arrPlan: ago(-90) }, [12, 12, 0, 5]))
+    items.push(item(pkg, sheet, { no: '7.2.8.2.6', code: `${pre}-TL-09`, description: 'Signage plate (by others)', pic: 'Sokha', msStatus: 'Information only', arrActual: ago(2) }, [0, 0, 0, 0]))
+  }
+  const firstLate = items.find((i) => i.kind === 'item' && i.data.cols.code === 'ID-TL-04')
+  const log = firstLate ? Array.from({ length: 24 }, (_, n) => ({
+    id: 900 + n, itemId: firstLate.id, at: new Date(Date.now() - n * 3.6e6 * 7).toISOString(), by: n % 5 === 4 ? null : n % 2 ? 'u-long' : 'u-short',
+    kind: (n % 3 ? 'fields' : 'remark') as 'fields' | 'remark',
+    detail: n % 3 ? (n % 2 ? { msStatus: 'Approved with comments' } : { onsite: 1284.5, arrActual: ago(1) }) : { team: n % 2 ? 'pm' : 'purchase', body: LONG_REMARK.slice(0, 160) },
+  })) : []
+  return { week, now: new Date().toISOString(), items, remarks, log, people: { 'u-long': 'Aleksandra Wiśniewska-Kowalczyk', 'u-short': 'Jo' } }
 }
 
 function one(pkg: Pkg, week: string): MatPackage {
   const items: MatItem[] = []
   for (const sheet of ['id', 'mep'] as const) {
     items.push(section(pkg, sheet, 'A', 'Flooring'))
-    items.push(item(pkg, sheet, { no: 1, code: 'FL-01', description: 'Porcelain tile', pic: 'Dara', msStatus: 'Approved', unit: 'm²' }, [1, 1, 1, 1], {}, { edits: { onsite: 1 }, changedWeek: week, weekEdits: {} }))
+    items.push(item(pkg, sheet, { no: 1, code: 'FL-01', description: 'Porcelain tile', pic: 'Dara', msStatus: 'Approved', poPlan: ago(1), unit: 'm²' }, [1, 0, 0, 0], {}, { edits: { msStatus: 'Approved' }, changedWeek: week, weekEdits: {} }))
   }
   return { week, now: new Date().toISOString(), items, remarks: [], log: [], people: {} }
 }

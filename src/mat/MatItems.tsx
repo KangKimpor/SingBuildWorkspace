@@ -81,11 +81,18 @@ export function describeLog(entry: MatLog): string {
   if (keys.length === 1) return `${d[keys[0]!] === null ? 'reset' : 'edited'} the ${FIELD_NAMES[keys[0]!] ?? keys[0]}`
   return `edited ${keys.length} fields`
 }
-const initials = (name: string) => name.split(/\s+/).map((w) => w[0]).join('').slice(0, 2).toUpperCase() || '?'
+const SUFFIX = /^(jr|sr|ii|iii|iv|v)\.?$/i
+/** "Christopher Alexander Montgomery III" gives CM, "Đặng Thị Ngọc Hân" ĐH, "Jo" J: first and last word, suffixes skipped, whole characters. */
+export function initials(name: string) {
+  const words = name.trim().split(/\s+/).filter((w) => w && !SUFFIX.test(w))
+  const first = (w: string | undefined) => (w ? [...w][0] ?? '' : '')
+  return (words.length > 1 ? first(words[0]) + first(words.at(-1)) : first(words[0])).toUpperCase() || '?'
+}
 const HUES = [211, 280, 340, 145, 30, 25, 245, 190]
 const hue = (name: string) => HUES[[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % HUES.length]
 
-function Avatar({ name, large }: { name: string; large?: boolean }) {
+function Avatar({ name, large }: { name: string | null; large?: boolean }) {
+  if (!name) return <span className="mi-av" data-large={large || undefined} data-unknown aria-hidden="true">?</span>
   return <span className="mi-av" data-large={large || undefined} style={{ ['--h' as string]: hue(name) }} aria-hidden="true">{initials(name)}</span>
 }
 /** One symbol per stage, read left to right as the material moves: dashed (nothing yet), clock (waiting), back arrow (revise),
@@ -415,13 +422,13 @@ function Overview({ scope, derived, today, attn, stage, onAttn, onStage }: { sco
       <span className="mi-card-d">{a.hint}</span>
     </button>)}
     <div className="mi-pipe">
-      <div className="mi-pipe-h"><b>Pipeline</b><span>{counts.stages.onsite} of {scope.length} fully on site · {counts.pct}% of quantity delivered</span></div>
+      <div className="mi-pipe-h"><b>Pipeline</b><span>{scope.length ? `${NUM.format(counts.stages.onsite)} of ${NUM.format(scope.length)} fully on site · ${counts.pct}% of quantity delivered` : 'No materials yet'}</span></div>
       <div className="mi-pipe-bar" aria-hidden="true">
-        {STAGES.map((s) => <i key={s.id} data-stage={s.id} data-dim={(stage && stage !== s.id) || undefined} style={{ flexGrow: counts.stages[s.id] }}/>)}
+        {STAGES.filter((s) => counts.stages[s.id] > 0).map((s) => <i key={s.id} data-stage={s.id} data-dim={(stage && stage !== s.id) || undefined} style={{ flexGrow: counts.stages[s.id] }}/>)}
       </div>
       <div className="mi-pipe-stages">
         {STAGES.map((s) => <button key={s.id} type="button" data-stage={s.id} aria-pressed={stage === s.id} onClick={() => onStage(s.id)}>
-          <span className="mi-dot" aria-hidden="true"/>{s.label} <b>{counts.stages[s.id]}</b>
+          <span className="mi-dot" aria-hidden="true"/>{s.label} <b>{NUM.format(counts.stages[s.id])}</b>
         </button>)}
       </div>
     </div>
@@ -567,19 +574,19 @@ const Row = memo(function Row({ item, d, note, week, changed, picked, sel, flash
       </button>
     </span>
     <span className="mi-name" role="cell">
-      <button type="button" className="mi-t" onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
-      <span className="mi-s">{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub">{d.sub}</span></span>
+      <button type="button" className="mi-t" title={name} onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
+      <span className="mi-s">{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub" title={d.sub}>{d.sub}</span></span>
     </span>
     <span role="cell"><button type="button" className="mi-cell" aria-haspopup="dialog" aria-expanded={popType === 'stage'} aria-label={`Stage: ${STAGE[st].label}. Change`} onClick={cell('stage')}><StagePill stage={st} caret/></button></span>
     <span role="cell"><button type="button" className="mi-cell mi-next" aria-haspopup="dialog" aria-expanded={popType === 'next'} onClick={cell('next')}>
       <span className="mi-t">{next.label}{!next.done && <ChevronDown className="mi-caret" size={11} aria-hidden="true"/>}</span><span className="mi-s"><Due next={next}/></span>
     </button></span>
-    <span role="cell"><button type="button" className="mi-cell mi-qty" aria-haspopup="dialog" aria-expanded={popType === 'deliver'} aria-label={`On site ${NUM.format(q.onsite)} of ${NUM.format(q.total)} ${q.unit}. Set the quantity on site`} onClick={cell('deliver')}>
-      <span className="mi-qty-v"><b>{NUM.format(q.onsite)}</b><span> / {NUM.format(q.total)}</span>{q.unit && <span className="mi-qty-u">{q.unit}</span>}</span>
+    <span role="cell"><button type="button" className="mi-cell mi-qty" aria-haspopup="dialog" aria-expanded={popType === 'deliver'} aria-label={`On site ${NUM.format(q.onsite)} of ${q.totalText ?? NUM.format(q.total)} ${q.unit}. Set the quantity on site`} onClick={cell('deliver')}>
+      <span className="mi-qty-v"><b>{NUM.format(q.onsite)}</b><span> / {q.totalText ?? NUM.format(q.total)}</span>{q.unit && <span className="mi-qty-u">{q.unit}</span>}</span>
       <QtyBar q={q}/>
     </button></span>
     {hasOwner && <span role="cell" className="mi-c-who"><button type="button" className="mi-cell mi-who" aria-haspopup="dialog" aria-expanded={popType === 'owner'} aria-label={`Owner: ${owner || 'none'}. Change`} onClick={cell('owner')}>
-      {owner ? <><Avatar name={owner}/><span>{owner}</span></> : <span className="mi-faint">Assign</span>}
+      {owner ? <><Avatar name={owner}/><span title={owner}>{owner}</span></> : <span className="mi-faint">Assign</span>}
     </button></span>}
     <span role="cell" className="mi-c-note"><button type="button" className="mi-cell mi-note" aria-haspopup="dialog" aria-expanded={popType === 'note'} onClick={cell('note')}>
       {note ? <><span className="mi-tx"><span className="mi-team" data-team={note.team}>{TEAM_LABEL[note.team]}</span>{note.body}</span>
@@ -660,7 +667,7 @@ const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem;
   const { qty: q, next, owner } = d
   return <>
     <span className="mi-t">{d.name}</span>
-    <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{NUM.format(q.total)} {q.unit}</span>
+    <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
     <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{next.done ? <span className="mi-faint">Complete</span> : <Due next={next}/>}</span></span>
   </>
 })
@@ -767,7 +774,9 @@ function PopBody(p: PopBodyProps) {
     const q = qtyOf(item), rem = Math.max(0, q.total - q.onsite)
     return <div className="mi-pad">
       <SetOnsite key={item.id} value={q.onsite} unit={q.unit} onSet={p.onSetOnsite}/>
-      <p className="mi-faint mi-small">{NUM.format(q.onsite)} of {NUM.format(q.total)} on site · {NUM.format(rem)} to go</p>
+      <p className="mi-faint mi-small">{q.totalText
+        ? `${NUM.format(q.onsite)} on site · total in the workbook: ${q.totalText}`
+        : `${NUM.format(q.onsite)} of ${NUM.format(q.total)} on site · ${NUM.format(rem)} to go`}</p>
     </div>
   }
   if ((pop.type === 'owner' && item) || pop.type === 'bulk-owner') {
@@ -801,9 +810,9 @@ function PopBody(p: PopBodyProps) {
     return <>
       <div className="mi-pop-t">Recent activity · everyone</div>
       {recent.length ? recent.map((l, i) => {
-        const name = l.by ? p.people[l.by] ?? 'Someone' : 'Someone', it = p.byId.get(l.itemId)
+        const known = l.by ? p.people[l.by] ?? null : null, name = known ?? 'Someone', it = p.byId.get(l.itemId)
         return <button key={l.id} type="button" className="mi-opt mi-act-opt" data-autofocus={i === 0 || undefined} onClick={() => p.onOpenItem(l.itemId)}>
-          <Avatar name={name}/>
+          <Avatar name={known}/>
           <span className="mi-act-tx"><span><b>{name}</b> {describeLog(l)}</span>
             <span className="mi-opt-h">{it ? text(it, 'description') || codeOf(it) : ''} · {ago(l.at)}</span></span>
         </button>
@@ -1052,8 +1061,8 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
       <div className="mi-sec">
         <h4>Activity</h4>
         {history.length ? <ul className="mi-acts">
-          {history.map((l) => { const name = l.by ? ctx.people[l.by] ?? 'Someone' : 'Someone'
-            return <li key={l.id} className="mi-act"><Avatar name={name}/><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at}>{ago(l.at)}</time></li> })}
+          {history.map((l) => { const known = l.by ? ctx.people[l.by] ?? null : null, name = known ?? 'Someone'
+            return <li key={l.id} className="mi-act"><Avatar name={known}/><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at}>{ago(l.at)}</time></li> })}
         </ul> : <p className="mi-faint mi-small">No changes in the last three weeks.</p>}
       </div>
       <div className="mi-sec">

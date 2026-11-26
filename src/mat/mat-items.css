@@ -190,7 +190,7 @@
 /* On site: the count first ("12 / 89 m2"), the bar under it, both on one left edge. */
 .mi-qty { display: flex; flex-direction: column; gap: 7px; }
 .mi-qty .mi-qbar { width: min(100%, 120px); }
-.mi-qty-v { display: flex; align-items: baseline; min-width: 0; overflow: hidden; font-size: 13px; color: var(--mi-ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mi-qty-v { display: flex; flex-wrap: wrap; align-items: baseline; min-width: 0; font-size: 13px; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
 .mi-qty-v b { color: var(--mi-ink); font-weight: 600; }
 .mi-qty-v > span { white-space: pre; }
 .mi-qty-u { margin-inline-start: 4px; font-size: 12px; }
@@ -218,6 +218,9 @@
 .mi-kc[data-ghosted] { opacity: 0.3; }
 .mi-kc > .mi-t { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; }
 .mi-kc-f { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
+/* Card text wraps: a code, a quantity and a due date are compared, so none of them is cut short. */
+.mi-kc .mi-s { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
+.mi-kc-f .mi-s { text-align: end; }
 .mi-kc > .mi-t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
 .mi-ghost { position: fixed; left: 0; top: 0; z-index: 50; margin: 0; pointer-events: none; cursor: grabbing; rotate: 1.5deg; scale: 1.03; box-shadow: 0 0 0 0.5px rgb(0 0 0 / 0.08), 0 18px 40px rgb(0 0 0 / 0.2), 0 4px 10px rgb(0 0 0 / 0.08); content-visibility: visible; }
 
@@ -442,3 +445,6 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 .mi-row::after { background: rgb(60 60 67 / 0.09); }
 .mi-kc { border: 1px solid var(--border-subtle); border-radius: 12px; box-shadow: 0 1px 2px rgb(0 0 0 / 0.03); }
 .mi-col { border-radius: 16px; }
+
+/* An author the app has no name for: a neutral mark, not a coloured "S" for "Someone". */
+.mi-av[data-unknown] { background: rgb(118 118 128 / 0.24); color: var(--mi-ink-2); }

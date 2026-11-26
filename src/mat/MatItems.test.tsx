@@ -243,3 +243,24 @@ test('a material photo shows in its List row and opens full size', async () => {
   fireEvent.click(thumb)
   expect(await screen.findByRole('dialog', { name: 'Sample panel XX-01' })).toBeInTheDocument()
 })
+
+test('a text total shows the workbook words, and an unnamed author gets no made-up initials', async () => {
+  const x1 = material('x1', 2, 'XX-01', 0)
+  vi.mocked(fetchPackage).mockResolvedValue({
+    ...load([section('s1', 1, 'Wall Finishing'), { ...x1, data: { ...x1.data, cells: { ...x1.data.cells, total: { v: 'As per BOQ' } } } }]),
+    log: [{ id: 1, itemId: 'x1', at: new Date().toISOString(), by: null, kind: 'fields', detail: { pic: 'Sokha' } }],
+  })
+  open()
+  const row1 = await row('XX-01')
+  expect(within(row1).getByText('/ As per BOQ')).toBeInTheDocument()
+  fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
+  const list = await screen.findByRole('dialog', { name: 'Recent activity' })
+  expect(within(list).getByText('Someone')).toBeInTheDocument()
+  expect(list.querySelector('.mi-av[data-unknown]')).not.toBeNull()
+})
+
+test('an empty sheet says so instead of "0 of 0 fully on site"', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([]))
+  open()
+  expect(await screen.findByText('No materials yet')).toBeInTheDocument()
+})

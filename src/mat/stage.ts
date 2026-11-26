@@ -32,10 +32,12 @@ const date = (item: MatItem, col: EditableColKey) => {
 }
 const text = (item: MatItem, col: EditableColKey) => formatCol(effectiveCol(item, col)).trim()
 
-export interface Qty { total: number; po: number; shd: number; onsite: number; unit: string }
+/** `totalText`: the workbook's own words when the total is not a number ("As per BOQ", "TBC"), else null. */
+export interface Qty { total: number; po: number; shd: number; onsite: number; unit: string; totalText: string | null }
 export function qtyOf(item: MatItem): Qty {
   const e = effective(item)
-  return { total: n(e.total), po: n(e.po), shd: n(e.shd), onsite: n(e.onsite), unit: text(item, 'unit') }
+  const t = e.total
+  return { total: n(t), po: n(e.po), shd: n(e.shd), onsite: n(e.onsite), unit: text(item, 'unit'), totalText: typeof t === 'string' && t.trim() ? t.trim() : null }
 }
 
 export function stageOf(item: MatItem): StageId {

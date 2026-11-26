@@ -15,7 +15,8 @@ html[data-mat] .canvas { padding-block: 0; }
 .mat-page :focus-visible { outline: 2px solid var(--pp-accent-ink); outline-offset: 2px; }
 
 /* Header: the app's page heading, with the project tile and the save state as a pill. */
-.mat-heading { margin: 0; align-items: center; gap: var(--space-16); }
+.mat-heading { margin: 0; align-items: center; flex-wrap: wrap; gap: var(--space-12) var(--space-16); }
+.mat-heading-main h1, .mat-meta > span { white-space: nowrap; }
 .mat-heading-main { display: flex; align-items: center; gap: var(--space-12); min-width: 0; }
 .mat-heading-main h1 { margin: 0; }
 .mat-meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-8); margin: var(--space-4) 0 0; font-variant-numeric: tabular-nums; }

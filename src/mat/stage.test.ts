@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { nextOf, onsitePatch, sectionTree, snapshot, stageOf, stagePatch } from './stage'
+import { nextOf, onsitePatch, qtyOf, sectionTree, snapshot, stageOf, stagePatch } from './stage'
 import type { MatItem } from './types'
 
 const item = (cols: MatItem['data']['cols'], qty: [number, number, number] = [10, 0, 0], edits: MatItem['edits'] = {}): MatItem => ({
@@ -88,4 +88,20 @@ test('a resubmission takes the date given; a first submission keeps the date alr
   // Already submitted on 1 Oct and marked Under Review again: the recorded date stays (null = the workbook's own value).
   const submitted = item({ msActual: '2026-10-01', msStatus: 'Approved' })
   expect(stagePatch(submitted, 'review', '2026-11-25')).toMatchObject({ msActual: null })
+})
+
+test('a total the workbook holds as text is kept as text, not read as zero', () => {
+  const it: MatItem = { ...item({ unit: 'set' }), data: { cols: { unit: 'set' }, cells: { total: { v: 'As per BOQ' }, onsite: { v: 0 } } } }
+  expect(qtyOf(it)).toMatchObject({ total: 0, totalText: 'As per BOQ' })
+  expect(qtyOf(item({}, [10, 0, 0])).totalText).toBeNull()
+})
+
+test('initials use the first and last word, skip suffixes and keep whole characters', async () => {
+  const { initials } = await import('./MatItems')
+  expect(initials('Christopher Alexander Montgomery III')).toBe('CM')
+  expect(initials('Đặng Thị Ngọc Hân')).toBe('ĐH')
+  expect(initials('Jo')).toBe('J')
+  expect(initials('dara')).toBe('D')
+  expect(initials('🦊 Fox')).toBe('🦊F')
+  expect(initials('  ')).toBe('?')
 })

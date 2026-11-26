@@ -463,3 +463,21 @@ With the budget green, CI ran the browser suite and Lighthouse again, which had 
 2. **Stage as symbol and label.** The stage capsules are gone. Each stage has one Lucide symbol in its hue (dashed circle, clock, back arrow, check, box, truck, checked box) beside an ink label, as Reminders and Mail show state; Revise is the only label that takes its hue, because it is the one that asks for action. The same symbols mark the board columns and the stage menus, and turn white with the menu highlight.
 3. **Smaller photos.** 44 px thumbnails (8 px radius) in 60 px rows, from 60 px in 76 px rows.
 4. **Quieter detail.** Section headers show the late count and the material count as plain text on the right instead of chips; the due state is coloured text ("139d late", "In 5d") rather than a tinted tag; card numbers are 28 px with tighter tracking; row separators are lighter; board cards take the panels' hairline outline.
+
+## D-63 Material list worst-case pass: text totals, initials, unknown authors, and layout under long data - November 26, 2026
+
+The dev lab (`/__lab/mat`, toggle Demo / Worst case / Empty / One / 1,000 rows) had fixtures from before the List, Board, Next step and activity views. The worst case now also has the BP03 nesting (names in the code column, four levels, a label-only heading), real photos with samples, plan dates relative to today (412 days late, today, in 3 days, expected from submission, 90 days ahead), a zero total that has arrived, a material with no unit, owners such as "Christopher Alexander Montgomery III", "Đặng Thị Ngọc Hân", "dara" and "J", notes by named people, and 24 activity rows including authors with no known name. One now has every count at 1, including one late material. Checked at 1500, 1024 and 820 px, at 200% zoom, and in every state.
+
+Fixed:
+1. **A total held as text read as zero.** "As per BOQ" or "TBC" in Total showed "0 / 0" in the List, the Board and the on-site popover. `qtyOf` now carries `totalText`, and those places show the workbook's words.
+2. **Initials.** First and last word, suffixes (Jr, Sr, II, III, IV) skipped, whole characters rather than half an emoji: "Christopher Alexander Montgomery III" is CM (was CA).
+3. **Unknown author.** An activity row with no known name read "Someone" with a coloured "S" avatar, as if a person were called that. It is a neutral "?" now.
+4. **Pipeline.** Stages with nothing in them no longer leave 2 px slivers at the bar's ends; counts use separators ("200 of 1,000", was "200 of 1000"); an empty sheet says "No materials yet" instead of "0 of 0 fully on site · 0% of quantity delivered".
+5. **Board cards** wrap their code, quantity and due date instead of cutting them ("ID-TL-04 · 0/…", "expected 23 …").
+6. **On site** lets the unit wrap under a long total; at 820 px "1,284,500.75 m²" lost its unit.
+7. **Heading** wraps its actions under the title at 200% zoom instead of breaking "Material list" and the week label mid-phrase.
+8. **Tooltips** on the material name, its subtitle and the owner, which truncate in the List.
+
+Held up: no horizontal page overflow at any width; nested headers with long names truncate with the full path in the tooltip; 1,000 rows render and filter (about 1.5 s first paint in dev, 140 ms to filter) with `content-visibility`, so the List is not virtualised; plurals ("1 late", "1 of 1"); missing photos fall back to the placeholder; Khmer and Vietnamese text keep their marks; the Sheet's frozen columns and long section bands.
+
+Left as is: the plan-date field uses the browser's date order (it is the native control).
