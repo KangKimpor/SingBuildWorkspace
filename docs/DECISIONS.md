@@ -605,3 +605,11 @@ On 26 November 2026, Firefox showed a blank page on `/admin`. The console said t
    - **Filter.** The popover can show All, Changes or Notes, with counts.
 4. **Narrower sidebar.** `--w-sidebar` and the shell store go from 264 px to 224 px (the NBC override goes from 260 px). The sidebar header, padding and sub-item indent are tightened so "SingBuild Workspace" still fits whole. With the narrower sidebar, a 1,536 px wide screen (1920 at 125%) leaves the Material list about 1,180 px. Below 1,340 px of list width, the Submission and Procurement capsules stack in one **Status** column. Below 1,300 px of page width, the search narrows and Expand shows only its icon. The List no longer scrolls sideways at these widths.
 5. **Remark columns.** The Sheet's Procurement remark columns read **2 weeks ago remark**, **Last week remark** and **This week remark**.
+
+## D-74 The List's Timeline cell names each stage with its own symbol - November 26, 2026
+
+The old cell showed six unlabelled dots, an uppercase "NEXT" and a bold red sentence ("139d overdue · plan 10 Jul") on every late row. A plain segmented bar was tried and rejected because it shows progress but not which stage is which. From three mockups (stage icons, labelled dots, Submission | Procurement halves), the stage icons were chosen.
+
+- **Stages.** Six symbols in a fixed order: document (submitted), tick (approved), swatch (sample), box (ordered), truck (shipped), delivered box (on site). They are joined by a line that turns green up to the current stage.
+- **States.** A reached stage is green. The current stage is ringed in blue when on track, orange when due within 14 days, or red when overdue. A stage that is not required is dashed. A missed plan on another stage is tinted red. Each symbol names itself and its date on hover.
+- **Text.** Under the symbols, the step to do in plain words ("Place order", no eyebrow). Below that, one small chip carries the lateness ("412d late", "In 3d", "Today") with "Planned 10 Oct" in grey beside it. Only the chip is coloured, so a long run of late rows stays readable.

@@ -1,4 +1,4 @@
-import { memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, memo, useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
@@ -171,12 +171,49 @@ function StoneStatus({ stone, today }: { stone: Stone; today: string }) {
 }
 const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.skipped ? 'not required' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
 const stoneState = (s: Stone) => s.done ? 'done' : s.skipped ? 'skip' : s.late ? 'late' : undefined
-/** The panel's timeline in one line of points: green with a check when reached, a red ring when overdue, a dashed ring when
- * not required, grey when pending. */
-function Track({ stones }: { stones: Stone[] }) {
-  return <span className="mi-track" aria-hidden="true">
-    {stones.map((m) => <i key={m.key} data-state={stoneState(m)}>{m.done && <Check size={8} strokeWidth={3.6}/>}</i>)}
-  </span>
+/**
+ * The List's Timeline cell (D-74), after the Apple Store order status: the step to do in plain words with a quiet
+ * "4/6" counter, a thin bar of six segments (green when reached, hatched when not required, the current one tinted by
+ * urgency), and one small chip for lateness with the plan date beside it in grey. Only the chip is coloured, so a long
+ * list of late rows reads as a column of red marks, not a wall of red sentences.
+ */
+/** The six stages' symbols: document, approval tick, sample swatch, order box, truck, delivered box. */
+const STEP_GLYPH: Record<string, ReactNode> = {
+  submitted: <path d="M6 2.5h8a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-11a2 2 0 0 1 2-2zM7.5 7.5h5M7.5 11h5"/>,
+  approved: <path d="m5 10.4 3.3 3.3L15 6.6"/>,
+  sample: <><rect x="3.5" y="3.5" width="9" height="9" rx="2"/><path d="M8 16.5h6.5a2 2 0 0 0 2-2V8"/></>,
+  ordered: <path d="M3 7l7-4 7 4v7l-7 4-7-4zM3 7l7 4 7-4M10 11v7"/>,
+  shipping: <><path d="M2.5 5.5h9v8h-9zM11.5 8.5h3l3 3v2h-6"/><circle cx="6" cy="15" r="1.6"/><circle cx="14.5" cy="15" r="1.6"/></>,
+  onsite: <><path d="M3 4.5h14v11H3z"/><path d="m7 10 2.2 2.2L13.5 8"/></>,
+}
+function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Stone | null; today: string }) {
+  const at = current ? stones.indexOf(current) : -1
+  const st = current ? stoneStatus(current, today) : null
+  const tone = st?.tone === 'late' ? 'late' : st?.tone === 'soon' ? 'soon' : 'now'
+  const word = current?.planKey ? 'Planned' : 'Expected'
+  const diff = current?.plan ? days(current.plan, today) : null
+  let chip: string | null = null, rest = ''
+  if (current) {
+    if (current.skipped) rest = 'Not required'
+    else if (!current.plan) rest = current.key === 'shipping' ? 'Waiting on procurement' : 'No plan date'
+    else if (diff !== null && diff < 0) { chip = `${-diff}d late`; rest = `${word} ${shortDate(current.plan)}` }
+    else if (diff !== null && diff <= 14) { chip = diff ? `In ${diff}d` : 'Today'; rest = `${word} ${shortDate(current.plan)}` }
+    else rest = `${word} ${shortDate(current.plan)}`
+  }
+  return <>
+    {/* One symbol per stage, always in the same order (D-74): green when reached, ringed in the urgency colour where the
+        material is, dashed when not required. Each names itself on hover. */}
+    <span className="mi-tm-steps">
+      {stones.map((s, i) => <Fragment key={s.key}>
+        {i > 0 && <i className="mi-tm-line" data-on={s.done || i === at || undefined} aria-hidden="true"/>}
+        <span className="mi-tm-k" data-state={i === at ? (tone === 'now' ? 'now' : `now-${tone}`) : stoneState(s)} title={stoneLine(s, today)}>
+          <svg viewBox="0 0 20 20" aria-hidden="true" focusable="false">{STEP_GLYPH[s.key]}</svg>
+        </span>
+      </Fragment>)}
+    </span>
+    <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
+    {current && <span className="mi-tm-s">{chip && <span className="mi-tm-chip" data-tone={tone}>{chip}</span>}<span>{rest}</span></span>}
+  </>
 }
 function QtyBar({ q, large }: { q: Qty; large?: boolean }) {
   const of = (v: number) => q.total > 0 ? Math.min(1, v / q.total) : 0
@@ -741,10 +778,8 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash
     <span role="cell" className="mi-c-time"><button type="button" className="mi-cell mi-time" aria-haspopup="dialog" aria-expanded={popType === 'next'}
       aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${current ? `Next: ${current.todo}, ${stoneStatus(current, today).text}` : 'Complete'}. Update`}
       title={stones.map((m) => stoneLine(m, today)).join('\n')} onClick={cell('next')}>
-      <Track stones={stones}/>
       {/* The step still to do, in its own words ("Place order"), so nothing reads as done before it is (D-69). */}
-      {current ? <><span className="mi-time-l" title={`Next: ${current.todo}`}><span className="mi-time-k">Next</span>{current.todo}</span><span className="mi-s"><StoneStatus stone={current} today={today}/></span></>
-        : <span className="mi-s"><span className="mi-due" data-tone="done">All on site</span></span>}
+      <TimeSummary stones={stones} current={current} today={today}/>
     </button></span>
     <span role="cell" className="mi-c-qty"><span className="mi-qstats">
       {QTY_FIELDS.map(([k, short]) => {

@@ -141,7 +141,8 @@ test('the row shows the timeline points and all four quantities with Total by BO
   const x1 = await row('XX-01')
   // Approved by status (no dates), so submitted and approved; ordered; the sample, shipping and arrival are not reached.
   expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: Production and shipping, Pending/ })).toBeInTheDocument()
-  expect(x1.querySelectorAll('.mi-track i')).toHaveLength(6)
+  expect(x1.querySelectorAll('.mi-tm-steps .mi-tm-k')).toHaveLength(6)
+  expect(x1.querySelector('.mi-tm-k[title^="Order placed"]')).toHaveAttribute('data-state', 'done')
   for (const name of ['Total by BOQ: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
 })
 
@@ -204,7 +205,10 @@ test('the timeline cell says Place order before an order is placed, and its popo
   const x1 = await row('XX-01')
   expect(within(x1).getByText('Place order')).toBeInTheDocument()
   expect(within(x1).queryByText('Order placed')).toBeNull()
-  expect(within(x1).getByText(/^\d+d overdue · plan 7 Oct$/)).toBeInTheDocument()
+  // One small chip carries the lateness; the plan date sits beside it (D-74).
+  expect(within(x1).getByText(/^\d+d late$/)).toHaveAttribute('data-tone', 'late')
+  expect(within(x1).getByText('Planned 7 Oct')).toBeInTheDocument()
+  expect(x1.querySelector('.mi-tm-k[title^="Order placed"]')).toHaveAttribute('data-state', 'now-late')
   fireEvent.click(within(x1).getByText('Place order'))
   const pop = await screen.findByRole('dialog', { name: 'Timeline' })
   for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Shipped', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()

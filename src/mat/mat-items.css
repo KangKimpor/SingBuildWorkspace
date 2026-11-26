@@ -740,3 +740,29 @@ div.mi-tlp-row { cursor: default; }
 }
 
 .mi-panel .mi-af > .mi-pad { padding-inline: 0; }
+
+/* Timeline cell (D-74): six stage symbols joined by a line, then the step to do, then a lateness chip and the plan date. */
+.mi-time { gap: 5px; }
+.mi-tm-steps { display: flex; align-items: center; width: 100%; max-width: 172px; margin-bottom: 1px; }
+.mi-tm-k { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 50%; background: rgb(118 118 128 / 0.1); color: rgb(60 60 67 / 0.4); transition: background-color 200ms ease, color 200ms ease, box-shadow 200ms ease; }
+.mi-tm-k svg { width: 13px; height: 13px; overflow: visible; }
+.mi-tm-k svg * { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.mi-tm-line { flex: 1; min-width: 4px; height: 2px; background: rgb(60 60 67 / 0.14); }
+.mi-tm-line[data-on] { background: #34a853; }
+.mi-tm-k[data-state='done'] { background: #e6f4ea; color: #1e8e3e; }
+.mi-tm-k[data-state='skip'] { background: #fff; color: rgb(60 60 67 / 0.3); box-shadow: inset 0 0 0 1.25px rgb(60 60 67 / 0.25); outline: 1px dashed rgb(60 60 67 / 0.35); outline-offset: -1px; }
+/* A stage whose plan date passed but is not the one the material is at (a sample still waiting, say). */
+.mi-tm-k[data-state='late'] { background: rgb(215 0 21 / 0.08); color: #d70015; }
+/* The stage the material is at: a ring in blue (on track), orange (due within 14 days) or red (overdue). */
+.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) { background: #fff; box-shadow: 0 0 0 1.75px var(--tm); color: var(--tm); }
+.mi-tm-k[data-state='now'] { --tm: var(--mi-accent); }
+.mi-tm-k[data-state='now-soon'] { --tm: #f08a00; }
+.mi-tm-k[data-state='now-late'] { --tm: #d70015; }
+.mi-tm-t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0; font-size: 13px; font-weight: 600; line-height: 17px; letter-spacing: -0.01em; color: var(--mi-ink); overflow-wrap: anywhere; }
+.mi-tm-t[data-done] { color: var(--mi-green); }
+.mi-tm-s { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11.5px; line-height: 18px; color: var(--mi-ink-3); white-space: nowrap; }
+.mi-tm-s > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mi-tm-chip { flex: none; height: 18px; padding: 0 6px; border-radius: 5px; font-weight: 650; line-height: 18px; font-variant-numeric: tabular-nums; }
+.mi-tm-chip[data-tone='late'] { background: rgb(215 0 21 / 0.09); color: #c4000f; }
+.mi-tm-chip[data-tone='soon'] { background: rgb(255 149 0 / 0.14); color: #a34400; }
+@media (prefers-reduced-motion: reduce) { .mi-tm-k { transition: none; } }
