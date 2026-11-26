@@ -339,3 +339,14 @@ test('the panel shows the submission image and the approved sample as separate g
   expect(within(sample).getAllByRole('button')).toHaveLength(2)
   expect(within(panel).queryByLabelText(/Received/)).toBeNull()
 })
+
+test('a Board card shows the material photo', async () => {
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    material('x1', 2, 'XX-01', 4, { data: { ...material('x1', 2, 'XX-01', 4).data, images: { image: ['abc.webp'], sample: ['def.webp'] } } }),
+  ]))
+  open('/admin?v=board')
+  const card = await screen.findByRole('button', { name: 'Sample panel XX-01. Open details' })
+  expect(card.querySelector('.mi-kc-ph img')).toHaveAttribute('src', '/mat/abc.webp')
+  expect(within(card).getByText('2')).toBeInTheDocument()
+})

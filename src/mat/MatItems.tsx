@@ -732,9 +732,17 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
 }
 const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem; d: Derived; changed: boolean }) {
   const { qty: q, next, owner } = d
+  // The material's first photo beside its name, as in the List; the card itself stays the drag handle, so the photo is not a button.
   return <>
-    <span className="mi-t">{d.name}</span>
-    <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
+    <span className="mi-kc-h">
+      <span className="mi-kc-ph" data-empty={!d.photo || undefined} aria-hidden="true">
+        {d.photo ? <Photo src={d.photo}/> : <ImageIcon size={15}/>}{d.photos > 1 && <span className="mi-thumb-n">{d.photos}</span>}
+      </span>
+      <span className="mi-kc-tx">
+        <span className="mi-t">{d.name}</span>
+        <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
+      </span>
+    </span>
     <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{next.done ? <span className="mi-faint">Complete</span> : <Due next={next}/>}</span></span>
   </>
 })
