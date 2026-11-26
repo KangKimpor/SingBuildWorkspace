@@ -81,7 +81,7 @@ test('List shows one row per material with its stage, next step and latest note'
   const x1 = await row('XX-01')
   expect(within(x1).getByRole('button', { name: /^Submission: Approved/ })).toBeInTheDocument()
   expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
-  expect(within(x1).getByText('First delivery')).toBeInTheDocument()
+  expect(within(x1).getByText('Delivering')).toBeInTheDocument() // the timeline step it is at, not a 'next step'
   expect(within(x1).getByText('Quote received')).toBeInTheDocument()
   expect(screen.getByRole('button', { name: /Wall Finishing/ })).toHaveAttribute('aria-expanded', 'true')
 })
@@ -125,7 +125,7 @@ test('the row shows the timeline points and all four quantities', async () => {
   open()
   const x1 = await row('XX-01')
   // Approved by status (no dates), so submitted and approved; ordered; the sample, delivery and arrival are not reached.
-  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: First delivery/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Now: Delivering, Pending/ })).toBeInTheDocument()
   expect(x1.querySelectorAll('.mi-track i')).toHaveLength(6)
   for (const name of ['Total by QS: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
 })
@@ -161,36 +161,45 @@ test('the on-site popover sets the total on site', async () => {
   expect(screen.getByText('On site updated')).toBeInTheDocument()
 })
 
-test('the next step says when it is due and finishes with a one-tap date', async () => {
+test('the timeline cell names the step a material is at, and its popover changes plan dates only', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([
     section('s1', 1, 'Wall Finishing'),
     material('x1', 2, 'XX-01', 0, { data: { ...material('x1', 2, 'XX-01', 0).data, cols: { ...material('x1', 2, 'XX-01', 0).data.cols, poPlan: '2025-10-07' } } }),
   ]))
   open()
   const x1 = await row('XX-01')
-  expect(within(x1).getByText('Place order')).toBeInTheDocument()
-  expect(within(x1).getByText(/^\d+d late$/)).toBeInTheDocument()
-  expect(within(x1).getByText('due 7 Oct')).toBeInTheDocument()
-  fireEvent.click(within(x1).getByText('Place order'))
-  const pop = await screen.findByRole('dialog', { name: 'Next step' })
-  expect(within(pop).getByText(/^Planned 7 Oct · \d+ days late$/)).toBeInTheDocument()
-  fireEvent.click(within(within(pop).getByRole('group', { name: 'Order placed' })).getByRole('button', { name: 'Yesterday' }))
-  const yesterday = new Date(Date.now() - 864e5)
-  const iso = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`
-  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', expect.objectContaining({ poActual: iso, po: 10 })))
-})
-
-test('a plan date set from the next step saves that column', async () => {
-  vi.mocked(fetchPackage).mockResolvedValue(load([
-    section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 0),
-  ]))
-  open()
-  fireEvent.click(within(await row('XX-01')).getByText('Place order'))
-  const pop = await screen.findByRole('dialog', { name: 'Next step' })
-  fireEvent.change(within(pop).getByLabelText('Place order plan date'), { target: { value: '2026-12-15' } })
+  expect(within(x1).getByText('Order placed')).toBeInTheDocument()
+  expect(within(x1).getByText(/^\d+d overdue · plan 7 Oct$/)).toBeInTheDocument()
+  fireEvent.click(within(x1).getByText('Order placed'))
+  const pop = await screen.findByRole('dialog', { name: 'Timeline' })
+  for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Delivering', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()
+  // No way to mark a step done here: status changes belong to the Submission and Procurement capsules.
+  expect(within(pop).queryByRole('button', { name: /Done today|Yesterday|Mark shipped/ })).toBeNull()
+  // Delivering and the expected approval have no plan column, so they do not open.
+  expect(within(pop).queryByRole('button', { name: /^Delivering/ })).toBeNull()
+  expect(within(pop).getByRole('button', { name: /^Order placed/ })).toHaveAttribute('aria-expanded', 'true')
+  fireEvent.change(within(pop).getByLabelText('Order placed plan date'), { target: { value: '2026-12-15' } })
   expect(saveFields).not.toHaveBeenCalled() // a date being typed is not saved until Save or Enter
   fireEvent.click(within(pop).getByRole('button', { name: 'Save' }))
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { poPlan: '2026-12-15' }))
+})
+
+test('the timeline follows the status: moving Procurement to Delivering reaches the Delivering step', async () => {
+  open()
+  const x1 = await row('XX-01')
+  expect(within(x1).getByRole('button', { name: /^Timeline: .*\. Now: Delivering/ })).toBeInTheDocument()
+  fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
+  fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Delivering/ }))
+  await waitFor(() => expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed, Delivering\. Now: Fully on site/ })).toBeInTheDocument())
+})
+
+test('List sections expand and collapse all at once', async () => {
+  open()
+  await row('XX-01')
+  fireEvent.click(screen.getByRole('button', { name: 'Collapse all sections' }))
+  expect(screen.queryByText('Sample panel XX-01')).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'Expand all sections' }))
+  expect(await screen.findByText('Sample panel XX-01')).toBeInTheDocument()
 })
 
 test('a note is saved as the remark for this week and the chosen team', async () => {

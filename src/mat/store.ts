@@ -24,7 +24,7 @@ export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 const DB_NAME = 'kw-mat'
 // 4: items carry weekEdits. 5: state carries the activity log, names and remark authors (D-58).
 // Older caches are dropped so every row reloads with them.
-const DB_VERSION = 5
+const DB_VERSION = 6
 const STORE = 'packages'
 // A write that starts just before a load can commit just after it. Asking again for this
 // overlap catches it; merging by id and by remark key makes the repeated rows harmless.

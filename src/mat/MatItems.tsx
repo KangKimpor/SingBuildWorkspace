@@ -3,7 +3,7 @@ import type { KeyboardEvent as ReactKeyboardEvent, MouseEvent as ReactMouseEvent
 import * as Dialog from '@radix-ui/react-dialog'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
-import { Activity, Check, ChevronDown, ChevronUp, ImageIcon, Search, Undo2, X } from 'lucide-react'
+import { Activity, CalendarDays, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, ImageIcon, Search, Undo2, X } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
 import { useMatImageSrc } from './images'
 import type { MatPicture } from './MatSourcePanel'
@@ -32,20 +32,6 @@ const NUM = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 })
 const TEAM_LABEL: Record<Team, string> = { purchase: 'Purchase', pm: 'PM' }
 const GROUPS: [Group, string][] = [['section', 'Section'], ['stage', 'Stage'], ['owner', 'Owner'], ['none', 'None']]
 const SORTS: [Sort, string][] = [['pos', 'Workbook order'], ['urgency', 'Most urgent'], ['recent', 'Recently updated']]
-/** How each next step can end. Each choice saves with the date picked for it (today, yesterday or another day). */
-const STEP_ACTIONS: Record<StageId, { to: MoveStage; label: string; undated?: true }[]> = {
-  notsub: [{ to: 'review', label: 'Submitted to the consultant' }],
-  // No column records when a revision was asked for, so that choice has no date to pick.
-  review: [{ to: 'approved', label: 'Approved' }, { to: 'revise', label: 'Consultant asked to revise', undated: true }],
-  revise: [{ to: 'review', label: 'Resubmitted' }],
-  approved: [{ to: 'ordered', label: 'Order placed' }],
-  ordered: [{ to: 'delivering', label: 'Shipped' }, { to: 'onsite', label: 'Everything delivered' }],
-  delivering: [{ to: 'onsite', label: 'Everything delivered' }],
-  partial: [{ to: 'onsite', label: 'Everything delivered' }],
-  onsite: [],
-}
-/** The workbook column holding the step's plan date. Approval has none: it is expected 14 days after submission (10 for a resubmission). */
-const PLAN_KEY: Partial<Record<StageId, EditableColKey>> = { notsub: 'msPlan', approved: 'poPlan', ordered: 'arrPlan', delivering: 'arrPlan', partial: 'arrPlan' }
 const realYear = (iso: string) => /^20\d\d-\d\d-\d\d$/.test(iso)
 const text = (item: MatItem, key: EditableColKey) => formatCol(effectiveCol(item, key)).trim()
 // One formatter each, built once: a list of 2,000 rows formats a date in every row.
@@ -154,23 +140,27 @@ function stonesOf(item: MatItem, today: string): Stone[] {
     return { ...d, date, note: d.actual ? raw(d.actual) : '', done, late: !done && !!d.plan && days(d.plan, today) < 0 }
   })
 }
+/** The step a material is at: the first one not reached (the sample comes last, as it runs beside the main flow). */
+const currentStone = (stones: Stone[]) => stones.find((s) => !s.done && s.key !== 'sample') ?? stones.find((s) => !s.done) ?? null
+/** A step's state in the panel's words: "139d overdue", "Plan 2 Dec", "Expected 23 Nov", "Pending", or the date it was reached. */
+function stoneStatus(s: Stone, today: string): { text: string; tone?: 'late' | 'soon' | 'done' } {
+  if (s.done) return { text: s.date ? shortDate(s.date) : 'Done', tone: 'done' }
+  if (!s.plan) return { text: s.key === 'delivering' ? 'Pending' : 'No plan date' }
+  const diff = days(s.plan, today), word = s.planKey ? 'Plan' : 'Expected'
+  if (diff < 0) return { text: `${-diff}d overdue · ${word.toLowerCase()} ${shortDate(s.plan)}`, tone: 'late' }
+  if (diff <= 14) return { text: `${diff ? `In ${diff}d` : 'Today'} · ${word.toLowerCase()} ${shortDate(s.plan)}`, tone: 'soon' }
+  return { text: `${word} ${shortDate(s.plan)}` }
+}
+function StoneStatus({ stone, today }: { stone: Stone; today: string }) {
+  const st = stoneStatus(stone, today)
+  return <span className="mi-due" data-tone={st.tone}>{st.text}</span>
+}
 const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
 /** The panel's timeline in one line of points: green with a check when reached, a red ring when overdue, grey when pending. */
 function Track({ stones }: { stones: Stone[] }) {
   return <span className="mi-track" aria-hidden="true">
     {stones.map((m) => <i key={m.key} data-state={m.done ? 'done' : m.late ? 'late' : undefined}>{m.done && <Check size={8} strokeWidth={3.6}/>}</i>)}
   </span>
-}
-/** When the next step is due: "139d late · due 10 Jul", "In 5d · due 1 Dec", "Expected 10 Dec" for an approval. */
-function Due({ next }: { next: NextStep }) {
-  if (next.done) return <span className="mi-due" data-tone="done">All delivered</span>
-  if (next.diff === null) return <span className="mi-faint">No plan date</span>
-  const word = next.expected ? 'expected' : 'due'
-  const when = <span className="mi-faint">{word} {shortDate(next.date)}</span>
-  if (next.diff < 0) return <><span className="mi-due" data-tone="late">{-next.diff}d late</span> {when}</>
-  if (next.diff === 0) return <><span className="mi-due" data-tone="soon">Today</span> {when}</>
-  if (next.diff <= 14) return <><span className="mi-due" data-tone="soon">In {next.diff}d</span> {when}</>
-  return <span className="mi-muted">{next.expected ? 'Expected' : 'Due'} {shortDate(next.date)}</span>
 }
 function QtyBar({ q, large }: { q: Qty; large?: boolean }) {
   const of = (v: number) => q.total > 0 ? Math.min(1, v / q.total) : 0
@@ -265,6 +255,9 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     return out
   }, [scope, derived, q, stage, attn, changedOnly, changed, sort, today])
   const filtering = !!(q || owner || stage || attn || changedOnly)
+  // Every group header the List can show for the current grouping, for "Collapse all sections".
+  const groupKeys = useMemo(() => group === 'section' ? ['section:none', ...tree.sections.map((x) => `section:${x.id}`)]
+    : group === 'stage' ? STAGES.map((x) => `stage:${x.id}`) : group === 'owner' ? [...owners, 'Unassigned'].map((o) => `owner:${o}`) : [], [group, tree, owners])
   const clearFilters = () => { setQuery(''); setOwner(''); setStage(''); setAttn(''); setChangedOnly(false) }
 
   // ---- edits: snapshot, save, toast with undo ----
@@ -305,8 +298,8 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
     const targets = ids.map((id) => byId.get(id)).filter((i): i is MatItem => !!i)
     void apply(targets.map((item) => ({ item, patch: stagePatch(item, to, on) })), ids.length > 1 ? `${ids.length} moved to ${STAGE[to].label}` : `Moved to ${STAGE[to].label}`)
   }, [apply, byId, today])
-  const moveSub = useCallback((item: MatItem, to: SubStage) => void apply([{ item, patch: submissionPatch(item, to, today) }], `Submission: ${STAGE[to].label}`), [apply, today])
-  const moveProc = useCallback((item: MatItem, to: Exclude<ProcStage, 'partial'>) => void apply([{ item, patch: procurementPatch(item, to, today) }], `Procurement: ${stageLabel(to)}`), [apply, today])
+  const moveSub = useCallback((item: MatItem, to: SubStage, on = today) => void apply([{ item, patch: submissionPatch(item, to, on) }], `Submission: ${STAGE[to].label}`), [apply, today])
+  const moveProc = useCallback((item: MatItem, to: Exclude<ProcStage, 'partial'>, on = today) => void apply([{ item, patch: procurementPatch(item, to, on) }], `Procurement: ${stageLabel(to)}`), [apply, today])
   const assign = useCallback((ids: string[], name: string) => {
     const targets = ids.map((id) => byId.get(id)).filter((i): i is MatItem => !!i)
     void apply(targets.map((item) => ({ item, patch: { pic: colPatchValue(item, 'pic', name) } })), ids.length > 1 ? `${ids.length} assigned to ${name}` : `Assigned to ${name}`)
@@ -412,6 +405,10 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
       {stage && <button type="button" className="mi-chip" aria-pressed="true" onClick={() => setStage('')}>{STAGE[stage].label}<X size={12} aria-label="Clear"/></button>}
       {filtering && <button type="button" className="mi-link" onClick={clearFilters}>Clear filters</button>}
       <span className="mi-spacer"/>
+      {view === 'list' && group !== 'none' && <span className="mi-fold" role="group" aria-label="Sections">
+        <button type="button" className="mi-menu mi-icon" title="Expand all sections" aria-label="Expand all sections" onClick={() => setCollapsed(new Set())}><ChevronsDown size={15} aria-hidden="true"/></button>
+        <button type="button" className="mi-menu mi-icon" title="Collapse all sections" aria-label="Collapse all sections" onClick={() => setCollapsed(new Set(groupKeys))}><ChevronsUp size={15} aria-hidden="true"/></button>
+      </span>}
       <button type="button" className="mi-menu" aria-haspopup="dialog" aria-expanded={pop?.type === 'activity'} onClick={(e) => openPop('activity', null, e.currentTarget)}>
         <Activity size={14} aria-hidden="true"/>Activity
       </button>
@@ -431,7 +428,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
         }}/>}
 
     <Panel item={openItem} ctx={ctx} section={openItem ? tree.pathOf.get(openItem.id) ?? [] : []} week={state.week} remarks={state.remarks}
-      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty} onShip={(it) => moveProc(it, 'delivering')}
+      onClose={() => setOpen(null)} onNav={nav} onDate={setDate} onQty={setQty}
       onNote={saveNote} onOpenSource={onOpenSource}/>
 
     <RevertDialog entry={reverting} item={reverting ? byId.get(reverting.itemId) ?? null : null} people={people} activity={activity}
@@ -445,9 +442,7 @@ export function MatItems({ sheet, state, view, onFields, onRemark, onOpenSource,
           if (to === 'partial') { setPop({ type: 'qty', id: pop.id!, anchor: pop.anchor, field: 'onsite' }); return }
           closePop(); if (popItem) moveProc(popItem, to)
         }}
-        onNextAction={(to, on) => { closePop(); moveTo([pop.id!], to, on) }}
         onPlan={(key, value) => { closePop(); if (popItem) setDate(popItem, key, value) }}
-        onDeliver={() => setPop({ type: 'qty', id: pop.id!, anchor: pop.anchor, field: 'onsite' })}
         onEditDates={() => { const id = pop.id!; closePop(); setOpen(id) }}
         onSetQty={(field, v) => { closePop(); if (popItem) { if (field === 'onsite') setOnsite(popItem, v, 'On site updated'); else setQty(popItem, field, v) } }}
         onOwner={(name) => { closePop(); assign([pop.id!], name) }}
@@ -634,7 +629,8 @@ interface RowProps {
 }
 /** Memoized on plain props: opening a popover or ticking one row re-renders that row, not all of them. */
 const Row = memo(function Row({ item, d, notes, week, today, changed, picked, sel, flash, popType, popField, hasOwner, actions }: RowProps) {
-  const { subStage: sub, proc, stones, next, qty: q, name, owner } = d
+  const { subStage: sub, proc, stones, qty: q, name, owner } = d
+  const current = currentStone(stones)
   const cell = (type: PopType) => (e: ReactMouseEvent<HTMLButtonElement>) => { e.stopPropagation(); actions.openPop(type, item.id, e.currentTarget) }
   // oxlint-disable-next-line jsx-a11y/click-events-have-key-events -- A click anywhere on the row is a pointer shortcut; the name button is the keyboard path to the same panel.
   return <div className="mi-grid mi-row" role="row" data-mi-row={item.id} data-owner={hasOwner || undefined} data-sel={sel || undefined}
@@ -657,11 +653,11 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, picked, se
     <span role="cell"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
     <span role="cell" className="mi-c-proc"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'proc'} aria-label={`Procurement: ${stageLabel(proc)}. Change`} onClick={cell('proc')}><StagePill stage={proc}/></button></span>
     <span role="cell" className="mi-c-time"><button type="button" className="mi-cell mi-time" aria-haspopup="dialog" aria-expanded={popType === 'next'}
-      aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${next.done ? 'Complete' : `Next: ${next.label}`}. Update`}
+      aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${current ? `Now: ${current.title}, ${stoneStatus(current, today).text}` : 'Complete'}. Update`}
       title={stones.map((m) => stoneLine(m, today)).join('\n')} onClick={cell('next')}>
       <Track stones={stones}/>
-      {next.done ? <span className="mi-s"><span className="mi-due" data-tone="done">All on site</span></span>
-        : <><span className="mi-time-l" title={next.label}>{next.label}</span><span className="mi-s"><Due next={next}/></span></>}
+      {current ? <><span className="mi-time-l" title={current.title}>{current.title}</span><span className="mi-s"><StoneStatus stone={current} today={today}/></span></>
+        : <span className="mi-s"><span className="mi-due" data-tone="done">All on site</span></span>}
     </button></span>
     <span role="cell" className="mi-c-qty"><span className="mi-qstats">
       {QTY_FIELDS.map(([k, short]) => {
@@ -744,15 +740,15 @@ function BoardView({ list, ctx, onDrop }: { list: MatItem[]; ctx: RowCtx; onDrop
         <h3><StageIcon stage={s.id} size={15}/>{s.label}<span className="mi-col-n">{rows.length}</span></h3>
         {rows.map((item) => <div key={item.id} className="mi-kc" role="button" tabIndex={0} aria-label={`${derived.get(item.id)!.name}. Open details`} data-mi-card={item.id} data-ghosted={drag?.id === item.id || undefined}
           onPointerDown={(e) => start(e, item.id)} onKeyDown={(e) => onKey(e, item.id)}>
-          <BoardCard item={item} d={derived.get(item.id)!} changed={ctx.changed.has(item.id)}/>
+          <BoardCard item={item} d={derived.get(item.id)!} changed={ctx.changed.has(item.id)} today={ctx.today}/>
         </div>)}
       </section>
     })}
-    {drag && dragged && <motion.div className="mi-kc mi-ghost" style={{ x: gx, y: gy, width: drag.w }} aria-hidden="true"><BoardCard item={dragged} d={derived.get(dragged.id)!} changed={ctx.changed.has(dragged.id)}/></motion.div>}
+    {drag && dragged && <motion.div className="mi-kc mi-ghost" style={{ x: gx, y: gy, width: drag.w }} aria-hidden="true"><BoardCard item={dragged} d={derived.get(dragged.id)!} changed={ctx.changed.has(dragged.id)} today={ctx.today}/></motion.div>}
   </div>
 }
-const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem; d: Derived; changed: boolean }) {
-  const { qty: q, next, owner } = d
+const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: MatItem; d: Derived; changed: boolean; today: string }) {
+  const { qty: q, owner } = d, current = currentStone(d.stones)
   // The material's first photo beside its name, as in the List; the card itself stays the drag handle, so the photo is not a button.
   return <>
     <span className="mi-kc-h">
@@ -764,14 +760,14 @@ const BoardCard = memo(function BoardCard({ item, d, changed }: { item: MatItem;
         <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
       </span>
     </span>
-    <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{next.done ? <span className="mi-faint">Complete</span> : <Due next={next}/>}</span></span>
+    <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{current ? <><span className="mi-kc-step">{current.title}</span> <StoneStatus stone={current} today={today}/></> : <span className="mi-due" data-tone="done">All on site</span>}</span></span>
   </>
 })
 
 /* ---------------- popover: anchored to its trigger, grows from it ---------------- */
-const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 280, proc: 280, activity: 380, next: 352 }
+const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 280, proc: 280, activity: 380, next: 400 }
 const POP_LABEL: Record<PopType, string> = {
-  sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Next step', qty: 'Change quantity', owner: 'Change owner', note: 'This week\'s note',
+  sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Timeline', qty: 'Change quantity', owner: 'Change owner', note: 'This week\'s note',
   'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', 'bulk-stage': 'Move selected to stage', 'bulk-owner': 'Assign selected to', activity: 'Recent activity',
 }
 function Popover({ pop, onClose, children }: { pop: Pop; onClose: () => void; children: ReactNode }) {
@@ -820,8 +816,8 @@ function Opt({ on, onClick, children, autoFocus }: { on?: boolean; onClick: () =
 
 interface PopBodyProps {
   pop: Pop; item: MatItem | null; today: string; owners: string[]; owner: string; group: Group; sort: Sort; count: number; week: string; remarks: Record<string, string>; hasOwner: boolean
-  onSub: (to: SubStage) => void; onProc: (to: ProcStage) => void; onNextAction: (to: MoveStage, on: string) => void; onEditDates: () => void
-  onPlan: (key: EditableColKey, value: string) => void; onDeliver: () => void; onSetQty: (field: QtyField, v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
+  onSub: (to: SubStage) => void; onProc: (to: ProcStage) => void; onEditDates: () => void
+  onPlan: (key: EditableColKey, value: string) => void; onSetQty: (field: QtyField, v: number) => void; onOwner: (name: string) => void; onNote: (team: Team, body: string) => void
   onFilterOwner: (name: string) => void; onGroup: (g: Group) => void; onSort: (s: Sort) => void
   onBulkStage: (to: MoveStage) => void; onBulkOwner: (name: string) => void
   activity: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; onOpenItem: (id: string) => void
@@ -844,28 +840,7 @@ function PopBody(p: PopBodyProps) {
       <p className="mi-pad mi-faint mi-small mi-pop-foot">Dates are recorded as today. Change them in the timeline.</p>
     </>
   }
-  if (pop.type === 'next' && item) {
-    const st = stageOf(item), next = nextOf(item, p.today), acts = STEP_ACTIONS[st], planKey = PLAN_KEY[st]
-    const summary = next.done ? 'Everything is on site.'
-      : !next.date ? 'No plan date yet.'
-      : `${next.expected ? 'Expected' : 'Planned'} ${shortDate(next.date)} · ${next.diff! < 0 ? `${-next.diff!} days late` : next.diff === 0 ? 'today' : `in ${next.diff} days`}`
-    return <>
-      <div className="mi-step-h"><b>{next.done ? 'Complete' : next.label}</b><span data-tone={next.diff !== null && next.diff < 0 && !next.done ? 'late' : undefined}>{summary}</span></div>
-      {acts.map((a, i) => <div key={a.to} className="mi-step-act" role="group" aria-label={a.label}>
-        <b>{a.label}</b>
-        {a.undated
-          ? <div className="mi-step-when"><button type="button" className="mi-chip" onClick={() => p.onNextAction(a.to, p.today)}>Mark as revise</button></div>
-          : <DateChips today={p.today} primary={i === 0} onPick={(day) => p.onNextAction(a.to, day)}/>}
-      </div>)}
-      {planKey && <PlanDate key={`${item.id}:${planKey}`} label={`${next.label} plan date`} value={next.date ?? ''} onSave={(v) => p.onPlan(planKey, v)}/>}
-      {(st === 'review' || st === 'revise') && <p className="mi-pad mi-faint mi-small">Expected {st === 'review' ? 14 : 10} days after the submission date.</p>}
-      <div className="mi-sep"/>
-      <div className="mi-step-links">
-        {(st === 'ordered' || st === 'delivering' || st === 'partial') && <button type="button" className="mi-link" onClick={p.onDeliver}>Set quantity on site…</button>}
-        <button type="button" className="mi-link" onClick={p.onEditDates}>All dates…</button>
-      </div>
-    </>
-  }
+  if (pop.type === 'next' && item) return <TimelinePop key={item.id} item={item} today={p.today} onPlan={p.onPlan} onEditDates={p.onEditDates}/>
   if (pop.type === 'qty' && item) {
     const q = qtyOf(item), field = pop.field ?? 'onsite', rem = Math.max(0, q.total - q.onsite)
     return <div className="mi-pad">
@@ -961,24 +936,27 @@ function NoteStack({ notes, week }: { notes: Note[]; week: string }) {
   </span>
 }
 /** One-tap dates for "when did this happen": today (the default), yesterday, or any other day from the calendar. */
-function DateChips({ today, primary, onPick }: { today: string; primary: boolean; onPick: (day: string) => void }) {
-  return <div className="mi-step-when">
-    <button type="button" className="mi-chip" data-primary={primary || undefined} data-autofocus={primary || undefined} onClick={() => onPick(today)}>Today<small>{shortDate(today)}</small></button>
-    <button type="button" className="mi-chip" onClick={() => onPick(addDaysIso(today, -1))}>Yesterday</button>
-    <span className="mi-pick"><span className="mi-chip" aria-hidden="true">Other date…</span>
-      <input type="date" max={today} aria-label="Other date" onClick={(e) => { try { e.currentTarget.showPicker() } catch { /* older browsers open it themselves */ } }}
-        onChange={(e) => { if (realYear(e.target.value)) onPick(e.target.value) }}/></span>
-  </div>
-}
-/** The step's plan date: saved with Save or Enter, never while a date is half typed. Clearing it and saving removes the date. */
+/**
+ * The step's plan date (D-67), written out ("10 Oct 2025", or a red "Not set"); a click opens the calendar. A changed date shows
+ * Save and Cancel and is only written then (or with Enter), so a half-typed date never saves. Clearing it and saving removes it.
+ */
 function PlanDate({ label, value, onSave }: { label: string; value: string; onSave: (v: string) => void }) {
   const [v, setV] = useState(value)
-  const ok = (v === '' || realYear(v)) && v !== value
+  const ref = useRef<HTMLInputElement>(null)
+  const dirty = v !== value, ok = (v === '' || realYear(v)) && dirty
   const save = () => { if (ok) onSave(v) }
-  return <form className="mi-step-plan" onSubmit={(e) => { e.preventDefault(); save() }}>
-    <label htmlFor="mi-plan">Plan date</label>
-    <input id="mi-plan" type="date" className="mi-field" value={v} aria-label={label} onChange={(e) => setV(e.target.value)}/>
-    <button type="submit" className="mi-btn" data-primary={ok || undefined} disabled={!ok}>Save</button>
+  return <form className="mi-plan" onSubmit={(e) => { e.preventDefault(); save() }}>
+    <span className="mi-plan-l">Planned for</span>
+    <span className="mi-plan-field" data-empty={!v || undefined}>
+      <span aria-hidden="true">{v && realYear(v) ? DAY_MONTH_YEAR.format(asDate(v)) : 'Not set'}</span>
+      <CalendarDays size={14} aria-hidden="true"/>
+      <input ref={ref} type="date" aria-label={label} value={v} onChange={(e) => setV(e.target.value)}
+        onClick={() => { try { ref.current?.showPicker() } catch { /* older browsers open it themselves */ } }}/>
+    </span>
+    {dirty && <span className="mi-plan-act">
+      <button type="button" className="mi-sa-btn" onClick={() => setV(value)}>Cancel</button>
+      <button type="submit" className="mi-sa-main" disabled={!ok}>Save</button>
+    </span>}
   </form>
 }
 
@@ -988,7 +966,6 @@ interface PanelProps {
   onClose: () => void; onNav: (dir: number) => void
   onDate: (item: MatItem, key: EditableColKey, value: string) => void
   onQty: (item: MatItem, key: CellKey, value: number) => void
-  onShip: (item: MatItem) => void
   onNote: (id: string, team: Team, body: string) => Promise<void>
   onOpenSource: (id: string) => void
 }
@@ -1067,8 +1044,8 @@ function Panel(props: PanelProps) {
   </motion.aside>
 }
 
-function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onShip, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
-  const sub = submissionOf(item), proc = procurementOf(item), next = nextOf(item, ctx.today), q = qtyOf(item), owner = text(item, 'pic')
+function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, onQty, onNote, onOpenSource, onGrab }: PanelProps & { item: MatItem; onGrab: (e: ReactPointerEvent<HTMLDivElement>) => void }) {
+  const sub = submissionOf(item), proc = procurementOf(item), q = qtyOf(item), owner = text(item, 'pic')
   const [team, setTeam] = useState<Team>('purchase')
   const [draft, setDraft] = useState('')
   const [edge, setEdge] = useState(false)
@@ -1125,10 +1102,6 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
           </ul>}
         </section>)}
       </div>}
-      {!next.done && <div className="mi-sec"><div className="mi-nextcard">
-        <div><div className="mi-t">Next: {next.label}</div><div className="mi-s"><Due next={next}/></div></div>
-        <button type="button" className="mi-btn" data-primary aria-haspopup="dialog" onClick={popBtn('next')}>Update…</button>
-      </div></div>}
       <div className="mi-sec">
         <h4>Timeline<span className="mi-spacer"/><span className="mi-faint">Plan · Actual · Variance</span></h4>
         <ol className="mi-tl">
@@ -1142,8 +1115,7 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
                   ? <DateField label={`${s.title} plan date`} value={s.plan} plain onSave={(val) => onDate(item, s.planKey!, val)}/>
                   : <span className="mi-num">{shortDate(s.plan || null)}</span>}{raw(s.planKey ?? 'msPlan') && s.planKey && !s.plan ? ` (${raw(s.planKey)})` : ''}{s.sub ? ` · ${s.sub}` : ''}</div></div>
               {s.actual ? <DateField label={`${s.title} actual date`} value={actual} note={s.note} onSave={(val) => onDate(item, s.actual!, val)}/>
-                : done ? <span className="mi-faint mi-ship">Shipped</span>
-                : <button type="button" className="mi-btn mi-ship" disabled={proc === 'none'} title={proc === 'none' ? 'Place the order first' : undefined} onClick={() => onShip(item)}>Mark shipped</button>}
+                : <span className="mi-faint mi-ship" title="Set by the Procurement status">{done ? 'Shipped' : 'From Procurement'}</span>}
               <div className="mi-var">{done
                 ? v === null ? <span className="mi-faint">Done</span> : v > 0 ? <span className="mi-late">{v}d late</span> : v < 0 ? <span className="mi-early">{-v}d early</span> : <span className="mi-faint">On time</span>
                 : late ? <span className="mi-late">{-days(s.plan, ctx.today)}d overdue</span> : <span className="mi-faint">Pending</span>}</div>
@@ -1264,4 +1236,41 @@ function RevertDialog({ entry, item, people, activity, onClose, onConfirm }: {
       </Dialog.Content>
     </Dialog.Portal>
   </Dialog.Root>
+}
+
+/**
+ * The timeline popover (D-67): the six steps as the panel shows them, read from the Submission and Procurement status (moving
+ * Procurement to Delivering reaches the Delivering step by itself). Nothing here changes a status: a step with a plan column
+ * opens to its plan date, the only thing that can be edited; the step the material is at opens first when it has one.
+ */
+function TimelinePop({ item, today, onPlan, onEditDates }: {
+  item: MatItem; today: string; onPlan: (key: EditableColKey, value: string) => void; onEditDates: () => void
+}) {
+  const stones = stonesOf(item, today), current = currentStone(stones)
+  const [openKey, setOpenKey] = useState(() => current?.planKey ? current.key : null)
+  return <>
+    <div className="mi-pop-t">Timeline</div>
+    <p className="mi-tlp-hint">Follows the Submission and Procurement status. Plan dates can be changed here.</p>
+    <ol className="mi-tlp">
+      {stones.map((s) => {
+        const status = stoneStatus(s, today), open = !!s.planKey && openKey === s.key
+        const body = <>
+          <span className="mi-o" aria-hidden="true">{s.done && <Check size={9} strokeWidth={3.4}/>}</span>
+          <span className="mi-tlp-t">{s.title}{s.key === current?.key && <span className="mi-tlp-now">Now</span>}</span>
+          <span className="mi-due" data-tone={status.tone}>{status.text}</span>
+        </>
+        return <li key={s.key} data-state={s.done ? 'done' : s.late ? 'late' : undefined} data-open={open || undefined}>
+          {s.planKey
+            ? <button type="button" className="mi-tlp-row" aria-expanded={open} data-autofocus={open || undefined} title="Change the plan date"
+                onClick={() => setOpenKey(open ? null : s.key)}>{body}</button>
+            : <div className="mi-tlp-row" title={s.key === 'approved' ? 'Expected 14 days after the submission' : 'Set by the Procurement status'}>{body}</div>}
+          {open && <div className="mi-tlp-act">
+            <PlanDate key={`${item.id}:${s.planKey}`} label={`${s.title} plan date`} value={s.plan} onSave={(v) => onPlan(s.planKey!, v)}/>
+          </div>}
+        </li>
+      })}
+    </ol>
+    <div className="mi-sep"/>
+    <div className="mi-step-links"><button type="button" className="mi-link" onClick={onEditDates}>All dates…</button></div>
+  </>
 }
