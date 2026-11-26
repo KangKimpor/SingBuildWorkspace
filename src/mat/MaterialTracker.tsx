@@ -1,4 +1,5 @@
 import './mat.css'
+import './mat-items.css'
 import '@/styles/apple-controls.css'
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
@@ -12,6 +13,7 @@ import { fetchAccess } from './api'
 import { changedCells } from './changes'
 import { codeOf, effectiveCol, formatCol } from './formulas'
 import type { OnCell, OnFields, OnRemark } from './MatCells'
+import { MatItems } from './MatItems'
 import { MatSourcePanel } from './MatSourcePanel'
 import type { MatPicture } from './MatSourcePanel'
 import { COLUMN_VIEWS, MatPictureDialog, MatTable } from './MatTable'
@@ -24,6 +26,9 @@ import type { MatItem, Pkg, Sheet } from './types'
 type Tab = Extract<Sheet, 'id' | 'mep'>
 type Mark = NonNullable<MatItem['data']['mark']>
 
+type View = 'list' | 'board' | 'sheet'
+/** List and Board are item-centric (D-57); Sheet is the workbook layout for bulk typing. */
+const VIEWS: { id: View; label: string }[] = [{ id: 'list', label: 'List' }, { id: 'board', label: 'Board' }, { id: 'sheet', label: 'Sheet' }]
 const PACKAGES: { id: Pkg; label: string }[] = [{ id: 'bp03', label: 'BP03' }, { id: 'bp04', label: 'BP04' }]
 /** The two material sheets. The workbook's note sheets are not shown. */
 const SHEETS: { id: Tab; label: string }[] = [
@@ -67,10 +72,14 @@ function MaterialList() {
   const [params, setParams] = useSearchParams()
   const pkg: Pkg = params.get('p') === 'bp04' ? 'bp04' : 'bp03'
   const tab = SHEETS.find((t) => t.id === params.get('s'))?.id ?? 'id'
+  const view = VIEWS.find((v) => v.id === params.get('v'))?.id ?? 'list'
+  const setView = (next: View) => setParams((prev) => { prev.set('v', next); return prev })
   const [expanded, setExpanded] = useState(false)
   const { state, loading, error, saveStatus, refresh, setCell, setFields, setRemark } = useMat(pkg)
   const go = (nextPkg: Pkg, nextTab: Tab) => setParams((prev) => { prev.set('p', nextPkg); prev.set('s', nextTab); return prev })
   const toggleExpand = useCallback(() => setExpanded((e) => !e), [])
+  // Full screen belongs to the Sheet table; List and Board have no Collapse control, so leaving Sheet leaves full screen.
+  useEffect(() => { if (view !== 'sheet') setExpanded(false) }, [view])
 
   useEffect(() => {
     document.documentElement.setAttribute('data-mat', '')
@@ -102,6 +111,8 @@ function MaterialList() {
           <div className="skeleton mat-skeleton-bar"/>
           <div className="skeleton mat-skeleton"/>
         </div>
+  } else if (view !== 'sheet') {
+    body = <ItemsView key={`${pkg}:${tab}`} sheet={tab} state={state} view={view} onFields={setFields} onRemark={setRemark}/>
   } else {
     body = <SheetView key={`${pkg}:${tab}`} sheet={tab} state={state} saveStatus={saveStatus}
       caption={`${pkg.toUpperCase()} ${SHEETS.find((t) => t.id === tab)!.label}`}
@@ -109,7 +120,7 @@ function MaterialList() {
       onCell={setCell} onFields={setFields} onRemark={setRemark}/>
   }
 
-  return <div className="mat-page" data-expanded={expanded || undefined}>
+  return <div className="mat-page" data-view={view} data-expanded={expanded || undefined}>
     <header className="page-heading mat-heading">
       <div className="mat-heading-main">
         <Tile name="hard-hat" color="orange"/>
@@ -123,6 +134,9 @@ function MaterialList() {
         </div>
       </div>
       <div className="heading-actions">
+        <div className="view-tabs mat-view-tabs" role="group" aria-label="View">
+          {VIEWS.map((v) => <button key={v.id} type="button" className="view-tab" aria-pressed={v.id === view} onClick={() => setView(v.id)}>{v.label}</button>)}
+        </div>
         <button type="button" className="btn-secondary" onClick={() => void refresh()} disabled={loading}>
           <RefreshCw size={14} aria-hidden="true" className={loading ? 'mat-spin' : undefined}/>{loading ? 'Refreshing…' : 'Refresh'}
         </button>
@@ -140,6 +154,19 @@ function MaterialList() {
     {state && error && <p className="mat-error" role="alert">Could not refresh. {error}</p>}
     {body}
   </div>
+}
+
+/** List and Board, with the existing details-and-photos panel and picture viewer behind "edit details". */
+function ItemsView({ sheet, state, view, onFields, onRemark }: { sheet: Tab; state: MatState; view: 'list' | 'board'; onFields: OnFields; onRemark: OnRemark }) {
+  const [sourceId, setSourceId] = useState<string | null>(null)
+  const [picture, setPicture] = useState<MatPicture | null>(null)
+  const item = sourceId ? state.items.find((i) => i.id === sourceId && i.kind === 'item') ?? null : null
+  const pics = useMemo(() => sheet === 'mep' ? [] : distinct(state.items.filter((i) => i.sheet === sheet && i.kind === 'item').map((i) => text(i, 'pic'))), [state.items, sheet])
+  return <>
+    <MatItems sheet={sheet} state={state} view={view} onFields={onFields} onRemark={onRemark} onOpenSource={setSourceId}/>
+    <MatSourcePanel item={item} picOptions={pics} pictureOpen={!!picture} onClose={() => setSourceId(null)} onFields={onFields} onPicture={setPicture}/>
+    <MatPictureDialog picture={picture} onClose={() => setPicture(null)}/>
+  </>
 }
 
 const COUNT = new Intl.NumberFormat('en-US')

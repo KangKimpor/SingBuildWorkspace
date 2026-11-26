@@ -56,6 +56,26 @@ html[data-nbc] .glass.drawer { background-color: #f5f5f7; }
   color: var(--text-primary);
 }
 .sidebar-header .brand-logo { width: 24px; height: 24px; flex: none; }
+/* Logo and name together are one link to the material list (/admin). */
+.sidebar-home {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  margin: -4px 0 -4px -4px;
+  padding: 4px;
+  border-radius: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: background-color 120ms ease, transform 100ms ease-out;
+}
+@media (hover: hover) and (pointer: fine) {
+  .sidebar-home:hover { background: var(--bg-hover); }
+}
+.sidebar-home:active { transform: scale(0.98); }
+.sidebar-home:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.sidebar-home.active .sidebar-brand { color: var(--text-primary); }
 .sidebar-brand {
   flex: 1;
   min-width: 0;
@@ -264,6 +284,7 @@ html[data-nbc] .sidebar-foot .nav-item[aria-current='page'] .nav-icon {
   margin-bottom: 4px;
 }
 .sidebar[data-collapsed='true'] .sidebar-header .brand-logo { width: 22px; height: 22px; }
+.sidebar[data-collapsed='true'] .sidebar-home { flex: none; margin: 0; }
 .sidebar[data-collapsed='true'] .sidebar-brand,
 .sidebar[data-collapsed='true'] .nav-label,
 .sidebar[data-collapsed='true'] .nav-section > .t-caption,

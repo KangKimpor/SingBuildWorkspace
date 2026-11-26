@@ -15,7 +15,7 @@ const item = (id: string, pos: number, edits: MatItem['edits'] = {}): MatItem =>
   data: { cols: { description: `Sample panel ${id}` }, cells: { total: { v: 10 } } },
   edits, updatedAt: '2026-11-14T00:00:00.000Z',
 })
-const response = (over: Partial<Awaited<ReturnType<typeof fetchPackage>>> = {}) => ({ week: WEEK, now: NOW, items: [], remarks: [], ...over })
+const response = (over: Partial<Awaited<ReturnType<typeof fetchPackage>>> = {}) => ({ week: WEEK, now: NOW, items: [], remarks: [], log: [], people: {}, ...over })
 const deferred = <T,>() => {
   let resolve!: (value: T) => void, reject!: (error: unknown) => void
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no })
@@ -30,8 +30,8 @@ beforeEach(() => {
   vi.spyOn(cache, 'read').mockImplementation(async (pkg) => structuredClone(stored.get(pkg) ?? null))
   vi.spyOn(cache, 'write').mockImplementation(async (pkg, state) => { stored.set(pkg, structuredClone(state)) })
   vi.mocked(fetchPackage).mockResolvedValue(response({ items: [item('a', 1), item('b', 2)] }))
-  vi.mocked(saveCell).mockResolvedValue()
-  vi.mocked(saveFields).mockResolvedValue()
+  vi.mocked(saveCell).mockResolvedValue({})
+  vi.mocked(saveFields).mockResolvedValue({})
   vi.mocked(saveRemark).mockResolvedValue({ week: WEEK })
 })
 afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.mocked(fetchPackage).mockReset(); vi.mocked(saveCell).mockReset(); vi.mocked(saveFields).mockReset(); vi.mocked(saveRemark).mockReset() })
@@ -46,7 +46,7 @@ const edits = (state: MatState | null, id: string) => state?.items.find((i) => i
 test('the first load fetches everything and caches the result', async () => {
   const { result } = await mount()
   expect(fetchPackage).toHaveBeenCalledExactlyOnceWith('bp03', null, null)
-  expect(result.current.state).toEqual({ week: WEEK, items: [item('a', 1), item('b', 2)], remarks: {}, syncedAt: NOW })
+  expect(result.current.state).toEqual({ week: WEEK, items: [item('a', 1), item('b', 2)], remarks: {}, remarkBy: {}, log: [], people: {}, syncedAt: NOW })
   expect(result.current.error).toBeNull()
   await waitFor(() => expect(stored.get('bp03')?.syncedAt).toBe(NOW))
 })
@@ -91,7 +91,7 @@ test('a failed load reports the error', async () => {
 test('setCell shows the value and this week\'s change mark before the save resolves', async () => {
   const { result } = await mount()
   const save = deferred<void>()
-  vi.mocked(saveCell).mockReturnValue(save.promise)
+  vi.mocked(saveCell).mockReturnValue(save.promise.then(() => ({})))
   let done!: Promise<void>
   act(() => { done = result.current.setCell('a', 'po', 7) })
   expect(edits(result.current.state, 'a')).toEqual({ po: 7 })
@@ -123,11 +123,15 @@ test('a rejected saveCell restores the old value and rejects', async () => {
 test('an older failed save does not clobber a newer edit to the same cell', async () => {
   const { result } = await mount()
   const older = deferred<void>()
-  vi.mocked(saveCell).mockReturnValueOnce(older.promise).mockResolvedValueOnce()
-  let first!: Promise<void>
+  vi.mocked(saveCell).mockReturnValueOnce(older.promise.then(() => ({}))).mockResolvedValueOnce({})
+  let first!: Promise<void>, second!: Promise<void>
   act(() => { first = result.current.setCell('a', 'po', 1) })
-  await act(() => result.current.setCell('a', 'po', 2))
-  await act(async () => { older.reject(new Error('Network down')); await expect(first).rejects.toThrow('Network down') })
+  act(() => { second = result.current.setCell('a', 'po', 2) })
+  expect(edits(result.current.state, 'a')).toEqual({ po: 2 })
+  // Writes to one row reach the server in order: the newer one waits for the older one to settle.
+  expect(saveCell).toHaveBeenCalledTimes(1)
+  await act(async () => { older.reject(new Error('Network down')); await expect(first).rejects.toThrow('Network down'); await second })
+  expect(saveCell).toHaveBeenLastCalledWith('a', 'po', 2)
   expect(edits(result.current.state, 'a')).toEqual({ po: 2 })
 })
 
@@ -173,7 +177,7 @@ test('saveRemark returning another week refreshes with remarksSince null', async
 
 test('a week change drops remarks older than two weeks', async () => {
   stored.set('bp03', {
-    week: '2026-11-08', syncedAt: '2026-11-13T00:00:00.000Z', items: [item('a', 1)],
+    week: '2026-11-08', syncedAt: '2026-11-13T00:00:00.000Z', items: [item('a', 1)], remarkBy: {}, log: [], people: {},
     remarks: {
       [remarkKey('a', 'pm', '2026-10-25')]: 'Older',
       [remarkKey('a', 'pm', '2026-11-01')]: 'Two weeks ago',
@@ -218,10 +222,29 @@ test('setFields applies optimistic updates, clears null keys, and rolls back on 
   expect(edits(result.current.state, 'a')).toEqual({ po: 4, code: 'XX-99', image: ['storage:a/image/1.webp'] })
   expect(saveFields).toHaveBeenCalledWith('a', { code: 'XX-99', brand: null, image: ['storage:a/image/1.webp'] })
 
+  // The server now holds the first save; a failed save reloads the package so the screen matches it.
+  vi.mocked(fetchPackage).mockResolvedValue(response({ items: [item('a', 1, { po: 4, code: 'XX-99', image: ['storage:a/image/1.webp'] })] }))
+  const loads = vi.mocked(fetchPackage).mock.calls.length
   vi.mocked(saveFields).mockRejectedValueOnce(new Error('Save failed'))
   await act(async () => {
     await expect(result.current.setFields('a', { code: 'BAD', pic: 'Dara' })).rejects.toThrow('Save failed')
   })
   expect(edits(result.current.state, 'a')).toEqual({ po: 4, code: 'XX-99', image: ['storage:a/image/1.webp'] })
   expect(result.current.saveStatus).toBe('error')
+  await waitFor(() => expect(vi.mocked(fetchPackage).mock.calls.length).toBe(loads + 1))
+  await waitFor(() => expect(result.current.loading).toBe(false))
+  expect(edits(result.current.state, 'a')).toEqual({ po: 4, code: 'XX-99', image: ['storage:a/image/1.webp'] })
+})
+
+test('a failed edit to one field rolls back only that field, and a newer edit to another field of the row survives the reload', async () => {
+  const { result } = await mount()
+  const older = deferred<void>()
+  vi.mocked(saveFields).mockReturnValueOnce(older.promise.then(() => ({}))).mockResolvedValueOnce({})
+  let first!: Promise<void>, second!: Promise<void>
+  act(() => { first = result.current.setFields('a', { code: 'X' }) })
+  act(() => { second = result.current.setFields('a', { brand: 'Y' }) })
+  expect(edits(result.current.state, 'a')).toEqual({ code: 'X', brand: 'Y' })
+  await act(async () => { older.reject(new Error('Network down')); await expect(first).rejects.toThrow('Network down'); await second })
+  await waitFor(() => expect(result.current.loading).toBe(false))
+  expect(edits(result.current.state, 'a')).toEqual({ brand: 'Y' })
 })

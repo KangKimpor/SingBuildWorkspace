@@ -43,7 +43,7 @@ function demo(pkg: Pkg, week: string): MatPackage {
     items.push(item(pkg, sheet, { no: 3, code: `${pre}-CL-01`, description: 'Gypsum board ceiling', pic: 'Dara', brand: 'Gyproc', location: 'Corridor', msStatus: 'Not Yet Submit', unit: 'm²' }, [1200, 0, 0, 0]))
     items.push(item(pkg, sheet, { no: 4, code: `${pre}-CL-02`, description: 'Acoustic panel', pic: 'Vanna', brand: 'Armstrong', location: 'Meeting rooms', msStatus: 'Approved', unit: 'pcs' }, [96, 96, 96, 96], { mark: 'done' }))
   }
-  return { week, now: new Date().toISOString(), items, remarks: [] }
+  return { week, now: new Date().toISOString(), items, remarks: [], log: [], people: {} }
 }
 
 const LONG_DESC = 'Supply and install 12 mm thick tempered laminated safety glass partition with 1.52 mm PVB interlayer, polished edges, frameless system with concealed top track, floor channel and stainless steel patch fittings (SUS 316, satin finish) including all sealant, gaskets and fixing accessories as per drawing ID-GL-201 Rev. C and specification Section 08 81 00'
@@ -101,7 +101,7 @@ function worst(pkg: Pkg, week: string): MatPackage {
     // Empty section: covers no items.
     items.push(section(pkg, sheet, 'B', 'Empty section (no items yet)'))
   }
-  return { week, now: new Date().toISOString(), items, remarks }
+  return { week, now: new Date().toISOString(), items, remarks, log: [], people: {} }
 }
 
 function one(pkg: Pkg, week: string): MatPackage {
@@ -110,7 +110,7 @@ function one(pkg: Pkg, week: string): MatPackage {
     items.push(section(pkg, sheet, 'A', 'Flooring'))
     items.push(item(pkg, sheet, { no: 1, code: 'FL-01', description: 'Porcelain tile', pic: 'Dara', msStatus: 'Approved', unit: 'm²' }, [1, 1, 1, 1], {}, { edits: { onsite: 1 }, changedWeek: week, weekEdits: {} }))
   }
-  return { week, now: new Date().toISOString(), items, remarks: [] }
+  return { week, now: new Date().toISOString(), items, remarks: [], log: [], people: {} }
 }
 
 function huge(pkg: Pkg, week: string): MatPackage {
@@ -128,12 +128,12 @@ function huge(pkg: Pkg, week: string): MatPackage {
       }
     }
   }
-  return { week, now: new Date().toISOString(), items, remarks: [] }
+  return { week, now: new Date().toISOString(), items, remarks: [], log: [], people: {} }
 }
 
 export function fixturePackage(dataset: DevDataset, pkg: Pkg): MatPackage {
   seq = 0
   const week = weekStart(reportingDate())
-  if (dataset === 'empty') return { week, now: new Date().toISOString(), items: [], remarks: [] }
+  if (dataset === 'empty') return { week, now: new Date().toISOString(), items: [], remarks: [], log: [], people: {} }
   return { demo, worst, one, huge }[dataset](pkg, week)
 }

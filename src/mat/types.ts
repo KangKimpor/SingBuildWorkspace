@@ -57,4 +57,17 @@ export interface MatItem {
   changedWeek?: string | null
   /** `edits` as they stood when the item was first edited in `changedWeek`; cells that differ from it are changed this week. */
   weekEdits?: MatEdits | null
+  /** Who made the last edit (auth user id); null for rows only the workbook import has touched. */
+  updatedBy?: string | null
+}
+
+/** One change in the activity log (D-58): what a setter wrote, by whom and when. */
+export interface MatLog {
+  id: number
+  itemId: string
+  at: string
+  by: string | null
+  kind: 'fields' | 'remark'
+  /** `fields`: the patch as saved (null puts the imported value back). `remark`: `{ team, body }`, the body cut to 160 characters. */
+  detail: Record<string, unknown>
 }

@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { addDays, reportingDate, weekStart } from '@/nbc/submissions'
 import { fetchPackage, saveCell, saveFields, saveRemark } from './api'
-import type { MatPackage } from './api'
+import type { MatPackage, MatSaved } from './api'
 import { devDataset } from './devData'
-import type { FieldKey, FieldValue, MatEdits, MatItem, Pkg, Team } from './types'
+import type { FieldKey, FieldValue, MatEdits, MatItem, MatLog, Pkg, Team } from './types'
 
 export const remarkKey = (itemId: string, team: Team, week: string) => `${itemId}:${team}:${week}`
-export interface MatState { week: string; items: MatItem[]; remarks: Record<string, string>; syncedAt: string }
+export interface MatState {
+  week: string
+  items: MatItem[]
+  remarks: Record<string, string>
+  syncedAt: string
+  /** Who last wrote each remark, by remark key (D-58). */
+  remarkBy: Record<string, string>
+  /** Recent activity, newest first (at most LOG_LIMIT entries). */
+  log: MatLog[]
+  /** Display names by user id. */
+  people: Record<string, string>
+}
+const LOG_LIMIT = 300
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const DB_NAME = 'kw-mat'
-// 4: items carry weekEdits; older caches are dropped so every row reloads with it.
-const DB_VERSION = 4
+// 4: items carry weekEdits. 5: state carries the activity log, names and remark authors (D-58).
+// Older caches are dropped so every row reloads with them.
+const DB_VERSION = 5
 const STORE = 'packages'
 // A write that starts just before a load can commit just after it. Asking again for this
 // overlap catches it; merging by id and by remark key makes the repeated rows harmless.
@@ -90,8 +103,36 @@ function applyLoad(base: MatState | null, loaded: MatPackage): MatState {
     const oldest = addDays(loaded.week, -14)
     remarks = Object.fromEntries(Object.entries(remarks).filter(([key]) => key.slice(key.lastIndexOf(':') + 1) >= oldest))
   }
-  for (const r of loaded.remarks) remarks[remarkKey(r.itemId, r.team, r.weekStart)] = r.body
-  return { week: loaded.week, items: mergeItems(base?.items ?? [], loaded.items), remarks, syncedAt: loaded.now }
+  let remarkBy = { ...base?.remarkBy }
+  if (base && base.week !== loaded.week) remarkBy = Object.fromEntries(Object.entries(remarkBy).filter(([key]) => key in remarks))
+  for (const r of loaded.remarks) {
+    const key = remarkKey(r.itemId, r.team, r.weekStart)
+    remarks[key] = r.body
+    if (r.updatedBy) remarkBy[key] = r.updatedBy
+  }
+  return {
+    week: loaded.week, items: mergeItems(base?.items ?? [], loaded.items), remarks, syncedAt: loaded.now,
+    remarkBy, log: mergeLog(base?.log ?? [], loaded.log ?? []), people: { ...base?.people, ...loaded.people },
+  }
+}
+function mergeLog(log: MatLog[], more: MatLog[]) {
+  if (!more.length) return log
+  const byId = new Map(log.map((l) => [l.id, l]))
+  for (const l of more) byId.set(l.id, l)
+  return [...byId.values()].sort((a, b) => b.at.localeCompare(a.at) || b.id - a.id).slice(0, LOG_LIMIT)
+}
+/** Folds what a save returned into the state: its activity row, the writer's name, and who now last edited the row or remark. */
+function withSaved(state: MatState, saved: MatSaved | undefined, remark?: string): MatState {
+  const log = saved?.log
+  if (!log) return state
+  const people = log.by && saved.byName ? { ...state.people, [log.by]: saved.byName } : state.people
+  return {
+    ...state,
+    log: mergeLog(state.log, [log]),
+    people,
+    remarkBy: remark && log.by ? { ...state.remarkBy, [remark]: log.by } : state.remarkBy,
+    items: state.items.map((item) => item.id === log.itemId ? { ...item, updatedBy: log.by, updatedAt: log.at } : item),
+  }
 }
 function withFields(state: MatState, id: string, patch: Partial<Record<FieldKey, FieldValue | undefined>>): MatState {
   return {
@@ -172,54 +213,78 @@ export function useMat(pkg: Pkg) {
     return current.current
   }, [])
 
-  // Shows `apply` at once, then saves. On failure only this key goes back, and only while
-  // no newer edit to the same key has replaced this one.
-  const edit = useCallback(async <T,>(key: string, apply: (s: MatState) => MatState, restore: (s: MatState) => MatState, save: () => Promise<T>) => {
-    const entry = { apply, ackedAt: null as number | null }
-    pending.current.set(key, entry)
-    commit(apply(loaded()))
+  // Writes to one row reach the server in the order they were made: an Undo right after an edit
+  // must not commit before it. Writes to different rows still run side by side.
+  const queues = useRef(new Map<string, Promise<unknown>>())
+  const inOrder = useCallback(<T,>(id: string, run: () => Promise<T>): Promise<T> => {
+    const prev = queues.current.get(id)
+    // Nothing in flight for this row: start now, so the request leaves in the same tick as the click.
+    const next = prev ? prev.catch(() => undefined).then(run) : run()
+    queues.current.set(id, next)
+    void next.catch(() => undefined).finally(() => { if (queues.current.get(id) === next) queues.current.delete(id) })
+    return next
+  }, [])
+
+  // Shows every part at once, then saves. Each part has its own pending key (one per field or
+  // remark), so a newer edit to another field of the same row never hides this one from a reload.
+  // On failure only the parts no newer edit has replaced go back, and the package reloads so the
+  // screen settles on what the server holds.
+  const edit = useCallback(async <T,>(id: string, parts: { key: string; apply: (s: MatState) => MatState; restore: (s: MatState) => MatState }[], save: () => Promise<T>) => {
+    const entries = parts.map((part) => {
+      const entry = { apply: part.apply, ackedAt: null as number | null }
+      pending.current.set(part.key, entry)
+      return { ...part, entry }
+    })
+    commit(parts.reduce((s, part) => part.apply(s), loaded()))
     saves.current++
     setSaveStatus('saving')
     const finish = (failed: boolean) => {
       if (--saves.current === 0) setSaveStatus(failed ? 'error' : 'saved')
     }
-    const stillMine = () => pending.current.get(key) === entry
+    const mine = (e: (typeof entries)[number]) => pending.current.get(e.key) === e.entry
     try {
-      const result = await save()
-      if (stillMine()) entry.ackedAt = fetches.current
+      const result = await inOrder(id, save)
+      for (const e of entries) if (mine(e)) e.entry.ackedAt = fetches.current
       finish(false)
       return result
-    } catch (e) {
-      if (stillMine()) {
-        pending.current.delete(key)
-        commit(restore(loaded()))
-      }
+    } catch (err) {
+      let next = loaded(), restored = false
+      for (const e of entries) if (mine(e)) { pending.current.delete(e.key); next = e.restore(next); restored = true }
+      if (restored) commit(next)
       finish(true)
-      throw e
+      void refresh()
+      throw err
     } finally {
       if (live.current === pkg && current.current) void writeCache(pkg, current.current)
     }
-  }, [pkg, commit, loaded])
+  }, [pkg, commit, loaded, inOrder, refresh])
+
+  const fieldPart = useCallback((id: string, key: FieldKey, value: FieldValue | undefined, before: FieldValue | undefined) => ({
+    key: `cell:${id}:${key}`,
+    apply: (s: MatState) => withFields(s, id, { [key]: value }),
+    restore: (s: MatState) => withFields(s, id, { [key]: before }),
+  }), [])
+  const editsOf = useCallback((id: string) => (loaded().items.find((i) => i.id === id)?.edits ?? {}) as Record<string, FieldValue | undefined>, [loaded])
 
   const setCell = useCallback(async (id: string, cell: FieldKey, value: FieldValue) => {
-    const before = (loaded().items.find((i) => i.id === id)?.edits as Record<string, FieldValue | undefined> | undefined)?.[cell]
-    await edit(`cell:${id}:${cell}`, (s) => withFields(s, id, { [cell]: value }), (s) => withFields(s, id, { [cell]: before }), () => saveCell(id, cell, value))
-  }, [edit, loaded])
+    const saved = await edit(id, [fieldPart(id, cell, value, editsOf(id)[cell])], () => saveCell(id, cell, value))
+    if (saved?.log) commit(withSaved(loaded(), saved))
+  }, [edit, fieldPart, editsOf, commit, loaded])
 
   const setFields = useCallback(async (id: string, patch: Partial<Record<FieldKey, FieldValue>>) => {
     const keys = Object.keys(patch) as FieldKey[]
     if (keys.length === 0) return
-    const currentEdits = (loaded().items.find((i) => i.id === id)?.edits ?? {}) as Record<string, FieldValue | undefined>
-    const before: Partial<Record<FieldKey, FieldValue | undefined>> = {}
-    for (const k of keys) before[k] = currentEdits[k]
-    await edit(`fields:${id}`, (s) => withFields(s, id, patch), (s) => withFields(s, id, before), () => saveFields(id, patch))
-  }, [edit, loaded])
+    const edits = editsOf(id)
+    const saved = await edit(id, keys.map((k) => fieldPart(id, k, patch[k], edits[k])), () => saveFields(id, patch))
+    if (saved?.log) commit(withSaved(loaded(), saved))
+  }, [edit, fieldPart, editsOf, commit, loaded])
 
   const setRemark = useCallback(async (id: string, team: Team, body: string) => {
     const week = loaded().week
     const key = remarkKey(id, team, week)
     const before = loaded().remarks[key]
-    const saved = await edit(`remark:${key}`, (s) => withRemark(s, key, body), (s) => withRemark(s, key, before), () => saveRemark(id, team, body))
+    const saved = await edit(id, [{ key: `remark:${key}`, apply: (s) => withRemark(s, key, body), restore: (s) => withRemark(s, key, before) }], () => saveRemark(id, team, body))
+    if (saved?.log) commit(withSaved(loaded(), saved, key))
     if (saved.week !== week) {
       // The server filed it under its new week: take the copy off the old week and reload.
       commit(withRemark(loaded(), key, before))

@@ -76,8 +76,11 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <>
       <div className="sidebar-header">
-        <img className="brand-logo" src="/brand/favicon.svg" alt="" width={28} height={28} />
-        <span className="sidebar-brand">SingBuild Workspace</span>
+        {/* The brand is the way into the material list (/admin). Everyone else gets the ordinary Not found page there. */}
+        <NavLink to="/admin" className="sidebar-home" aria-label="SingBuild Workspace: open the material list" title="Material list" onClick={onNavigate}>
+          <img className="brand-logo" src="/brand/favicon.svg" alt="" width={28} height={28} />
+          <span className="sidebar-brand">SingBuild Workspace</span>
+        </NavLink>
         <div className="sidebar-header-actions">
           {!onNavigate ? (
             <button

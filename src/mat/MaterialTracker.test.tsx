@@ -42,7 +42,7 @@ const material = (id: string, pos: number, code: string, po: number, over: Parti
 
 function load(items: MatItem[] = [section('s1', 1, 'Wall Finishing'), material('x1', 2, 'XX-01', 4), material('x2', 3, 'XX-02', 8)]): MatPackage {
   return {
-    week: WEEK, now: NOW, items,
+    week: WEEK, now: NOW, items, log: [], people: {},
     remarks: [
       { itemId: 'x1', team: 'pm', weekStart: LAST, body: 'Waiting for supplier quote' },
       { itemId: 'x1', team: 'pm', weekStart: WEEK, body: 'Quote received' },
@@ -60,8 +60,8 @@ beforeEach(() => {
   vi.spyOn(cache, 'write').mockResolvedValue()
   vi.mocked(fetchAccess).mockResolvedValue(true)
   vi.mocked(fetchPackage).mockResolvedValue(load())
-  vi.mocked(saveCell).mockResolvedValue()
-  vi.mocked(saveFields).mockResolvedValue()
+  vi.mocked(saveCell).mockResolvedValue({})
+  vi.mocked(saveFields).mockResolvedValue({})
   vi.mocked(saveRemark).mockResolvedValue({ week: WEEK })
   vi.mocked(uploadMatImage).mockResolvedValue('storage:x1/image/new.webp')
   vi.mocked(deleteMatImages).mockResolvedValue()
@@ -71,7 +71,8 @@ afterEach(() => {
   for (const fn of [fetchAccess, fetchPackage, saveCell, saveFields, saveRemark, uploadMatImage, deleteMatImages]) vi.mocked(fn).mockReset()
 })
 
-function open(path = '/admin') {
+/** The workbook table is the Sheet view; List and Board have their own tests (MatItems.test.tsx). */
+function open(path = '/admin?v=sheet') {
   return render(<MemoryRouter initialEntries={[path]}><MaterialTracker /></MemoryRouter>)
 }
 async function openList(path?: string) {
@@ -133,7 +134,7 @@ test('the header shows the week label, an item shows last week as text and this 
 
 test('package and sheet come from the query string', async () => {
   vi.mocked(fetchPackage).mockResolvedValue(load([{ ...material('m1', 1, 'MP-01', 4), package: 'bp04', sheet: 'mep' }]))
-  open('/admin?p=bp04&s=mep')
+  open('/admin?v=sheet&p=bp04&s=mep')
   expect(await screen.findByText('Sample panel MP-01')).toBeInTheDocument()
   expect(fetchPackage).toHaveBeenCalledWith('bp04', null, null)
   expect(screen.getByRole('button', { name: 'BP04' })).toHaveAttribute('aria-current', 'page')
@@ -385,7 +386,7 @@ test('MEP keeps no Person In Charge column, filter or source field', async () =>
   vi.mocked(fetchPackage).mockResolvedValue(load([{
     ...material('m1', 1, 'MP-01', 4), sheet: 'mep',
   }]))
-  open('/admin?p=bp03&s=mep')
+  open('/admin?v=sheet&p=bp03&s=mep')
   expect(await screen.findByText('Sample panel MP-01')).toBeInTheDocument()
   expect(screen.queryByRole('columnheader', { name: 'Person In Charge' })).toBeNull()
   expect(screen.queryByRole('combobox', { name: 'Person in charge' })).toBeNull()
@@ -395,7 +396,7 @@ test('MEP keeps no Person In Charge column, filter or source field', async () =>
 })
 
 test('the Summary tab is removed and ?s=summary falls back to ID Material', async () => {
-  open('/admin?p=bp03&s=summary')
+  open('/admin?v=sheet&p=bp03&s=summary')
   expect(await screen.findByText('Sample panel XX-01')).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: 'Summary' })).toBeNull()
   expect(screen.getByRole('button', { name: 'ID Material' })).toHaveAttribute('aria-current', 'page')

@@ -86,3 +86,27 @@ test('changed_week marks edits and remarks but not a workbook re-import', () => 
   expect(weeksSql).toMatch(/'changed_week', i\.changed_week/)
   expect(weeksSql).not.toMatch(/set changed_week = now\(\)/)
 })
+
+const activitySql = readFileSync(resolve(process.cwd(), 'supabase/migrations/20261126120000_material_tracker_activity.sql'), 'utf8')
+
+test('activity migration keeps the log private and reachable only through the checked RPCs (D-58)', () => {
+  expect(activitySql).toContain('create table if not exists kw_private.mat_log')
+  expect(activitySql).toContain('alter table kw_private.mat_log enable row level security')
+  expect(activitySql).toContain('revoke all on table kw_private.mat_log from public, anon, authenticated')
+  for (const fn of ['mat_person_name(uuid)', 'mat_log_write(text, text, jsonb)']) {
+    expect(activitySql).toContain(`revoke all on function kw_private.${fn} from public, anon, authenticated`)
+  }
+  // Signatures are unchanged, so the public invoker wrappers keep working and no overload appears.
+  expect(activitySql).not.toMatch(/create (or replace )?function public\./)
+  expect(activitySql).toContain('create or replace function kw_private.mat_set_fields(p_id text, p_patch jsonb)')
+  expect(activitySql).toContain('create or replace function kw_private.mat_set_cell(p_id text, p_cell text, p_value jsonb)')
+  expect(activitySql).toContain('create or replace function kw_private.mat_set_remark(p_id text, p_team text, p_body text)')
+  // Every body that writes the log checks access first.
+  for (const name of ['mat_load', 'mat_set_remark', 'mat_set_cell', 'mat_set_fields']) {
+    const start = activitySql.indexOf(`create or replace function kw_private.${name}(`)
+    expect(start).toBeGreaterThan(-1)
+    const body = activitySql.slice(start, activitySql.indexOf('end $$;', start))
+    expect(body).toContain("if not public.kw_mat_access() then raise exception 'Not found'")
+  }
+  expect(activitySql).not.toMatch(/\bdelete\s+from\b/i)
+})
