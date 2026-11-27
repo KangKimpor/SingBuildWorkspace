@@ -647,3 +647,18 @@ The stacked "Status" column of D-73 is removed. The List always shows Submission
 
   Column gaps are 10 px, and header text is 11 px with an ellipsis as a safeguard.
 - **Measured** in Chrome and Firefox at 1,250 px and 1,500 px: no sideways scrolling, no capsule outside its cell, no header or Quantity label cut.
+
+## D-78 Note popover without a team switch, centred List columns, changed floors in Update Progress - November 27, 2026
+
+- **Note popover.**
+  - The Purchase and PM notes have their own columns (D-73), so the popover no longer has a Purchase/PM switch. The team is the column the note was opened from.
+  - **Header.** A title names the team ("Purchase note") and the week ("Week of 22 Nov"), with the material underneath.
+  - **Editor.** The editor grows with the text, from 88 px up to 240 px.
+  - **Footer.** The footer shows the keys (↵ Save, ⇧↵ New line); they are hidden on touch screens. Save is a pill button that stays disabled until the text changes, and it reads "Remove note" when the text is cleared.
+  - **Past notes.** Past notes fold into a "Past notes" row with a count at the foot of the popover. The row is hidden when there are none; the old disabled "No past notes" line is gone.
+- **Centred columns.** In the List, every column except Material centres its header and its content:
+  - the stage capsules;
+  - the timeline steps, step name and date;
+  - the quantity boxes;
+  - the notes and the Add note pill.
+- **Update Progress floor picker.** A floor or panel that holds a cell changed in this update carries the accent dot, the same marker Activities uses. Its accessible name gains ", changed this week".

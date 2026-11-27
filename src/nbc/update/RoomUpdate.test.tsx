@@ -60,3 +60,17 @@ test('Enter moves to the same room on the next task, with handlers from the late
   expect(input('9.1.2.2')).toHaveValue('20')
   expect(input('9.1.1.2')).toHaveValue('30')
 })
+
+test('the floor picker marks a floor holding a cell this update changed', async () => {
+  // A second floor so the picker shows; the default floor is the first with work left (Floor 9).
+  useWorkspace.setState({ nbc_activities: [...structuredClone(activities),
+    node('10', null, { name: 'Floor 10', order: 9, roomList: ['R1'] }),
+    node('10.1', '10', { name: 'Section', order: 10, relativeWeight: 1 }),
+    node('10.1.1', '10.1', { name: 'Tile', order: 11, relativeWeight: 1 }),
+    cell('10.1.1.1', '10.1.1', 'R1', 12)] })
+  render(<Screen/>)
+  expect(screen.getByRole('button', { name: 'Floor 9' })).not.toHaveAttribute('data-changed')
+  fireEvent.change(input('9.1.1.1'), { target: { value: '50' } })
+  expect(screen.getByRole('button', { name: 'Floor 9, changed this week' })).toHaveAttribute('data-changed', 'true')
+  expect(screen.getByRole('button', { name: 'Floor 10' })).not.toHaveAttribute('data-changed')
+})

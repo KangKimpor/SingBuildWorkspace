@@ -143,8 +143,7 @@
 .mi-toolbar .mi-chip { height: 32px; }
 .mi-link { border: 0; padding: 0 4px; background: none; color: var(--mi-blue); font-size: 13px; }
 /* `.mi button`, `.mi-pop button` and `.mi-panel button` set color: inherit, which out-ranked these blue text buttons. */
-.mi :is(.mi-link, .mi-past-btn, .mi-revert) { color: var(--mi-blue); }
-.mi .mi-past-btn:disabled { color: var(--mi-ink-3); }
+.mi :is(.mi-link, .mi-revert) { color: var(--mi-blue); }
 .mi-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 .mi-count { font-size: 12px; color: var(--mi-ink-3); }
 
@@ -661,14 +660,32 @@ div.mi-tlp-row { cursor: default; }
 .mi-tlp-skip { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 8px; border-top: 0.5px solid rgb(60 60 67 / 0.14); }
 .mi-tlp-skip:first-child { padding-top: 0; border-top: 0; }
 
-/* Note popover (D-71): past notes for the selected team, behind a toggle where the hint used to be. */
-.mi-past-btn { display: inline-flex; align-items: center; gap: 5px; height: 30px; margin-inline-start: -6px; padding: 0 8px 0 6px; border: 0; border-radius: 8px; background: none; color: var(--mi-blue); font-size: 12.5px; font-weight: 600; white-space: nowrap; }
-.mi-past-btn:hover:not(:disabled) { background: var(--mi-fill); }
-.mi-past-btn:disabled { color: var(--mi-ink-3); font-weight: 500; cursor: default; }
-.mi-past-chev { transition: transform 200ms var(--mi-ease); }
-.mi-past-btn[aria-expanded='true'] .mi-past-chev { transform: rotate(180deg); }
-.mi-past { display: grid; gap: 10px; max-height: 220px; margin: 10px 0 0; padding: 10px 2px 0; overflow: auto; border-top: 0.5px solid var(--mi-sep); list-style: none; }
-.mi-past .mi-wk { margin: 0 0 2px; }
+/* Note popover (D-78): one team's note for this week. A title naming the team, the week and the material; a roomy editor
+   that grows with the text; the keys and a pill Save; then the team's past notes folded into a row at the foot. */
+.mi-np { display: grid; gap: 10px; padding: 8px 8px 4px; }
+.mi-np-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; column-gap: 12px; row-gap: 1px; padding: 0 2px; }
+.mi-np-t { font-size: 15px; font-weight: 650; line-height: 20px; letter-spacing: -0.016em; color: var(--mi-ink); }
+.mi-np-wk { font-size: 11.5px; font-weight: 500; color: var(--mi-ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.mi-np-m { grid-column: 1 / -1; overflow: hidden; font-size: 12px; line-height: 16px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
+.mi-np .mi-compose { min-height: 88px; max-height: 240px; padding: 10px 12px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; resize: none; field-sizing: content; transition: background-color 160ms ease, box-shadow 160ms ease; }
+.mi-np .mi-compose::placeholder { color: rgb(60 60 67 / 0.45); }
+.mi-np-foot { display: flex; align-items: center; gap: 10px; padding-inline-start: 2px; }
+.mi-np-keys { display: inline-flex; align-items: center; gap: 3px; min-width: 0; overflow: hidden; font-size: 11px; color: var(--mi-ink-3); white-space: nowrap; }
+.mi-np-keys kbd { display: inline-grid; place-items: center; min-width: 17px; height: 17px; box-sizing: border-box; padding: 0 4px; border-radius: 4px; background: var(--mi-fill-2); font: 600 10.5px/1 inherit; color: var(--mi-ink-2); }
+.mi-np-dot { margin: 0 3px; }
+.mi-np-foot .mi-btn { flex: none; height: 30px; margin-inline-start: auto; padding: 0 16px; border-radius: 999px; font-size: 13px; transition: background-color 160ms ease, opacity 160ms ease; }
+.mi-np-foot .mi-btn:disabled { opacity: 1; background: var(--mi-fill); color: rgb(60 60 67 / 0.35); }
+@media (hover: none) { .mi-np-keys { visibility: hidden; } }
+.mi-np-past { margin: 0 -8px; padding: 4px 4px 0; border-top: 0.5px solid var(--mi-sep); }
+.mi .mi-np-pbtn { display: flex; align-items: center; gap: 7px; width: 100%; height: 34px; padding: 0 8px; border: 0; border-radius: 8px; background: none; color: var(--mi-ink); font-size: 13px; font-weight: 500; }
+.mi-np-pbtn > svg:first-child { color: var(--mi-ink-3); }
+.mi-np-pbtn:hover { background: var(--mi-fill); }
+.mi-np-n { min-width: 18px; height: 18px; box-sizing: border-box; padding: 0 5px; border-radius: 9px; background: var(--mi-fill-2); font-size: 11px; font-weight: 650; line-height: 18px; text-align: center; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
+.mi-past-chev { margin-inline-start: auto; color: var(--mi-ink-3); transition: transform 200ms var(--mi-ease); }
+.mi-np-pbtn[aria-expanded='true'] .mi-past-chev { transform: rotate(180deg); }
+.mi-past { display: grid; gap: 12px; max-height: 220px; margin: 0; padding: 6px 8px 8px; overflow: auto; list-style: none; }
+.mi-past .mi-wk { margin: 0 0 2px; font-size: 11.5px; font-weight: 650; color: var(--mi-ink-2); }
+.mi-np-by { font-weight: 500; color: var(--mi-ink-3); }
 .mi-past .mi-b { font-size: 12.5px; line-height: 1.45; color: var(--mi-ink-2); }
 
 /* Compact overview (D-73): each attention card is one short row (label and hint left, count right), and the
@@ -775,3 +792,15 @@ div.mi-tlp-row { cursor: default; }
 .mi-tm-chip[data-tone='late'] { background: rgb(215 0 21 / 0.09); color: #c4000f; }
 .mi-tm-chip[data-tone='soon'] { background: rgb(255 149 0 / 0.14); color: #a34400; }
 @media (prefers-reduced-motion: reduce) { .mi-tm-k { transition: none; } }
+
+/* Centred columns (D-78): every column but Material centres its header and its content. */
+.mi-lh > :is(.mi-c-sub, .mi-c-proc, .mi-c-time, .mi-c-qty, .mi-c-note) { text-align: center; }
+.mi-c-qty { padding-inline-start: 0; }
+.mi-row > :is(.mi-c-sub, .mi-c-proc, .mi-c-time, .mi-c-qty, .mi-c-note) { display: flex; justify-content: center; min-width: 0; }
+.mi-row .mi-time { align-items: center; text-align: center; }
+.mi-row .mi-tm-s { justify-content: center; max-width: 100%; }
+.mi-row .mi-qstats { width: 100%; }
+.mi-row .mi-qbox { align-items: center; text-align: center; }
+.mi-row .mi-note:not([data-empty]) { text-align: center; }
+.mi-row .mi-nl-list { align-items: center; }
+.mi-row .mi-nl { max-width: 100%; }

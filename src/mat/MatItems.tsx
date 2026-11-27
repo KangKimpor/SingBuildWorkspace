@@ -975,12 +975,10 @@ interface PopBodyProps {
 }
 function PopBody(p: PopBodyProps) {
   const { pop, item } = p
-  const initialTeam: Team = pop.team ?? 'purchase'
-  const [team, setTeam] = useState<Team>(initialTeam)
-  const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, initialTeam, p.week)] ?? '' : '')
-  const [showPast, setShowPast] = useState(false)
+  const team: Team = pop.team ?? 'purchase'
   // Keyed by popover type, row and team (see MatItems), so a draft never carries over to another material or team.
-  const switchTeam = (t: Team) => { setTeam(t); if (item) setBody(p.remarks[remarkKey(item.id, t, p.week)] ?? '') }
+  const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, team, p.week)] ?? '' : '')
+  const [showPast, setShowPast] = useState(false)
   if ((pop.type === 'sub' || pop.type === 'proc') && item) {
     const isSub = pop.type === 'sub', current: ChipStage = isSub ? submissionOf(item) : procurementOf(item)
     const ids: readonly ChipStage[] = isSub ? SUB_STAGES : PROC_STAGES
@@ -1011,24 +1009,33 @@ function PopBody(p: PopBodyProps) {
     </>
   }
   if (pop.type === 'note' && item) {
+    // The team is the column the note was opened from (D-78), so the popover has no team switch.
+    const saved = p.remarks[remarkKey(item.id, team, p.week)] ?? ''
+    const dirty = body.trim() !== saved.trim()
     const save = () => p.onNote(team, body)
     const past = (p.notes ?? []).filter((n) => n.team === team && n.week !== p.week)
-    return <div className="mi-pad">
-      <div className="mi-seg" role="group" aria-label="Team">
-        {(['purchase', 'pm'] as Team[]).map((t) => <button key={t} type="button" aria-pressed={team === t} onClick={() => switchTeam(t)}>{TEAM_LABEL[t]}</button>)}
+    const name = text(item, 'description') || codeOf(item)
+    return <div className="mi-np">
+      <div className="mi-np-head">
+        <span className="mi-np-t">{TEAM_LABEL[team]} note</span>
+        <span className="mi-np-wk">Week of {shortDate(p.week)}</span>
+        <span className="mi-np-m" title={name}>{name}</span>
       </div>
-      <textarea className="mi-compose" aria-label={`${TEAM_LABEL[team]} note for this week`} placeholder={`This week's ${TEAM_LABEL[team]} note on ${text(item, 'description') || codeOf(item)}`} value={body} maxLength={2000} data-autofocus
+      <textarea className="mi-compose" aria-label={`${TEAM_LABEL[team]} note for this week`} placeholder="What happened this week?" value={body} maxLength={2000} data-autofocus
         onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save() } }}/>
-      <div className="mi-row2">
-        <button type="button" className="mi-past-btn" aria-expanded={showPast} aria-controls="mi-past" disabled={!past.length} onClick={() => setShowPast((v) => !v)}>
-          <History size={13} aria-hidden="true"/>{past.length ? `Past notes (${past.length})` : 'No past notes'}
-          {past.length > 0 && <ChevronDown className="mi-past-chev" size={12} aria-hidden="true"/>}
-        </button>
-        <span className="mi-spacer"/><button type="button" className="mi-btn" data-primary title="Save (Enter)" onClick={save}>Save</button>
+      <div className="mi-np-foot">
+        <span className="mi-np-keys" aria-hidden="true"><kbd>↵</kbd> Save<span className="mi-np-dot">·</span><kbd>⇧</kbd><kbd>↵</kbd> New line</span>
+        <button type="button" className="mi-btn" data-primary disabled={!dirty} onClick={save}>{saved && !body.trim() ? 'Remove note' : 'Save'}</button>
       </div>
-      {showPast && past.length > 0 && <ol id="mi-past" className="mi-past" aria-label={`Past ${TEAM_LABEL[team]} notes`}>
-        {past.map((n) => <li key={n.week}><div className="mi-wk">{weekName(n.week, p.week)}{n.by ? ` · ${n.by}` : ''}</div><div className="mi-b">{n.body}</div></li>)}
-      </ol>}
+      {past.length > 0 && <div className="mi-np-past">
+        <button type="button" className="mi-np-pbtn" aria-expanded={showPast} aria-controls="mi-past" aria-label={`Past notes (${past.length})`} onClick={() => setShowPast((v) => !v)}>
+          <History size={14} aria-hidden="true"/><span>Past notes</span><span className="mi-np-n">{past.length}</span>
+          <ChevronDown className="mi-past-chev" size={14} aria-hidden="true"/>
+        </button>
+        {showPast && <ol id="mi-past" className="mi-past" aria-label={`Past ${TEAM_LABEL[team]} notes`}>
+          {past.map((n) => <li key={n.week}><div className="mi-wk">{weekName(n.week, p.week)}{n.by && <span className="mi-np-by"> · {n.by}</span>}</div><div className="mi-b">{n.body}</div></li>)}
+        </ol>}
+      </div>}
     </div>
   }
   if (pop.type === 'filter-owner') return <>

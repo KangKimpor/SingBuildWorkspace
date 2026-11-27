@@ -44,6 +44,11 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
   const values = useRef(new Map<string, HTMLInputElement>()), remarks = useRef(new Map<string, HTMLInputElement>()), beforeFocus = useRef('')
   const byId = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities]), shownById = useMemo(() => new Map(draft.shown.map((e) => [e.activityId, e])), [draft.shown])
   const changedIds = new Set(draft.changed.map((e) => e.activityId))
+  // Floors holding a cell this update changes carry the accent dot on the floor picker, as in Activities.
+  const changedFloors = useMemo(() => {
+    const ids = new Set(draft.changed.map((e) => e.activityId))
+    return new Set(floors.filter((f) => f.rows.some((r) => r.leaves.some((l) => ids.has(l.id)))).map((f) => f.root.id))
+  }, [floors, draft.changed])
   const problems = new Set(draft.invalid)
   // Filtering and floor changes re-render a matrix of up to ~2,000 cells. Deferring them lets the
   // keystroke or the pressed floor button paint first; React renders the new matrix right after.
@@ -152,7 +157,8 @@ export function UpdateEditor({ projectId, week, handler, activities, submission,
 
   return <>
     <div className="nbc-filters">
-      {roomMode && pressedFloor && floors.length > 1 && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => <button key={f.root.id} aria-pressed={f.root.id === pressedFloor.root.id} aria-label={f.root.name} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}</button>)}</div></div>}
+      {roomMode && pressedFloor && floors.length > 1 && <div className="nbc-floor-row"><div className="nbc-seg" role="group" aria-label={floorPickerLabel(floors)}>{floors.map((f) => { const moved = changedFloors.has(f.root.id)
+        return <button key={f.root.id} aria-pressed={f.root.id === pressedFloor.root.id} aria-label={moved ? `${f.root.name}, changed this week` : f.root.name} data-changed={moved || undefined} onClick={() => setFloorId(f.root.id)}>{floorTabName(f.root)}{moved && <span className="nbc-seg-chg" aria-hidden="true"/>}</button> })}</div></div>}
       <div className="nbc-filter-line">
       <label className="search-field"><Search size={16}/><input ref={search} aria-label="Search activity" placeholder="Search activity" value={query} onChange={(e) => { setQuery(e.target.value); setCollapsed(new Set()) }}/></label>
       <div className="nbc-seg" role="group" aria-label="Show activities">{FILTERS.map(([key, label]) => <button key={key} aria-pressed={filter === key} onClick={() => setFilter(key)}>{label} <span className="nbc-count">{counts[key]}</span></button>)}</div>

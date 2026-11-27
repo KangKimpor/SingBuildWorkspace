@@ -179,9 +179,16 @@ test("the note popover lists the team's past notes", async () => {
   expect(within(past).getByText('Lead time 3 weeks')).toBeInTheDocument()
   expect(within(past).getByText('Last week')).toBeInTheDocument()
   expect(within(past).getByText('Budget checked')).toBeInTheDocument()
-  // Switching team shows that team's earlier notes instead.
-  fireEvent.click(within(pop).getByRole('button', { name: 'PM' }))
-  expect(within(within(pop).getByRole('list', { name: 'Past PM notes' })).getByText('Waiting for supplier quote')).toBeInTheDocument()
+  // The team comes from the column (D-78): no team switch, and Save waits for a change.
+  expect(within(pop).queryByRole('group', { name: 'Team' })).toBeNull()
+  expect(within(pop).getByText('Purchase note')).toBeInTheDocument()
+  expect(within(pop).getByRole('button', { name: 'Save' })).toBeDisabled()
+  // The PM column opens PM's earlier notes instead.
+  fireEvent.keyDown(window, { key: 'Escape' })
+  fireEvent.click(within(x1).getByRole('button', { name: /^PM notes:/ }))
+  const pm = await screen.findByRole('dialog', { name: "This week's note" })
+  fireEvent.click(within(pm).getByRole('button', { name: /^Past notes/ }))
+  expect(within(within(pm).getByRole('list', { name: 'Past PM notes' })).getByText('Waiting for supplier quote')).toBeInTheDocument()
 })
 
 test('the on-site popover sets the total on site', async () => {
