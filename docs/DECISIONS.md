@@ -662,3 +662,13 @@ The stacked "Status" column of D-73 is removed. The List always shows Submission
   - the quantity boxes;
   - the notes and the Add note pill.
 - **Update Progress floor picker.** A floor or panel that holds a cell changed in this update carries the accent dot, the same marker Activities uses. Its accessible name gains ", changed this week".
+
+## D-79 Compact List rows - November 27, 2026
+
+List rows drop from about 120 px to 70 px. The timeline and quantity cells set the height, so both lose a line.
+
+- **Timeline.** Under the steps is one line: the step to do, the lateness chip, then the date. Beside a chip, the date drops "Planned"/"Expected" ("140d late · 10 Jul"); the full wording is in its tooltip. If space runs out, the date shortens first and then the step name.
+- **Quantity.** Each of the four boxes is one 24 px line, with the label on the left and the value on the right.
+  - The labels shorten to BOQ, Ordered, SHD and On site. Each box's tooltip and accessible name keep the full name ("Total by BOQ", "Approved SHD").
+  - In the medium layout (761–1,379 px of list), the boxes use 6 px padding and 12 px values, so "642,250" and "1.28M m²" fit.
+- **Measured** in Chrome and Firefox at 1,250 px and 1,500 px: every row is 70 px (one 79 px row has a three-line name), with no sideways scrolling and no box or timeline line spilling out of its cell. The virtual list's row estimate is 70.

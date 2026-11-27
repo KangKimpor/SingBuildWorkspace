@@ -214,7 +214,7 @@ test('the timeline cell says Place order before an order is placed, and its popo
   expect(within(x1).queryByText('Order placed')).toBeNull()
   // One small chip carries the lateness; the plan date sits beside it (D-74).
   expect(within(x1).getByText(/^\d+d late$/)).toHaveAttribute('data-tone', 'late')
-  expect(within(x1).getByText('Planned 7 Oct')).toBeInTheDocument()
+  expect(within(x1).getByTitle('Planned 7 Oct')).toHaveTextContent(/^7 Oct$/)
   expect(x1.querySelector('.mi-tm-k[title^="Order placed"]')).toHaveAttribute('data-state', 'now-late')
   fireEvent.click(within(x1).getByText('Place order'))
   const pop = await screen.findByRole('dialog', { name: 'Timeline' })

@@ -804,3 +804,23 @@ div.mi-tlp-row { cursor: default; }
 .mi-row .mi-note:not([data-empty]) { text-align: center; }
 .mi-row .mi-nl-list { align-items: center; }
 .mi-row .mi-nl { max-width: 100%; }
+
+/* Compact rows (D-79): about 70 px instead of 120. The timeline is the steps plus one line (step to do, chip, date), and
+   each quantity box is one line, short label on the left and the value on the right. */
+.mi-row { min-height: 56px; padding-block: 7px; }
+.mi-row .mi-time { gap: 3px; padding-block: 3px; }
+.mi-tm-line { display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; min-width: 0; font-size: 11.5px; line-height: 18px; white-space: nowrap; }
+.mi-tm-line .mi-tm-t { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; font-size: 12.5px; line-height: 18px; text-overflow: ellipsis; -webkit-line-clamp: none; }
+.mi-tm-d { flex: 0 100 auto; min-width: 0; overflow: hidden; color: var(--mi-ink-3); text-overflow: ellipsis; }
+.mi-row .mi-qstats { gap: 4px; }
+.mi-row .mi-qbox { flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; height: 24px; box-sizing: border-box; padding: 0 8px; border-radius: 7px; }
+.mi-row .mi-qbox small { flex: none; font-size: 10.5px; line-height: 24px; }
+.mi-row .mi-qbox b { min-width: 0; font-size: 12.5px; line-height: 24px; text-align: end; }
+.mi-row .mi-qbox[data-text] b { display: block; font-size: 11.5px; line-height: 24px; white-space: nowrap; -webkit-line-clamp: none; }
+@container mi (min-width: 761px) and (max-width: 1379px) {
+  .mi-row .mi-qbox { gap: 4px; padding: 0 6px; }
+  .mi-row .mi-qbox small { font-size: 10px; }
+  .mi-row .mi-qbox b { font-size: 12px; }
+  .mi-row .mi-qbox .mi-qunit { margin-inline-start: 2px; font-size: 10px; }
+  .mi-row .mi-qbox[data-text] b { font-size: 10.5px; letter-spacing: -0.01em; }
+}

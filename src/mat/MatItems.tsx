@@ -207,8 +207,13 @@ function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Sto
         <span className="mi-tm-lb">{STEP_LABEL[s.key]}</span>
       </span>)}
     </span>
-    <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
-    {current && <span className="mi-tm-s">{chip && <span className="mi-tm-chip" data-tone={tone}>{chip}</span>}<span>{rest}</span></span>}
+    {/* One line under the steps (D-79): the step to do, the lateness chip, then the date. Beside a chip the date drops its
+        "Planned"/"Expected" (the chip already says it is a plan); the full wording stays in its tooltip. */}
+    <span className="mi-tm-line">
+      <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
+      {chip && <span className="mi-tm-chip" data-tone={tone}>{chip}</span>}
+      {rest && <span className="mi-tm-d" title={rest}>{chip && current?.plan ? shortDate(current.plan) : rest}</span>}
+    </span>
   </>
 }
 function QtyBar({ q, large }: { q: Qty; large?: boolean }) {
@@ -680,7 +685,7 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
   const virtualizer = useVirtualizer({
     count: virtual ? entries.length : 0,
     getScrollElement: () => listRef.current?.closest<HTMLElement>('.mi') ?? null,
-    estimateSize: (i) => entries[i]?.kind === 'head' ? (entries[i] as { depth: number }).depth === 0 ? 40 : 34 : 100,
+    estimateSize: (i) => entries[i]?.kind === 'head' ? (entries[i] as { depth: number }).depth === 0 ? 40 : 34 : 70,
     getItemKey: (i) => { const e = entries[i]!; return e.kind === 'head' ? e.key : e.item.id },
     scrollMargin: frame.margin,
     scrollPaddingStart: frame.cover + 8,
@@ -1065,8 +1070,9 @@ function SetOnsite({ label = 'Total on site', value, unit, onSet }: { label?: st
 }
 /** The four quantities, as the List shows them in a 2×2 grid and as their popover names them (D-69). */
 type QtyField = 'total' | 'po' | 'shd' | 'onsite'
-const QTY_FIELDS: [QtyField, string][] = [['total', 'Total by BOQ'], ['po', 'Ordered'], ['shd', 'Approved SHD'], ['onsite', 'On site']]
-/** Each 2×2 box is about 116 px wide: from 1,000,000 up a value is written compactly (1.28M); the tooltip and popover keep it exact. */
+/** Short labels for the one-line quantity boxes (D-79); the full names (QTY_LABEL) are in each box's tooltip and name. */
+const QTY_FIELDS: [QtyField, string][] = [['total', 'BOQ'], ['po', 'Ordered'], ['shd', 'SHD'], ['onsite', 'On site']]
+/** Each 2×2 box is about 94–116 px wide: from 1,000,000 up a value is written compactly (1.28M); the tooltip and popover keep it exact. */
 const COMPACT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumSignificantDigits: 3 })
 const boxNumber = (v: number) => Math.abs(v) >= 1e6 ? COMPACT.format(v) : NUM.format(v)
 const QTY_LABEL: Record<QtyField, string> = { total: 'Total by BOQ', po: 'Ordered', shd: 'Approved SHD', onsite: 'On site' }
