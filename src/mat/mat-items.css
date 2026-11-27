@@ -676,17 +676,14 @@ div.mi-tlp-row { cursor: default; }
 .mi-np-foot .mi-btn { flex: none; height: 30px; margin-inline-start: auto; padding: 0 16px; border-radius: 999px; font-size: 13px; transition: background-color 160ms ease, opacity 160ms ease; }
 .mi-np-foot .mi-btn:disabled { opacity: 1; background: var(--mi-fill); color: rgb(60 60 67 / 0.35); }
 @media (hover: none) { .mi-np-keys { visibility: hidden; } }
-.mi-np-past { margin: 0 -8px; padding: 4px 4px 0; border-top: 0.5px solid var(--mi-sep); }
-.mi .mi-np-pbtn { display: flex; align-items: center; gap: 7px; width: 100%; height: 34px; padding: 0 8px; border: 0; border-radius: 8px; background: none; color: var(--mi-ink); font-size: 13px; font-weight: 500; }
-.mi-np-pbtn > svg:first-child { color: var(--mi-ink-3); }
-.mi-np-pbtn:hover { background: var(--mi-fill); }
-.mi-np-n { min-width: 18px; height: 18px; box-sizing: border-box; padding: 0 5px; border-radius: 9px; background: var(--mi-fill-2); font-size: 11px; font-weight: 650; line-height: 18px; text-align: center; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
-.mi-past-chev { margin-inline-start: auto; color: var(--mi-ink-3); transition: transform 200ms var(--mi-ease); }
-.mi-np-pbtn[aria-expanded='true'] .mi-past-chev { transform: rotate(180deg); }
-.mi-past { display: grid; gap: 12px; max-height: 220px; margin: 0; padding: 6px 8px 8px; overflow: auto; list-style: none; }
-.mi-past .mi-wk { margin: 0 0 2px; font-size: 11.5px; font-weight: 650; color: var(--mi-ink-2); }
+/* Note history (D-80): the two latest notes before this week, oldest first, then this week's note to write. */
+.mi-np-hist { display: grid; gap: 8px; max-height: 260px; margin: 0; padding: 0; overflow: auto; list-style: none; }
+.mi-np-hist li { padding: 8px 11px 9px; border-radius: 10px; background: rgb(118 118 128 / 0.08); }
+.mi-np-hist .mi-wk { margin: 0 0 2px; font-size: 11.5px; font-weight: 650; color: var(--mi-ink-2); }
 .mi-np-by { font-weight: 500; color: var(--mi-ink-3); }
-.mi-past .mi-b { font-size: 12.5px; line-height: 1.45; color: var(--mi-ink-2); }
+.mi-np-hist .mi-b { font-size: 13px; line-height: 1.45; color: var(--mi-ink); }
+.mi-np-none { margin: 0; padding: 0 2px; font-size: 12px; color: var(--mi-ink-3); }
+.mi-np-now { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 2px 2px -4px; font-size: 12px; font-weight: 650; color: var(--mi-ink); }
 
 /* Compact overview (D-73): each attention card is one short row (label and hint left, count right), and the
    pipeline card is tighter, so the list starts higher on the page. */
@@ -718,7 +715,7 @@ div.mi-tlp-row { cursor: default; }
 .mi-af-title { display: flex; align-items: baseline; gap: 8px; padding: 12px 14px 4px; }
 .mi-af-title b { font-size: 14px; font-weight: 700; letter-spacing: -0.01em; color: var(--mi-ink); }
 .mi-af-title span { font-size: 12px; font-weight: 500; color: var(--mi-ink-3); }
-.mi-af-bar { padding: 6px 14px 4px; }
+.mi-af-bar { display: grid; gap: 8px; padding: 6px 14px 4px; }
 .mi-af-bar .mi-seg { display: flex; margin: 0; }
 .mi-af-bar .mi-seg button { display: inline-flex; flex: 1; align-items: center; justify-content: center; gap: 5px; }
 .mi-af-n { font-size: 11px; font-weight: 500; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
@@ -761,57 +758,16 @@ div.mi-tlp-row { cursor: default; }
 
 .mi-panel .mi-af > .mi-pad { padding-inline: 0; }
 
-/* Timeline cell (D-76): named steps on one line, then the step to do, then a lateness chip and the plan date. */
-.mi-time { gap: 6px; }
-/* Equal spacing: the first dot sits half a "Submit" in from the left edge and the last half a "Site" in from the right,
-   so the outer names stay inside the cell; the four gaps between are identical. */
-.mi-tm-steps { --x0: 17px; --x5: 10px; position: relative; display: block; width: 100%; max-width: 232px; height: 28px; margin: 1px 0 0; }
-.mi-tm-seg { position: absolute; top: 5px; left: calc(var(--x0) + var(--k) * (100% - var(--x0) - var(--x5)) / 5); width: calc((100% - var(--x0) - var(--x5)) / 5); height: 2px; background: rgb(60 60 67 / 0.13); }
-.mi-tm-seg[data-on] { background: #34a853; }
-.mi-tm-k { --tm: rgb(60 60 67 / 0.28); position: absolute; top: 0; left: calc(var(--x0) + var(--i) * (100% - var(--x0) - var(--x5)) / 5); display: flex; flex-direction: column; align-items: center; gap: 3px; transform: translateX(-50%); }
-.mi-tm-dot { position: relative; z-index: 1; display: grid; place-items: center; width: 12px; height: 12px; box-sizing: border-box; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 1.5px rgb(60 60 67 / 0.26); color: #fff; }
-.mi-tm-lb { font-size: 10px; font-weight: 500; line-height: 13px; letter-spacing: -0.015em; white-space: nowrap; color: rgb(60 60 67 / 0.5); }
-.mi-tm-k[data-state='done'] .mi-tm-dot { background: #34a853; box-shadow: none; }
-.mi-tm-k[data-state='done'] .mi-tm-lb { color: var(--mi-ink-2); }
-.mi-tm-k[data-state='skip'] .mi-tm-dot { box-shadow: none; border: 1.5px dashed rgb(60 60 67 / 0.32); }
-.mi-tm-k[data-state='skip'] .mi-tm-lb { color: rgb(60 60 67 / 0.4); text-decoration: line-through; text-decoration-color: rgb(60 60 67 / 0.35); }
-/* A stage whose plan date passed but is not the one the material is at (a sample still waiting, say). */
-.mi-tm-k[data-state='late'] .mi-tm-dot { box-shadow: inset 0 0 0 1.5px #e5484d; }
-.mi-tm-k[data-state='late'] .mi-tm-lb { color: #c4000f; }
-/* Where the material is: a ring with a soft halo, its name bold, both in the urgency colour. */
-.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) .mi-tm-dot { box-shadow: inset 0 0 0 3.5px var(--tm), 0 0 0 3px color-mix(in srgb, var(--tm) 18%, transparent); }
-.mi-tm-k:is([data-state='now'], [data-state='now-soon'], [data-state='now-late']) .mi-tm-lb { color: var(--tm); font-weight: 700; }
-.mi-tm-k[data-state='now'] { --tm: var(--mi-accent); }
-.mi-tm-k[data-state='now-soon'] { --tm: #e07b00; }
-.mi-tm-k[data-state='now-late'] { --tm: #d70015; }
-.mi-tm-t { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-width: 0; font-size: 13px; font-weight: 600; line-height: 17px; letter-spacing: -0.01em; color: var(--mi-ink); overflow-wrap: anywhere; }
-.mi-tm-t[data-done] { color: var(--mi-green); }
-.mi-tm-s { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 11.5px; line-height: 18px; color: var(--mi-ink-3); white-space: nowrap; }
-.mi-tm-s > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.mi-tm-chip { flex: none; height: 18px; padding: 0 6px; border-radius: 5px; font-weight: 650; line-height: 18px; font-variant-numeric: tabular-nums; }
-.mi-tm-chip[data-tone='late'] { background: rgb(215 0 21 / 0.09); color: #c4000f; }
-.mi-tm-chip[data-tone='soon'] { background: rgb(255 149 0 / 0.14); color: #a34400; }
-@media (prefers-reduced-motion: reduce) { .mi-tm-k { transition: none; } }
-
 /* Centred columns (D-78): every column but Material centres its header and its content. */
 .mi-lh > :is(.mi-c-sub, .mi-c-proc, .mi-c-time, .mi-c-qty, .mi-c-note) { text-align: center; }
 .mi-c-qty { padding-inline-start: 0; }
 .mi-row > :is(.mi-c-sub, .mi-c-proc, .mi-c-time, .mi-c-qty, .mi-c-note) { display: flex; justify-content: center; min-width: 0; }
-.mi-row .mi-time { align-items: center; text-align: center; }
-.mi-row .mi-tm-s { justify-content: center; max-width: 100%; }
 .mi-row .mi-qstats { width: 100%; }
 .mi-row .mi-qbox { align-items: center; text-align: center; }
-.mi-row .mi-note:not([data-empty]) { text-align: center; }
-.mi-row .mi-nl-list { align-items: center; }
-.mi-row .mi-nl { max-width: 100%; }
 
 /* Compact rows (D-79): about 70 px instead of 120. The timeline is the steps plus one line (step to do, chip, date), and
    each quantity box is one line, short label on the left and the value on the right. */
 .mi-row { min-height: 56px; padding-block: 7px; }
-.mi-row .mi-time { gap: 3px; padding-block: 3px; }
-.mi-tm-line { display: flex; align-items: center; justify-content: center; gap: 6px; max-width: 100%; min-width: 0; font-size: 11.5px; line-height: 18px; white-space: nowrap; }
-.mi-tm-line .mi-tm-t { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; font-size: 12.5px; line-height: 18px; text-overflow: ellipsis; -webkit-line-clamp: none; }
-.mi-tm-d { flex: 0 100 auto; min-width: 0; overflow: hidden; color: var(--mi-ink-3); text-overflow: ellipsis; }
 .mi-row .mi-qstats { gap: 4px; }
 .mi-row .mi-qbox { flex-direction: row; align-items: center; justify-content: space-between; gap: 6px; height: 24px; box-sizing: border-box; padding: 0 8px; border-radius: 7px; }
 .mi-row .mi-qbox small { flex: none; font-size: 10.5px; line-height: 24px; }
@@ -824,3 +780,88 @@ div.mi-tlp-row { cursor: default; }
   .mi-row .mi-qbox .mi-qunit { margin-inline-start: 2px; font-size: 10px; }
   .mi-row .mi-qbox[data-text] b { font-size: 10.5px; letter-spacing: -0.01em; }
 }
+
+/* Timeline cell (D-80): the step to do, a six-segment bar with "n/6", then the lateness chip and the date. A segment is
+   green when its stage is done, the current one is in the urgency colour, skipped ones are hatched, later ones grey. */
+.mi-row .mi-time { display: flex; flex-direction: column; align-items: stretch; gap: 4px; padding-block: 3px; text-align: center; }
+.mi-tm-t { display: block; min-width: 0; overflow: hidden; font-size: 13px; font-weight: 600; line-height: 17px; letter-spacing: -0.01em; color: var(--mi-ink); white-space: nowrap; text-overflow: ellipsis; }
+.mi-tm-t[data-done] { color: var(--mi-green); }
+.mi-tm-track { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.mi-tm-bar { display: grid; flex: 1; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 3px; min-width: 0; }
+.mi-tm-bar i { height: 6px; border-radius: 3px; background: rgb(118 118 128 / 0.16); }
+.mi-tm-bar i[data-state='done'] { background: #34c759; }
+.mi-tm-bar i[data-state='now'] { background: var(--mi-accent); }
+.mi-tm-bar i[data-state='soon'] { background: #ff9500; }
+.mi-tm-bar i[data-state='late'] { background: #ff3b30; }
+.mi-tm-bar i[data-state='skip'] { background: repeating-linear-gradient(135deg, rgb(118 118 128 / 0.3) 0 2px, rgb(118 118 128 / 0.08) 2px 4px); }
+.mi-tm-n { flex: none; min-width: 22px; font-size: 10.5px; font-weight: 600; line-height: 14px; color: var(--mi-ink-3); text-align: end; font-variant-numeric: tabular-nums; }
+.mi-tm-line { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; height: 18px; font-size: 11.5px; line-height: 18px; color: var(--mi-ink-3); white-space: nowrap; }
+.mi-tm-d { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.mi-tm-chip { flex: none; height: 18px; padding: 0 6px; border-radius: 5px; font-weight: 650; line-height: 18px; font-variant-numeric: tabular-nums; }
+.mi-tm-chip[data-tone='late'] { background: rgb(215 0 21 / 0.09); color: #c4000f; }
+.mi-tm-chip[data-tone='soon'] { background: rgb(255 149 0 / 0.14); color: #a34400; }
+
+/* Wider notes (D-80): the narrower timeline gives the two notes columns its room. */
+@container mi (min-width: 1380px) {
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(170px, 1.4fr) 138px 174px 196px 220px minmax(160px, 1.2fr) minmax(160px, 1.2fr); min-width: 1372px; }
+  .mi-gh { min-width: 1372px; }
+}
+@container mi (min-width: 761px) and (max-width: 1379px) {
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(140px, 1.2fr) 118px 154px 184px 190px minmax(120px, 1fr) minmax(120px, 1fr); min-width: 1158px; }
+  .mi-gh { min-width: 1158px; }
+}
+
+/* Notes cell (D-80): the latest note in full ink (older than this week: quieter), up to three lines. */
+.mi .mi-row .mi-cell.mi-note:not([data-empty]) { padding-block: 3px; text-align: center; }
+.mi-nl-one { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; font-size: 12.5px; line-height: 16px; color: var(--mi-ink); overflow-wrap: anywhere; }
+.mi-nl-one[data-old] { color: var(--mi-ink-3); }
+
+/* Total by BOQ (D-80): the contract quantity. Outlined rather than filled, so it reads as fixed; changing it asks first. */
+.mi .mi-row .mi-qbox[data-k='total'] { background: transparent; box-shadow: inset 0 0 0 1px rgb(60 60 67 / 0.16); }
+.mi .mi-row .mi-qbox[data-k='total']:hover { background: rgb(118 118 128 / 0.05); }
+.mi .mi-row .mi-qbox[data-k='total'][aria-expanded='true'] { background: #fff; box-shadow: 0 0 0 1.5px var(--mi-accent), 0 0 0 4px var(--mi-accent-soft); }
+.mi-row .mi-qbox[data-k='total'] b { color: var(--mi-ink-2); }
+.mi-boq-hint { display: flex; align-items: center; gap: 5px; margin: 0 2px 8px; font-size: 11.5px; color: var(--mi-ink-3); }
+.mi-boq { display: grid; gap: 8px; }
+.mi-boq-t { font-size: 14px; font-weight: 650; letter-spacing: -0.01em; }
+.mi-boq-ft { display: flex; align-items: center; gap: 6px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.mi-boq-ft s { color: var(--mi-ink-3); text-decoration-color: rgb(60 60 67 / 0.35); }
+.mi-boq-ft svg { color: var(--mi-ink-3); }
+.mi-boq p { margin: 0; font-size: 12px; line-height: 1.4; color: var(--mi-ink-3); }
+.mi-boq .mi-row2 { justify-content: flex-end; margin-top: 2px; }
+
+/* Activity (D-80): a search, a day's changes to one material folded into one row, and a page at a time. */
+.mi-af-search { display: flex; align-items: center; gap: 7px; height: 32px; padding: 0 10px; border-radius: 9px; background: rgb(118 118 128 / 0.1); color: var(--mi-ink-3); }
+.mi-af-search:focus-within { background: #fff; box-shadow: 0 0 0 3px var(--mi-accent-soft), 0 0 0 1px var(--mi-accent); }
+.mi-af-search input { flex: 1; min-width: 0; height: 100%; padding: 0; border: 0; outline: 0; background: none; color: var(--mi-ink); font: inherit; font-size: 13px; }
+.mi-af-search input::-webkit-search-cancel-button { cursor: pointer; }
+.mi-ag { border-radius: 10px; }
+.mi-ag[data-open] { background: rgb(118 118 128 / 0.05); }
+.mi .mi-ag-head { display: grid; grid-template-columns: 14px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 0; border-radius: 10px; background: none; color: var(--mi-ink); text-align: start; }
+.mi-ag-head:hover { background: rgb(118 118 128 / 0.07); }
+.mi-ag-chev { color: var(--mi-ink-3); transition: transform 200ms var(--mi-ease); }
+.mi-ag-head[aria-expanded='true'] .mi-ag-chev { transform: rotate(90deg); }
+.mi-ag-t { display: grid; min-width: 0; }
+.mi-ag-t b { overflow: hidden; font-size: 13px; font-weight: 650; line-height: 18px; white-space: nowrap; text-overflow: ellipsis; }
+.mi-ag-t small { overflow: hidden; font-size: 12px; line-height: 16px; color: var(--mi-ink-3); white-space: nowrap; text-overflow: ellipsis; }
+.mi-ag-head time { font-size: 11.5px; color: var(--mi-ink-3); font-variant-numeric: tabular-nums; }
+.mi-ag-list { padding: 0 0 4px 24px; }
+.mi-ag-open { padding: 0 8px 2px; }
+.mi .mi-af-more { display: block; width: calc(100% - 28px); height: 32px; margin: 6px 14px 2px; border: 0; border-radius: 9px; background: rgb(118 118 128 / 0.1); color: var(--mi-blue); font-size: 13px; font-weight: 600; }
+.mi-af-more:hover { background: rgb(118 118 128 / 0.16); }
+.mi-af-keep { margin: 8px 14px 2px; font-size: 11px; color: var(--mi-ink-3); text-align: center; }
+
+/* Total by BOQ in the detail panel (D-80): outlined, with a lock, and a confirmation under it before it changes. */
+.mi .mi-qcell[data-guard] { background: transparent; box-shadow: inset 0 0 0 1px rgb(60 60 67 / 0.16); }
+.mi .mi-qcell[data-guard]:focus-within { background: #fff; box-shadow: 0 0 0 3px rgb(0 113 227 / 0.14), 0 0 0 1px #0071e3; }
+.mi-qcell > label { display: block; cursor: text; }
+.mi-qcell .mi-k svg { margin-inline-end: 4px; vertical-align: -1px; }
+.mi-qcell .mi-boq { margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--mi-sep); }
+.mi-qcell .mi-boq-t { font-size: 13px; }
+.mi-qgrid > .mi-qcell:has(.mi-boq) { grid-column: 1 / -1; }
+/* While Total by BOQ asks, the confirmation is the whole popover. */
+.mi-pad:has(> .mi-boq) > p { display: none; }
+/* The timeline's three lines fit the row without extra padding. */
+.mi .mi-row .mi-cell.mi-time { padding-block: 3px; }
+.mi-row .mi-time { gap: 3px; }
+.mi-tm-n { line-height: 10px; }

@@ -175,10 +175,11 @@ test('saveRemark returning another week refreshes with remarksSince null', async
   expect(result.current.state?.remarks).toEqual({ [remarkKey('a', 'pm', WEEK)]: 'Delivered' })
 })
 
-test('a week change drops remarks older than two weeks', async () => {
+test('notes stay until newer ones replace them: each material and team keeps its three latest notes (D-80)', async () => {
   stored.set('bp03', {
     week: '2026-11-08', syncedAt: '2026-11-13T00:00:00.000Z', items: [item('a', 1)], remarkBy: {}, log: [], people: {},
     remarks: {
+      [remarkKey('a', 'pm', '2026-10-18')]: 'Oldest',
       [remarkKey('a', 'pm', '2026-10-25')]: 'Older',
       [remarkKey('a', 'pm', '2026-11-01')]: 'Two weeks ago',
       [remarkKey('a', 'pm', '2026-11-08')]: 'Last week',
@@ -188,10 +189,11 @@ test('a week change drops remarks older than two weeks', async () => {
   const { result } = await mount()
   expect(fetchPackage).toHaveBeenCalledExactlyOnceWith('bp03', '2026-11-12T23:59:50.000Z', null)
   expect(result.current.state?.week).toBe(WEEK)
+  // The fourth-latest PM note goes; an empty note from an earlier week is not kept.
   expect(result.current.state?.remarks).toEqual({
+    [remarkKey('a', 'pm', '2026-10-25')]: 'Older',
     [remarkKey('a', 'pm', '2026-11-01')]: 'Two weeks ago',
     [remarkKey('a', 'pm', '2026-11-08')]: 'Last week',
-    [remarkKey('a', 'purchase', '2026-11-08')]: '',
   })
 })
 

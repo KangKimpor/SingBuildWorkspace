@@ -141,8 +141,10 @@ test('the row shows the timeline points and all four quantities with Total by BO
   const x1 = await row('XX-01')
   // Approved by status (no dates), so submitted and approved; ordered; the sample, shipping and arrival are not reached.
   expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: Production and shipping, Pending/ })).toBeInTheDocument()
-  expect(x1.querySelectorAll('.mi-tm-steps .mi-tm-k')).toHaveLength(6)
-  expect(x1.querySelector('.mi-tm-k[title^="Order placed"]')).toHaveAttribute('data-state', 'done')
+  // Six segments (D-80): done stages green, the current one in its urgency colour, and the step number beside them.
+  expect(x1.querySelectorAll('.mi-tm-bar i')).toHaveLength(6)
+  expect(x1.querySelector('.mi-tm-bar i[title^="Order placed"]')).toHaveAttribute('data-state', 'done')
+  expect(within(x1).getByText('5/6')).toBeInTheDocument()
   for (const name of ['Total by BOQ: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
 })
 
@@ -156,13 +158,31 @@ test('each quantity box edits its own value', async () => {
   await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { po: 7 }))
 })
 
+test('Total by BOQ asks before it changes, and Cancel keeps it', async () => {
+  open()
+  const x1 = await row('XX-01')
+  fireEvent.click(within(x1).getByRole('button', { name: 'Total by BOQ: 10. Change' }))
+  const pop = await screen.findByRole('dialog', { name: 'Change quantity' })
+  expect(within(pop).getByText(/Contract quantity/)).toBeInTheDocument()
+  fireEvent.change(within(pop).getByLabelText('Total by BOQ'), { target: { value: '12' } })
+  fireEvent.click(within(pop).getByRole('button', { name: 'Set' }))
+  const ask = within(pop).getByRole('group', { name: 'Change Total by BOQ?' })
+  expect(saveFields).not.toHaveBeenCalled()
+  fireEvent.click(within(ask).getByRole('button', { name: 'Cancel' }))
+  expect(within(pop).queryByRole('group', { name: 'Change Total by BOQ?' })).toBeNull()
+  fireEvent.click(within(pop).getByRole('button', { name: 'Set' }))
+  fireEvent.click(within(pop).getByRole('button', { name: 'Change BOQ' }))
+  await waitFor(() => expect(saveFields).toHaveBeenCalledWith('x1', { total: 12 }))
+})
+
 test('Purchase and PM notes live in separate columns and each opens its own team tab', async () => {
   open()
   const x1 = await row('XX-01')
-  for (const body of ['Quote received', 'Waiting for supplier quote', 'Lead time 3 weeks', 'Budget checked']) expect(within(x1).getByText(body)).toBeInTheDocument()
-  // No week label in the cell (D-71): the week is in the tooltip and the popover's past notes.
-  expect(within(x1).queryByText('2 wks ago')).toBeNull()
-  expect(within(x1).getByText('Budget checked')).toHaveAttribute('title', expect.stringMatching(/^Week of 1 Nov/))
+  // Each cell shows its team's latest note (D-80): PM's this week, Purchase's from last week (quieter, kept until replaced).
+  expect(within(x1).getByText('Quote received')).not.toHaveAttribute('data-old')
+  expect(within(x1).getByText('Lead time 3 weeks')).toHaveAttribute('data-old', 'true')
+  expect(within(x1).getByText('Lead time 3 weeks')).toHaveAttribute('title', expect.stringMatching(/^Last week/))
+  for (const body of ['Waiting for supplier quote', 'Budget checked']) expect(within(x1).queryByText(body)).toBeNull()
   fireEvent.click(within(x1).getByRole('button', { name: /^PM notes:/ }))
   const pop = await screen.findByRole('dialog', { name: "This week's note" })
   expect(within(pop).getByRole('textbox', { name: 'PM note for this week' })).toHaveValue('Quote received')
@@ -173,22 +193,20 @@ test("the note popover lists the team's past notes", async () => {
   const x1 = await row('XX-01')
   fireEvent.click(within(x1).getByRole('button', { name: /^Purchase notes:/ }))
   const pop = await screen.findByRole('dialog', { name: "This week's note" })
-  expect(within(pop).queryByRole('list', { name: 'Past Purchase notes' })).toBeNull()
-  fireEvent.click(within(pop).getByRole('button', { name: 'Past notes (2)' }))
-  const past = within(pop).getByRole('list', { name: 'Past Purchase notes' })
+  // The history is open straight away (D-80): the two latest earlier notes, then this week's note to write.
+  const past = within(pop).getByRole('list', { name: 'Earlier Purchase notes' })
   expect(within(past).getByText('Lead time 3 weeks')).toBeInTheDocument()
   expect(within(past).getByText('Last week')).toBeInTheDocument()
   expect(within(past).getByText('Budget checked')).toBeInTheDocument()
   // The team comes from the column (D-78): no team switch, and Save waits for a change.
   expect(within(pop).queryByRole('group', { name: 'Team' })).toBeNull()
-  expect(within(pop).getByText('Purchase note')).toBeInTheDocument()
+  expect(within(pop).getByText('Purchase notes')).toBeInTheDocument()
   expect(within(pop).getByRole('button', { name: 'Save' })).toBeDisabled()
   // The PM column opens PM's earlier notes instead.
   fireEvent.keyDown(window, { key: 'Escape' })
   fireEvent.click(within(x1).getByRole('button', { name: /^PM notes:/ }))
   const pm = await screen.findByRole('dialog', { name: "This week's note" })
-  fireEvent.click(within(pm).getByRole('button', { name: /^Past notes/ }))
-  expect(within(within(pm).getByRole('list', { name: 'Past PM notes' })).getByText('Waiting for supplier quote')).toBeInTheDocument()
+  expect(within(within(pm).getByRole('list', { name: 'Earlier PM notes' })).getByText('Waiting for supplier quote')).toBeInTheDocument()
 })
 
 test('the on-site popover sets the total on site', async () => {
@@ -215,7 +233,7 @@ test('the timeline cell says Place order before an order is placed, and its popo
   // One small chip carries the lateness; the plan date sits beside it (D-74).
   expect(within(x1).getByText(/^\d+d late$/)).toHaveAttribute('data-tone', 'late')
   expect(within(x1).getByTitle('Planned 7 Oct')).toHaveTextContent(/^7 Oct$/)
-  expect(x1.querySelector('.mi-tm-k[title^="Order placed"]')).toHaveAttribute('data-state', 'now-late')
+  expect(x1.querySelector('.mi-tm-bar i[title^="Order placed"]')).toHaveAttribute('data-state', 'late')
   fireEvent.click(within(x1).getByText('Place order'))
   const pop = await screen.findByRole('dialog', { name: 'Timeline' })
   for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Shipped', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()
@@ -492,6 +510,10 @@ test('activity groups entries by day and spells out each change, with a Changes 
   fireEvent.click(screen.getByRole('button', { name: 'Activity' }))
   const pop = await screen.findByRole('dialog', { name: 'Recent activity' })
   const today = within(pop).getByRole('region', { name: 'Today' })
+  // A day's changes to one material fold into one row (D-80) that opens to the entries.
+  const group = within(today).getByRole('button', { name: /Sample panel XX-01.*2 changes · Dara/ })
+  expect(within(today).queryByText('Ordered quantity')).toBeNull()
+  fireEvent.click(group)
   // The field change reads from → to, and the note shows its text and team.
   const change = within(today).getByText('Ordered quantity').closest('li') as HTMLElement
   expect(within(change).getByText('4')).toHaveClass('mi-ae-from')
@@ -501,4 +523,10 @@ test('activity groups entries by day and spells out each change, with a Changes 
   fireEvent.click(within(pop).getByRole('button', { name: /^Notes/ }))
   expect(within(pop).queryByText('Ordered quantity')).toBeNull()
   expect(within(pop).getByText('Quote received')).toBeInTheDocument()
+  // The search narrows by material, person or note text.
+  fireEvent.click(within(pop).getByRole('button', { name: /^All/ }))
+  fireEvent.change(within(pop).getByRole('searchbox', { name: 'Search activity' }), { target: { value: 'nothing like this' } })
+  expect(await within(pop).findByText('No activity matches this search.')).toBeInTheDocument()
+  fireEvent.change(within(pop).getByRole('searchbox', { name: 'Search activity' }), { target: { value: 'dara' } })
+  expect(await within(pop).findByRole('button', { name: /2 changes · Dara/ })).toBeInTheDocument()
 })

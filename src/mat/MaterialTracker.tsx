@@ -126,8 +126,7 @@ function MaterialList() {
         <div className="mat-title">
           <h1>Material list</h1>
           <p className="mat-meta">
-            <span className="mat-meta-pkg">{pkg.toUpperCase()}</span>
-            {state && <span>Week {weekLabel(state.week)}</span>}
+            <span>{pkg.toUpperCase()}{state && ` · ${weekLabel(state.week)} · This week`}</span>
             <SaveState status={saveStatus}/>
           </p>
         </div>

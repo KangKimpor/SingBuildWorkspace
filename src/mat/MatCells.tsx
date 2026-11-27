@@ -121,6 +121,10 @@ export function NumberCell({
     }
     committed.current = true
     if (closeOnSuccess) onClose(move)
+    // Total by BOQ is the contract quantity: it asks before it changes (D-80); declining leaves the cell as it was.
+    if (cell === 'total' && !window.confirm(`Change Total by BOQ from ${shown || 'blank'} to ${text.trim() || 'blank'}?
+
+This is the contract quantity from the BOQ. Change it only after a BOQ revision.`)) return true
     fireSave(text, () => onCell(id, cell, next), onFail, onClearFail)
     return true
   }

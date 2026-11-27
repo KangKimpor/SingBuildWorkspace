@@ -4,7 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import * as Dialog from '@radix-ui/react-dialog'
 import { animate, motion, useMotionValue } from 'motion/react'
 import type { AnimationPlaybackControls } from 'motion/react'
-import { Activity, ArrowRight, CalendarDays, Check, ChevronDown, ChevronsDown, ChevronsUp, ChevronUp, History, ImageIcon, Maximize2, Minimize2, Plus, Search, Undo2, X } from 'lucide-react'
+import { Activity, ArrowRight, CalendarDays, Check, ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, ChevronUp, ImageIcon, Lock, Maximize2, Minimize2, Plus, Search, Undo2, X } from 'lucide-react'
 import { useMotionReduced } from '@/motion/hooks'
 import { useMatImageSrc } from './images'
 import type { MatPicture } from './MatSourcePanel'
@@ -172,13 +172,12 @@ function StoneStatus({ stone, today }: { stone: Stone; today: string }) {
 const stoneLine = (s: Stone, today: string) => `${s.title}: ${s.done ? s.date ? shortDate(s.date) : 'done' : s.skipped ? 'not required' : s.late ? `${-days(s.plan, today)}d overdue` : s.plan ? `plan ${shortDate(s.plan)}` : 'pending'}`
 const stoneState = (s: Stone) => s.done ? 'done' : s.skipped ? 'skip' : s.late ? 'late' : undefined
 /**
- * The List's Timeline cell (D-76): the six stages as named steps on one line (dot above, short name below), then the step
- * to do and one small lateness chip with the plan date. Each step sizes to its own name, so names never collide; a dot is
- * green with a tick once reached, the line joining reached steps turns green, and the stage the material is at is a ringed
- * dot with a soft halo in the urgency colour (blue on track, orange due within 14 days, red overdue) with its name bold in
- * that colour. Only that one name and the chip carry colour, so a long run of late rows stays readable.
+ * The List's Timeline cell (D-80): the step to do in plain words, a six-segment bar with "4/6", then the lateness chip and
+ * the date. A segment is green once its stage is done, the current one is in the urgency colour (blue on track, orange due
+ * within 14 days, red overdue), skipped stages are hatched and later stages grey; a later stage that is past its plan date
+ * stays grey, since only the stage the material is at is late in a way anyone can act on. Each segment names its stage on
+ * hover; the popover lists them in full.
  */
-const STEP_LABEL: Record<string, string> = { submitted: 'Submit', approved: 'Approve', sample: 'Sample', ordered: 'Order', shipping: 'Ship', onsite: 'Site' }
 function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Stone | null; today: string }) {
   const at = current ? stones.indexOf(current) : -1
   const st = current ? stoneStatus(current, today) : null
@@ -192,25 +191,18 @@ function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Sto
     else if (diff !== null && diff < 0) { chip = `${-diff}d late`; rest = `${word} ${shortDate(current.plan)}` }
     else if (diff !== null && diff <= 14) { chip = diff ? `In ${diff}d` : 'Today'; rest = `${word} ${shortDate(current.plan)}` }
     else rest = `${word} ${shortDate(current.plan)}`
+  } else {
+    const last = stones.at(-1)
+    rest = last?.date ? `On site ${shortDate(last.date)}` : 'Complete'
   }
-  // A segment of the line is green once the step it leads to is reached (or is where the material is).
-  const reachedAt = (i: number) => i >= 0 && i < stones.length && (stones[i]!.done || i === at)
+  const segState = (s: Stone, i: number) => i === at ? tone : s.done ? 'done' : s.skipped ? 'skip' : undefined
   return <>
-    {/* Dots at exactly equal intervals (D-76): step i sits at x0 + i × (width − x0 − x5) / 5, each name centred under its
-        dot, and the line is five equal segments, each green once the step it leads to is reached. */}
-    <span className="mi-tm-steps">
-      {stones.slice(1).map((s, k) => <i key={`seg-${s.key}`} className="mi-tm-seg" data-on={reachedAt(k + 1) || undefined}
-        style={{ ['--k' as string]: k }} aria-hidden="true"/>)}
-      {stones.map((s, i) => <span key={s.key} className="mi-tm-k" title={stoneLine(s, today)} style={{ ['--i' as string]: i }}
-        data-state={i === at ? (tone === 'now' ? 'now' : `now-${tone}`) : stoneState(s)}>
-        <i className="mi-tm-dot" aria-hidden="true">{s.done && i !== at && <Check size={8} strokeWidth={3.6}/>}</i>
-        <span className="mi-tm-lb">{STEP_LABEL[s.key]}</span>
-      </span>)}
+    <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
+    <span className="mi-tm-track">
+      <span className="mi-tm-bar">{stones.map((s, i) => <i key={s.key} title={stoneLine(s, today)} data-state={segState(s, i)}/>)}</span>
+      <span className="mi-tm-n">{current ? at + 1 : stones.length}/{stones.length}</span>
     </span>
-    {/* One line under the steps (D-79): the step to do, the lateness chip, then the date. Beside a chip the date drops its
-        "Planned"/"Expected" (the chip already says it is a plan); the full wording stays in its tooltip. */}
     <span className="mi-tm-line">
-      <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
       {chip && <span className="mi-tm-chip" data-tone={tone}>{chip}</span>}
       {rest && <span className="mi-tm-d" title={rest}>{chip && current?.plan ? shortDate(current.plan) : rest}</span>}
     </span>
@@ -800,7 +792,7 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash
         aria-label={`${TEAM_LABEL[team]} notes: ${own.length ? own.map((n) => `${weekName(n.week, week)}, ${n.body}`).join('. ') : 'none'}. ${own.some((n) => n.week === week) ? 'Edit' : 'Add'} this week's note`}
         onClick={cell('note', { team })}>
         {/* An empty cell is a small "Add note" pill (D-73), not a full-width grey hover band. */}
-        {own.length ? <NoteLines notes={own} week={week}/> : <span className="mi-add"><Plus size={12} strokeWidth={2.4} aria-hidden="true"/>Add note</span>}
+        {own.length ? <LatestNote note={own[0]!} week={week}/> : <span className="mi-add"><Plus size={12} strokeWidth={2.4} aria-hidden="true"/>Add note</span>}
       </button></span>
     })}
   </div>
@@ -907,7 +899,7 @@ const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: M
 })
 
 /* ---------------- popover: anchored to its trigger, grows from it ---------------- */
-const POP_WIDTH: Partial<Record<PopType, number>> = { note: 340, qty: 260, sub: 300, proc: 300, activity: 460, next: 400 }
+const POP_WIDTH: Partial<Record<PopType, number>> = { note: 380, qty: 280, sub: 300, proc: 300, activity: 460, next: 400 }
 const POP_LABEL: Record<PopType, string> = {
   sub: 'Change submission stage', proc: 'Change procurement stage', next: 'Timeline', qty: 'Change quantity', owner: 'Change owner', note: 'This week\'s note',
   'filter-owner': 'Filter by owner', group: 'Group by', sort: 'Sort by', activity: 'Recent activity',
@@ -983,7 +975,6 @@ function PopBody(p: PopBodyProps) {
   const team: Team = pop.team ?? 'purchase'
   // Keyed by popover type, row and team (see MatItems), so a draft never carries over to another material or team.
   const [body, setBody] = useState(() => item ? p.remarks[remarkKey(item.id, team, p.week)] ?? '' : '')
-  const [showPast, setShowPast] = useState(false)
   if ((pop.type === 'sub' || pop.type === 'proc') && item) {
     const isSub = pop.type === 'sub', current: ChipStage = isSub ? submissionOf(item) : procurementOf(item)
     const ids: readonly ChipStage[] = isSub ? SUB_STAGES : PROC_STAGES
@@ -999,7 +990,8 @@ function PopBody(p: PopBodyProps) {
   if (pop.type === 'qty' && item) {
     const q = qtyOf(item), field = pop.field ?? 'onsite', rem = Math.max(0, q.total - q.onsite)
     return <div className="mi-pad">
-      <SetOnsite key={`${item.id}:${field}`} label={QTY_LABEL[field]} value={q[field]} unit={q.unit} onSet={(v) => p.onSetQty(field, v)}/>
+      {field === 'total' && <p className="mi-boq-hint"><Lock size={12} aria-hidden="true"/>Contract quantity. Changing it asks you to confirm.</p>}
+      <SetOnsite key={`${item.id}:${field}`} label={QTY_LABEL[field]} value={q[field]} unit={q.unit} guard={field === 'total'} onSet={(v) => p.onSetQty(field, v)}/>
       <p className="mi-faint mi-small">{field !== 'onsite' ? `On site ${NUM.format(q.onsite)} · total ${q.totalText ?? NUM.format(q.total)}`
         : q.totalText ? `${NUM.format(q.onsite)} on site · total in the workbook: ${q.totalText}`
         : `${NUM.format(q.onsite)} of ${NUM.format(q.total)} on site · ${NUM.format(rem)} to go`}</p>
@@ -1018,29 +1010,24 @@ function PopBody(p: PopBodyProps) {
     const saved = p.remarks[remarkKey(item.id, team, p.week)] ?? ''
     const dirty = body.trim() !== saved.trim()
     const save = () => p.onNote(team, body)
-    const past = (p.notes ?? []).filter((n) => n.team === team && n.week !== p.week)
+    // The two latest notes before this week, whatever their age (D-80), oldest first so the page reads down to this week.
+    const earlier = (p.notes ?? []).filter((n) => n.team === team && n.week !== p.week).slice(0, 2).reverse()
     const name = text(item, 'description') || codeOf(item)
     return <div className="mi-np">
       <div className="mi-np-head">
-        <span className="mi-np-t">{TEAM_LABEL[team]} note</span>
-        <span className="mi-np-wk">Week of {shortDate(p.week)}</span>
+        <span className="mi-np-t">{TEAM_LABEL[team]} notes</span>
         <span className="mi-np-m" title={name}>{name}</span>
       </div>
+      {earlier.length ? <ol className="mi-np-hist" aria-label={`Earlier ${TEAM_LABEL[team]} notes`}>
+        {earlier.map((n) => <li key={n.week}><div className="mi-wk">{weekName(n.week, p.week)}{n.by && <span className="mi-np-by"> · {n.by}</span>}</div><div className="mi-b">{n.body}</div></li>)}
+      </ol> : <p className="mi-np-none">No earlier notes.</p>}
+      <div className="mi-np-now"><span>This week</span><span className="mi-np-wk">Week of {shortDate(p.week)}</span></div>
       <textarea className="mi-compose" aria-label={`${TEAM_LABEL[team]} note for this week`} placeholder="What happened this week?" value={body} maxLength={2000} data-autofocus
         onChange={(e) => setBody(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); save() } }}/>
       <div className="mi-np-foot">
         <span className="mi-np-keys" aria-hidden="true"><kbd>↵</kbd> Save<span className="mi-np-dot">·</span><kbd>⇧</kbd><kbd>↵</kbd> New line</span>
         <button type="button" className="mi-btn" data-primary disabled={!dirty} onClick={save}>{saved && !body.trim() ? 'Remove note' : 'Save'}</button>
       </div>
-      {past.length > 0 && <div className="mi-np-past">
-        <button type="button" className="mi-np-pbtn" aria-expanded={showPast} aria-controls="mi-past" aria-label={`Past notes (${past.length})`} onClick={() => setShowPast((v) => !v)}>
-          <History size={14} aria-hidden="true"/><span>Past notes</span><span className="mi-np-n">{past.length}</span>
-          <ChevronDown className="mi-past-chev" size={14} aria-hidden="true"/>
-        </button>
-        {showPast && <ol id="mi-past" className="mi-past" aria-label={`Past ${TEAM_LABEL[team]} notes`}>
-          {past.map((n) => <li key={n.week}><div className="mi-wk">{weekName(n.week, p.week)}{n.by && <span className="mi-np-by"> · {n.by}</span>}</div><div className="mi-b">{n.body}</div></li>)}
-        </ol>}
-      </div>}
     </div>
   }
   if (pop.type === 'filter-owner') return <>
@@ -1051,17 +1038,20 @@ function PopBody(p: PopBodyProps) {
   if (pop.type === 'group') return <><div className="mi-pop-t">Group by</div>{GROUPS.filter(([g]) => p.hasOwner || g !== 'owner').map(([g, l]) => <Opt key={g} on={p.group === g} autoFocus={p.group === g} onClick={() => p.onGroup(g)}><span>{l}</span></Opt>)}</>
   if (pop.type === 'sort') return <><div className="mi-pop-t">Sort by</div>{SORTS.map(([s, l]) => <Opt key={s} on={p.sort === s} autoFocus={p.sort === s} onClick={() => p.onSort(s)}><span>{l}</span></Opt>)}</>
   if (pop.type === 'activity') return <>
-    <div className="mi-pop-t mi-af-title"><b>Activity</b><span>Everyone · last three weeks</span></div>
-    <ActivityFeed entries={p.activity.slice(0, 80)} people={p.people} byId={p.byId} showItem filterable
+    <div className="mi-pop-t mi-af-title"><b>Activity</b><span>Everyone · last two weeks</span></div>
+    <ActivityFeed entries={p.activity} people={p.people} byId={p.byId} showItem filterable
       canRevert={p.canRevert} onRevert={p.onRevert} onOpenItem={p.onOpenItem}/>
   </>
   return null
 }
-function SetOnsite({ label = 'Total on site', value, unit, onSet }: { label?: string; value: number; unit: string; onSet: (v: number) => void }) {
+function SetOnsite({ label = 'Total on site', value, unit, onSet, guard }: { label?: string; value: number; unit: string; onSet: (v: number) => void; guard?: boolean }) {
   const [v, setV] = useState(String(value))
+  const [asking, setAsking] = useState(false)
   const x = Number(v.replace(/,/g, ''))
   const ok = v.trim() !== '' && Number.isFinite(x) && x >= 0
-  const set = () => { if (ok && x !== value) onSet(x) }
+  // Total by BOQ (guard) asks first (D-80): it is the contract quantity, not a progress figure.
+  const set = () => { if (ok && x !== value) { if (guard) setAsking(true); else onSet(x) } }
+  if (asking) return <BoqConfirm from={value} to={x} unit={unit} onCancel={() => setAsking(false)} onConfirm={() => onSet(x)}/>
   return <form onSubmit={(e) => { e.preventDefault(); set() }}>
     <label className="mi-l" htmlFor="mi-set">{label}{unit ? ` (${unit})` : ''}</label>
     <div className="mi-row2"><input id="mi-set" className="mi-field" inputMode="decimal" value={v} data-autofocus onFocus={(e) => e.currentTarget.select()} onChange={(e) => setV(e.target.value)}/>
@@ -1077,15 +1067,12 @@ const COMPACT = new Intl.NumberFormat('en-US', { notation: 'compact', maximumSig
 const boxNumber = (v: number) => Math.abs(v) >= 1e6 ? COMPACT.format(v) : NUM.format(v)
 const QTY_LABEL: Record<QtyField, string> = { total: 'Total by BOQ', po: 'Ordered', shd: 'Approved SHD', onsite: 'On site' }
 /**
- * One team's notes for its List column (D-69, D-71): this week, last week and the week before when written, newest first.
- * No week label: this week's note is in full ink, earlier ones are quieter; the week and author are in the tooltip, and
- * the note popover lists past notes in full.
+ * One team's note for its List column (D-80): the latest note, up to three lines, in full ink when it is this week's and
+ * quieter when it is older. It stays until a newer note replaces it; the popover shows the two before it.
  */
-function NoteLines({ notes, week }: { notes: Note[]; week: string }) {
-  return <span className="mi-notes">
-    <span className="mi-nl-list">{notes.map((n) => <span key={n.week} className="mi-nl" data-week={n.week === week ? 'now' : undefined}
-      title={`${weekName(n.week, week)}${n.by ? ` · ${n.by}` : ''}\n${n.body}`}>{n.body}</span>)}</span>
-  </span>
+function LatestNote({ note, week }: { note: Note; week: string }) {
+  return <span className="mi-nl-one" data-old={note.week !== week || undefined}
+    title={`${weekName(note.week, week)}${note.by ? ` · ${note.by}` : ''}\n${note.body}`}>{note.body}</span>
 }
 /** One-tap dates for "when did this happen": today (the default), yesterday, or any other day from the calendar. */
 /**
@@ -1289,7 +1276,7 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <div className="mi-legend"><span><i data-k="onsite"/>On site {pct(q.onsite)}%</span><span><i data-k="shd"/>Approved SHD {pct(q.shd)}%</span><span><i data-k="po"/>Ordered {pct(q.po)}%</span></div>
         <div className="mi-qgrid">
           {([['total', 'Total by BOQ'], ['po', 'Ordered'], ['shd', 'Approved SHD'], ['onsite', 'On site']] as [CellKey, string][]).map(([k, l]) =>
-            <QtyField key={`${item.id}:${k}`} label={l} value={q[k as 'total']} onSave={(v) => onQty(item, k, v)}/>)}
+            <QtyField key={`${item.id}:${k}`} label={l} value={q[k as 'total']} guard={k === 'total'} onSave={(v) => onQty(item, k, v)}/>)}
         </div>
       </div>
       <div className="mi-sec">
@@ -1334,20 +1321,35 @@ function DateField({ label, value, plain, onSave }: { label: string; value: stri
     {value && !plain && <button type="button" className="mi-date-clear" aria-label={`Clear ${label}`} onClick={() => onSave('')}><X size={11} aria-hidden="true"/></button>}
   </span>
 }
-function QtyField({ label, value, onSave }: { label: string; value: number; onSave: (v: number) => void }) {
+function QtyField({ label, value, onSave, guard }: { label: string; value: number; onSave: (v: number) => void; guard?: boolean }) {
   const [v, setV] = useState(NUM.format(value))
   // Saves only what was typed: tabbing through the field never rounds a stored 12.345 to 12.35.
   const [dirty, setDirty] = useState(false)
-  useEffect(() => { setV(NUM.format(value)); setDirty(false) }, [value])
+  const [asking, setAsking] = useState<number | null>(null)
+  useEffect(() => { setV(NUM.format(value)); setDirty(false); setAsking(null) }, [value])
   const commit = () => {
     const x = Number(v.replace(/,/g, ''))
-    if (dirty && Number.isFinite(x) && x >= 0 && x !== value) onSave(x)
+    if (dirty && Number.isFinite(x) && x >= 0 && x !== value) { if (guard) setAsking(x); else onSave(x) }
     else setV(NUM.format(value))
     setDirty(false)
   }
-  return <label className="mi-qcell"><span className="mi-k">{label}</span>
-    <input inputMode="decimal" value={v} onChange={(e) => { setV(e.target.value); setDirty(true) }} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() } }}/>
-  </label>
+  return <div className="mi-qcell" data-guard={guard || undefined}>
+    <label><span className="mi-k">{guard && <Lock size={10} aria-hidden="true"/>}{label}</span>
+      <input inputMode="decimal" value={v} onChange={(e) => { setV(e.target.value); setDirty(true) }} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); (e.target as HTMLInputElement).blur() } }}/>
+    </label>
+    {asking !== null && <BoqConfirm from={value} to={asking} unit="" onCancel={() => { setAsking(null); setV(NUM.format(value)) }} onConfirm={() => { onSave(asking); setAsking(null) }}/>}
+  </div>
+}
+/** Asks before Total by BOQ changes (D-80): from and to, why it matters, and an explicit "Change BOQ". */
+function BoqConfirm({ from, to, unit, onCancel, onConfirm }: { from: number; to: number; unit: string; onCancel: () => void; onConfirm: () => void }) {
+  const go = useRef<HTMLButtonElement>(null)
+  useEffect(() => { go.current?.focus({ preventScroll: true }) }, [])
+  return <div className="mi-boq" role="group" aria-label="Change Total by BOQ?">
+    <div className="mi-boq-t">Change Total by BOQ?</div>
+    <div className="mi-boq-ft"><s>{NUM.format(from)}</s><ArrowRight size={13} aria-label="to"/><b>{NUM.format(to)}</b>{unit && <span className="mi-faint">{unit}</span>}</div>
+    <p>This is the contract quantity from the BOQ. Change it only after a BOQ revision.</p>
+    <div className="mi-row2"><button type="button" className="mi-btn" onClick={onCancel}>Cancel</button><button ref={go} type="button" className="mi-btn" data-primary onClick={onConfirm}>Change BOQ</button></div>
+  </div>
 }
 
 /** An activity entry's undo control: a labelled button, the same word the toast uses after any edit. */
@@ -1476,48 +1478,93 @@ function ActDetail({ entry, item }: { entry: MatLog; item: MatItem }) {
     {keys.length > shown.length && <li className="mi-faint">and {keys.length - shown.length} more</li>}
   </ul>
 }
+/** How many material groups the feed shows before "Show more" (D-80). */
+const ACT_PAGE = 30
 /**
- * Who changed what, newest first, under day headings. Each entry says what was changed (every field from its old value to
- * the new one, or the note's text), on which material (in the toolbar's list), when, and offers Undo where it can.
+ * Who changed what, newest first, under day headings (D-73, D-80). In the toolbar's feed a day's changes to one material are
+ * folded into one row ("Glass feature wall · 4 changes · Sok, Dara") that opens to the entries, so a busy day is a short
+ * list of materials; a search narrows by material, code, person or note text, and the list shows ACT_PAGE materials at a
+ * time. Each entry says what changed (every field from its old value to the new one, or the note's text) and offers Undo.
  */
 function ActivityFeed({ entries, people, byId, showItem, filterable, canRevert, onRevert, onOpenItem }: {
   entries: MatLog[]; people: Record<string, string>; byId: Map<string, MatItem>; showItem?: boolean; filterable?: boolean
   canRevert: (entry: MatLog) => boolean; onRevert: (entry: MatLog) => void; onOpenItem?: (id: string) => void
 }) {
   const [filter, setFilter] = useState<ActFilter>('all')
+  const [query, setQuery] = useState('')
+  const [limit, setLimit] = useState(ACT_PAGE)
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set())
+  const nameOf = (l: MatLog) => l.by ? people[l.by] ?? 'Someone' : 'Someone'
+  const q = useDeferredValue(query).trim().toLowerCase()
   const counts = { all: entries.length, fields: entries.filter((l) => l.kind === 'fields').length, remark: entries.filter((l) => l.kind === 'remark').length }
-  const list = filter === 'all' ? entries : entries.filter((l) => l.kind === filter)
-  const days: { label: string; rows: MatLog[] }[] = []
+  const hay = (l: MatLog) => {
+    const item = byId.get(l.itemId)
+    return `${nameOf(l)} ${item ? `${text(item, 'description')} ${codeOf(item)}` : ''} ${typeof l.detail.body === 'string' ? l.detail.body : ''}`.toLowerCase()
+  }
+  const list = entries.filter((l) => (filter === 'all' || l.kind === filter) && (!q || hay(l).includes(q)))
+  type Group = { key: string; itemId: string; rows: MatLog[] }
+  const days: { label: string; groups: Group[] }[] = []
   for (const l of list) {
-    const label = dayLabel(l.at), last = days.at(-1)
-    if (last?.label === label) last.rows.push(l); else days.push({ label, rows: [l] })
+    const label = dayLabel(l.at)
+    let day = days.at(-1)
+    if (day?.label !== label) { day = { label, groups: [] }; days.push(day) }
+    const g = showItem ? day.groups.find((x) => x.itemId === l.itemId) : undefined
+    if (g) g.rows.push(l); else day.groups.push({ key: `${label}:${l.itemId}:${l.id}`, itemId: l.itemId, rows: [l] })
+  }
+  const total = days.reduce((n, d) => n + d.groups.length, 0)
+  let budget = limit
+  const shownDays = days.flatMap((d) => { if (budget <= 0) return []; const groups = d.groups.slice(0, budget); budget -= groups.length; return [{ ...d, groups }] })
+  const toggle = (key: string) => setOpen((old) => { const next = new Set(old); if (next.has(key)) next.delete(key); else next.add(key); return next })
+  const when = (at: string, label: string) => label === 'Today' ? ago(at) : TIME.format(new Date(at))
+  const entry = (l: MatLog, label: string, withItem: boolean) => {
+    const known = l.by ? people[l.by] ?? null : null, name = known ?? 'Someone', item = byId.get(l.itemId)
+    return <li key={l.id} className="mi-ae">
+      <Avatar name={known}/>
+      <div className="mi-ae-main">
+        <div className="mi-ae-head"><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at} title={new Date(l.at).toLocaleString('en-GB')}>{when(l.at, label)}</time></div>
+        {withItem && item && <button type="button" className="mi-ae-item" onClick={() => onOpenItem?.(item.id)} title="Open this material">
+          <span>{text(item, 'description') || codeOf(item)}</span><small>{codeOf(item)}</small></button>}
+        {item && <ActDetail entry={l} item={item}/>}
+      </div>
+      {canRevert(l) ? <UndoButton label={`${name} ${describeLog(l)}`} onClick={() => onRevert(l)}/> : <span/>}
+    </li>
   }
   return <div className="mi-af">
     {filterable && <div className="mi-af-bar">
+      <label className="mi-af-search"><Search size={14} aria-hidden="true"/>
+        <input type="search" aria-label="Search activity" placeholder="Search material, person or note" value={query} onChange={(e) => { setQuery(e.target.value); setLimit(ACT_PAGE) }}/>
+      </label>
       <span className="mi-seg" role="group" aria-label="Show">
-        {ACT_FILTERS.map(([f, label], i) => <button key={f} type="button" aria-pressed={filter === f} data-autofocus={i === 0 || undefined} onClick={() => setFilter(f)}>
+        {ACT_FILTERS.map(([f, label], i) => <button key={f} type="button" aria-pressed={filter === f} data-autofocus={i === 0 || undefined} onClick={() => { setFilter(f); setLimit(ACT_PAGE) }}>
           {label}<span className="mi-af-n">{counts[f]}</span></button>)}
       </span>
     </div>}
-    {days.length ? days.map((day) => <section key={day.label} className="mi-af-day" aria-label={day.label}>
+    {shownDays.length ? shownDays.map((day) => <section key={day.label} className="mi-af-day" aria-label={day.label}>
       <h5 className="mi-af-dh">{day.label}</h5>
       <ul className="mi-af-list">
-        {day.rows.map((l) => {
-          const known = l.by ? people[l.by] ?? null : null, name = known ?? 'Someone', item = byId.get(l.itemId)
-          const when = day.label === 'Today' ? ago(l.at) : TIME.format(new Date(l.at))
-          return <li key={l.id} className="mi-ae">
-            <Avatar name={known}/>
-            <div className="mi-ae-main">
-              <div className="mi-ae-head"><span><b>{name}</b> {describeLog(l)}</span><time dateTime={l.at} title={new Date(l.at).toLocaleString('en-GB')}>{when}</time></div>
-              {showItem && item && <button type="button" className="mi-ae-item" onClick={() => onOpenItem?.(item.id)} title="Open this material">
-                <span>{text(item, 'description') || codeOf(item)}</span><small>{codeOf(item)}</small></button>}
-              {item && <ActDetail entry={l} item={item}/>}
-            </div>
-            {canRevert(l) ? <UndoButton label={`${name} ${describeLog(l)}`} onClick={() => onRevert(l)}/> : <span/>}
+        {day.groups.map((g) => {
+          if (g.rows.length === 1) return entry(g.rows[0]!, day.label, !!showItem)
+          const item = byId.get(g.itemId), isOpen = open.has(g.key)
+          const names = [...new Set(g.rows.map(nameOf))]
+          const title = item ? text(item, 'description') || codeOf(item) : 'Material'
+          return <li key={g.key} className="mi-ag" data-open={isOpen || undefined}>
+            <button type="button" className="mi-ag-head" aria-expanded={isOpen} onClick={() => toggle(g.key)}>
+              <ChevronRight className="mi-ag-chev" size={14} aria-hidden="true"/>
+              <span className="mi-ag-t"><b>{title}</b>
+                <small>{g.rows.length} changes · {names.slice(0, 2).join(', ')}{names.length > 2 ? ` +${names.length - 2}` : ''}</small></span>
+              <time dateTime={g.rows[0]!.at}>{when(g.rows[0]!.at, day.label)}</time>
+            </button>
+            {isOpen && <ul className="mi-af-list mi-ag-list">
+              {item && <li className="mi-ag-open"><button type="button" className="mi-ae-item" onClick={() => onOpenItem?.(item.id)} title="Open this material">
+                <span>Open material</span><small>{codeOf(item)}</small></button></li>}
+              {g.rows.map((l) => entry(l, day.label, false))}
+            </ul>}
           </li>
         })}
       </ul>
-    </section>) : <p className="mi-pad mi-faint mi-small">{entries.length ? 'Nothing of this kind in the last three weeks.' : 'No changes in the last three weeks.'}</p>}
+    </section>) : <p className="mi-pad mi-faint mi-small">{q ? 'No activity matches this search.' : entries.length ? 'Nothing of this kind in the last two weeks.' : 'No changes in the last two weeks.'}</p>}
+    {total > limit && <button type="button" className="mi-af-more" onClick={() => setLimit((n) => n + ACT_PAGE)}>Show {Math.min(ACT_PAGE, total - limit)} more</button>}
+    {filterable && entries.length > 0 && <p className="mi-af-keep">Activity is kept for two weeks.</p>}
   </div>
 }
 

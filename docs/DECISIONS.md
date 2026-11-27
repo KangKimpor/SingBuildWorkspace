@@ -672,3 +672,27 @@ List rows drop from about 120 px to 70 px. The timeline and quantity cells set t
   - The labels shorten to BOQ, Ordered, SHD and On site. Each box's tooltip and accessible name keep the full name ("Total by BOQ", "Approved SHD").
   - In the medium layout (761–1,379 px of list), the boxes use 6 px padding and 12 px values, so "642,250" and "1.28M m²" fit.
 - **Measured** in Chrome and Firefox at 1,250 px and 1,500 px: every row is 70 px (one 79 px row has a three-line name), with no sideways scrolling and no box or timeline line spilling out of its cell. The virtual list's row estimate is 70.
+
+## D-80 Timeline bar, readable notes with history, guarded BOQ, two-week activity, Project Progress header - November 27, 2026
+
+- **Timeline cell.** The labelled stepper (D-76) is replaced by option A of three mockups.
+  - The step to do comes first in plain words ("Place order").
+  - Under it is a six-segment bar with "n/6": green for done, the current step in its urgency colour (blue on track, orange due within 14 days, red late), hatched when skipped, grey for later steps.
+  - Last comes the lateness chip and the date.
+  - A later stage past its plan date no longer turns red; only the current step can be late. Each segment names its stage on hover.
+  - The column is 196 px wide (184 px in the medium layout), and rows are 71 px.
+- **Notes.**
+  - The narrower timeline widens both notes columns: at least 160 px wide and 120 px medium, against 140 and 104 before.
+  - **Cell.** A cell shows its team's latest note, up to three lines at 12.5 px, quieter when it is from an earlier week.
+  - **Popover.** The popover opens on the history: the two latest notes before this week, oldest first, then this week's note to write.
+  - **Kept until replaced.** Notes stay until newer ones replace them, not for three calendar weeks. `mat_load` returns this week's rows plus, per material and team, the three latest weeks with a note at any age, and the client keeps the same set (`latestRemarks`).
+- **Total by BOQ.**
+  - The List box is outlined rather than filled.
+  - Changing it shows "Change Total by BOQ?" with from → to, why it matters, and an explicit "Change BOQ". This applies in the quantity popover and in the detail panel, where the field also gets a lock.
+  - In the Sheet view, a browser confirmation asks before the cell saves.
+- **Activity.**
+  - Activity is kept for two weeks: `mat_log_write` deletes its package's rows older than 14 days on every write, and `mat_load` returns 14 days (at most 400 rows). Migration `20261127131157_material_tracker_two_week_activity.sql` was applied to production on 27 November 2026. It had 25 log rows and none was old enough to delete.
+  - The toolbar feed gets a search (material, code, person or note text).
+  - A day's changes to one material fold into one expandable row ("Door handle · 4 changes · Jo, Aleksandra").
+  - It shows 30 materials at a time with "Show N more".
+- **Header.** The Material list header follows Project Progress: a 48 px tile, a 22 px semibold title, and one plain 12 px line ("BP03 · 22 Nov – 28 Nov · This week") in place of the grey package badge.

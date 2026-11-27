@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { addDays, reportingDate, weekStart } from '@/nbc/submissions'
+import { reportingDate, weekStart } from '@/nbc/submissions'
 import { fetchPackage, saveCell, saveFields, saveRemark } from './api'
 import type { MatPackage, MatSaved } from './api'
 import { devDataset } from './devData'
@@ -18,7 +18,7 @@ export interface MatState {
   /** Display names by user id. */
   people: Record<string, string>
 }
-const LOG_LIMIT = 300
+const LOG_LIMIT = 400
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
 const DB_NAME = 'kw-mat'
@@ -98,22 +98,39 @@ function mergeItems(items: MatItem[], changed: MatItem[]) {
   return [...byId.values()].sort((a, b) => (a.sheet < b.sheet ? -1 : a.sheet > b.sheet ? 1 : a.pos - b.pos))
 }
 function applyLoad(base: MatState | null, loaded: MatPackage): MatState {
-  let remarks = { ...base?.remarks }
-  if (base && base.week !== loaded.week) {
-    const oldest = addDays(loaded.week, -14)
-    remarks = Object.fromEntries(Object.entries(remarks).filter(([key]) => key.slice(key.lastIndexOf(':') + 1) >= oldest))
-  }
-  let remarkBy = { ...base?.remarkBy }
-  if (base && base.week !== loaded.week) remarkBy = Object.fromEntries(Object.entries(remarkBy).filter(([key]) => key in remarks))
+  const merged = { ...base?.remarks }
+  const remarkBy = { ...base?.remarkBy }
   for (const r of loaded.remarks) {
     const key = remarkKey(r.itemId, r.team, r.weekStart)
-    remarks[key] = r.body
+    merged[key] = r.body
     if (r.updatedBy) remarkBy[key] = r.updatedBy
   }
+  const remarks = latestRemarks(merged, loaded.week)
+  for (const key of Object.keys(remarkBy)) if (!(key in remarks)) delete remarkBy[key]
+  // Activity is kept for two weeks (D-80); the server deletes older rows, and a saved state drops them here.
+  const since = new Date(Date.parse(loaded.now) - LOG_DAYS * 864e5).toISOString()
   return {
     week: loaded.week, items: mergeItems(base?.items ?? [], loaded.items), remarks, syncedAt: loaded.now,
-    remarkBy, log: mergeLog(base?.log ?? [], loaded.log ?? []), people: { ...base?.people, ...loaded.people },
+    remarkBy, log: mergeLog(base?.log ?? [], loaded.log ?? []).filter((l) => l.at > since), people: { ...base?.people, ...loaded.people },
   }
+}
+/** Days of activity kept (D-80). */
+export const LOG_DAYS = 14
+/**
+ * Notes kept for each material and team (D-80): this week's (even when empty), and the three latest weeks with a note,
+ * whatever their age, so a material keeps showing its last notes until newer ones replace them.
+ */
+export function latestRemarks(remarks: Record<string, string>, week: string): Record<string, string> {
+  const groups = new Map<string, string[]>()
+  for (const [key, body] of Object.entries(remarks)) {
+    const at = key.lastIndexOf(':'), wk = key.slice(at + 1)
+    if (wk === week || !body.trim()) continue
+    const list = groups.get(key.slice(0, at)) ?? []
+    list.push(wk); groups.set(key.slice(0, at), list)
+  }
+  const keep = new Set<string>()
+  for (const [group, weeks] of groups) for (const wk of weeks.sort().reverse().slice(0, 3)) keep.add(`${group}:${wk}`)
+  return Object.fromEntries(Object.entries(remarks).filter(([key]) => key.endsWith(`:${week}`) || keep.has(key)))
 }
 function mergeLog(log: MatLog[], more: MatLog[]) {
   if (!more.length) return log

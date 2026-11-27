@@ -119,7 +119,7 @@ test('a phone shows one line instead of the table', async () => {
 test('the header shows the week label, an item shows last week as text and this week in a click-to-edit cell, and no controls mount at rest', async () => {
   await openList()
   expect(screen.getByRole('heading', { name: 'Material list' })).toBeInTheDocument()
-  expect(screen.getByText('Week 15 Nov – 21 Nov')).toBeInTheDocument()
+  expect(screen.getByText('BP03 · 15 Nov – 21 Nov · This week')).toBeInTheDocument()
   expect(fetchPackage).toHaveBeenCalledWith('bp03', null, null)
   const last = screen.getByText('Waiting for supplier quote')
   expect(last.closest('textarea, input')).toBeNull()
