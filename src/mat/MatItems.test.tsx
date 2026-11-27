@@ -144,7 +144,7 @@ test('the row shows the timeline points and all four quantities with Total by BO
   // Six segments (D-80): done stages green, the current one in its urgency colour, and the step number beside them.
   expect(x1.querySelectorAll('.mi-tm-bar i')).toHaveLength(6)
   expect(x1.querySelector('.mi-tm-bar i[title^="Order placed"]')).toHaveAttribute('data-state', 'done')
-  expect(within(x1).getByText('5/6')).toBeInTheDocument()
+  expect(x1.querySelector('.mi-tm-n')).toBeNull()
   for (const name of ['Total by BOQ: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
 })
 

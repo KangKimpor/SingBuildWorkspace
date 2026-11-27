@@ -200,7 +200,6 @@ function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Sto
     <span className="mi-tm-t" data-done={!current || undefined}>{current ? current.todo : 'All on site'}</span>
     <span className="mi-tm-track">
       <span className="mi-tm-bar">{stones.map((s, i) => <i key={s.key} title={stoneLine(s, today)} data-state={segState(s, i)}/>)}</span>
-      <span className="mi-tm-n">{current ? at + 1 : stones.length}/{stones.length}</span>
     </span>
     <span className="mi-tm-line">
       {chip && <span className="mi-tm-chip" data-tone={tone}>{chip}</span>}

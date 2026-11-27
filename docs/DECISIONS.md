@@ -696,3 +696,12 @@ List rows drop from about 120 px to 70 px. The timeline and quantity cells set t
   - A day's changes to one material fold into one expandable row ("Door handle · 4 changes · Jo, Aleksandra").
   - It shows 30 materials at a time with "Show N more".
 - **Header.** The Material list header follows Project Progress: a 48 px tile, a 22 px semibold title, and one plain 12 px line ("BP03 · 22 Nov – 28 Nov · This week") in place of the grey package badge.
+
+## D-81 No step counter, left-aligned notes, compact stage capsules - November 27, 2026
+
+- **Timeline.** The "n/6" counter beside the timeline bar (D-80) is removed; the bar and the step name carry the stage.
+- **Notes.** The notes columns keep their centred headers, but the notes and the Add note pill below them are left-aligned, so multi-line text reads from a straight edge.
+- **Stage capsules.** In List rows the capsules are 22 px tall with 11.5 px text, a 15 px symbol and a 1.25 px ring (the menus keep the full size).
+  - The widest labels measure 107 px ("Not submitted") and 142 px ("Waiting for shipment").
+  - The columns are 112/146 px wide and 110/144 px medium. The room they give up goes to the notes columns: at least 170 px wide and 126 px medium.
+- **Measured** in Chrome and Firefox at 1,250 px and 1,500 px: no capsule outside its cell, no sideways scrolling, and rows of 67–69 px.
