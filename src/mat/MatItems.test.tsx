@@ -274,12 +274,14 @@ test('a note is saved as the remark for this week and the chosen team', async ()
   await waitFor(() => expect(saveRemark).toHaveBeenCalledWith('x2', 'purchase', 'ETA 2 Dec'))
 })
 
-test('the detail panel opens from the name, shows Add actual date and Total by BOQ, and closes with Escape', async () => {
+test('the detail panel opens from the name, shows one timeline following both statuses and Total by BOQ, and closes with Escape', async () => {
   open()
   fireEvent.click(await screen.findByRole('button', { name: /Sample panel XX-01$/ }))
   const panel = await screen.findByRole('complementary', { name: 'Sample panel XX-01 details' })
   expect(within(panel).getByText('Material submitted')).toBeInTheDocument()
-  expect(within(panel).getAllByText('Add actual date').length).toBeGreaterThan(0)
+  expect(within(panel).getByText('Follows Submission and Procurement')).toBeInTheDocument()
+  expect(within(panel).getByText('Now')).toBeInTheDocument()
+  expect(panel.querySelectorAll('.mi-st')).toHaveLength(6)
   expect(within(panel).getByLabelText('Total by BOQ')).toBeInTheDocument()
   expect(within(panel).getByText('Lead time 3 weeks')).toBeInTheDocument()
   fireEvent.keyDown(window, { key: 'Escape' })
@@ -529,4 +531,20 @@ test('activity groups entries by day and spells out each change, with a Changes 
   expect(await within(pop).findByText('No activity matches this search.')).toBeInTheDocument()
   fireEvent.change(within(pop).getByRole('searchbox', { name: 'Search activity' }), { target: { value: 'dara' } })
   expect(await within(pop).findByRole('button', { name: /2 changes · Dara/ })).toBeInTheDocument()
+})
+
+test('an omitted material is marked clearly in the List and the panel and is never late', async () => {
+  const base = material('x1', 2, 'XX-01', 0)
+  vi.mocked(fetchPackage).mockResolvedValue(load([
+    section('s1', 1, 'Wall Finishing'),
+    { ...base, data: { ...base.data, mark: 'omit', cols: { ...base.data.cols, poPlan: '2025-10-07' } } },
+  ]))
+  open()
+  const x1 = await row('XX-01')
+  expect(within(x1).getAllByText('Omitted').length).toBe(2)
+  expect(within(x1).queryByText(/^\d+d late$/)).toBeNull()
+  fireEvent.click(within(x1).getByRole('button', { name: /Sample panel XX-01$/ }))
+  const panel = await screen.findByRole('complementary', { name: 'Sample panel XX-01 details' })
+  expect(within(panel).getByRole('note')).toHaveTextContent(/Omitted/)
+  expect(within(panel).queryByText('Now')).toBeNull()
 })

@@ -705,3 +705,17 @@ List rows drop from about 120 px to 70 px. The timeline and quantity cells set t
   - The widest labels measure 107 px ("Not submitted") and 142 px ("Waiting for shipment").
   - The columns are 112/146 px wide and 110/144 px medium. The room they give up goes to the notes columns: at least 170 px wide and 126 px medium.
 - **Measured** in Chrome and Firefox at 1,250 px and 1,500 px: no capsule outside its cell, no sideways scrolling, and rows of 67–69 px.
+
+## D-82 One plain-language panel timeline, clearly marked omitted materials - November 27, 2026
+
+- **Panel timeline.** The "Plan · Actual · Variance" grid, with its empty "Add actual date" boxes on steps not yet reached, is replaced by one list of the six steps. The header says it follows Submission and Procurement.
+  - **Each step** shows a dot, a title, one line of plain words with dates (full dates with the year), and a result on the right.
+  - **Done steps** show "Done 30 Sept 2026 · Planned 14 Sept 2026", with "16d late", "On time" or "early" on the right. "Add date" appears when the status says done but no date was recorded.
+  - **The current step** is titled by what to do ("Deliver the balance"), with a NOW tag and a ringed dot in its urgency colour, and a late or soon chip on the right.
+  - **Later steps** are grey and marked Next. **Skipped steps** are struck through.
+  - **Shipping** says it follows the Procurement status.
+  - A two-group layout (Submission / Procurement) was tried first and dropped at the user's request for a single list.
+- **Omitted materials** (`mark: 'omit'` in the workbook). Before, the only sign was a 60% fade on the row.
+  - **List row:** an amber OMITTED tag, a struck-through name, a faint amber hatch, and the other cells at 45%. The timeline cell reads "Omitted · Out of scope · not tracked" and never shows a late chip.
+  - **Board card:** the same tag.
+  - **Panel:** an amber banner says the material is out of scope and not counted as late or due, and no step is marked NOW.

@@ -178,7 +178,12 @@ const stoneState = (s: Stone) => s.done ? 'done' : s.skipped ? 'skip' : s.late ?
  * stays grey, since only the stage the material is at is late in a way anyone can act on. Each segment names its stage on
  * hover; the popover lists them in full.
  */
-function TimeSummary({ stones, current, today }: { stones: Stone[]; current: Stone | null; today: string }) {
+function TimeSummary({ stones, current, today, omitted }: { stones: Stone[]; current: Stone | null; today: string; omitted?: boolean }) {
+  if (omitted) return <>
+    <span className="mi-tm-t" data-omit>Omitted</span>
+    <span className="mi-tm-track"><span className="mi-tm-bar">{stones.map((s) => <i key={s.key} title={stoneLine(s, today)} data-state={s.done ? 'done' : 'skip'}/>)}</span></span>
+    <span className="mi-tm-line"><span className="mi-tm-d">Out of scope · not tracked</span></span>
+  </>
   const at = current ? stones.indexOf(current) : -1
   const st = current ? stoneStatus(current, today) : null
   const tone = st?.tone === 'late' ? 'late' : st?.tone === 'soon' ? 'soon' : 'now'
@@ -763,7 +768,7 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash
     </span>
     <span className="mi-name" role="cell">
       <button type="button" className="mi-t" title={name} onClick={(e) => { e.stopPropagation(); actions.openPanel(item.id) }}>{name}</button>
-      <span className="mi-s">{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub" title={d.sub}>{d.sub}</span></span>
+      <span className="mi-s">{item.data.mark === 'omit' && <span className="mi-omit-tag" title="Omitted in the workbook: out of scope, not counted as late">Omitted</span>}{changed && <span className="mi-chg-tag" title="Changed in the app this week">Changed</span>}<span className="mi-sub" title={d.sub}>{d.sub}</span></span>
     </span>
     <span role="cell" className="mi-c-sub"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'sub'} aria-label={`Submission: ${stageLabel(sub)}. Change`} onClick={cell('sub')}><StagePill stage={sub}/></button></span>
     <span role="cell" className="mi-c-proc"><button type="button" className="mi-cell mi-stage-cell" aria-haspopup="dialog" aria-expanded={popType === 'proc'} aria-label={`Procurement: ${stageLabel(proc)}. Change`} onClick={cell('proc')}><StagePill stage={proc}/></button></span>
@@ -771,7 +776,7 @@ const Row = memo(function Row({ item, d, notes, week, today, changed, sel, flash
       aria-label={`Timeline: ${stones.filter((m) => m.done).map((m) => m.title).join(', ') || 'nothing done yet'}. ${current ? `Next: ${current.todo}, ${stoneStatus(current, today).text}` : 'Complete'}. Update`}
       title={stones.map((m) => stoneLine(m, today)).join('\n')} onClick={cell('next')}>
       {/* The step still to do, in its own words ("Place order"), so nothing reads as done before it is (D-69). */}
-      <TimeSummary stones={stones} current={current} today={today}/>
+      <TimeSummary stones={stones} current={current} today={today} omitted={item.data.mark === 'omit'}/>
     </button></span>
     <span role="cell" className="mi-c-qty"><span className="mi-qstats">
       {QTY_FIELDS.map(([k, short]) => {
@@ -890,7 +895,7 @@ const BoardCard = memo(function BoardCard({ item, d, changed, today }: { item: M
       </span>
       <span className="mi-kc-tx">
         <span className="mi-t">{d.name}</span>
-        <span className="mi-s">{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
+        <span className="mi-s">{item.data.mark === 'omit' && <span className="mi-omit-tag">Omitted</span>}{changed && <span className="mi-chg-tag">Changed</span>}{codeOf(item)} · {NUM.format(q.onsite)}/{q.totalText ?? NUM.format(q.total)} {q.unit}</span>
       </span>
     </span>
     <span className="mi-kc-f">{owner ? <Avatar name={owner}/> : <span/>}<span className="mi-s">{current ? <><span className="mi-kc-step">{current.todo}</span> <StoneStatus stone={current} today={today}/></> : <span className="mi-due" data-tone="done">All on site</span>}</span></span>
@@ -1196,8 +1201,8 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
   const thread = (ctx.notes.get(item.id) ?? []).filter((n) => n.team === team && n.week !== week)
   const thisWeekBy = (ctx.notes.get(item.id) ?? []).find((n) => n.team === team && n.week === week)?.by
   const history = ctx.activity.filter((l) => l.itemId === item.id).slice(0, 12)
-  const raw = (key: EditableColKey) => { const v = text(item, key); return v && !isIsoDate(effectiveCol(item, key)) ? v : '' }
-  const stones = stonesOf(item, ctx.today)
+  const stones = stonesOf(item, ctx.today), current = currentStone(stones)
+  const omitted = item.data.mark === 'omit'
   const pct = (v: number) => q.total > 0 ? Math.round(Math.min(1, v / q.total) * 100) : 0
   // The submitted image and the approved sample are different things: one is what was proposed, the other what the
   // consultant signed off. They are shown as two labelled groups, never mixed in one strip.
@@ -1244,30 +1249,55 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
           </ul>}
         </section>)}
       </div>}
+      {omitted && <div className="mi-omit-banner" role="note"><b>Omitted</b><span>Out of scope in the workbook. It is not counted as late or due, and its timeline is kept for reference.</span></div>}
       <div className="mi-sec">
-        <h4>Timeline<span className="mi-spacer"/><span className="mi-faint">Plan · Actual · Variance</span></h4>
-        <ol className="mi-tl">
-          {stones.map((s) => {
-            const { date: actual, done, late, skipped } = s
-            const v = actual && s.plan ? days(actual, s.plan) : null
-            const canSkip = !done && (s.key === 'submitted' || s.key === 'sample')
-            const toggleSkip = () => s.key === 'submitted' ? onSub(item, skipped ? 'notsub' : 'notreq') : onSkipSample(item, !skipped)
-            const shipText = done ? 'Shipped' : proc === 'production' ? 'In production' : proc === 'waiting' ? 'Waiting' : 'From Procurement'
-            return <li key={s.key} className="mi-ms" data-state={stoneState(s)}>
-              <span className="mi-o" aria-hidden="true">{done && <Check size={9} strokeWidth={3.4}/>}</span>
-              <div><div className="mi-t">{s.title}</div>
-                <div className="mi-s">{skipped ? <span>Not required</span> : <>Plan {s.planKey
-                  ? <DateField label={`${s.title} plan date`} value={s.plan} plain onSave={(val) => onDate(item, s.planKey!, val)}/>
-                  : <span className="mi-num">{shortDate(s.plan || null)}</span>}{raw(s.planKey ?? 'msPlan') && s.planKey && !s.plan ? ` (${raw(s.planKey)})` : ''}{s.sub ? ` · ${s.sub}` : ''}{s.note && s.note !== s.sub ? ` · ${s.note}` : ''}</>}{canSkip && <> · <button type="button" className="mi-link mi-skip-btn" onClick={toggleSkip}>{skipped ? 'Require' : 'Skip'}</button></>}</div></div>
-              {skipped ? <span className="mi-faint mi-ship">Skipped</span>
-                : s.actual ? <DateField label={`${s.title} actual date`} value={actual} onSave={(val) => onDate(item, s.actual!, val)}/>
-                : <span className="mi-faint mi-ship" title="Set by the Procurement status">{shipText}</span>}
-              <div className="mi-var">{done
-                ? v === null ? <span className="mi-faint">Done</span> : v > 0 ? <span className="mi-late">{v}d late</span> : v < 0 ? <span className="mi-early">{-v}d early</span> : <span className="mi-faint">On time</span>
-                : skipped ? <span className="mi-faint">Not required</span> : late ? <span className="mi-late">{-days(s.plan, ctx.today)}d overdue</span> : <span className="mi-faint">Pending</span>}</div>
-            </li>
-          })}
-        </ol>
+        <h4>Timeline<span className="mi-spacer"/><span className="mi-faint">Follows Submission and Procurement</span></h4>
+        {/* One list of the six steps (D-82), driven by the two statuses: submitted, approved and the sample by Submission; the
+            order, shipping and delivery by Procurement. Each step says in words where it stands: done (with its date and how
+            it compared with the plan), now (what to do, with the lateness), next, or not required. */}
+          <ol className="mi-st-list">
+            {stones.map((s) => {
+              const isNow = !omitted && s === current
+              const state = s.done ? 'done' : s.skipped ? 'skip' : isNow ? 'now' : 'next'
+              const st = stoneStatus(s, ctx.today)
+              const tone = isNow ? st.tone === 'late' ? 'late' : st.tone === 'soon' ? 'soon' : 'now' : undefined
+              const v = s.date && s.plan ? days(s.date, s.plan) : null
+              const canSkip = !s.done && (s.key === 'submitted' || s.key === 'sample')
+              const toggleSkip = () => s.key === 'submitted' ? onSub(item, s.skipped ? 'notsub' : 'notreq') : onSkipSample(item, !s.skipped)
+              const planWord = s.planKey ? 'Planned' : 'Expected'
+              const plan = s.planKey
+                ? <DateField label={`${s.title} plan date`} value={s.plan} plain year empty="Set plan date" onSave={(val) => onDate(item, s.planKey!, val)}/>
+                : s.plan ? <span className="mi-num">{DAY_MONTH_YEAR.format(asDate(s.plan))}</span> : null
+              const planBit = plan && <span className="mi-st-bit">{planWord} {plan}</span>
+              let detail: ReactNode
+              if (s.skipped) detail = <span className="mi-st-bit">Not required for this material</span>
+              else if (s.key === 'shipping') detail = <span className="mi-st-bit">{s.done ? 'Shipped, from the Procurement status' : isNow ? `Procurement status: ${stageLabel(proc)}` : 'Follows the Procurement status'}</span>
+              else if (s.done) detail = <>
+                <span className="mi-st-bit">Done {s.actual
+                  ? <DateField label={`${s.title} actual date`} value={s.date} plain year empty="Add date" onSave={(val) => onDate(item, s.actual!, val)}/>
+                  : null}{s.note ? ` (${s.note})` : ''}</span>
+                {planBit}
+              </>
+              else detail = planBit ?? <span className="mi-st-bit mi-st-miss">No plan date</span>
+              const right = s.skipped ? <span className="mi-st-tag">Skipped</span>
+                : s.done ? v === null ? <span className="mi-st-tag" data-tone="done">Done</span>
+                  : v > 0 ? <span className="mi-st-var" data-tone="late">{v}d late</span>
+                  : v < 0 ? <span className="mi-st-var" data-tone="early">{-v}d early</span>
+                  : <span className="mi-st-var" data-tone="early">On time</span>
+                : isNow ? s.plan && st.tone === 'late' ? <span className="mi-tm-chip" data-tone="late">{-days(s.plan, ctx.today)}d late</span>
+                  : s.plan && st.tone === 'soon' ? <span className="mi-tm-chip" data-tone="soon">{days(s.plan, ctx.today) ? `In ${days(s.plan, ctx.today)}d` : 'Today'}</span>
+                  : null
+                : <span className="mi-st-tag">{omitted ? '—' : 'Next'}</span>
+              return <li key={s.key} className="mi-st" data-state={state} data-tone={tone}>
+                <span className="mi-o" aria-hidden="true">{s.done && <Check size={9} strokeWidth={3.4}/>}</span>
+                <div className="mi-st-main">
+                  <div className="mi-st-t">{isNow ? s.todo : s.title}{isNow && <span className="mi-st-now">Now</span>}</div>
+                  <div className="mi-st-d">{detail}{canSkip && <button type="button" className="mi-link mi-skip-btn" onClick={toggleSkip}>{s.skipped ? 'Require' : 'Skip'}</button>}</div>
+                </div>
+                <div className="mi-st-r">{right}</div>
+              </li>
+            })}
+          </ol>
       </div>
       <div className="mi-sec">
         <h4>Quantity{q.unit ? ` · ${q.unit}` : ''}</h4>
@@ -1308,10 +1338,10 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
   </>
 }
 
-function DateField({ label, value, plain, onSave }: { label: string; value: string; plain?: boolean; onSave: (v: string) => void }) {
+function DateField({ label, value, plain, year, empty, onSave }: { label: string; value: string; plain?: boolean; year?: boolean; empty?: string; onSave: (v: string) => void }) {
   // A formatted date ("10 Nov 2025") that opens the native picker: the input stays the real control for keyboard and screen readers.
   const ref = useRef<HTMLInputElement>(null)
-  const shown = value ? (plain ? DAY_MONTH : DAY_MONTH_YEAR).format(asDate(value)) : plain ? 'Set' : 'Add actual date'
+  const shown = value ? (plain && !year ? DAY_MONTH : DAY_MONTH_YEAR).format(asDate(value)) : empty ?? (plain ? 'Set' : 'Add actual date')
   return <span className="mi-date-wrap" data-plain={plain || undefined} data-filled={value && !plain ? '' : undefined}>
     <span className="mi-date-btn" data-empty={!value || undefined} aria-hidden="true"><span>{shown}</span></span>
     <input ref={ref} type="date" className="mi-date" aria-label={label} value={value}

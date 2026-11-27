@@ -855,7 +855,7 @@ div.mi-tlp-row { cursor: default; }
 .mi .mi-qcell[data-guard] { background: transparent; box-shadow: inset 0 0 0 1px rgb(60 60 67 / 0.16); }
 .mi .mi-qcell[data-guard]:focus-within { background: #fff; box-shadow: 0 0 0 3px rgb(0 113 227 / 0.14), 0 0 0 1px #0071e3; }
 .mi-qcell > label { display: block; cursor: text; }
-.mi-qcell .mi-k svg { margin-inline-end: 4px; vertical-align: -1px; }
+.mi-qcell .mi-k svg { display: inline-block; margin-inline-end: 4px; vertical-align: -1px; }
 .mi-qcell .mi-boq { margin-top: 8px; padding-top: 8px; border-top: 0.5px solid var(--mi-sep); }
 .mi-qcell .mi-boq-t { font-size: 13px; }
 .mi-qgrid > .mi-qcell:has(.mi-boq) { grid-column: 1 / -1; }
@@ -881,3 +881,50 @@ div.mi-tlp-row { cursor: default; }
 @container mi (min-width: 761px) and (max-width: 1379px) {
   .mi-grid { grid-template-columns: var(--mi-lead) minmax(140px, 1.2fr) 110px 144px 184px 190px minmax(126px, 1fr) minmax(126px, 1fr); min-width: 1158px; }
 }
+
+/* Panel timeline (D-82): a group per status, headed by its capsule. Each step is a dot, a title (what to do when it is the
+   current step, with a "Now" tag), one line of plain words with editable dates, and a right-hand result. */
+.mi-tg { margin-top: 10px; }
+.mi-tg + .mi-tg { margin-top: 16px; }
+.mi-tg-h { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 0 0 4px; font-size: 11.5px; font-weight: 650; letter-spacing: 0.03em; text-transform: uppercase; color: var(--mi-ink-3); }
+.mi-tg-h .mi-stage { gap: 3px; height: 22px; padding: 0 8px 0 3px; border-width: 1.25px; font-size: 11.5px; letter-spacing: -0.01em; text-transform: none; }
+.mi-tg-h .mi-stage .mi-sicon { width: 15px; height: 15px; }
+.mi-st-list { margin: 0; padding: 0; list-style: none; }
+.mi-st { position: relative; display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; align-items: start; gap: 10px; padding: 8px 0; }
+.mi-st:not(:last-child)::after { content: ''; position: absolute; left: 6px; top: 28px; bottom: -8px; width: 2px; border-radius: 1px; background: rgb(60 60 67 / 0.12); }
+.mi-st[data-state='done']:not(:last-child)::after { background: #34c759; }
+.mi-st .mi-o { margin-top: 2px; }
+.mi-st[data-state='done'] .mi-o { border-color: #34c759; background: #34c759; }
+.mi-st[data-state='skip'] .mi-o { border-style: dashed; border-color: rgb(60 60 67 / 0.34); }
+.mi-st[data-state='now'] { --tm: var(--mi-accent); }
+.mi-st[data-tone='soon'] { --tm: #ff9500; }
+.mi-st[data-tone='late'] { --tm: #ff3b30; }
+.mi-st[data-state='now'] .mi-o { border: 4px solid var(--tm); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tm) 20%, transparent); }
+.mi-st-main { display: grid; gap: 2px; min-width: 0; }
+.mi-st-t { display: flex; align-items: center; gap: 7px; font-size: 13.5px; font-weight: 600; line-height: 18px; letter-spacing: -0.01em; color: var(--mi-ink); }
+.mi-st[data-state='next'] .mi-st-t { color: var(--mi-ink-3); font-weight: 500; }
+.mi-st[data-state='skip'] .mi-st-t { color: var(--mi-ink-3); font-weight: 500; text-decoration: line-through; text-decoration-color: rgb(60 60 67 / 0.35); }
+.mi-st-now { height: 17px; padding: 0 6px; border-radius: 5px; background: color-mix(in srgb, var(--tm) 12%, #fff); color: color-mix(in srgb, var(--tm) 80%, #000); font-size: 10.5px; font-weight: 700; line-height: 17px; letter-spacing: 0.02em; text-transform: uppercase; }
+.mi-st-d { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; font-size: 12px; line-height: 18px; color: var(--mi-ink-3); }
+.mi-st-bit { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 4px; }
+.mi-st-miss { color: var(--mi-ink-3); }
+.mi-st-d .mi-date-wrap[data-plain] .mi-date-btn { color: var(--mi-ink-2); }
+.mi-st-d .mi-date-wrap[data-plain] .mi-date-btn[data-empty] { color: var(--mi-blue); font-weight: 500; text-decoration: none; }
+.mi-st-d .mi-skip-btn { font-size: 12px; }
+.mi-st-r { padding-top: 1px; font-size: 12px; white-space: nowrap; }
+.mi-st-var { font-weight: 600; font-variant-numeric: tabular-nums; }
+.mi-st-var[data-tone='late'] { color: #c4000f; }
+.mi-st-var[data-tone='early'] { color: var(--mi-green); }
+.mi-st-tag { color: var(--mi-ink-3); }
+.mi-st-tag[data-tone='done'] { color: var(--mi-green); font-weight: 600; }
+
+/* Omitted materials (D-82): an amber "Omitted" tag on the List row and Board card, the row quieter (the tag and name keep
+   full strength), the timeline saying "Omitted" instead of a step, and a banner on the panel. */
+.mi-omit-tag { display: inline-flex; align-items: center; flex: none; box-sizing: border-box; height: 17px; margin-inline-end: 6px; padding: 0 6px; border-radius: 5px; background: rgb(255 184 0 / 0.2); color: #8a5a00; font-size: 10.5px; font-weight: 700; line-height: 1; letter-spacing: 0.02em; text-transform: uppercase; white-space: nowrap; vertical-align: middle; }
+.mi-kc .mi-omit-tag { display: flex; width: fit-content; margin: 3px 0 3px; }
+.mi-row[data-mark='omit'] { opacity: 1; background: repeating-linear-gradient(135deg, rgb(255 184 0 / 0.05) 0 8px, transparent 8px 16px); }
+.mi-row[data-mark='omit'] > :not(.mi-name, .mi-lead) { opacity: 0.45; }
+.mi-row[data-mark='omit'] .mi-name .mi-t { color: var(--mi-ink-2); text-decoration: line-through; text-decoration-color: rgb(138 90 0 / 0.45); }
+.mi-tm-t[data-omit] { color: #8a5a00; }
+.mi-omit-banner { display: grid; gap: 2px; margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: rgb(255 184 0 / 0.14); color: #6b4600; font-size: 12.5px; line-height: 1.4; }
+.mi-omit-banner b { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
