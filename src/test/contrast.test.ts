@@ -4,11 +4,12 @@ import { describe, expect, it } from 'vitest'
 
 /** Automated contrast check over tokens.css (SPEC §9: fix any pair that fails). */
 const css = readFileSync(resolve(process.cwd(), 'src/styles/tokens.css'), 'utf8')
+const stitchCss = readFileSync(resolve(process.cwd(), 'src/styles/stitch.css'), 'utf8')
 
 type RGBA = [number, number, number, number]
 
-function block(selector: RegExp): Record<string, string> {
-  const m = css.match(selector)
+function block(selector: RegExp, source = css): Record<string, string> {
+  const m = source.match(selector)
   if (!m) throw new Error(`no block for ${selector}`)
   const out: Record<string, string> = {}
   for (const d of m[1]!.matchAll(/(--[a-z0-9-]+):\s*([^;]+);/g)) out[d[1]!] = d[2]!.trim()
@@ -16,6 +17,7 @@ function block(selector: RegExp): Record<string, string> {
 }
 
 const light = block(/:root\s*\{([\s\S]*?)\n\}/)
+const sidebar = block(/\.sidebar,\s*\.drawer\s*\{([\s\S]*?)\n\}/, stitchCss)
 
 function parse(v: string, theme: Record<string, string>): RGBA {
   const ref = v.match(/^var\((--[a-z0-9-]+)\)$/)
@@ -88,5 +90,25 @@ describe('light theme contrast', () => {
 
   it('white label on the accent fill passes 4.5:1', () => {
     expect(ratio([255, 255, 255, 1], parse(t['--accent-fill']!, t))).toBeGreaterThanOrEqual(4.5)
+  })
+})
+
+describe('charcoal sidebar contrast', () => {
+  const bg = parse(sidebar['--bg-sidebar']!, sidebar)
+
+  it('primary, secondary and muted text on charcoal sidebar pass 4.5:1', () => {
+    for (const k of ['--text-primary', '--text-secondary', '--text-muted']) {
+      expect(ratio(over(parse(sidebar[k]!, sidebar), bg), bg), k).toBeGreaterThanOrEqual(4.5)
+    }
+  })
+
+  it('white label on active sidebar pill (--accent) passes 4.5:1', () => {
+    expect(ratio([255, 255, 255, 1], parse(sidebar['--accent']!, sidebar))).toBeGreaterThanOrEqual(4.5)
+  })
+
+  it('active and muted progress rings pass 3:1 on charcoal sidebar', () => {
+    for (const k of ['--accent-text', '--ring-muted']) {
+      expect(ratio(over(parse(sidebar[k]!, sidebar), bg), bg), k).toBeGreaterThanOrEqual(3)
+    }
   })
 })

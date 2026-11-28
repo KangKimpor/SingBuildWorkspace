@@ -157,7 +157,7 @@ test('project creation and editable, hideable, resizable task table', async ({
   ).toHaveValue('Verify release contrasts')
 })
 
-test('installed shell and page editing survive a reload offline', async ({
+test('offline page edits survive reconnection and offline reloads do not serve cached HTML', async ({
   page,
   context,
 }) => {
@@ -167,16 +167,29 @@ test('installed shell and page editing survive a reload offline', async ({
   await expect
     .poll(() => page.evaluate(() => !!navigator.serviceWorker.controller))
     .toBe(true)
-  await context.setOffline(true)
-  await page.reload()
-  await page
-    .getByRole('textbox', { name: 'Page title', exact: true })
-    .fill('Offline weekly plan')
-  await page.reload()
+  try {
+    await context.setOffline(true)
+    await page
+      .getByRole('textbox', { name: 'Page title', exact: true })
+      .fill('Offline weekly plan')
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const data = JSON.parse(localStorage.getItem('kw-workspace-v1') || '{}') as {
+            pages?: { id?: string; title?: string }[]
+          }
+          return data.pages?.find((p) => p.id === 'weekly-plan')?.title
+        }),
+      )
+      .toBe('Offline weekly plan')
+    await expect(page.reload()).rejects.toThrow()
+  } finally {
+    await context.setOffline(false)
+  }
+  await page.goto('/p/weekly-plan')
   await expect(
     page.getByRole('textbox', { name: 'Page title', exact: true }),
   ).toHaveValue('Offline weekly plan')
-  await context.setOffline(false)
 })
 
 test('board cards can move between statuses', async ({ page }) => {

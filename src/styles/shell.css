@@ -15,7 +15,7 @@
 }
 .shell[data-bp='expanded'][data-sidebar='closed'],
 .shell[data-bp='large'][data-sidebar='closed'] {
-  --sidebar-col: 70px;
+  --sidebar-col: 56px;
 }
 .shell[data-inspector='open'][data-bp='expanded'],
 .shell[data-inspector='open'][data-bp='large'] {
