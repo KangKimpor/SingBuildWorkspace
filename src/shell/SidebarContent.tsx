@@ -10,7 +10,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { useProjects } from '@/data'
 import { useShell } from './store'
 
-const ic = { size: 14, strokeWidth: 1.75 } as const
+const ic = { size: 16, strokeWidth: 1.75 } as const
 const bpNumber = (name: string) => Number(/BP\s*0*(\d+)/i.exec(name)?.[1] ?? Number.MAX_SAFE_INTEGER)
 const shortCode = (name: string) => /BP\s*0*(\d+)/i.exec(name)?.[0]?.replace(/\s+/g, '').toUpperCase() ?? name.slice(0, 4).toUpperCase()
 
@@ -78,8 +78,12 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="sidebar-header">
         {/* The brand is the way into the material list (/admin). Everyone else gets the ordinary Not found page there. */}
         <NavLink to="/admin" className="sidebar-home" aria-label="SingBuild Workspace: open the material list" title="Material list" onClick={onNavigate}>
-          <img className="brand-logo" src="/brand/favicon.svg" alt="" width={18} height={18} />
-          <span className="sidebar-brand">SingBuild Workspace</span>
+          <img className="brand-logo" src="/brand/favicon.svg" alt="" width={24} height={24} />
+          <span className="sidebar-brand">
+            <span className="sidebar-brand-name">SingBuild</span>
+            {' '}
+            <span className="sidebar-brand-sub">Workspace</span>
+          </span>
         </NavLink>
         <div className="sidebar-header-actions">
           {!onNavigate ? (
@@ -91,7 +95,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
               title={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              <PanelLeft size={14} strokeWidth={1.8} aria-hidden="true" />
+              <PanelLeft {...ic} aria-hidden="true" />
             </button>
           ) : null}
         </div>
@@ -153,7 +157,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <div className="sidebar-foot">
         <ul className="nav-list">
-          <Item to="/settings/account" icon={<Settings size={15} strokeWidth={1.75} />} label="Settings" onNavigate={onNavigate} />
+          <Item to="/settings/account" icon={<Settings {...ic} />} label="Settings" onNavigate={onNavigate} />
         </ul>
       </div>
     </>

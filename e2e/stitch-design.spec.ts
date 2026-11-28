@@ -24,6 +24,10 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       const sidebar = page.getByTestId('sidebar')
       expect(await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(28, 28, 30)')
       await expect(sidebar).toHaveCSS('width', '196px')
+      const clippedLabels = await sidebar.locator('.sidebar-brand-name, .sidebar-brand-sub, .project-name, .project-subtitle, .nav-label').evaluateAll((els) =>
+        els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => `${el.className}: ${el.textContent} (${el.scrollWidth}>${el.clientWidth})`),
+      )
+      expect(clippedLabels).toEqual([])
       await expect(page.locator('.topbar .brand-logo')).toHaveCount(0)
       await expect(sidebar.getByRole('button', { name: new RegExp(`(Collapse|Expand) ${fixtureProject.name}`) })).toHaveCount(0)
       await expect(sidebar.getByText('44%', { exact: true })).toBeVisible()
