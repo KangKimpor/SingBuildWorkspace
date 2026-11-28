@@ -117,9 +117,10 @@ export function nextOf(item: MatItem, today: string): NextStep {
     revise: ['Resubmit', submitted && addDaysIso(submitted, 10)],
     approved: ['Place order', date(item, 'poPlan')],
     notreq: ['Place order', date(item, 'poPlan')],
-    ordered: ['Start production', date(item, 'arrPlan')],
-    production: ['Finish production', date(item, 'arrPlan')],
-    waiting: ['Ship', date(item, 'arrPlan')],
+    // Production and shipping have their own plan dates (D-88); without one, the arrival plan stands in, as before.
+    ordered: ['Start production', date(item, 'prodPlan') ?? date(item, 'arrPlan')],
+    production: ['Finish production', date(item, 'prodPlan') ?? date(item, 'arrPlan')],
+    waiting: ['Ship', date(item, 'shipPlan') ?? date(item, 'arrPlan')],
     shipping: ['Arrival on site', date(item, 'arrPlan')],
     partial: ['Balance delivery', date(item, 'arrPlan')],
     onsite: ['Complete', null],

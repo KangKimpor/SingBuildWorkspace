@@ -928,3 +928,83 @@ div.mi-tlp-row { cursor: default; }
 .mi-tm-t[data-omit] { color: #8a5a00; }
 .mi-omit-banner { display: grid; gap: 2px; margin: 12px 0 0; padding: 10px 12px; border-radius: 10px; background: rgb(255 184 0 / 0.14); color: #6b4600; font-size: 12.5px; line-height: 1.4; }
 .mi-omit-banner b { font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+
+/* ---------------- D-88: section bands, labelled statuses, plan dates in red, notes composer, details card ---------------- */
+/* Section headers: the top level is a tinted band with its number in a small chip; every level shows how many materials it
+   holds and how many are late, right after its name, so the tree reads as finished structure rather than loose labels. */
+.mi-grp { justify-content: flex-start; gap: 10px; }
+.mi-grp-l { align-items: center; }
+.mi-grp-btn:hover { background: rgb(118 118 128 / 0.1); }
+.mi-grp-meta { align-items: center; gap: 8px; font-size: 12px; }
+.mi-grp-n { min-width: 0; font-weight: 500; text-align: start; }
+.mi-grp-late { height: 18px; padding: 0 6px; border-radius: 5px; background: rgb(215 0 21 / 0.08); color: #c4000f; font-size: 11.5px; font-weight: 650; line-height: 18px; font-variant-numeric: tabular-nums; }
+.mi-gh[data-depth='0'] { background: rgb(118 118 128 / 0.05); box-shadow: inset 0 0.5px 0 var(--mi-sep), inset 0 -0.5px 0 var(--mi-sep); }
+.mi-list-body > .mi-gh[data-depth='0']:first-child { box-shadow: inset 0 -0.5px 0 var(--mi-sep); }
+.mi-gh[data-depth='0'] .mi-grp, .mi-list-body > .mi-gh[data-depth='0']:first-child .mi-grp { min-height: 44px; padding-block: 6px; }
+.mi-gh[data-depth='0'] .mi-grp-no { display: inline-grid; place-items: center; min-width: 22px; height: 22px; box-sizing: border-box; padding: 0 6px; border-radius: 6px; background: rgb(118 118 128 / 0.16); color: var(--mi-ink-2); font-size: 12px; font-weight: 700; }
+.mi-gh[data-depth='1'] .mi-grp { min-height: 38px; padding-top: 8px; }
+.mi-gh:is([data-depth='2'], [data-depth='3']) .mi-grp { font-weight: 600; }
+.mi-gh:not([data-depth='0']) .mi-grp-meta { font-size: 11.5px; }
+
+/* Panel header: Submission and Procurement each in a labelled card (track name, capsule, what the stage means). */
+.mi-ph-stages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mi-panel .mi-ph-stage { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; padding: 9px 11px 10px; border: 0; border-radius: 12px; background: #f5f5f7; text-align: start; transition: background-color 120ms; }
+.mi-panel .mi-ph-stage:hover { background: #ebebef; }
+.mi-ph-k { display: flex; align-items: center; width: 100%; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--mi-ink-3); }
+.mi-ph-k svg { margin-inline-start: auto; }
+.mi-ph-stage .mi-stage { max-width: 100%; }
+.mi-ph-h { font-size: 11.5px; line-height: 1.3; color: var(--mi-ink-3); }
+
+/* Timeline: a missing plan date on a step still to come is red; on a step already done it stays quiet. */
+.mi-st:not([data-state='done']) .mi-st-d .mi-date-wrap[data-plain] .mi-date-btn[data-empty] { color: #c4000f; font-weight: 600; }
+.mi-st[data-state='done'] .mi-st-d .mi-date-wrap[data-plain] .mi-date-btn[data-empty] { color: var(--mi-ink-3); font-weight: 500; }
+/* Seven steps (D-88: Production finished joins them) in the List's bar. */
+.mi-tm-bar { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+
+/* Notes: this week's note is one composer card; earlier weeks follow as a quiet dotted thread. */
+.mi-nc { border-radius: 14px; background: #f5f5f7; transition: background-color 160ms ease, box-shadow 160ms ease; }
+.mi-nc:focus-within { background: #fff; box-shadow: 0 0 0 3px var(--mi-accent-soft), 0 0 0 1px var(--mi-accent); }
+.mi-nc-top { display: flex; align-items: baseline; gap: 8px; padding: 10px 12px 0; font-size: 11.5px; }
+.mi-nc-wk { font-weight: 650; color: var(--mi-ink); }
+.mi .mi-nc textarea.mi-compose, .mi .mi-nc textarea.mi-compose:not([type='checkbox']):not([type='radio']):is(:focus, :focus-visible) {
+  min-height: 68px; max-height: 240px; padding: 6px 12px 8px; border-radius: 0; background: transparent; box-shadow: none; resize: none; field-sizing: content; }
+.mi-nc .mi-compose::placeholder { color: rgb(60 60 67 / 0.45); }
+.mi-nc-foot { display: flex; align-items: center; gap: 8px; padding: 0 8px 8px 12px; }
+.mi-nc-foot .mi-btn { height: 28px; padding: 0 14px; border-radius: 8px; }
+.mi-nh { margin-top: 16px; }
+.mi-nh-t { display: flex; align-items: baseline; gap: 8px; margin: 0 0 10px; font-size: 12px; font-weight: 650; color: var(--mi-ink-2); }
+.mi-nh-t .mi-faint { font-size: 11.5px; font-weight: 500; }
+.mi-nh-list { margin: 0; padding: 0; list-style: none; }
+.mi-nh-list li { position: relative; padding: 0 0 14px 18px; }
+.mi-nh-list li::before { content: ''; position: absolute; left: 1px; top: 4px; width: 7px; height: 7px; border-radius: 50%; background: rgb(118 118 128 / 0.4); }
+.mi-nh-list li:not(:last-child)::after { content: ''; position: absolute; left: 4px; top: 15px; bottom: 1px; width: 1px; background: var(--mi-sep-2); }
+.mi-nh-list li:last-child { padding-bottom: 0; }
+.mi-nh-list .mi-wk { margin: 0 0 3px; line-height: 15px; }
+.mi-nh-list .mi-b { line-height: 1.45; }
+.mi-nh-none { margin: 0; padding: 12px; border: 1px dashed rgb(60 60 67 / 0.18); border-radius: 12px; font-size: 12.5px; color: var(--mi-ink-3); text-align: center; }
+
+/* Details: an inset card, one row per field with a hairline between, closed by the edit row. */
+.mi-kv-card { overflow: hidden; border-radius: 14px; background: #f5f5f7; }
+.mi-kv-card .mi-kv { gap: 0; }
+.mi-kv-card .mi-kv > div { position: relative; grid-template-columns: 108px minmax(0, 1fr); align-items: baseline; padding: 10px 14px; }
+.mi-kv-card .mi-kv > div::after, .mi-kv-card .mi-kv-edit::before { content: ''; position: absolute; left: 14px; right: 0; top: 0; height: 0.5px; background: var(--mi-sep); }
+.mi-kv-card .mi-kv > div:first-child::after { content: none; }
+.mi-kv-card dt { font-size: 12.5px; color: var(--mi-ink-3); }
+.mi-kv-card dd { font-weight: 500; color: var(--mi-ink); }
+.mi-panel .mi-kv-edit { position: relative; display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px 9px 14px; border: 0; background: none; color: var(--mi-blue); font-size: 13px; font-weight: 600; text-align: start; transition: background-color 120ms; }
+.mi-panel .mi-kv-edit:hover { background: rgb(118 118 128 / 0.08); }
+.mi-kv-ic { display: grid; place-items: center; flex: none; width: 26px; height: 26px; border-radius: 7px; background: #fff; box-shadow: 0 0.5px 1.5px rgb(0 0 0 / 0.12); }
+.mi-kv-edit .mi-faint { font-size: 12.5px; font-weight: 500; }
+.mi-kv-chev { flex: none; color: var(--mi-ink-3); }
+
+/* Notes column: an empty cell's "Add note" sits centred under the header; a written note fills the cell and reads from the left. */
+.mi-row > .mi-c-note { justify-content: center; }
+
+/* A wider Timeline column (D-88), taken from the name and notes columns. */
+@container mi (min-width: 1380px) {
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(170px, 1.3fr) 112px 146px 248px 220px minmax(160px, 1.1fr) minmax(160px, 1.1fr); min-width: 1372px; }
+}
+@container mi (min-width: 761px) and (max-width: 1379px) {
+  .mi-grid { grid-template-columns: var(--mi-lead) minmax(140px, 1.2fr) 110px 144px 224px 190px minmax(120px, 1fr) minmax(120px, 1fr); min-width: 1180px; }
+  .mi-gh { min-width: 1180px; }
+}

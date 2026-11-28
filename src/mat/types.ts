@@ -12,6 +12,8 @@ export type Source = { f: FormulaKey } | { v: Scalar }
 export type ColKey = 'no' | 'pic' | 'bp02' | 'code' | 'description' | 'location' | 'spec' | 'brand' | 'source'
   | 'msPlan' | 'msActual' | 'msApproved' | 'msStatus' | 'ssPlan' | 'ssActual' | 'ssApproved'
   | 'poPlan' | 'poActual' | 'arrPlan' | 'arrActual' | 'procRemarks' | 'unit' | 'lastUpdated'
+  /** App-only plan dates (D-88): when production should finish and when the goods should ship. The workbook has no column for them. */
+  | 'prodPlan' | 'shipPlan'
 
 export const SOURCE_COLS = ['no', 'code', 'description', 'pic', 'bp02', 'location', 'spec', 'brand', 'source'] as const
 export const MS_STATUS_OPTIONS = [

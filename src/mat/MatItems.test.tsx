@@ -81,7 +81,7 @@ test('List shows one row per material with its stage, next step and split notes,
   const x1 = await row('XX-01')
   expect(within(x1).getByRole('button', { name: /^Submission: Approved/ })).toBeInTheDocument()
   expect(within(x1).getByRole('button', { name: /^Procurement: Ordered/ })).toBeInTheDocument()
-  expect(within(x1).getByText('Production and shipping')).toBeInTheDocument()
+  expect(within(x1).getByText('Start production')).toBeInTheDocument()
   expect(within(x1).getByText('Quote received')).toBeInTheDocument()
   expect(within(x1).getByText('Lead time 3 weeks')).toBeInTheDocument()
   expect(screen.getByRole('columnheader', { name: 'Purchase notes' })).toBeInTheDocument()
@@ -140,9 +140,9 @@ test('the row shows the timeline points and all four quantities with Total by BO
   open()
   const x1 = await row('XX-01')
   // Approved by status (no dates), so submitted and approved; ordered; the sample, shipping and arrival are not reached.
-  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: Production and shipping, Pending/ })).toBeInTheDocument()
-  // Six segments (D-80): done stages green, the current one in its urgency colour, and the step number beside them.
-  expect(x1.querySelectorAll('.mi-tm-bar i')).toHaveLength(6)
+  expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed\. Next: Start production, No plan date/ })).toBeInTheDocument()
+  // Seven segments (D-80, D-88): done stages green, the current one in its urgency colour.
+  expect(x1.querySelectorAll('.mi-tm-bar i')).toHaveLength(7)
   expect(x1.querySelector('.mi-tm-bar i[title^="Order placed"]')).toHaveAttribute('data-state', 'done')
   expect(x1.querySelector('.mi-tm-n')).toBeNull()
   for (const name of ['Total by BOQ: 10. Change', 'Ordered: 4. Change', 'Approved SHD: 0. Change', 'On site: 0. Change']) expect(within(x1).getByRole('button', { name })).toBeInTheDocument()
@@ -236,9 +236,11 @@ test('the timeline cell says Place order before an order is placed, and its popo
   expect(x1.querySelector('.mi-tm-bar i[title^="Order placed"]')).toHaveAttribute('data-state', 'late')
   fireEvent.click(within(x1).getByText('Place order'))
   const pop = await screen.findByRole('dialog', { name: 'Timeline' })
-  for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Shipped', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()
+  for (const title of ['Material submitted', 'Material approved', 'Sample approved', 'Order placed', 'Production finished', 'Shipped', 'Fully on site']) expect(within(pop).getByText(title)).toBeInTheDocument()
   expect(within(pop).queryByRole('button', { name: /Done today|Yesterday|Mark shipped/ })).toBeNull()
-  expect(within(pop).queryByRole('button', { name: /^Shipped/ })).toBeNull()
+  // Approval has no plan column (it is due 14 days after submission); Production and Shipped have their own plan dates (D-88).
+  expect(within(pop).queryByRole('button', { name: /^Material approved/ })).toBeNull()
+  expect(within(pop).getByRole('button', { name: /^Shipped/ })).toBeInTheDocument()
   expect(within(pop).getByRole('button', { name: /^Order placed/ })).toHaveAttribute('aria-expanded', 'true')
   fireEvent.change(within(pop).getByLabelText('Order placed plan date'), { target: { value: '2026-12-15' } })
   expect(saveFields).not.toHaveBeenCalled()
@@ -249,10 +251,10 @@ test('the timeline cell says Place order before an order is placed, and its popo
 test('the timeline follows the status: moving Procurement to Shipping reaches the Shipped step', async () => {
   open()
   const x1 = await row('XX-01')
-  expect(within(x1).getByRole('button', { name: /^Timeline: .*\. Next: Production and shipping/ })).toBeInTheDocument()
+  expect(within(x1).getByRole('button', { name: /^Timeline: .*\. Next: Start production/ })).toBeInTheDocument()
   fireEvent.click(within(x1).getByRole('button', { name: /^Procurement:/ }))
   fireEvent.click(within(await screen.findByRole('dialog', { name: 'Change procurement stage' })).getByRole('button', { name: /^Shipping/ }))
-  await waitFor(() => expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed, Shipped\. Next: Deliver to site/ })).toBeInTheDocument())
+  await waitFor(() => expect(within(x1).getByRole('button', { name: /^Timeline: Material submitted, Material approved, Order placed, Production finished, Shipped\. Next: Deliver to site/ })).toBeInTheDocument())
 })
 
 test('List sections expand and collapse all at once', async () => {
@@ -281,7 +283,7 @@ test('the detail panel opens from the name, shows one timeline following both st
   expect(within(panel).getByText('Material submitted')).toBeInTheDocument()
   expect(within(panel).getByText('Follows Submission and Procurement')).toBeInTheDocument()
   expect(within(panel).getByText('Now')).toBeInTheDocument()
-  expect(panel.querySelectorAll('.mi-st')).toHaveLength(6)
+  expect(panel.querySelectorAll('.mi-st')).toHaveLength(7)
   expect(within(panel).getByLabelText('Total by BOQ')).toBeInTheDocument()
   expect(within(panel).getByText('Lead time 3 weeks')).toBeInTheDocument()
   fireEvent.keyDown(window, { key: 'Escape' })

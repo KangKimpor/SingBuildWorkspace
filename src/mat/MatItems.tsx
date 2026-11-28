@@ -56,7 +56,8 @@ function ago(at: string, now = Date.now()) {
 const FIELD_NAMES: Partial<Record<string, string>> = {
   msPlan: 'submission plan date', msActual: 'submission date', msApproved: 'approval date', msStatus: 'submission status',
   ssPlan: 'sample plan date', ssActual: 'sample submission date', ssApproved: 'sample approval date',
-  poPlan: 'order plan date', poActual: 'order date', arrPlan: 'arrival plan date', arrActual: 'arrival date',
+  poPlan: 'order plan date', poActual: 'order date', prodPlan: 'production plan date', shipPlan: 'shipping plan date',
+  arrPlan: 'arrival plan date', arrActual: 'arrival date',
   total: 'total quantity', po: 'ordered quantity', shd: 'approved SHD', onsite: 'quantity on site', unit: 'unit',
   description: 'description', code: 'code', brand: 'brand', location: 'location', spec: 'specification', source: 'source', pic: 'owner',
 }
@@ -119,11 +120,12 @@ function StagePill({ stage, caret }: { stage: ChipStage; caret?: boolean }) {
 }
 
 /**
- * The six points a material passes (D-66), the same in the List's Timeline column and the panel's Timeline: submitted,
- * approved, sample approved, ordered, shipped and fully on site. A point is reached by its date, or by the stage the
- * material is in (an approved status with no approval date is still approved); Shipped has no date column and follows the
- * procurement stage. An unreached point whose plan date has passed is overdue. A skipped point (D-69: no submission or no
- * sample needed) is neither reached nor overdue, and the material moves past it.
+ * The seven points a material passes (D-66, D-88), the same in the List's Timeline column and the panel's Timeline:
+ * submitted, approved, sample approved, ordered, production finished, shipped and fully on site. A point is reached by its
+ * date, or by the stage the material is in (an approved status with no approval date is still approved); Production and
+ * Shipped have no actual-date column and follow the procurement stage, but each has its own plan date (D-88). An unreached
+ * point whose plan date has passed is overdue. A skipped point (D-69: no submission or no sample needed) is neither reached
+ * nor overdue, and the material moves past it.
  */
 interface Stone {
   key: string; title: string
@@ -137,13 +139,13 @@ function stonesOf(item: MatItem, today: string): Stone[] {
   const iso = (key: EditableColKey) => { const v = effectiveCol(item, key); return isIsoDate(v) ? v : '' }
   const raw = (key: EditableColKey) => { const v = text(item, key); return v && !isIsoDate(effectiveCol(item, key)) ? v : '' }
   const sub = submissionOf(item), proc = procurementOf(item), submitted = iso('msActual'), noSub = sub === 'notreq'
-  const shipTodo = proc === 'production' ? 'In production' : proc === 'waiting' ? 'Waiting for shipment' : proc === 'ordered' ? 'Production and shipping' : 'Ship'
   const defs: (Omit<Stone, 'date' | 'note' | 'done' | 'late'> & { reached: boolean })[] = [
     { key: 'submitted', title: 'Material submitted', todo: 'Submit material', plan: iso('msPlan'), planKey: 'msPlan', actual: 'msActual', reached: sub !== 'notsub' && !noSub, skipped: noSub },
     { key: 'approved', title: 'Material approved', todo: 'Get approval', plan: submitted ? addDaysIso(submitted, 14) : '', planKey: null, actual: 'msApproved', reached: sub === 'approved', skipped: noSub, sub: text(item, 'msStatus') },
     { key: 'sample', title: 'Sample approved', todo: 'Get sample approved', plan: iso('ssPlan'), planKey: 'ssPlan', actual: 'ssApproved', reached: /^approved/i.test(raw('ssApproved')), skipped: sampleSkipped(item) },
     { key: 'ordered', title: 'Order placed', todo: 'Place order', plan: iso('poPlan'), planKey: 'poPlan', actual: 'poActual', reached: proc !== 'none', skipped: false },
-    { key: 'shipping', title: 'Shipped', todo: shipTodo, plan: '', planKey: null, actual: null, reached: proc === 'shipping' || proc === 'partial' || proc === 'onsite', skipped: false },
+    { key: 'production', title: 'Production finished', todo: proc === 'production' ? 'Finish production' : 'Start production', plan: iso('prodPlan'), planKey: 'prodPlan', actual: null, reached: proc === 'waiting' || proc === 'shipping' || proc === 'partial' || proc === 'onsite', skipped: false },
+    { key: 'shipping', title: 'Shipped', todo: 'Ship', plan: iso('shipPlan'), planKey: 'shipPlan', actual: null, reached: proc === 'shipping' || proc === 'partial' || proc === 'onsite', skipped: false },
     { key: 'onsite', title: 'Fully on site', todo: proc === 'partial' ? 'Deliver the balance' : 'Deliver to site', plan: iso('arrPlan'), planKey: 'arrPlan', actual: 'arrActual', reached: proc === 'onsite', skipped: false },
   ]
   return defs.map(({ reached, ...d }) => {
@@ -159,7 +161,7 @@ const currentStone = (stones: Stone[]) => stones.find((s) => pending(s) && s.key
 function stoneStatus(s: Stone, today: string): { text: string; tone?: 'late' | 'soon' | 'done' } {
   if (s.done) return { text: s.date ? shortDate(s.date) : 'Done', tone: 'done' }
   if (s.skipped) return { text: 'Not required' }
-  if (!s.plan) return { text: s.key === 'shipping' ? 'Pending' : 'No plan date' }
+  if (!s.plan) return { text: 'No plan date' }
   const diff = days(s.plan, today), word = s.planKey ? 'Plan' : 'Expected'
   if (diff < 0) return { text: `${-diff}d overdue · ${word.toLowerCase()} ${shortDate(s.plan)}`, tone: 'late' }
   if (diff <= 14) return { text: `${diff ? `In ${diff}d` : 'Today'} · ${word.toLowerCase()} ${shortDate(s.plan)}`, tone: 'soon' }
@@ -192,7 +194,7 @@ function TimeSummary({ stones, current, today, omitted }: { stones: Stone[]; cur
   let chip: string | null = null, rest = ''
   if (current) {
     if (current.skipped) rest = 'Not required'
-    else if (!current.plan) rest = current.key === 'shipping' ? 'Waiting on procurement' : 'No plan date'
+    else if (!current.plan) rest = 'No plan date'
     else if (diff !== null && diff < 0) { chip = `${-diff}d late`; rest = `${word} ${shortDate(current.plan)}` }
     else if (diff !== null && diff <= 14) { chip = diff ? `In ${diff}d` : 'Today'; rest = `${word} ${shortDate(current.plan)}` }
     else rest = `${word} ${shortDate(current.plan)}`
@@ -681,7 +683,7 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
   const virtualizer = useVirtualizer({
     count: virtual ? entries.length : 0,
     getScrollElement: () => listRef.current?.closest<HTMLElement>('.mi') ?? null,
-    estimateSize: (i) => entries[i]?.kind === 'head' ? (entries[i] as { depth: number }).depth === 0 ? 40 : 34 : 70,
+    estimateSize: (i) => entries[i]?.kind === 'head' ? (entries[i] as { depth: number }).depth === 0 ? 44 : 38 : 70,
     getItemKey: (i) => { const e = entries[i]!; return e.kind === 'head' ? e.key : e.item.id },
     scrollMargin: frame.margin,
     scrollPaddingStart: frame.cover + 8,
@@ -725,6 +727,7 @@ function ListView({ list, group, tree, collapsed, ctx, handle, onToggleGroup }: 
             <ChevronDown className="mi-chev" size={13} aria-hidden="true"/>
             <span className="mi-grp-l">{e.no && <span className="mi-grp-no">{e.no}</span>}{e.name && <span className="mi-grp-name">{e.name}</span>}</span>
           </button>
+          <span className="mi-grp-meta"><span className="mi-grp-n">{e.count} {e.count === 1 ? 'material' : 'materials'}</span>{e.late > 0 && <span className="mi-grp-late">{e.late} late</span>}</span>
         </div></div>
       : <Row key={e.item.id} item={e.item} d={derived.get(e.item.id)!} notes={ctx.notes.get(e.item.id)} week={ctx.week} today={ctx.today}
           changed={ctx.changed.has(e.item.id)} sel={ctx.open === e.item.id} flash={ctx.flash.has(e.item.id)}
@@ -1222,9 +1225,14 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <button type="button" className="mi-ibtn" aria-label="Close" title="Close (Esc)" onClick={onClose}><X size={15} aria-hidden="true"/></button>
       </div>
       <h2 title={text(item, 'description') || undefined}>{text(item, 'description') || codeOf(item)}</h2>
-      <div className="mi-ph-row">
-        <button type="button" className="mi-cell mi-inline mi-stage-cell" aria-haspopup="dialog" aria-label={`Submission: ${stageLabel(sub)}. Change`} title="Submission" onClick={popBtn('sub')}><StagePill stage={sub}/></button>
-        <button type="button" className="mi-cell mi-inline mi-stage-cell" aria-haspopup="dialog" aria-label={`Procurement: ${stageLabel(proc)}. Change`} title="Procurement" onClick={popBtn('proc')}><StagePill stage={proc}/></button>
+      {/* Each status in its own labelled card (D-88): the track's name, its capsule, and what the stage means. */}
+      <div className="mi-ph-stages">
+        {([['sub', 'Submission', sub], ['proc', 'Procurement', proc]] as const).map(([type, label, stage]) =>
+          <button key={type} type="button" className="mi-ph-stage" aria-haspopup="dialog" aria-label={`${label}: ${stageLabel(stage)}. Change`} onClick={popBtn(type)}>
+            <span className="mi-ph-k">{label}<ChevronDown size={12} aria-hidden="true"/></span>
+            <StagePill stage={stage}/>
+            <span className="mi-ph-h">{stageHint(stage)}</span>
+          </button>)}
       </div>
       {ctx.hasOwner && <div className="mi-ph-owner">
         <button type="button" className="mi-cell mi-inline mi-who" aria-haspopup="dialog" aria-label={`Owner: ${owner || 'none'}. Change`} onClick={popBtn('owner')}>
@@ -1271,7 +1279,11 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
               const planBit = plan && <span className="mi-st-bit">{planWord} {plan}</span>
               let detail: ReactNode
               if (s.skipped) detail = <span className="mi-st-bit">Not required for this material</span>
-              else if (s.key === 'shipping') detail = <span className="mi-st-bit">{s.done ? 'Shipped, from the Procurement status' : isNow ? `Procurement status: ${stageLabel(proc)}` : 'Follows the Procurement status'}</span>
+              // Production and Shipped are reached by the Procurement status; only their plan date is entered here (D-88).
+              else if (!s.actual) detail = <>
+                {s.done ? <span className="mi-st-bit">Done, from the Procurement status</span> : isNow && proc !== 'none' && <span className="mi-st-bit">Procurement: {stageLabel(proc)}</span>}
+                {planBit}
+              </>
               else if (s.done) detail = <>
                 <span className="mi-st-bit">Done {s.actual
                   ? <DateField label={`${s.title} actual date`} value={s.date} plain year empty="Add date" onSave={(val) => onDate(item, s.actual!, val)}/>
@@ -1312,14 +1324,20 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
         <h4>Notes<span className="mi-spacer"/><span className="mi-seg" role="group" aria-label="Team">
           {(['purchase', 'pm'] as Team[]).map((t) => <button key={t} type="button" aria-pressed={team === t} onClick={() => setTeam(t)}>{TEAM_LABEL[t]}</button>)}
         </span></h4>
-        <textarea className="mi-compose" aria-label={`${TEAM_LABEL[team]} note for this week`} placeholder={`This week's ${TEAM_LABEL[team]} note…`} value={draft} maxLength={2000}
-          onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void onNote(item.id, team, draft) } }}/>
-        <div className="mi-cbar"><span className="mi-faint mi-small">One note per team each week · earlier weeks stay as they were</span><span className="mi-spacer"/>
-          <button type="button" className="mi-btn" data-primary disabled={draft.trim() === thisWeek.trim()} onClick={() => void onNote(item.id, team, draft)}>Save</button></div>
-        <div className="mi-thread">
-          {thisWeekBy && draft.trim() === thisWeek.trim() && thisWeek.trim() && <p className="mi-faint mi-small mi-note-by">Written by {thisWeekBy}</p>}
-          {thread.length ? thread.map((n) => <div key={n.week} className="mi-msg"><div className="mi-wk">{weekName(n.week, week)}{n.by ? ` · ${n.by}` : ''}</div><div className="mi-b">{n.body}</div></div>)
-            : <p className="mi-faint mi-small">No earlier {TEAM_LABEL[team]} notes.</p>}
+        {/* This week's note as one composer card (D-88): the week and author on top, the text, then the keys and Save. */}
+        <div className="mi-nc" data-team={team}>
+          <div className="mi-nc-top"><span className="mi-nc-wk">This week</span><span className="mi-faint">Week of {shortDate(week)}</span>
+            {thisWeekBy && thisWeek.trim() && <><span className="mi-spacer"/><span className="mi-faint">Written by {thisWeekBy}</span></>}</div>
+          <textarea className="mi-compose" aria-label={`${TEAM_LABEL[team]} note for this week`} placeholder={`What happened this week? (${TEAM_LABEL[team]})`} value={draft} maxLength={2000}
+            onChange={(e) => setDraft(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void onNote(item.id, team, draft) } }}/>
+          <div className="mi-nc-foot"><span className="mi-np-keys" aria-hidden="true"><kbd>↵</kbd> Save<span className="mi-np-dot">·</span><kbd>⇧</kbd><kbd>↵</kbd> New line</span><span className="mi-spacer"/>
+            <button type="button" className="mi-btn" data-primary disabled={draft.trim() === thisWeek.trim()} onClick={() => void onNote(item.id, team, draft)}>{thisWeek.trim() && !draft.trim() ? 'Remove note' : 'Save'}</button></div>
+        </div>
+        <div className="mi-nh">
+          <div className="mi-nh-t">Earlier weeks<span className="mi-faint">Kept as they were written</span></div>
+          {thread.length ? <ol className="mi-nh-list" aria-label={`Earlier ${TEAM_LABEL[team]} notes`}>
+            {thread.map((n) => <li key={n.week}><div className="mi-wk">{weekName(n.week, week)}{n.by && <span className="mi-faint"> · {n.by}</span>}</div><div className="mi-b">{n.body}</div></li>)}
+          </ol> : <p className="mi-nh-none">No earlier {TEAM_LABEL[team]} notes.</p>}
         </div>
       </div>
       <div className="mi-sec">
@@ -1328,11 +1346,20 @@ function PanelBody({ item, ctx, section, week, remarks, onClose, onNav, onDate, 
       </div>
       <div className="mi-sec">
         <h4>Details</h4>
-        <dl className="mi-kv">
-          {([['Brand', 'brand'], ['Location', 'location'], ['Specification', 'spec'], ['Submission', 'msStatus'], ['BP02 approval', 'bp02'], ['Source', 'source']] as [string, EditableColKey][])
-            .map(([l, k]) => <div key={k}><dt>{l}</dt><dd>{text(item, k) || <span className="mi-faint">—</span>}</dd></div>)}
-        </dl>
-        <button type="button" className="mi-btn mi-src" onClick={() => onOpenSource(item.id)}><ImageIcon size={14} aria-hidden="true"/>{photos ? `${photos} photo${photos === 1 ? '' : 's'} · edit details` : 'Add photos · edit details'}</button>
+        {/* An inset card (D-88): one row per field, the label on the left and the value beside it, and the edit row closing it. */}
+        <div className="mi-kv-card">
+          <dl className="mi-kv">
+            {([['Brand', 'brand'], ['Location', 'location'], ['Specification', 'spec'], ['Submission', 'msStatus'], ['BP02 approval', 'bp02'], ['Source', 'source']] as [string, EditableColKey][])
+              .map(([l, k]) => <div key={k}><dt>{l}</dt><dd>{text(item, k) || <span className="mi-faint">Not set</span>}</dd></div>)}
+          </dl>
+          <button type="button" className="mi-kv-edit" onClick={() => onOpenSource(item.id)}>
+            <span className="mi-kv-ic" aria-hidden="true"><ImageIcon size={14}/></span>
+            <span>Edit details and photos</span>
+            <span className="mi-spacer"/>
+            <span className="mi-faint">{photos ? `${photos} photo${photos === 1 ? '' : 's'}` : 'No photos'}</span>
+            <ChevronRight size={14} className="mi-kv-chev" aria-hidden="true"/>
+          </button>
+        </div>
       </div>
     </div>
   </>
@@ -1624,7 +1651,7 @@ function TimelinePop({ item, today, onPlan, onSub, onSkipSample, onEditDates }: 
           {s.planKey
             ? <button type="button" className="mi-tlp-row" aria-expanded={open} data-autofocus={open || undefined} title="Change the plan date"
                 onClick={() => setOpenKey(open ? null : s.key)}>{body}</button>
-            : <div className="mi-tlp-row" title={s.key === 'approved' ? 'Expected 14 days after the submission' : 'Set by the Procurement status'}>{body}</div>}
+            : <div className="mi-tlp-row" title="Expected 14 days after the submission">{body}</div>}
           {open && <div className="mi-tlp-act">
             {!s.skipped && <PlanDate key={`${item.id}:${s.planKey}`} label={`${s.title} plan date`} value={s.plan} onSave={(v) => onPlan(s.planKey!, v)}/>}
             {canSkip && <div className="mi-tlp-skip">
