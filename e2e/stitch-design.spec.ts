@@ -22,7 +22,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
     await expect(page.locator('.nbc-project')).toBeVisible()
     if (width >= 1024) {
       const sidebar = page.getByTestId('sidebar')
-      expect(await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(58, 58, 60)')
+      expect(await sidebar.evaluate((el) => getComputedStyle(el).backgroundColor)).toBe('rgb(51, 51, 54)')
       await expect(sidebar).toHaveCSS('width', '196px')
       const clippedLabels = await sidebar.locator('.sidebar-brand-name, .sidebar-brand-sub, .project-name, .project-subtitle, .nav-label').evaluateAll((els) =>
         els.filter((el) => el.scrollWidth > el.clientWidth + 1).map((el) => `${el.className}: ${el.textContent} (${el.scrollWidth}>${el.clientWidth})`),
@@ -55,7 +55,7 @@ for (const width of [1280, 820, 393]) for (const theme of ['light'] as const) {
       await page.getByRole('button', { name: 'Open sidebar', exact: true }).click()
       const drawer = page.getByRole('dialog', { name: 'Sidebar', exact: true })
       await expect(drawer).toBeVisible()
-      await expect(drawer).toHaveCSS('background-color', 'rgb(58, 58, 60)')
+      await expect(drawer).toHaveCSS('background-color', 'rgb(51, 51, 54)')
       await expect(drawer.getByText('44%', { exact: true })).toBeVisible()
       const children = drawer.getByRole('list', { name: `${fixtureProject.name} views`, exact: true })
       await expect(children.getByRole('link')).toHaveCount(3)
