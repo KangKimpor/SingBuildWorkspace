@@ -1019,7 +1019,7 @@ kbd {
   --glass-radius: var(--radius-popover);
   position: fixed;
   bottom: var(--space-24);
-  left: calc(var(--w-sidebar) + var(--space-24));
+  left: calc(var(--sidebar-col, var(--sidebar-w, var(--w-sidebar))) + var(--space-24));
   z-index: 70;
   display: flex;
   align-items: center;

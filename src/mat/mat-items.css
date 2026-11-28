@@ -416,8 +416,8 @@ label.mi-l .mi-field { width: 100%; margin-top: 5px; }
 /* Medium widths (D-73): a narrower sidebar leaves the List about 1,150 to 1,340 px. Rather than scroll sideways, the
    Submission and Procurement capsules stack in one column (the rows are tall enough for two), and the header reads
    "Submission · Procurement". */
-/* Medium widths (D-77): Submission and Procurement keep their own columns. To fit beside the 224 px sidebar (about
-   1,180 px of list on a 1,536 px screen) the capsules get 12 px text, and the gaps, photo, name, Quantity and notes
+/* Medium widths (D-77, D-83): Submission and Procurement keep their own columns. Beside the 196 px sidebar (over
+   1,200 px of list on a 1,536 px screen) the capsules get 12 px text, and the gaps, photo, name, Quantity and notes
    columns tighten. Measured capsule widths at this size: "Not submitted" 116 px, "Waiting for shipment" 152 px. */
 @container mi (min-width: 761px) and (max-width: 1379px) {
   .mi-list { --mi-lead: 40px; }

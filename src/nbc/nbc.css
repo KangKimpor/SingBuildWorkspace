@@ -14,7 +14,7 @@ html[data-nbc] {
   --accent: var(--accent-blue); --accent-fill: var(--accent-blue); --selection: var(--accent-selection);
   --dur-instant: 80ms; --dur-fast: 140ms; --dur-base: 220ms; --dur-slow: 340ms;
   --ease-standard: cubic-bezier(0.2,0,0,1); --ease-enter: var(--ease-out); --ease-exit: var(--ease-out);
-  --w-sidebar: 224px; --h-topbar: 44px; --w-nbc-wbs: 160px; --h-button: 32px; --h-input: 32px;
+  --w-sidebar: 196px; --h-topbar: 44px; --w-nbc-wbs: 160px; --h-button: 32px; --h-input: 32px;
   --scrim: rgb(0 0 0 / 40%);
 }
 html[data-nbc] :is(.glass,.btn-accent,.btn-secondary,.glass-select,.search-field,.nbc-panel,.nbc-grid-scroll,.icon-tile) { box-shadow: none; background-image: none; backdrop-filter: none; }

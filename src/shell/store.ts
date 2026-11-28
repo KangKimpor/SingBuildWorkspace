@@ -10,8 +10,8 @@ export function breakpointFor(width: number): Breakpoint {
   return 'large'
 }
 
-/** D-73: narrower than the original 264 px, so the pages beside it get the room. */
-const SIDEBAR_WIDTH = 224
+/** D-83: narrower than the 224 px sidebar (originally 264 px), so the pages beside it get more room. */
+const SIDEBAR_WIDTH = 196
 
 export type SheetKind = 'quick-add' | null
 
