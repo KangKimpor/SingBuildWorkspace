@@ -14,6 +14,7 @@ import { clearClientCaches } from './versionGate'
  */
 const HEAL_KEY = 'kw-chunk-heal'
 const HEAL_WINDOW_MS = 30_000
+const NAVIGATE_SETTLE_MS = 400
 
 /** Forgets the last heal, so the next failure (after the person presses Reload) refetches again. */
 export function resetChunkHeal() {
@@ -68,25 +69,70 @@ export async function healStaleChunk(error: unknown, options: HealOptions = {}):
   return true
 }
 
+export interface InstallOptions extends HealOptions {
+  delayMs?: number
+}
+
 /**
  * Listens for chunks that fail to load: Vite's `vite:preloadError` and, for imports outside its preload helper, an
  * unhandled rejection that reads like one. `onGiveUp` runs when a heal already ran and the chunk still fails.
+ *
+ * Waits briefly before healing and cancels on `pagehide` so navigations that abort in-flight imports (e.g. WebKit)
+ * do not wipe caches or reload the frame back to the old URL.
  */
-export function installChunkRecovery(onGiveUp: () => void) {
+export function installChunkRecovery(onGiveUp: () => void, options: InstallOptions = {}): () => void {
+  const { delayMs = NAVIGATE_SETTLE_MS, reload = () => location.reload(), ...healOptions } = options
   // One failure often arrives twice (the preload event, then the rejected import): handle it once.
   let busy = false
-  const handle = (error: unknown) => {
-    if (busy) return
-    busy = true
-    void healStaleChunk(error).then((reloading) => { if (!reloading) onGiveUp() })
+  let leaving = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const onPageHide = () => {
+    leaving = true
+    if (timer !== undefined) {
+      clearTimeout(timer)
+      timer = undefined
+    }
   }
-  addEventListener('vite:preloadError', (event) => {
+  const onPageShow = (event: PageTransitionEvent) => {
+    if (!leaving && !event.persisted) return
+    leaving = false
+    busy = false
+  }
+  const handle = (error: unknown) => {
+    if (busy || leaving) return
+    busy = true
+    timer = setTimeout(() => {
+      timer = undefined
+      if (leaving) {
+        busy = false
+        return
+      }
+      void healStaleChunk(error, { ...healOptions, reload: () => { if (!leaving) reload() } }).then((reloading) => {
+        if (!reloading && !leaving) onGiveUp()
+      })
+    }, delayMs)
+  }
+  const onPreloadError = (event: Event) => {
     event.preventDefault()
     handle((event as Event & { payload?: unknown }).payload)
-  })
-  addEventListener('unhandledrejection', (event) => {
+  }
+  const onUnhandledRejection = (event: PromiseRejectionEvent) => {
     if (!isChunkLoadError(event.reason)) return
     event.preventDefault()
     handle(event.reason)
-  })
+  }
+  addEventListener('pagehide', onPageHide)
+  addEventListener('pageshow', onPageShow)
+  addEventListener('vite:preloadError', onPreloadError)
+  addEventListener('unhandledrejection', onUnhandledRejection)
+  return () => {
+    if (timer !== undefined) {
+      clearTimeout(timer)
+      timer = undefined
+    }
+    removeEventListener('pagehide', onPageHide)
+    removeEventListener('pageshow', onPageShow)
+    removeEventListener('vite:preloadError', onPreloadError)
+    removeEventListener('unhandledrejection', onUnhandledRejection)
+  }
 }
